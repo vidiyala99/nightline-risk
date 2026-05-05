@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
 import { Building2, MapPin, Users, Plus, ArrowRight, LogOut } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 interface Venue {
   id: string;

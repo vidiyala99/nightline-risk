@@ -10,6 +10,7 @@ venv/
 backend/database.db
 backend/*.log
 backend/*.pid
+backend/.test-temp/
 backend/pytest-cache-files-*/
 
 # Frontend dependencies and build output
@@ -26,6 +27,8 @@ frontend/*.pid
 
 # Local agent/tooling artifacts
 .agent/
+.claude/
+.opencode/
 
 # OS/editor files
 .DS_Store

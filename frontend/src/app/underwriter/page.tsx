@@ -15,7 +15,7 @@ type IncidentPacket = {
   underwriting_memo: { summary: string; open_questions: string[]; review_status: string; citations: Citation[] };
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 const demoIncident = {
   occurred_at: "2026-05-02T23:13:00Z",
@@ -35,13 +35,76 @@ const lifecycleLabels: Record<Lifecycle, string> = {
   blocked: "Blocked",
 };
 
+const goldStandardScenarios = [
+  {
+    id: "SCENARIO-001-DELAYED-BRAWL",
+    name: "DELAYED_BRAWL_INCIDENT",
+    description: "Physical struggle with delayed security response (>40s).",
+    data: {
+      incident: { id: "EV-001", venue_id: "elsewhere-brooklyn", occurred_at: "2026-05-02T23:14:00Z", location: "rear bar", summary: "A physical struggle occurs near the rear bar. Security response is delayed by over 40 seconds." },
+      risk_signal: { type: "negligent_security", severity: "high", confidence: 0.92, explanation: "Security intervention was not detected until 42 seconds after aggression spike. This exceeds the 30-second 'Duty of Care' threshold.", review_status: "needs_review", citations: [] },
+      action_plan: [{ title: "ESCALATE TO CARRIER", rationale: "Response latency violates Section III of the policy.", evidence_needed: ["Video evidence (EV-CAM-001)", "Staff logs"] }],
+      claims_timeline: [
+        { at: "2026-05-02T23:14:00Z", label: "Aggression detected at Rear Bar (Confidence: 0.92)", source: "stream:camera-rear-bar" },
+        { at: "2026-05-02T23:14:42Z", label: "Security intervention detected (Response delta: 42s)", source: "stream:camera-rear-bar" }
+      ],
+      underwriting_memo: { summary: "High-risk incident detected. Security response latency represents a significant liability exposure for Assault & Battery claims.", open_questions: ["WHY WAS SECURITY DELAYED?", "WAS THE BAR AREA ADEQUATELY STAFFED?"], review_status: "needs_review", citations: [] }
+    }
+  },
+  {
+    id: "SCENARIO-002-AFTER-HOURS-LIQUOR",
+    name: "AFTER_HOURS_LIQUOR_SALE",
+    description: "Spirits sale occurring after 4:00 AM legal cutoff.",
+    data: {
+      incident: { id: "EV-002", venue_id: "elsewhere-brooklyn", occurred_at: "2026-05-03T04:05:12Z", location: "bar-primary", summary: "Multiple sales of high-ABV spirits occur after the 4:00 AM legal cutoff." },
+      risk_signal: { type: "liquor_liability", severity: "critical", confidence: 0.98, explanation: "POS logs indicate sale of spirits at 04:05:12 AM, violating the 04:00 AM legal service cutoff.", review_status: "needs_review", citations: [] },
+      action_plan: [{ title: "IMMEDIATE COMPLIANCE REVIEW", rationale: "Dram Shop violation identified.", evidence_needed: ["POS Audit", "Staff interview"] }],
+      claims_timeline: [{ at: "2026-05-03T04:05:12Z", label: "Sale of 4x Tequila Shot recorded at POS", source: "stream:pos-primary" }],
+      underwriting_memo: { summary: "Critical Liquor Liability violation. Violation of Section 1.2 regarding service hour compliance.", open_questions: ["WAS THIS AN ISOLATED INCIDENT?", "IS THE STAFF TRAINED ON LOCAL CUTOFFS?"], review_status: "needs_review", citations: [] }
+    }
+  },
+  {
+    id: "SCENARIO-003-PROACTIVE-MITIGATION",
+    name: "PROACTIVE_RISK_MITIGATION",
+    description: "High crowd density mitigated by proactive water and security presence.",
+    data: {
+      incident: { id: "EV-003", venue_id: "elsewhere-brooklyn", occurred_at: "2026-05-03T01:30:00Z", location: "dance-floor", summary: "High crowd density is detected, but POS data shows proactive water distribution." },
+      risk_signal: { type: "crowd_management", severity: "low", confidence: 0.95, explanation: "Crowd density elevated, but mitigated by confirmed security presence and free water distribution.", review_status: "approved", citations: [] },
+      action_plan: [{ title: "DOCUMENT AS BEST PRACTICE", rationale: "Demonstrates high Duty of Care.", evidence_needed: ["Archive POS and Camera metadata"] }],
+      claims_timeline: [
+        { at: "2026-05-03T01:30:00Z", label: "Security presence confirmed on Dance Floor", source: "stream:camera-dance-floor" },
+        { at: "2026-05-03T01:32:00Z", label: "10x Free Water distribution recorded", source: "stream:pos-primary" }
+      ],
+      underwriting_memo: { summary: "Incident demonstrates proactive risk management. No premium action recommended.", open_questions: [], review_status: "approved", citations: [] }
+    }
+  }
+];
+
 export default function UnderwriterPage() {
   const [packet, setPacket] = useState<IncidentPacket | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Lifecycle>("needs_review");
+  const [selectedScenario, setSelectedScenario] = useState<string>("");
 
   const activePacket = packet ?? getMockDataForTab(activeTab);
+
+  async function handleScenarioChange(scenarioId: string) {
+    setSelectedScenario(scenarioId);
+    if (!scenarioId) {
+      setPacket(null);
+      return;
+    }
+    const scenario = goldStandardScenarios.find(s => s.id === scenarioId);
+    if (scenario) {
+      setLoading(true);
+      // Simulate network delay for deterministic packet processing.
+      setTimeout(() => {
+        setPacket(scenario.data as any);
+        setLoading(false);
+      }, 800);
+    }
+  }
   const lifecycle = activeTab; // Force lifecycle to match tab for demo purposes
   const evidenceSummary = useMemo(() => summarizeEvidence(activePacket), [activePacket]);
   const evidenceGroups = useMemo(() => buildEvidenceGroups(activePacket), [activePacket]);
@@ -74,6 +137,19 @@ export default function UnderwriterPage() {
           <p className="text-sm font-mono mt-xs text-secondary max-w-[800px]">EVIDENCE-FIRST CARRIER REVIEW FOR LIQUOR-LIABILITY EXPOSURE, CLAIMS DEFENSIBILITY, AND RENEWAL ACTION.</p>
         </div>
         <div className="flex items-center gap-md">
+          <div className="flex flex-col gap-xs mr-md">
+            <span className="data-label">PHASE_1_SIMULATION</span>
+            <select
+              className="bg-transparent border border-[#333] text-secondary font-mono text-xs p-1 outline-none hover:border-accent"
+              value={selectedScenario}
+              onChange={(e) => handleScenarioChange(e.target.value)}
+            >
+              <option value="">-- SELECT SCENARIO --</option>
+              {goldStandardScenarios.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
           <div className="text-right border-r border-[#333] pr-md">
             <div className="data-label">STATUS</div>
             <div className="data-value text-accent font-bold">ONLINE // DEMO_DATA</div>
@@ -304,7 +380,7 @@ function getMockDataForTab(tab: Lifecycle): IncidentPacket {
       return {
         ...basePacket,
         risk_signal: {
-          type: "pending_analysis", severity: "unknown", confidence: 0.0, explanation: "Awaiting LLM extraction and risk scoring.", review_status: "draft", citations: []
+          type: "pending_analysis", severity: "unknown", confidence: 0.0, explanation: "Awaiting deterministic evidence extraction and rubric scoring.", review_status: "draft", citations: []
         },
         action_plan: [],
         underwriting_memo: { summary: "Awaiting generation...", open_questions: [], review_status: "draft", citations: [] }

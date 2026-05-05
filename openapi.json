@@ -5,6 +5,274 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register",
+        "operationId": "register_api_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get Me",
+        "operationId": "get_me_api_auth_me_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ingest/{venue_id}/pos": {
+      "post": {
+        "tags": [
+          "ingestion"
+        ],
+        "summary": "Ingest Pos",
+        "operationId": "ingest_pos_api_v1_ingest__venue_id__pos_post",
+        "parameters": [
+          {
+            "name": "venue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Venue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/POSEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ingest/{venue_id}/camera": {
+      "post": {
+        "tags": [
+          "ingestion"
+        ],
+        "summary": "Ingest Camera",
+        "operationId": "ingest_camera_api_v1_ingest__venue_id__camera_post",
+        "parameters": [
+          {
+            "name": "venue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Venue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ingest/{venue_id}/staffing": {
+      "post": {
+        "tags": [
+          "ingestion"
+        ],
+        "summary": "Ingest Staffing",
+        "operationId": "ingest_staffing_api_v1_ingest__venue_id__staffing_post",
+        "parameters": [
+          {
+            "name": "venue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Venue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffingEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "summary": "Health",
@@ -51,6 +319,47 @@
       }
     },
     "/api/venues/{venue_id}/incidents": {
+      "get": {
+        "summary": "List Incidents",
+        "operationId": "list_incidents_api_venues__venue_id__incidents_get",
+        "parameters": [
+          {
+            "name": "venue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Venue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Incident"
+                  },
+                  "title": "Response List Incidents Api Venues  Venue Id  Incidents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "summary": "Create Incident",
         "operationId": "create_incident_api_venues__venue_id__incidents_post",
@@ -99,18 +408,18 @@
         }
       }
     },
-    "/api/venues/{venue_id}/incidents/preview": {
+    "/api/incidents/{incident_id}/packets": {
       "get": {
-        "summary": "Get Preview",
-        "operationId": "get_preview_api_venues__venue_id__incidents_preview_get",
+        "summary": "List Incident Packets",
+        "operationId": "list_incident_packets_api_incidents__incident_id__packets_get",
         "parameters": [
           {
-            "name": "venue_id",
+            "name": "incident_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Venue Id"
+              "title": "Incident Id"
             }
           }
         ],
@@ -120,7 +429,12 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IncidentFlowResponse"
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Incident Packets Api Incidents  Incident Id  Packets Get"
                 }
               }
             }
@@ -138,18 +452,18 @@
         }
       }
     },
-    "/api/venues/{venue_id}/live": {
+    "/api/packets/{packet_id}": {
       "get": {
-        "summary": "Get Live State",
-        "operationId": "get_live_state_api_venues__venue_id__live_get",
+        "summary": "Get Packet",
+        "operationId": "get_packet_api_packets__packet_id__get",
         "parameters": [
           {
-            "name": "venue_id",
+            "name": "packet_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Venue Id"
+              "title": "Packet Id"
             }
           }
         ],
@@ -159,7 +473,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LiveVenueState"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Packet Api Packets  Packet Id  Get"
                 }
               }
             }
@@ -177,46 +493,85 @@
         }
       }
     },
-    "/api/venues/{venue_id}/compliance/{item_id}/upload": {
+    "/api/packets/{packet_id}/review-decisions": {
       "post": {
-        "summary": "Upload Compliance Evidence",
-        "operationId": "upload_compliance_evidence_api_venues__venue_id__compliance__item_id__upload_post",
+        "summary": "Create Review Decision",
+        "operationId": "create_review_decision_api_packets__packet_id__review_decisions_post",
         "parameters": [
           {
-            "name": "venue_id",
+            "name": "packet_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Venue Id"
-            }
-          },
-          {
-            "name": "item_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Item Id"
+              "title": "Packet Id"
             }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "multipart/form-data": {
+            "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_compliance_evidence_api_venues__venue_id__compliance__item_id__upload_post"
+                "$ref": "#/components/schemas/ReviewDecisionCreate"
               }
             }
           }
         },
         "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Review Decision Api Packets  Packet Id  Review Decisions Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/packets/{packet_id}/audit-events": {
+      "get": {
+        "summary": "List Packet Audit Events",
+        "operationId": "list_packet_audit_events_api_packets__packet_id__audit_events_get",
+        "parameters": [
+          {
+            "name": "packet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Packet Id"
+            }
+          }
+        ],
+        "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Packet Audit Events Api Packets  Packet Id  Audit Events Get"
+                }
               }
             }
           },
@@ -284,6 +639,187 @@
           }
         }
       }
+    },
+    "/api/venues/{venue_id}/live": {
+      "get": {
+        "summary": "Get Live State",
+        "operationId": "get_live_state_api_venues__venue_id__live_get",
+        "parameters": [
+          {
+            "name": "venue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Venue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveVenueState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/venues/{venue_id}/risk-score": {
+      "get": {
+        "summary": "Get Venue Risk Score",
+        "operationId": "get_venue_risk_score_api_venues__venue_id__risk_score_get",
+        "parameters": [
+          {
+            "name": "venue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Venue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Venue Risk Score Api Venues  Venue Id  Risk Score Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/venues/{venue_id}/quote": {
+      "get": {
+        "summary": "Get Venue Quote",
+        "operationId": "get_venue_quote_api_venues__venue_id__quote_get",
+        "parameters": [
+          {
+            "name": "venue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Venue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Venue Quote Api Venues  Venue Id  Quote Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/venues/{venue_id}/compliance/{item_id}/upload": {
+      "post": {
+        "summary": "Upload Compliance Evidence",
+        "operationId": "upload_compliance_evidence_api_venues__venue_id__compliance__item_id__upload_post",
+        "parameters": [
+          {
+            "name": "venue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Venue Id"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_compliance_evidence_api_venues__venue_id__compliance__item_id__upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Upload Compliance Evidence Api Venues  Venue Id  Compliance  Item Id  Upload Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -304,11 +840,6 @@
             },
             "type": "array",
             "title": "Evidence Needed"
-          },
-          "mitigation_credit": {
-            "type": "number",
-            "title": "Mitigation Credit",
-            "default": 0.0
           }
         },
         "type": "object",
@@ -318,34 +849,6 @@
           "evidence_needed"
         ],
         "title": "ActionItem"
-      },
-      "AgentExecutionStep": {
-        "properties": {
-          "agent_name": {
-            "type": "string",
-            "title": "Agent Name"
-          },
-          "contract_version": {
-            "type": "string",
-            "title": "Contract Version"
-          },
-          "contract_path": {
-            "type": "string",
-            "title": "Contract Path"
-          },
-          "execution_mode": {
-            "type": "string",
-            "title": "Execution Mode",
-            "default": "deterministic"
-          }
-        },
-        "type": "object",
-        "required": [
-          "agent_name",
-          "contract_version",
-          "contract_path"
-        ],
-        "title": "AgentExecutionStep"
       },
       "Body_upload_compliance_evidence_api_venues__venue_id__compliance__item_id__upload_post": {
         "properties": {
@@ -360,6 +863,90 @@
           "file"
         ],
         "title": "Body_upload_compliance_evidence_api_venues__venue_id__compliance__item_id__upload_post"
+      },
+      "CameraEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id",
+            "description": "Unique identifier for the event"
+          },
+          "venue_id": {
+            "type": "string",
+            "title": "Venue Id",
+            "description": "The unique ID of the venue (e.g., elsewhere-brooklyn)"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/SourceType",
+            "default": "camera"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "When the event occurred at the source"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At",
+            "description": "When the event hit our ingestion API"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Arbitrary source metadata (firmware, sensor IDs, etc.)"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/CameraEventPayload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "venue_id",
+          "payload"
+        ],
+        "title": "CameraEvent"
+      },
+      "CameraEventPayload": {
+        "properties": {
+          "zone_id": {
+            "type": "string",
+            "title": "Zone Id"
+          },
+          "person_count": {
+            "type": "integer",
+            "title": "Person Count"
+          },
+          "detections": {
+            "items": {
+              "$ref": "#/components/schemas/Detection"
+            },
+            "type": "array",
+            "title": "Detections"
+          },
+          "aggression_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Aggression Score",
+            "default": 0.0
+          },
+          "anomaly_detected": {
+            "type": "boolean",
+            "title": "Anomaly Detected",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "zone_id",
+          "person_count",
+          "detections"
+        ],
+        "title": "CameraEventPayload"
       },
       "Citation": {
         "properties": {
@@ -411,6 +998,32 @@
           "severity"
         ],
         "title": "ComplianceItem"
+      },
+      "Detection": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "box": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Box"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "confidence",
+          "box"
+        ],
+        "title": "Detection"
       },
       "HTTPValidationError": {
         "properties": {
@@ -545,14 +1158,6 @@
           },
           "underwriting_memo": {
             "$ref": "#/components/schemas/UnderwritingMemo"
-          },
-          "execution_trace": {
-            "items": {
-              "$ref": "#/components/schemas/AgentExecutionStep"
-            },
-            "type": "array",
-            "title": "Execution Trace",
-            "default": []
           }
         },
         "type": "object",
@@ -637,6 +1242,218 @@
         ],
         "title": "LiveVenueState"
       },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "POSEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id",
+            "description": "Unique identifier for the event"
+          },
+          "venue_id": {
+            "type": "string",
+            "title": "Venue Id",
+            "description": "The unique ID of the venue (e.g., elsewhere-brooklyn)"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/SourceType",
+            "default": "pos"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "When the event occurred at the source"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At",
+            "description": "When the event hit our ingestion API"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Arbitrary source metadata (firmware, sensor IDs, etc.)"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/POSEventPayload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "venue_id",
+          "payload"
+        ],
+        "title": "POSEvent"
+      },
+      "POSEventPayload": {
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "title": "Order Id"
+          },
+          "total_amount": {
+            "type": "number",
+            "title": "Total Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "default": "USD"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/POSItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "payment_method": {
+            "type": "string",
+            "title": "Payment Method"
+          },
+          "staff_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Staff Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_id",
+          "total_amount",
+          "items",
+          "payment_method"
+        ],
+        "title": "POSEventPayload"
+      },
+      "POSItem": {
+        "properties": {
+          "sku": {
+            "type": "string",
+            "title": "Sku"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity"
+          },
+          "price_total": {
+            "type": "number",
+            "title": "Price Total"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sku",
+          "name",
+          "quantity",
+          "price_total",
+          "category"
+        ],
+        "title": "POSItem"
+      },
+      "RegisterRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "default": "venue_operator"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "name"
+        ],
+        "title": "RegisterRequest"
+      },
+      "ReviewDecisionCreate": {
+        "properties": {
+          "reviewer_id": {
+            "type": "string",
+            "title": "Reviewer Id"
+          },
+          "decision": {
+            "type": "string",
+            "title": "Decision"
+          },
+          "override_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Reason"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reviewer_id",
+          "decision"
+        ],
+        "title": "ReviewDecisionCreate"
+      },
       "RiskSignal": {
         "properties": {
           "type": {
@@ -667,16 +1484,6 @@
             },
             "type": "array",
             "title": "Citations"
-          },
-          "premium_impact_estimate": {
-            "type": "number",
-            "title": "Premium Impact Estimate",
-            "default": 0.0
-          },
-          "liability_score": {
-            "type": "integer",
-            "title": "Liability Score",
-            "default": 50
           }
         },
         "type": "object",
@@ -689,6 +1496,101 @@
           "citations"
         ],
         "title": "RiskSignal"
+      },
+      "SourceType": {
+        "type": "string",
+        "enum": [
+          "pos",
+          "camera",
+          "staffing",
+          "iot"
+        ],
+        "title": "SourceType"
+      },
+      "StaffingEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id",
+            "description": "Unique identifier for the event"
+          },
+          "venue_id": {
+            "type": "string",
+            "title": "Venue Id",
+            "description": "The unique ID of the venue (e.g., elsewhere-brooklyn)"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/SourceType",
+            "default": "staffing"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "When the event occurred at the source"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At",
+            "description": "When the event hit our ingestion API"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Arbitrary source metadata (firmware, sensor IDs, etc.)"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/StaffingEventPayload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "venue_id",
+          "payload"
+        ],
+        "title": "StaffingEvent"
+      },
+      "StaffingEventPayload": {
+        "properties": {
+          "staff_id": {
+            "type": "string",
+            "title": "Staff Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "location_zone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Zone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "staff_id",
+          "name",
+          "role",
+          "action"
+        ],
+        "title": "StaffingEventPayload"
       },
       "StreamEvent": {
         "properties": {

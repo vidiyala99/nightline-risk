@@ -58,19 +58,83 @@ export class DefaultService {
         });
     }
     /**
-     * Get Preview
-     * @param venueId
-     * @returns IncidentFlowResponse Successful Response
+     * List Incident Packets
+     * @param incidentId
+     * @returns any Successful Response
      * @throws ApiError
      */
-    public static getPreviewApiVenuesVenueIdIncidentsPreviewGet(
-        venueId: string,
-    ): CancelablePromise<IncidentFlowResponse> {
+    public static listIncidentPacketsApiIncidentsIncidentIdPacketsGet(
+        incidentId: string,
+    ): CancelablePromise<Array<Record<string, any>>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/venues/{venue_id}/incidents/preview',
+            url: '/api/incidents/{incident_id}/packets',
             path: {
-                'venue_id': venueId,
+                'incident_id': incidentId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Packet
+     * @param packetId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getPacketApiPacketsPacketIdGet(
+        packetId: string,
+    ): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/packets/{packet_id}',
+            path: {
+                'packet_id': packetId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Review Decision
+     * @param packetId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static createReviewDecisionApiPacketsPacketIdReviewDecisionsPost(
+        packetId: string,
+        requestBody: Record<string, any>,
+    ): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/packets/{packet_id}/review-decisions',
+            path: {
+                'packet_id': packetId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Packet Audit Events
+     * @param packetId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static listPacketAuditEventsApiPacketsPacketIdAuditEventsGet(
+        packetId: string,
+    ): CancelablePromise<Array<Record<string, any>>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/packets/{packet_id}/audit-events',
+            path: {
+                'packet_id': packetId,
             },
             errors: {
                 422: `Validation Error`,

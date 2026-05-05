@@ -51,11 +51,10 @@ class RiskEvaluatorWorker(BaseWorker):
 
     async def _run(self, context: Dict[str, Any]) -> Dict[str, Any]:
         runtime = UnderwritingPacketAgentRuntime()
-        contracts = runtime._load_contracts()
         citations_data = context.get("retrieval", {}).get("citations", [])
         citations = [Citation(**c) for c in citations_data]
         
-        risk_signal = runtime._run_risk_evaluator_agent(contracts=contracts, citations=citations)
+        risk_signal = runtime._run_risk_evaluator_agent(citations=citations)
         return {"risk_signal": risk_signal.model_dump()}
 
 class UnderwriterMemoWorker(BaseWorker):
@@ -64,11 +63,10 @@ class UnderwriterMemoWorker(BaseWorker):
 
     async def _run(self, context: Dict[str, Any]) -> Dict[str, Any]:
         runtime = UnderwritingPacketAgentRuntime()
-        contracts = runtime._load_contracts()
         citations_data = context.get("retrieval", {}).get("citations", [])
         citations = [Citation(**c) for c in citations_data]
         
-        memo = runtime._run_underwriter_memo_agent(contracts=contracts, citations=citations)
+        memo = runtime._run_underwriter_memo_agent(citations=citations)
         return {"underwriting_memo": memo.model_dump()}
 
 WORKER_REGISTRY = {

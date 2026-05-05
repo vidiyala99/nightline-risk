@@ -6,7 +6,7 @@ import { useTenantId, useAuth } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { AlertTriangle, Plus, Calendar, MapPin, User, ArrowRight, LogOut, ShieldAlert } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8002";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 interface Incident {
   id: string;

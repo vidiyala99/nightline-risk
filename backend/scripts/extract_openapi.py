@@ -2,8 +2,8 @@ import json
 import sys
 from pathlib import Path
 
-# Add backend dir to path so we can import app
-sys.path.append(str(Path(__file__).parent.parent))
+# Add backend dir first so we import this repository's app package.
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.main import app
 

@@ -1,0 +1,77 @@
+[
+  {
+    "scenario_id": "SCENARIO-001-DELAYED-BRAWL",
+    "description": "A physical struggle occurs near the rear bar. Security response is delayed by over 40 seconds.",
+    "input_events": [
+      {
+        "event_id": "EV-CAM-001",
+        "source_type": "camera",
+        "timestamp": "2026-05-02T23:14:00Z",
+        "payload": { "zone_id": "rear-bar", "aggression_score": 0.92, "person_count": 55 }
+      },
+      {
+        "event_id": "EV-CAM-002",
+        "source_type": "camera",
+        "timestamp": "2026-05-02T23:14:42Z",
+        "payload": { "zone_id": "rear-bar", "detections": [{"label": "security-uniform", "confidence": 0.95, "box": [0,0,1,1]}], "aggression_score": 0.10 }
+      }
+    ],
+    "ideal_output": {
+      "risk_score": 85,
+      "risk_level": "high",
+      "underwriting_memo": "High-risk incident detected at Rear Bar. Aggression detected at 23:14:00 with 0.92 confidence. Security intervention was not detected until 23:14:42, representing a 42-second response latency. This exceeds the 30-second 'Duty of Care' threshold established in Section III of the policy. The Assault & Battery Exclusion (Clause 2.1) is likely to apply due to negligent security response.",
+      "mandatory_citations": ["EV-CAM-001", "EV-CAM-002"],
+      "rubrics_triggered": ["Duty of Care Latency"]
+    }
+  },
+  {
+    "scenario_id": "SCENARIO-002-AFTER-HOURS-LIQUOR",
+    "description": "Multiple sales of high-ABV spirits occur after the 4:00 AM legal cutoff.",
+    "input_events": [
+      {
+        "event_id": "EV-POS-101",
+        "source_type": "pos",
+        "timestamp": "2026-05-03T04:05:12Z",
+        "payload": { 
+          "items": [{"sku": "S-1", "name": "Tequila Shot", "quantity": 4, "price_total": 48.0, "category": "alcohol"}],
+          "total_amount": 48.0
+        }
+      }
+    ],
+    "ideal_output": {
+      "risk_score": 95,
+      "risk_level": "critical",
+      "underwriting_memo": "Critical Liquor Liability violation. POS logs indicate sale of 4x 'Tequila Shot' at 04:05:12 AM, exceeding the 04:00 AM legal service cutoff. This violates Section 1.2 (Condition) of the policy regarding compliance with local service hour ordinances. This creates immediate exposure for Dram Shop lawsuits and potential license suspension.",
+      "mandatory_citations": ["EV-POS-101"],
+      "rubrics_triggered": ["Closing Time Pressure"]
+    }
+  },
+  {
+    "scenario_id": "SCENARIO-003-PROACTIVE-MITIGATION",
+    "description": "High crowd density is detected, but POS data shows proactive water distribution and security is present.",
+    "input_events": [
+      {
+        "event_id": "EV-CAM-201",
+        "source_type": "camera",
+        "timestamp": "2026-05-03T01:30:00Z",
+        "payload": { "zone_id": "dance-floor", "person_count": 125, "detections": [{"label": "security-uniform", "confidence": 0.99, "box": [0,0,1,1]}] }
+      },
+      {
+        "event_id": "EV-POS-202",
+        "source_type": "pos",
+        "timestamp": "2026-05-03T01:32:00Z",
+        "payload": { 
+          "items": [{"sku": "W-1", "name": "Bottled Water", "quantity": 10, "price_total": 0.0, "category": "water"}],
+          "total_amount": 0.0
+        }
+      }
+    ],
+    "ideal_output": {
+      "risk_score": 30,
+      "risk_level": "low",
+      "underwriting_memo": "Crowd density at Dance Floor is elevated (125 patrons), but risk is mitigated by proactive measures. Security personnel presence confirmed in zone at 01:30:00. POS logs show distribution of 10 free water units at 01:32:00. These actions demonstrate 'High Duty of Care' and proactive risk management under Section IV (Mitigation Factors).",
+      "mandatory_citations": ["EV-CAM-201", "EV-POS-202"],
+      "rubrics_triggered": ["Hydration-to-Alcohol", "Capacity Creep (Mitigated)"]
+    }
+  }
+]

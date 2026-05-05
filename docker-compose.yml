@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # --- MESSAGING: REDPANDA ---
+  # Kafka-compatible streaming platform. Use for raw and normalized event topics.
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.2.1
+    container_name: tsr-redpanda
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --rpc-addr 0.0.0.0:33145
+      - --advertise-rpc-addr redpanda:33145
+    ports:
+      - "18082:18082"
+      - "19092:19092"
+      - "18081:18081"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster info"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  # --- DATABASE: POSTGRES + PGVECTOR ---
+  # Used for relational metadata, audit logs, and vector storage.
+  db:
+    image: ankane/pgvector:latest
+    container_name: tsr-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: thirdspace_risk
+    ports:
+      - "5432:5432"
+    volumes:
+      - tsr_postgres_data:/var/lib/postgresql/data
+
+  # --- CACHE: REDIS ---
+  # Used for prompt caching and hot agent state.
+  redis:
+    image: redis:7-alpine
+    container_name: tsr-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  tsr_postgres_data:
