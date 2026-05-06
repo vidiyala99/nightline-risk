@@ -80,17 +80,26 @@ const goldStandardScenarios = [
   }
 ];
 
+type DecisionRecord = { decision: string; decided_at: string };
+
 export default function UnderwriterPage() {
   const [packet, setPacket] = useState<IncidentPacket | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Lifecycle>("needs_review");
   const [selectedScenario, setSelectedScenario] = useState<string>("");
+  const [packetId, setPacketId] = useState<string | null>(null);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewOverride, setReviewOverride] = useState("");
+  const [submittingDecision, setSubmittingDecision] = useState(false);
+  const [decisionRecorded, setDecisionRecorded] = useState<DecisionRecord | null>(null);
 
   const activePacket = packet ?? getMockDataForTab(activeTab);
 
   async function handleScenarioChange(scenarioId: string) {
     setSelectedScenario(scenarioId);
+    setPacketId(null);
+    setDecisionRecorded(null);
     if (!scenarioId) {
       setPacket(null);
       return;
@@ -98,20 +107,21 @@ export default function UnderwriterPage() {
     const scenario = goldStandardScenarios.find(s => s.id === scenarioId);
     if (scenario) {
       setLoading(true);
-      // Simulate network delay for deterministic packet processing.
       setTimeout(() => {
         setPacket(scenario.data as any);
         setLoading(false);
       }, 800);
     }
   }
-  const lifecycle = activeTab; // Force lifecycle to match tab for demo purposes
+
   const evidenceSummary = useMemo(() => summarizeEvidence(activePacket), [activePacket]);
   const evidenceGroups = useMemo(() => buildEvidenceGroups(activePacket), [activePacket]);
 
   async function runIncidentFlow() {
     setLoading(true);
     setError(null);
+    setPacketId(null);
+    setDecisionRecorded(null);
     try {
       const response = await fetch(`${API_URL}/api/venues/elsewhere-brooklyn/incidents`, {
         method: "POST",
@@ -119,8 +129,22 @@ export default function UnderwriterPage() {
         body: JSON.stringify(demoIncident),
       });
       if (!response.ok) throw new Error(`API returned ${response.status}`);
-      setPacket(await response.json());
-      setActiveTab("needs_review"); // Reset tab on new real data
+      const data = await response.json();
+      setPacket(data);
+      setActiveTab("needs_review");
+      // Resolve packet ID so review decisions can be recorded
+      const incidentId = data.incident?.id;
+      if (incidentId) {
+        try {
+          const pktsRes = await fetch(`${API_URL}/api/incidents/${incidentId}/packets`);
+          if (pktsRes.ok) {
+            const pkts = await pktsRes.json();
+            if (pkts.length > 0) setPacketId(pkts[0].id);
+          }
+        } catch {
+          // packet ID lookup is best-effort
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Backend unavailable. Showing deterministic demo packet.");
     } finally {
@@ -128,19 +152,44 @@ export default function UnderwriterPage() {
     }
   }
 
+  async function submitReviewDecision(decision: string) {
+    if (!packetId) return;
+    setSubmittingDecision(true);
+    try {
+      const res = await fetch(`${API_URL}/api/packets/${packetId}/review-decisions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          reviewer_id: "uw-demo-reviewer",
+          decision,
+          override_reason: reviewOverride || null,
+          notes: reviewNotes || null,
+        }),
+      });
+      if (!res.ok) throw new Error(`Decision submit failed: ${res.status}`);
+      const result = await res.json();
+      setDecisionRecorded({ decision, decided_at: result.decided_at });
+      setActiveTab(decision === "approved" ? "approved" : decision === "blocked" ? "blocked" : "needs_review");
+    } catch (err) {
+      console.error("Review decision error:", err);
+    } finally {
+      setSubmittingDecision(false);
+    }
+  }
+
   return (
     <div className="theme-underwriter min-h-screen p-xl">
-      <header className="flex justify-between items-end mb-xl border-b border-[#333] pb-sm">
+      <header className="flex justify-between items-end mb-xl border-b border-dim pb-sm">
         <div>
           <div className="data-label mb-xs text-secondary">SYSTEM.ID // UNDERWRITER TERMINAL V1</div>
           <h1 className="text-3xl font-mono critical-data">UW_TERMINAL_V1</h1>
-          <p className="text-sm font-mono mt-xs text-secondary max-w-[800px]">EVIDENCE-FIRST CARRIER REVIEW FOR LIQUOR-LIABILITY EXPOSURE, CLAIMS DEFENSIBILITY, AND RENEWAL ACTION.</p>
+          <p className="text-sm font-mono mt-xs text-secondary max-w-prose">EVIDENCE-FIRST CARRIER REVIEW FOR LIQUOR-LIABILITY EXPOSURE, CLAIMS DEFENSIBILITY, AND RENEWAL ACTION.</p>
         </div>
         <div className="flex items-center gap-md">
           <div className="flex flex-col gap-xs mr-md">
             <span className="data-label">PHASE_1_SIMULATION</span>
             <select
-              className="bg-transparent border border-[#333] text-secondary font-mono text-xs p-1 outline-none hover:border-accent"
+              className="bg-transparent border border-dim text-secondary font-mono text-xs p-1 outline-none hover:border-accent"
               value={selectedScenario}
               onChange={(e) => handleScenarioChange(e.target.value)}
             >
@@ -150,11 +199,11 @@ export default function UnderwriterPage() {
               ))}
             </select>
           </div>
-          <div className="text-right border-r border-[#333] pr-md">
+          <div className="text-right border-r border-dim pr-md">
             <div className="data-label">STATUS</div>
             <div className="data-value text-accent font-bold">ONLINE // DEMO_DATA</div>
           </div>
-          <button className="btn btn-primary rounded-none border border-accent bg-transparent text-accent hover:bg-[rgba(212,255,0,0.1)]" onClick={runIncidentFlow} disabled={loading}>
+          <button className="btn btn-accent-outline" onClick={runIncidentFlow} disabled={loading}>
             {loading ? <RefreshCw size={16} className="spin-icon" /> : <FileSearch size={16} />}
             <span className="font-mono uppercase ml-xs">{loading ? "PROCESSING" : "REFRESH"}</span>
           </button>
@@ -171,7 +220,7 @@ export default function UnderwriterPage() {
         </div>
       )}
 
-      <section className="mb-lg border-b border-[#333]" aria-label="Packet lifecycle navigation">
+      <section className="mb-lg border-b border-dim" aria-label="Packet lifecycle navigation">
         <div className="flex">
           {(Object.keys(lifecycleLabels) as Lifecycle[]).map((stage) => {
              const isActive = stage === activeTab;
@@ -180,8 +229,8 @@ export default function UnderwriterPage() {
                  key={stage} 
                  className={`px-lg py-md text-center font-mono text-sm uppercase whitespace-nowrap transition-all border-b-2 outline-none cursor-pointer ${
                    isActive 
-                     ? "border-primary text-primary bg-[rgba(212,255,0,0.05)] shadow-[inset_0_-2px_10px_rgba(212,255,0,0.1)]" 
-                     : "border-transparent text-secondary hover:text-primary hover:bg-[rgba(255,255,255,0.02)]"
+                     ? "border-primary text-primary bg-primary-glow tab-active-glow"
+                     : "border-transparent text-secondary hover:text-primary hover:bg-surface-dim"
                  }`}
                  onClick={() => {
                    setPacket(null); // Clear live packet when switching demo tabs
@@ -222,12 +271,12 @@ export default function UnderwriterPage() {
           <Panel title="RISK_SIGNAL">
             <div className="flex gap-lg items-center">
               <div className="flex-1">
-                <span className="inline-block px-2 py-1 mb-md font-mono text-xs font-bold uppercase bg-[rgba(255,0,85,0.15)] text-error border border-error">
+                <span className="inline-block px-2 py-1 mb-md font-mono text-xs font-bold uppercase bg-error-dim text-error border border-error">
                   {activePacket.risk_signal.severity} EXPOSURE
                 </span>
                 <p className="font-mono text-sm text-primary leading-relaxed">{activePacket.risk_signal.explanation}</p>
               </div>
-              <div className="flex flex-col items-center justify-center p-md border border-[#333] min-w-[120px]">
+              <div className="flex flex-col items-center justify-center p-md border border-dim" style={{ minWidth: '120px' }}>
                 <span className="text-4xl font-mono critical-data mb-xs">{Math.round(activePacket.risk_signal.confidence * 100)}%</span>
                 <small className="data-label">CONFIDENCE</small>
               </div>
@@ -235,7 +284,7 @@ export default function UnderwriterPage() {
           </Panel>
 
           <Panel title="UNDERWRITING_MEMO">
-            <p className="font-mono text-sm text-primary leading-relaxed mb-lg border-b border-[#333] pb-md">{activePacket.underwriting_memo.summary}</p>
+            <p className="font-mono text-sm text-primary leading-relaxed mb-lg border-b border-dim pb-md">{activePacket.underwriting_memo.summary}</p>
             <div className="mt-md">
               <h3 className="data-label mb-md">OPEN_REVIEW_QUESTIONS</h3>
               {activePacket.underwriting_memo.open_questions.length > 0 ? (
@@ -257,7 +306,7 @@ export default function UnderwriterPage() {
             <div className="flex flex-col gap-sm">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-[#333]">
+                  <tr className="border-b border-dim">
                     <th className="pb-xs data-label w-24">TIME (Z)</th>
                     <th className="pb-xs data-label">EVENT_LABEL</th>
                     <th className="pb-xs data-label text-right">SOURCE</th>
@@ -265,9 +314,9 @@ export default function UnderwriterPage() {
                 </thead>
                 <tbody className="font-mono text-xs">
                   {activePacket.claims_timeline.map((event) => (
-                    <tr key={`${event.at}-${event.source}`} className="border-b border-[#222]">
+                    <tr key={`${event.at}-${event.source}`} className="border-b border-darker">
                       <td className="py-sm text-secondary">{event.at.split("T")[1].replace("Z", "")}</td>
-                      <td className="py-sm text-primary max-w-[300px] truncate pr-md" title={event.label}>{event.label}</td>
+                      <td className="py-sm text-primary truncate pr-md" style={{ maxWidth: '300px' }} title={event.label}>{event.label}</td>
                       <td className="py-sm text-secondary text-right">{event.source}</td>
                     </tr>
                   ))}
@@ -288,12 +337,12 @@ export default function UnderwriterPage() {
               {evidenceGroups.map((group) => (
                 <details key={group.sourceType} open className="group">
                   <summary className="data-label cursor-pointer mb-sm hover:text-primary transition-colors">{group.sourceType}</summary>
-                  <div className="flex flex-col gap-sm pl-xs border-l border-[#333] ml-xs">
+                  <div className="flex flex-col gap-sm pl-xs border-l border-dim ml-xs">
                     {group.citations.map((citation: Citation) => (
-                      <div key={`${citation.source_type}-${citation.source_id}`} className="p-sm bg-[rgba(255,255,255,0.02)] border border-transparent hover:border-[#333]">
+                      <div key={`${citation.source_type}-${citation.source_id}`} className="p-sm bg-surface-dim border border-transparent hover:border-dim">
                         <span className="font-mono text-xs text-secondary block mb-xs">{citation.source_id}</span>
                         <p className="font-mono text-xs text-primary leading-relaxed mb-xs line-clamp-3" title={citation.excerpt}>{citation.excerpt}</p>
-                        <small className="font-mono text-[10px] text-tertiary">USED_BY: {citation.usedBy}</small>
+                        <small className="font-mono text-xxs text-tertiary">USED_BY: {citation.usedBy}</small>
                       </div>
                     ))}
                   </div>
@@ -308,12 +357,12 @@ export default function UnderwriterPage() {
           <Panel title="REQUIRED_ACTIONS">
             <div className="flex flex-col gap-md">
               {activePacket.action_plan.map((action) => (
-                <div key={action.title} className="flex gap-md p-sm border border-[#333]">
+                <div key={action.title} className="flex gap-md p-sm border border-dim">
                   <ClipboardCheck size={16} className="text-secondary mt-xs" />
                   <div>
                     <h3 className="font-mono text-sm text-primary font-bold mb-xs">{action.title}</h3>
                     <p className="font-mono text-xs text-secondary mb-sm">{action.rationale}</p>
-                    <small className="font-mono text-[10px] text-accent block">{action.evidence_needed.join(" // ")}</small>
+                    <small className="font-mono text-xxs text-accent block">{action.evidence_needed.join(" // ")}</small>
                   </div>
                 </div>
               ))}
@@ -322,6 +371,81 @@ export default function UnderwriterPage() {
               )}
             </div>
           </Panel>
+
+          {/* Review Decision — only visible when a real backend packet is loaded */}
+          {packetId && (
+            <Panel title="REVIEW_DECISION">
+              {decisionRecorded ? (
+                <div className="flex flex-col gap-sm">
+                  <div className={`flex items-center gap-sm p-md border ${decisionRecorded.decision === "approved" ? "border-success bg-[rgba(212,255,0,0.05)]" : decisionRecorded.decision === "blocked" ? "border-error bg-error-dim" : "border-warning bg-warning-dim"}`}>
+                    {decisionRecorded.decision === "approved"
+                      ? <ShieldCheck size={18} className="text-success flex-shrink-0" />
+                      : decisionRecorded.decision === "blocked"
+                      ? <LockKeyhole size={18} className="text-error flex-shrink-0" />
+                      : <AlertTriangle size={18} className="text-warning flex-shrink-0" />
+                    }
+                    <div>
+                      <span className="font-mono text-sm font-bold text-primary uppercase block">{decisionRecorded.decision.replace("_", " ")}</span>
+                      <span className="font-mono text-xxs text-secondary">
+                        RECORDED // {new Date(decisionRecorded.decided_at).toISOString().replace("T", " ").slice(0, 19)} Z
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-mono text-xxs text-secondary">PKT: {packetId}</span>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-md">
+                  <div className="flex flex-col gap-xs">
+                    <label className="data-label">OVERRIDE_REASON (optional)</label>
+                    <textarea
+                      className="bg-transparent border border-dim font-mono text-xs text-primary p-sm outline-none resize-none"
+                      rows={2}
+                      placeholder="Enter reason if overriding system recommendation..."
+                      value={reviewOverride}
+                      onChange={(e) => setReviewOverride(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-xs">
+                    <label className="data-label">NOTES (optional)</label>
+                    <textarea
+                      className="bg-transparent border border-dim font-mono text-xs text-primary p-sm outline-none resize-none"
+                      rows={2}
+                      placeholder="Internal notes for audit trail..."
+                      value={reviewNotes}
+                      onChange={(e) => setReviewNotes(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-sm">
+                    <button
+                      className="flex items-center gap-sm p-sm border border-success bg-transparent text-success font-mono text-xs uppercase font-bold cursor-pointer transition-colors hover:bg-[rgba(212,255,0,0.08)]"
+                      onClick={() => submitReviewDecision("approved")}
+                      disabled={submittingDecision}
+                    >
+                      <CheckCircle2 size={14} />
+                      {submittingDecision ? "RECORDING..." : "APPROVE PACKET"}
+                    </button>
+                    <button
+                      className="flex items-center gap-sm p-sm border border-warning bg-transparent text-warning font-mono text-xs uppercase font-bold cursor-pointer transition-colors"
+                      onClick={() => submitReviewDecision("needs_more_info")}
+                      disabled={submittingDecision}
+                    >
+                      <AlertTriangle size={14} />
+                      REQUEST MORE INFO
+                    </button>
+                    <button
+                      className="flex items-center gap-sm p-sm border border-error bg-transparent text-error font-mono text-xs uppercase font-bold cursor-pointer transition-colors"
+                      onClick={() => submitReviewDecision("blocked")}
+                      disabled={submittingDecision}
+                    >
+                      <LockKeyhole size={14} />
+                      BLOCK PACKET
+                    </button>
+                  </div>
+                  <span className="font-mono text-xxs text-secondary">PKT_ID: {packetId}</span>
+                </div>
+              )}
+            </Panel>
+          )}
         </aside>
       </main>
     </div>
@@ -331,7 +455,7 @@ export default function UnderwriterPage() {
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="workbench-panel p-lg">
-      <h2 className="data-label mb-lg border-b border-[#333] pb-xs">{title}</h2>
+      <h2 className="data-label mb-lg border-b border-dim pb-xs">{title}</h2>
       {children}
     </section>
   );
@@ -339,7 +463,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 
 function DataRow({ label, value, critical = false }: { label: string; value: string; critical?: boolean }) {
   return (
-    <div className="flex justify-between items-baseline border-b border-[#222] pb-xs">
+    <div className="flex justify-between items-baseline border-b border-darker pb-xs">
       <span className="data-label">{label}</span>
       <span className={critical ? "critical-data" : "data-value"}>{value}</span>
     </div>
@@ -357,9 +481,9 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 function Metric({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="flex flex-col items-center justify-center p-sm border border-[#333]">
+    <div className="flex flex-col items-center justify-center p-sm border border-dim">
       <strong className="font-mono text-lg text-secondary mb-xs">{value}</strong>
-      <span className="data-label text-[10px] text-center">{label}</span>
+      <span className="data-label text-xxs text-center">{label}</span>
     </div>
   );
 }

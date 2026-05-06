@@ -3,14 +3,15 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Building2, 
-  AlertTriangle, 
-  CheckSquare, 
+import {
+  LayoutDashboard,
+  Building2,
+  AlertTriangle,
+  CheckSquare,
   FileSearch,
   Settings,
-  LogOut
+  LogOut,
+  Activity,
 } from "lucide-react";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 
@@ -21,7 +22,7 @@ interface AppShellProps {
 const navItems = [
   { href: "/dashboard", label: "Portfolio", icon: LayoutDashboard },
   { href: "/underwriter", label: "Packet Review", icon: FileSearch, roles: ["broker", "admin"] },
-  { href: "/", label: "Venue Risk", icon: Building2 },
+  { href: "/terminal", label: "Venue Risk", icon: Activity },
   { href: "/venues", label: "Venues", icon: Building2, roles: ["broker", "admin"] },
   { href: "/incidents", label: "Incidents", icon: AlertTriangle },
   { href: "/compliance", label: "Compliance", icon: CheckSquare },

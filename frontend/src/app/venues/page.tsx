@@ -16,7 +16,7 @@ interface Venue {
 
 export default function VenuesPage() {
   const router = useRouter();
-  const { signOut, isSignedIn } = useAuth();
+  const { signOut, isSignedIn, isLoaded } = useAuth();
   const role = useRole();
   const tenantId = useTenantId();
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -68,7 +68,7 @@ export default function VenuesPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page theme-venue">
       <header className="page-header">
         <div>
           <h1>Venues</h1>

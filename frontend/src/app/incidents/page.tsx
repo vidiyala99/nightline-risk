@@ -21,7 +21,7 @@ interface Incident {
 
 export default function IncidentsPage() {
   const router = useRouter();
-  const { signOut, isSignedIn } = useAuth();
+  const { signOut, isSignedIn, isLoaded } = useAuth();
   const tenantId = useTenantId();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +124,7 @@ export default function IncidentsPage() {
   }
 
   return (
-    <div className="page">
+    <div className="theme-venue page">
       <header className="page-header">
         <div>
           <h1>Incidents</h1>

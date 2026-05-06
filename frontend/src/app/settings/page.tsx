@@ -7,7 +7,7 @@ import { User, Shield, CreditCard, Users, LogOut } from "lucide-react";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, signOut, isSignedIn } = useAuth();
+  const { user, signOut, isSignedIn, isLoaded } = useAuth();
 const role = useRole();
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -21,10 +21,10 @@ const role = useRole();
   ];
 
   useEffect(() => {
-    if (!isSignedIn) {
+    if (isLoaded && !isSignedIn) {
       router.push("/login");
     }
-  }, [isSignedIn, router]);
+  }, [isLoaded, isSignedIn, router]);
 
   const handleSignOut = () => {
     signOut();

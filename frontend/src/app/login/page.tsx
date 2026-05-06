@@ -180,7 +180,7 @@ export default function LoginPage() {
           position: absolute;
           width: 600px;
           height: 600px;
-          background: radial-gradient(circle, rgba(0, 245, 212, 0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(212, 255, 0, 0.08) 0%, transparent 70%);
           top: -200px;
           left: -100px;
         }
@@ -189,7 +189,7 @@ export default function LoginPage() {
           position: absolute;
           width: 500px;
           height: 500px;
-          background: radial-gradient(circle, rgba(255, 0, 110, 0.1) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(0, 240, 255, 0.07) 0%, transparent 70%);
           bottom: -150px;
           right: -100px;
         }
@@ -222,8 +222,8 @@ export default function LoginPage() {
           width: 56px;
           height: 56px;
           border-radius: 16px;
-          background: linear-gradient(135deg, rgba(0, 245, 212, 0.2) 0%, rgba(123, 97, 255, 0.2) 100%);
-          border: 1px solid rgba(0, 245, 212, 0.3);
+          background: linear-gradient(135deg, rgba(212, 255, 0, 0.15) 0%, rgba(0, 240, 255, 0.15) 100%);
+          border: 1px solid rgba(212, 255, 0, 0.3);
           color: var(--brand-primary);
           margin-bottom: 16px;
         }
@@ -334,7 +334,7 @@ export default function LoginPage() {
 
         .role-option.active {
           border-color: var(--brand-primary);
-          background: rgba(0, 245, 212, 0.1);
+          background: rgba(212, 255, 0, 0.08);
           color: var(--brand-primary);
         }
 

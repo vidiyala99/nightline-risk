@@ -42,7 +42,7 @@ interface Stats {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { signOut, isSignedIn } = useAuth();
+  const { signOut, isSignedIn, isLoaded } = useAuth();
   const role = useRole();
   const tenantId = useTenantId();
   const [loading, setLoading] = useState(true);
@@ -54,8 +54,8 @@ export default function DashboardPage() {
   const isBroker = role === "broker" || role === "admin";
 
   useEffect(() => {
-    if (!isSignedIn) router.push("/login");
-  }, [isSignedIn, router]);
+    if (isLoaded && !isSignedIn) router.push("/login");
+  }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -64,17 +64,19 @@ export default function DashboardPage() {
         return;
       }
       try {
-        const [liveRes, riskRes, quoteRes] = await Promise.all([
+        const [liveRes, riskRes, quoteRes, incidentsRes] = await Promise.all([
           fetch(`${API_URL}/api/venues/${tenantId}/live`),
           fetch(`${API_URL}/api/venues/${tenantId}/risk-score`),
           fetch(`${API_URL}/api/venues/${tenantId}/quote`),
+          fetch(`${API_URL}/api/venues/${tenantId}/incidents`),
         ]);
+        const incidentCount = incidentsRes.ok ? (await incidentsRes.json()).length : 0;
         if (liveRes.ok) {
           const state = await liveRes.json();
           setLiveState(state);
           setStats({
             venues: isBroker ? 12 : 1,
-            incidents: Math.floor(Math.random() * 20),
+            incidents: incidentCount,
             compliance: state.compliance_queue?.length || 0,
             premiumImpact: state.premium_impact || 0,
           });
