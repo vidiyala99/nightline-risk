@@ -49,6 +49,7 @@ Underwriter reviews report → Approve / Block / Request More Info
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js 14 (App Router), DM Sans + Cormorant Garamond |
+| Mobile | React Native (Expo), expo-secure-store, React Navigation |
 | Backend | FastAPI + SQLModel + SQLite |
 | Agents | Deterministic stubs with LLM-ready interfaces |
 | Auth | HMAC-signed JWT tokens |
@@ -86,6 +87,16 @@ npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
 Open `http://localhost:3000`
+
+**Mobile (Expo Go):**
+```powershell
+cd mobile
+# Create .env.local with your backend URL:
+# EXPO_PUBLIC_API_URL=https://your-railway-backend.up.railway.app
+npm start
+```
+
+Scan the QR code with [Expo Go](https://expo.dev/go) on your device. Log in with `venue@elsewhere.com / demo123`.
 
 ---
 
