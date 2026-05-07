@@ -782,6 +782,9 @@ a:hover { color: var(--text-primary); }
   .venues-grid { grid-template-columns: 1fr; }
   .compliance-grid { grid-template-columns: 1fr; }
   .page { padding: var(--space-md); }
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.375rem; }
+  h3 { font-size: 1.125rem; }
 }
 
 /* ============================================
