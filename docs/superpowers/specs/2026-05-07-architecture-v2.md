@@ -33,6 +33,7 @@ The core loop:
 |-------|-----------|
 | Backend | FastAPI + SQLModel + SQLite |
 | Frontend | Next.js 16.2 (App Router), DM Sans + Cormorant Garamond + JetBrains Mono |
+| Mobile | React Native (Expo managed), expo-secure-store, React Navigation bottom tabs |
 | Auth | Custom HMAC-signed JWT (role-aware: broker, venue_operator, admin) |
 | File storage | Local disk (`evidence_uploads/`) |
 | Agent runtime | Deterministic Python stubs (LLM-ready interfaces) |
@@ -278,7 +279,6 @@ Provider switching requires changing one function per agent, not the architectur
 
 - Real-time camera feed processing
 - POS system connectors
-- Mobile app (React Native — Phase 2)
 - Autonomous underwriting decisions
 - Actuarial scoring
 - Multi-tenant data isolation (single-tenant demo today)
@@ -308,6 +308,7 @@ Provider switching requires changing one function per agent, not the architectur
 - ✅ Mobile responsive UI — viewport meta tag, adaptive layouts, hamburger nav
 - ✅ Atmospheric dark SaaS UI: Cormorant Garamond + DM Sans + JetBrains Mono, grain texture, ambient glow, stagger animations
 - ✅ Accessibility: prefers-reduced-motion, touch-action: manipulation, inputMode attributes
+- ✅ **Mobile operator app** — Expo React Native, 4-tab bottom nav (Dashboard, Incidents, Report, Live), haptic feedback, camera evidence upload, SecureStore auth
 
 ### Phase 2 — LLM-backed agents
 - Wire real Claude API calls behind existing interfaces
@@ -322,7 +323,7 @@ Provider switching requires changing one function per agent, not the architectur
 - Object storage for evidence files
 - Background worker (Celery or arq)
 - Role-based access enforcement
-- Mobile app for venue operators (React Native)
+- EAS Build + OTA updates for mobile app
 
 ### Phase 4 — Claims defense vault
 - Evidence export for legal proceedings
