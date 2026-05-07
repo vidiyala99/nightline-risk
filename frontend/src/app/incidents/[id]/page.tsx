@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, useRole } from "@/contexts/AuthContext";
 import {
   AlertTriangle, ArrowLeft, Calendar, MapPin, User,
   Clock, CheckCircle2, Shield, ExternalLink, FileText,
@@ -59,6 +59,8 @@ export default function IncidentDetailPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
+  const role = useRole();
+  const isOperator = role === "venue_operator";
 
   const [incident, setIncident] = useState<Incident | null>(null);
   const [packets, setPackets] = useState<Packet[]>([]);
@@ -303,8 +305,8 @@ export default function IncidentDetailPage() {
 
             {/* Sidebar */}
             <div className="flex flex-col gap-lg">
-              {/* Status actions */}
-              {incident.status !== "closed" && (
+              {/* Status actions — operators only */}
+              {isOperator && incident.status !== "closed" && (
                 <div className="card">
                   <div className="text-xs uppercase tracking-wide text-secondary mb-md">Actions</div>
                   <div className="flex flex-col gap-sm">

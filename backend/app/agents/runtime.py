@@ -124,7 +124,23 @@ class UnderwritingPacketAgentRuntime:
         stream_events: list[dict],
     ) -> list[Citation]:
         knowledge_base = VenueKnowledgeBase(knowledge_sources, stream_events)
-        query = f"{incident.summary} {incident.location} brawl altercation security incident policy camera evidence"
+        summary_lower = incident.summary.lower()
+        # Build a type-aware query so retrieved citations actually match the incident
+        if any(k in summary_lower for k in ["brawl", "fight", "altercation", "assault", "force"]):
+            type_keywords = "altercation security response duty of care footage staff"
+        elif any(k in summary_lower for k in ["slip", "fell", "fall", "stairs"]):
+            type_keywords = "premises liability hazard wet floor signage inspection"
+        elif any(k in summary_lower for k in ["overdose", "unresponsive", "medical", "ems"]):
+            type_keywords = "medical emergency duty of care ems response negligence"
+        elif any(k in summary_lower for k in ["fire", "electrical", "smoke"]):
+            type_keywords = "property damage fire suppression equipment inspection liability"
+        elif any(k in summary_lower for k in ["liquor", "serving", "intoxicated", "cutoff"]):
+            type_keywords = "liquor liability dram shop over-service POS compliance"
+        elif any(k in summary_lower for k in ["vandal", "damage", "broken"]):
+            type_keywords = "property damage vandalism third-party liability"
+        else:
+            type_keywords = "incident report policy compliance documentation"
+        query = f"{incident.summary} {incident.location} {type_keywords}"
         return knowledge_base.retrieve(venue_id, query)
 
     def _run_risk_evaluator_agent(
