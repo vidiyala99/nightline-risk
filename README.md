@@ -1,46 +1,99 @@
-# Third Space Risk
+# Third Space Risk OS
 
-Third Space Risk is a local demo of an underwriting and claims-defensibility workflow for venues. The current product slice turns a synthetic venue brawl incident into a cited underwriting packet with risk signal, customer actions, claims timeline, and underwriter memo.
+Evidence-first underwriting infrastructure for nightlife venues. Built as a working prototype of what Third Space's core platform could look like.
 
-The backend is deterministic today. It now routes the underwriting packet through runtime agent orchestration, but those agent steps execute Python logic rather than live LLM calls.
+**Live demo:** https://frontend-mu-ebon-n3x8uw2rpx.vercel.app
 
-## Project Structure
+---
 
-- `backend/`: FastAPI, SQLModel, SQLite, deterministic retrieval, and agent orchestration.
-- `frontend/`: Next.js underwriter console and venue dashboard.
-- `docs/`: requirements and design notes.
+## What It Does
 
-## Local Verification
+A venue operator logs an incident. AI agents analyze it instantly and produce a citation-backed underwriting packet. An underwriter opens their queue, reviews the report, and makes a decision — all traceable back to source evidence.
 
-Backend:
-
-```powershell
-cd backend
-pytest -q -p no:flaky
+```
+Operator logs incident
+        │
+        ▼
+Agent pipeline runs (~200ms)
+  → Retrieval agent pulls policy docs + stream events
+  → Risk evaluator scores severity + confidence
+  → Claims timeline reconstructed
+  → Underwriting memo drafted with open questions
+        │
+        ▼
+Underwriting packet created (Phase 1)
+        │
+        ├── Vision pipeline runs async (Phase 2)
+        │     → Image/video analyzed by vision agent
+        │     → Corroboration agent compares vs written report
+        │     → Packet updated with visual findings
+        │
+        ▼
+Underwriter reviews report → Approve / Block / Request More Info
 ```
 
-Frontend:
+---
 
-```powershell
-cd frontend
-npm.cmd run test
-npm.cmd run build
-```
+## Demo Logins
+
+| Role | Email | Password |
+|------|-------|----------|
+| Broker | broker@thirdspace.risk | demo123 |
+| Venue Operator | venue@elsewhere.com | demo123 |
+
+---
+
+## Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 14 (App Router), DM Sans + Cormorant Garamond |
+| Backend | FastAPI + SQLModel + SQLite |
+| Agents | Deterministic stubs with LLM-ready interfaces |
+| Auth | HMAC-signed JWT tokens |
+| Deployment | Vercel (frontend) + Railway (backend) |
+
+---
+
+## Key Features
+
+- **Dual portal** — operator terminal and underwriter workbench with role-based navigation
+- **Agent pipeline** — retrieval, risk evaluation, claims timeline, memo drafting
+- **Two-phase packets** — instant text analysis + async vision processing for uploaded evidence
+- **Vision agent** — analyzes images, corroborates against written report (CONSISTENT / CONTRADICTED / PARTIAL)
+- **Evidence upload** — photos, video clips, documents + footage link for large files
+- **Reports queue** — underwriter workbench with severity-sorted packet list
+- **Shared knowledge sources** — policy docs apply across all 5 venues
+- **Startup backfill** — all incidents get packets on boot, idempotent
+- **Venue creation** — full onboarding form, instantly reflected across the system
+- **Mobile responsive** — hamburger nav, collapsed layouts on small screens
+
+---
 
 ## Local Development
 
-Backend:
-
+**Backend:**
 ```powershell
 cd backend
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Frontend:
-
+**Frontend:**
 ```powershell
 cd frontend
-npm.cmd run dev -- --hostname 127.0.0.1 --port 3000
+npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-Open `http://localhost:3000/underwriter`.
+Open `http://localhost:3000`
+
+---
+
+## Architecture
+
+See [`docs/superpowers/specs/2026-05-07-architecture-v2.md`](docs/superpowers/specs/2026-05-07-architecture-v2.md) for the full system design, data contracts, LLM integration points, and phased roadmap.
+
+---
+
+## Seed Data
+
+5 venues across Brooklyn/NYC with 10 diverse incidents (brawls, medical emergencies, property damage, liquor liability, crowd management). Packets generated automatically on startup. Demo accounts pre-configured.
