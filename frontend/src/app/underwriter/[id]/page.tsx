@@ -47,6 +47,7 @@ export default function ReportDetailPage() {
   const router = useRouter();
   const [packet, setPacket] = useState<Packet | null>(null);
   const [incident, setIncident] = useState<Incident | null>(null);
+  const [visionAnalysis, setVisionAnalysis] = useState<{ status: string; analyses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [decision, setDecision] = useState<DecisionRecord | null>(null);
@@ -59,9 +60,12 @@ export default function ReportDetailPage() {
         if (!pktRes.ok) return;
         const pkt: Packet = await pktRes.json();
         setPacket(pkt);
-        // Fetch incident for context
-        const incRes = await fetch(`${API_URL}/api/incidents/${pkt.incident_id}`);
+        const [incRes, analysisRes] = await Promise.all([
+          fetch(`${API_URL}/api/incidents/${pkt.incident_id}`),
+          fetch(`${API_URL}/api/incidents/${pkt.incident_id}/evidence-analysis`),
+        ]);
         if (incRes.ok) setIncident(await incRes.json());
+        if (analysisRes.ok) setVisionAnalysis(await analysisRes.json());
       } finally {
         setLoading(false);
       }
@@ -201,6 +205,48 @@ export default function ReportDetailPage() {
               </div>
             )}
           </section>
+
+          {/* Vision Analysis */}
+          {visionAnalysis && visionAnalysis.analyses.length > 0 && (
+            <section className="card">
+              <div className="flex items-center justify-between mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>
+                <h2 className="text-xs font-mono uppercase tracking-wide text-secondary">Visual Evidence Analysis</h2>
+                {visionAnalysis.analyses[0]?.corroboration && (
+                  <span className="text-xs font-mono px-sm py-xs font-bold" style={{
+                    background: visionAnalysis.analyses[0].corroboration === "CONSISTENT" ? "rgba(212,255,0,0.12)" : visionAnalysis.analyses[0].corroboration === "CONTRADICTED" ? "rgba(255,60,60,0.12)" : "rgba(255,153,0,0.12)",
+                    color: visionAnalysis.analyses[0].corroboration === "CONSISTENT" ? "var(--brand-primary)" : visionAnalysis.analyses[0].corroboration === "CONTRADICTED" ? "var(--state-error)" : "var(--state-warning)",
+                    borderRadius: "var(--radius-sm)",
+                  }}>
+                    {visionAnalysis.analyses[0].corroboration}
+                  </span>
+                )}
+              </div>
+              {visionAnalysis.analyses.map((a: any, i: number) => (
+                <div key={i} className="flex flex-col gap-sm mb-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono uppercase text-secondary">{a.analysis_type} analysis</span>
+                    <span className="text-xs font-mono" style={{ color: "var(--brand-primary)" }}>+{Math.round(a.confidence_delta * 100)}% confidence</span>
+                  </div>
+                  <p className="text-sm leading-relaxed">{a.raw_description}</p>
+                  {a.findings?.incident_indicators?.length > 0 && (
+                    <div className="flex flex-wrap gap-xs mt-xs">
+                      {a.findings.incident_indicators.map((ind: string, j: number) => (
+                        <span key={j} className="text-xs px-sm py-xs font-mono" style={{ background: "rgba(212,255,0,0.06)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--brand-primary)" }}>
+                          {ind}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {a.findings?.injury_detail && (
+                    <p className="text-xs text-secondary font-mono mt-xs">Injury detail: {a.findings.injury_detail}</p>
+                  )}
+                  {a.findings?.security_present !== undefined && (
+                    <p className="text-xs text-secondary font-mono">Security present: {a.findings.security_present ? `Yes${a.findings.security_response_seconds ? ` (response: ${a.findings.security_response_seconds}s)` : ""}` : "No"}</p>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
 
           <section className="card">
             <h2 className="text-xs font-mono uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Claims Timeline</h2>

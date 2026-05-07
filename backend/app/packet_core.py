@@ -220,15 +220,18 @@ def _ensure_source_record(
 ) -> SourceRecord:
     existing = session.get(SourceRecord, citation.source_id)
     if existing is not None:
-        if existing.venue_id != venue_id:
+        # Allow shared sources (venue_id="*") for any venue
+        if existing.venue_id != venue_id and existing.venue_id != "*":
             raise PacketCitationValidationError(
                 f"Citation source {citation.source_id} does not belong to venue {venue_id}"
             )
         return existing
 
+    # Shared sources (prefixed with "shared-") are stored with venue_id="*"
+    source_venue_id = "*" if citation.source_id.startswith("shared-") else venue_id
     source = SourceRecord(
         id=citation.source_id,
-        venue_id=venue_id,
+        venue_id=source_venue_id,
         incident_id=None,
         source_type=citation.source_type,
         excerpt=citation.excerpt,

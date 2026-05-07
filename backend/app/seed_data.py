@@ -204,6 +204,7 @@ SEED_INCIDENTS = [
 
 
 KNOWLEDGE_SOURCES = [
+    # Elsewhere Brooklyn — venue-specific
     {
         "source_id": "policy-2026-liquor-liability",
         "venue_id": "elsewhere-brooklyn",
@@ -221,6 +222,55 @@ KNOWLEDGE_SOURCES = [
         "venue_id": "elsewhere-brooklyn",
         "source_type": "questionnaire",
         "text": "Venue procedure requires staff to preserve clips, collect witness details, and complete incident reports before close.",
+    },
+    # Shared — apply to all venues (venue_id="*")
+    {
+        "source_id": "shared-policy-duty-of-care",
+        "venue_id": "*",
+        "source_type": "policy",
+        "text": "Duty of care standard requires venues to take reasonable steps to prevent foreseeable harm to patrons. Security response must be documented within 30 seconds of detected aggression.",
+    },
+    {
+        "source_id": "shared-policy-liquor-liability",
+        "venue_id": "*",
+        "source_type": "policy",
+        "text": "Liquor liability coverage requires documented proof that staff completed responsible service training. Over-service of visibly intoxicated patrons voids claims defense.",
+    },
+    {
+        "source_id": "shared-policy-premises-liability",
+        "venue_id": "*",
+        "source_type": "policy",
+        "text": "Premises liability requires venues to maintain safe conditions including wet floor signage, adequate lighting on stairs, and regular hazard inspections.",
+    },
+    {
+        "source_id": "shared-policy-dram-shop",
+        "venue_id": "*",
+        "source_type": "policy",
+        "text": "Dram shop laws hold venues liable for damages caused by intoxicated patrons served alcohol after visible impairment. Service cutoff documentation is required for claims defense.",
+    },
+    {
+        "source_id": "shared-policy-incident-reporting",
+        "venue_id": "*",
+        "source_type": "policy",
+        "text": "All incidents must be reported within 24 hours of occurrence. Delayed reporting weakens claims defensibility and may void coverage for the specific incident.",
+    },
+    {
+        "source_id": "shared-compliance-camera-retention",
+        "venue_id": "*",
+        "source_type": "compliance",
+        "text": "Camera footage relevant to an incident must be preserved for a minimum of 90 days. Footage deletion prior to this window constitutes a compliance violation.",
+    },
+    {
+        "source_id": "shared-compliance-security-staffing",
+        "venue_id": "*",
+        "source_type": "compliance",
+        "text": "Venues with capacity over 300 must maintain a minimum ratio of 1 licensed security guard per 75 patrons during events. Staffing logs must be retained for 12 months.",
+    },
+    {
+        "source_id": "shared-compliance-medical-response",
+        "venue_id": "*",
+        "source_type": "compliance",
+        "text": "Medical emergencies require immediate EMS notification. Failure to call EMS for an unresponsive patron constitutes negligence and voids medical expense coverage.",
     },
 ]
 

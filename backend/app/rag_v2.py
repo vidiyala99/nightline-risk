@@ -48,8 +48,16 @@ class SemanticKnowledgeBase:
         venue_docs = [
             (i, doc)
             for i, doc in enumerate(self._documents)
-            if doc["venue_id"] == venue_id
+            if doc["venue_id"] == venue_id or doc.get("venue_id") == "*"
         ]
+
+        if not venue_docs:
+            # Fall back to all shared (venue_id="*") documents
+            venue_docs = [
+                (i, doc)
+                for i, doc in enumerate(self._documents)
+                if doc.get("venue_id") == "*"
+            ]
 
         if not venue_docs:
             return []
