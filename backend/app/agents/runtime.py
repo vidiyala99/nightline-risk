@@ -169,12 +169,14 @@ class UnderwritingPacketAgentRuntime:
             "low": "Limited liability exposure. Standard documentation and follow-up recommended.",
         }
 
+        review_status = "approved" if severity == "low" else "needs_review"
+
         return RiskSignal(
             type=incident_type,
             severity=severity,
             confidence=round(confidence, 2),
             explanation=severity_explanations[severity],
-            review_status="needs_review",
+            review_status=review_status,
             citations=citations,
         )
 
@@ -235,7 +237,7 @@ class UnderwritingPacketAgentRuntime:
         return UnderwritingMemo(
             summary=memo_output.summary,
             open_questions=memo_output.open_questions,
-            review_status="draft",
+            review_status=risk_signal.review_status,
             citations=citations,
         )
 

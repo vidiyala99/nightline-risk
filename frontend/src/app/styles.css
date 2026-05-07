@@ -317,6 +317,11 @@ a:hover { color: var(--text-primary); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+
 .skeleton {
   background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-surface-elevated) 50%, var(--bg-surface) 75%);
   background-size: 200% 100%;

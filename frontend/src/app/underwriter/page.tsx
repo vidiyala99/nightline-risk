@@ -33,12 +33,12 @@ const SEVERITY_COLOR: Record<string, string> = {
   unknown: "var(--text-tertiary)",
 };
 
-const STATUS_CONFIG: Record<PacketStatus, { label: string; icon: React.ReactNode; color: string }> = {
-  needs_review: { label: "Needs Review", icon: <Clock size={13} />, color: "var(--state-warning)" },
-  approved: { label: "Approved", icon: <CheckCircle2 size={13} />, color: "var(--brand-primary)" },
-  blocked: { label: "Blocked", icon: <LockKeyhole size={13} />, color: "var(--state-error)" },
-  draft: { label: "Draft", icon: <FileSearch size={13} />, color: "var(--text-tertiary)" },
-  processing: { label: "Processing", icon: <RefreshCw size={13} />, color: "var(--text-secondary)" },
+const STATUS_CONFIG: Record<PacketStatus, { label: string; icon: React.ReactNode; color: string; bg: string; pulse: boolean }> = {
+  needs_review: { label: "Needs Review", icon: <Clock size={12} />, color: "#000", bg: "var(--state-warning)", pulse: true },
+  approved:     { label: "Approved",     icon: <CheckCircle2 size={12} />, color: "var(--brand-primary)", bg: "transparent", pulse: false },
+  blocked:      { label: "Blocked",      icon: <LockKeyhole size={12} />, color: "#fff", bg: "var(--state-error)", pulse: false },
+  draft:        { label: "Draft",        icon: <FileSearch size={12} />, color: "var(--text-tertiary)", bg: "transparent", pulse: false },
+  processing:   { label: "Processing",   icon: <RefreshCw size={12} />, color: "var(--text-secondary)", bg: "transparent", pulse: false },
 };
 
 export default function ReportsPage() {
@@ -161,12 +161,14 @@ export default function ReportsPage() {
 
                   <div className="flex flex-col items-end gap-sm" style={{ flexShrink: 0 }}>
                     <div
-                      className="flex items-center gap-xs text-xs font-mono px-sm py-xs"
+                      className="flex items-center gap-xs text-xs font-mono font-bold px-sm py-xs"
                       style={{
-                        border: `1px solid ${status.color}`,
+                        background: status.bg,
+                        border: status.bg === "transparent" ? `1px solid ${status.color}` : "none",
                         color: status.color,
                         borderRadius: "var(--radius-sm)",
                         whiteSpace: "nowrap",
+                        animation: status.pulse ? "status-pulse 2s ease-in-out infinite" : "none",
                       }}
                     >
                       {status.icon}

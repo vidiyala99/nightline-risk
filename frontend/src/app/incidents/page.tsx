@@ -50,10 +50,24 @@ export default function IncidentsPage() {
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [evidenceLinks, setEvidenceLinks] = useState<string[]>([]);
   const [linkInput, setLinkInput] = useState("");
+  const [venues, setVenues] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState<string>("");
 
   useEffect(() => {
     if (!isSignedIn) router.push("/login");
   }, [isSignedIn, router]);
+
+  useEffect(() => {
+    if (!isBroker) return;
+    fetch(`${API_URL}/api/venues`)
+      .then(r => r.json())
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        setVenues(list);
+        if (list.length > 0) setSelectedVenueId(list[0].id);
+      })
+      .catch(() => {});
+  }, [isBroker]);
 
   useEffect(() => {
     async function fetchIncidents() {
@@ -81,7 +95,7 @@ export default function IncidentsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const venueId = tenantId ?? "elsewhere-brooklyn";
+    const venueId = isBroker ? selectedVenueId : (tenantId ?? "");
     if (!venueId) return;
     setSubmitting(true);
     try {
@@ -185,6 +199,20 @@ export default function IncidentsPage() {
           onClick={(e) => { if (e.target === e.currentTarget) { setShowForm(false); setEvidenceFiles([]); setEvidenceLinks([]); setLinkInput(""); } }}
         >
         <form onSubmit={handleSubmit} className="incident-form animate-fade-in" style={{ width: "100%", maxWidth: 760, maxHeight: "90vh", overflowY: "auto", margin: 0 }}>
+          {isBroker && (
+            <div className="input-wrapper" style={{ marginBottom: "var(--space-md)" }}>
+              <label className="input-label">Venue</label>
+              <select
+                className="input-field"
+                value={selectedVenueId}
+                onChange={(e) => setSelectedVenueId(e.target.value)}
+                required
+                style={{ background: "var(--bg-surface)", color: "var(--text-primary)" }}
+              >
+                {venues.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+            </div>
+          )}
           <div className="form-row">
             <div className="input-wrapper">
               <label className="input-label">Date & Time</label>
