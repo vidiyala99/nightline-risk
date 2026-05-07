@@ -131,8 +131,14 @@ app.include_router(ingestion_router, prefix="/api/v1", tags=["ingestion"])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://172.20.5.179:3000"],
-    allow_origin_regex=r"exp://.*",  # Expo Go tunnel origins
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://172.20.5.179:3000",
+        "https://frontend-in2g6dgt3-vidiyala99s-projects.vercel.app",
+        "https://frontend-mu-ebon-n3x8uw2rpx.vercel.app",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # all Vercel preview URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
