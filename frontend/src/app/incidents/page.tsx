@@ -204,10 +204,15 @@ export default function IncidentsPage() {
 
       {showForm && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--space-xl)" }}
+          className="incident-modal-backdrop"
           onClick={(e) => { if (e.target === e.currentTarget) { setShowForm(false); setEvidenceFiles([]); setEvidenceLinks([]); setLinkInput(""); } }}
         >
         <form onSubmit={handleSubmit} className="incident-form animate-fade-in" style={{ width: "100%", maxWidth: 760, maxHeight: "90vh", overflowY: "auto", margin: 0 }}>
+          <div className="incident-form-header">
+            <div className="incident-form-dot" />
+            <span className="incident-form-header-label">Incident Report</span>
+            <span className="text-xs text-muted" style={{ marginLeft: "auto", fontFamily: "var(--font-mono)" }}>{new Date().toLocaleTimeString()}</span>
+          </div>
           {isBroker && (
             <div className="input-wrapper" style={{ marginBottom: "var(--space-md)" }}>
               <label className="input-label">Venue</label>
@@ -229,7 +234,7 @@ export default function IncidentsPage() {
             </div>
             <div className="input-wrapper">
               <label className="input-label">Location</label>
-              <input type="text" className="input-field" placeholder="e.g., rear bar, dance floor" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} required />
+              <input type="text" className="input-field" placeholder="e.g., rear bar, dance floor" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} autoComplete="off" required />
             </div>
           </div>
           <div className="input-wrapper">
@@ -306,6 +311,7 @@ export default function IncidentsPage() {
             <div className="flex gap-sm">
               <input
                 type="url"
+                inputMode="url"
                 className="input-field flex-1"
                 placeholder="e.g. Google Drive, Dropbox, NVR portal link..."
                 value={linkInput}
@@ -349,7 +355,7 @@ export default function IncidentsPage() {
       )}
 
       <div className="incidents-section">
-        <div className="incidents-list">
+        <div className="incidents-list stagger-children">
           {filteredIncidents.length > 0 ? (
             filteredIncidents.map((incident) => (
               <div

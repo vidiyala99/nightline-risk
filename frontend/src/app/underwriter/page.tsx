@@ -91,6 +91,34 @@ export default function ReportsPage() {
         </button>
       </header>
 
+      {/* Summary bar */}
+      {!loading && packets.length > 0 && (
+        <div className="queue-summary-bar animate-fade-in">
+          <div className="queue-summary-stat">
+            <span className="stat-value">{counts.all}</span>
+            <span className="stat-label">Total</span>
+          </div>
+          <div className="queue-summary-stat">
+            <span className="stat-value" style={{ color: "var(--state-warning)" }}>{counts.needs_review}</span>
+            <span className="stat-label">Needs Review</span>
+          </div>
+          <div className="queue-summary-stat">
+            <span className="stat-value" style={{ color: "var(--state-error)" }}>
+              {packets.filter(p => p.risk_signals?.severity === "critical" || p.risk_signals?.severity === "high").length}
+            </span>
+            <span className="stat-label">High / Critical</span>
+          </div>
+          <div className="queue-summary-stat">
+            <span className="stat-value" style={{ color: "var(--brand-primary)" }}>{counts.approved}</span>
+            <span className="stat-label">Approved</span>
+          </div>
+          <div className="queue-summary-stat">
+            <span className="stat-value" style={{ color: "var(--state-error)" }}>{counts.blocked}</span>
+            <span className="stat-label">Blocked</span>
+          </div>
+        </div>
+      )}
+
       {/* Status filter tabs */}
       <div className="flex gap-xs mb-xl" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0" }}>
         {(["all", "needs_review", "approved", "blocked"] as const).map((f) => (
@@ -121,41 +149,48 @@ export default function ReportsPage() {
           <p>No reports yet. Incidents reported by venue operators will appear here.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-md">
+        <div className="flex flex-col gap-md stagger-children">
           {filtered.map((packet) => {
             const severity = packet.risk_signals?.severity ?? "unknown";
             const confidence = packet.risk_signals?.confidence ?? 0;
             const status = STATUS_CONFIG[packet.status] ?? STATUS_CONFIG.draft;
-            const date = new Date(packet.generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            const date = new Date(packet.generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
             const time = new Date(packet.generated_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+            const riskType = packet.risk_signals?.type?.replace(/_/g, " ") ?? "";
 
             return (
               <div
                 key={packet.id}
                 onClick={() => router.push(`/underwriter/${packet.id}`)}
                 className="card"
-                style={{ cursor: "pointer", borderLeft: `3px solid ${SEVERITY_COLOR[severity] ?? "var(--border-subtle)"}` }}
+                style={{ cursor: "pointer", borderLeft: `3px solid ${SEVERITY_COLOR[severity] ?? "var(--border-subtle)"}`, transition: "border-color 0.2s, transform 0.2s, box-shadow 0.2s" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 24px rgba(0,0,0,0.3)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ""; (e.currentTarget as HTMLElement).style.boxShadow = ""; }}
               >
                 <div className="flex justify-between items-start gap-lg">
                   <div className="flex-1" style={{ minWidth: 0 }}>
-                    <div className="flex items-center gap-md mb-sm">
-                      <span className="text-xs uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
+                    <div className="flex items-center gap-md mb-sm" style={{ flexWrap: "wrap" }}>
+                      <span className="text-xs font-mono uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
                         {packet.venue_id.replace(/-/g, " ")}
                       </span>
                       <span className="text-xs font-semibold uppercase" style={{ color: SEVERITY_COLOR[severity] }}>
-                        {severity} Exposure
+                        {severity}
                       </span>
+                      {riskType && (
+                        <span className="text-xs font-mono px-sm py-xs" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)", color: "var(--text-secondary)" }}>
+                          {riskType}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm" style={{ color: "var(--text-primary)", marginBottom: "var(--space-xs)" }}>
+                    <p className="text-sm" style={{ color: "var(--text-primary)", marginBottom: "var(--space-sm)", lineHeight: 1.6 }}>
                       {packet.memo?.summary
-                        ? packet.memo.summary.length > 120
-                          ? packet.memo.summary.slice(0, 120) + "…"
+                        ? packet.memo.summary.length > 140
+                          ? packet.memo.summary.slice(0, 140) + "…"
                           : packet.memo.summary
-                        : packet.risk_signals?.explanation?.slice(0, 120) ?? "No summary available."}
+                        : packet.risk_signals?.explanation?.slice(0, 140) ?? "No summary available."}
                     </p>
-                    <div className="flex items-center gap-md text-xs" style={{ color: "var(--text-tertiary)" }}>
+                    <div className="flex items-center gap-md text-xs" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>
                       <span>{date} · {time}</span>
-                      <span>{packet.venue_id.replace(/-/g, " ").toUpperCase()}</span>
                     </div>
                   </div>
 
@@ -175,10 +210,13 @@ export default function ReportsPage() {
                       {status.label}
                     </div>
                     <div className="text-right">
-                      <div className="text-xl font-display font-bold" style={{ color: "var(--brand-primary)" }}>
+                      <div className="text-2xl font-display font-bold" style={{ color: SEVERITY_COLOR[severity], lineHeight: 1 }}>
                         {Math.round(confidence * 100)}%
                       </div>
-                      <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>confidence</div>
+                      <div className="queue-confidence-bar mt-xs">
+                        <div className="queue-confidence-fill" style={{ width: `${Math.round(confidence * 100)}%`, background: SEVERITY_COLOR[severity] }} />
+                      </div>
+                      <div className="text-xs mt-xs" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>confidence</div>
                     </div>
                   </div>
                 </div>
