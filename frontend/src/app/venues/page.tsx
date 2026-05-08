@@ -29,9 +29,11 @@ const EMPTY_FORM = { name: "", address: "", capacity: "", venue_type: "bar", ren
 
 export default function VenuesPage() {
   const router = useRouter();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, user, refreshUser } = useAuth();
   const role = useRole();
   const tenantId = useTenantId();
+  const extraVenueIds = user?.extra_venue_ids ?? [];
+  const extraIdsKey = extraVenueIds.join(",");
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -61,16 +63,24 @@ export default function VenuesPage() {
       }
     }
 
+    async function fetchVenueById(id: string): Promise<Venue | null> {
+      try {
+        const res = await fetch(`${API_URL}/api/venues/${id}`);
+        return res.ok ? ((await res.json()) as Venue) : null;
+      } catch {
+        return null;
+      }
+    }
+
     async function fetchOperatorVenue() {
       if (!tenantId) { setLoading(false); return; }
+      const ids = extraIdsKey ? extraIdsKey.split(",") : [];
       try {
-        const res = await fetch(`${API_URL}/api/venues/${tenantId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setVenues([data]);
-        } else {
-          setVenues([]);
-        }
+        const [primary, ...extras] = await Promise.all([
+          fetchVenueById(tenantId),
+          ...ids.map(fetchVenueById),
+        ]);
+        setVenues([primary, ...extras].filter((v): v is Venue => v != null));
       } catch {
         setVenues([]);
       } finally {
@@ -80,7 +90,7 @@ export default function VenuesPage() {
 
     if (isBroker) fetchVenues();
     else fetchOperatorVenue();
-  }, [isBroker, tenantId]);
+  }, [isBroker, tenantId, extraIdsKey]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,8 +102,9 @@ export default function VenuesPage() {
         capacity: formData.capacity ? parseInt(formData.capacity) : 300,
         years_in_operation: formData.years_in_operation ? parseInt(formData.years_in_operation) : 1,
       };
-      // For operators adding their first venue, use their tenant ID
-      if (isOperator && venues.length === 0 && tenantId) body.id = tenantId;
+      // For operators adding their first (primary) venue, pin it to the tenant ID.
+      const isFirstOperatorVenue = isOperator && venues.length === 0 && !!tenantId;
+      if (isFirstOperatorVenue) body.id = tenantId;
 
       const res = await fetch(`${API_URL}/api/venues`, {
         method: "POST",
@@ -105,6 +116,20 @@ export default function VenuesPage() {
         throw new Error(err.detail || "Failed to add venue");
       }
       const newVenue = await res.json();
+
+      // Operator extras must be linked to the user so they show up cross-device
+      // and on subsequent loads. Brokers see all venues via /api/venues already.
+      if (isOperator && !isFirstOperatorVenue) {
+        const token = localStorage.getItem("auth_token");
+        if (token) {
+          await fetch(`${API_URL}/api/auth/me/extra-venues/${newVenue.id}`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` },
+          });
+          await refreshUser();
+        }
+      }
+
       setVenues(prev => [...prev, newVenue]);
       setShowForm(false);
       setFormData(EMPTY_FORM);

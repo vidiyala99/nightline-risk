@@ -13,6 +13,7 @@ export interface User {
   name: string;
   role: UserRole;
   tenant_id: string | null;
+  extra_venue_ids: string[];
 }
 
 interface AuthContextType {
@@ -23,6 +24,11 @@ interface AuthContextType {
   tenantId: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
+  refreshUser: () => Promise<void>;
+}
+
+function normalizeUser(raw: any): User {
+  return { ...raw, extra_venue_ids: raw?.extra_venue_ids ?? [] };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,11 +54,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       if (!response.ok) throw new Error("Auth failed");
       const userData = await response.json();
-      setUser(userData);
+      setUser(normalizeUser(userData));
     } catch (error) {
       localStorage.removeItem("auth_token");
     } finally {
       setIsLoaded(true);
+    }
+  }
+
+  async function refreshUser() {
+    const token = localStorage.getItem("auth_token");
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) return;
+      const userData = await response.json();
+      setUser(normalizeUser(userData));
+    } catch {
+      // best-effort refresh; ignore network errors
     }
   }
 
@@ -65,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Login failed");
     localStorage.setItem("auth_token", data.access_token);
-    setUser(data.user);
+    setUser(normalizeUser(data.user));
   }
 
   function signOut() {
@@ -83,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tenantId: user?.tenant_id || null,
         signIn,
         signOut,
+        refreshUser,
       }}
     >
       {children}

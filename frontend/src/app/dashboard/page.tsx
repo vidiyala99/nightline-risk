@@ -62,9 +62,10 @@ const TIER_COLOR: Record<string, string> = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { signOut, isSignedIn, isLoaded } = useAuth();
+  const { signOut, isSignedIn, isLoaded, user } = useAuth();
   const role = useRole();
   const tenantId = useTenantId();
+  const extraVenueCount = user?.extra_venue_ids?.length ?? 0;
   const [loading, setLoading] = useState(true);
   const [portfolioVenues, setPortfolioVenues] = useState<PortfolioVenue[]>([]);
   const [liveState, setLiveState] = useState<LiveState | null>(null);
@@ -79,6 +80,8 @@ export default function DashboardPage() {
   }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchDashboard() {
       try {
         if (isBroker) {
@@ -86,6 +89,7 @@ export default function DashboardPage() {
           const res = await fetch(`${API_URL}/api/portfolio`);
           if (res.ok) {
             const venues: PortfolioVenue[] = await res.json();
+            if (cancelled) return;
             setPortfolioVenues(venues);
             setStats({
               venues: venues.length,
@@ -103,10 +107,18 @@ export default function DashboardPage() {
             fetch(`${API_URL}/api/venues/${venueId}/incidents?status=open`),
           ]);
           const incidentCount = incidentsRes.ok ? (await incidentsRes.json()).length : 0;
+          if (cancelled) return;
           if (liveRes.ok) {
             const state = await liveRes.json();
             setLiveState(state);
-            setStats({ venues: 1, incidents: incidentCount, compliance: state.compliance_queue?.length || 0 });
+            setStats({
+              venues: 1 + extraVenueCount,
+              incidents: incidentCount,
+              compliance: state.compliance_queue?.length || 0,
+            });
+          } else {
+            // Primary venue not yet set up — still surface the extras count
+            setStats((s) => ({ ...s, venues: 1 + extraVenueCount, incidents: incidentCount }));
           }
           if (riskRes.ok) setRiskScore(await riskRes.json());
           if (quoteRes.ok) setQuote(await quoteRes.json());
@@ -114,11 +126,21 @@ export default function DashboardPage() {
       } catch (error) {
         console.error("Dashboard fetch failed:", error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
+
     fetchDashboard();
-  }, [tenantId, isBroker]);
+
+    // Refresh whenever the tab regains focus — covers the case where the
+    // operator added a venue in another tab/window or returned from a sub-page.
+    const onFocus = () => fetchDashboard();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [tenantId, isBroker, extraVenueCount]);
 
   const handleSignOut = () => { signOut(); router.push("/login"); };
 
