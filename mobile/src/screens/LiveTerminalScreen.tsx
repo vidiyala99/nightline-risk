@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -50,7 +51,7 @@ const PRIORITY_COLOR: Record<string, string> = {
   low: '#4a4f65',
 };
 
-export function LiveTerminalScreen() {
+export function LiveTerminalScreen({ navigation }: any) {
   const { user, signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<LiveData | null>(null);
@@ -141,7 +142,15 @@ export function LiveTerminalScreen() {
       {/* Risk Score + Premium */}
       {riskData && (
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderColor: `${TIER_COLOR[riskData.tier] ?? '#4a4f65'}33` }]}>
+          <Pressable
+            style={({ pressed }) => [styles.statCard, { borderColor: `${TIER_COLOR[riskData.tier] ?? '#4a4f65'}33` }, pressed && { opacity: 0.75 }]}
+            onPress={() => navigation.navigate('RiskProfileDetail', {
+              riskData,
+              quoteData,
+              venueName: user?.name,
+              isBroker: false,
+            })}
+          >
             <Text style={styles.statEyebrow}>RISK TIER</Text>
             <Text style={[styles.statBig, { color: TIER_COLOR[riskData.tier] ?? '#eeeef5' }]}>
               {riskData.tier ?? '—'}
@@ -149,7 +158,7 @@ export function LiveTerminalScreen() {
             <Text style={[styles.statSub, { color: TIER_COLOR[riskData.tier] ?? '#4a4f65' }]}>
               {riskData.total_score ?? 0} / 100
             </Text>
-          </View>
+          </Pressable>
           {quoteData && (
             <View style={styles.statCard}>
               <Text style={styles.statEyebrow}>PREMIUM</Text>

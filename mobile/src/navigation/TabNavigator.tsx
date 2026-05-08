@@ -6,8 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 // Venue operator screens
 import { ReportIncidentScreen } from '../screens/ReportIncidentScreen';
 import { DashboardStack } from './DashboardStack';
-import { LiveTerminalScreen } from '../screens/LiveTerminalScreen';
 import { IncidentsStack } from './IncidentsStack';
+import { LiveStack } from './LiveStack';
 
 // Broker screens
 import { BrokerComplianceScreen } from '../screens/BrokerComplianceScreen';
@@ -87,7 +87,7 @@ function VenueOperatorTabs() {
       <Tab.Screen name="Dashboard" component={DashboardStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
       <Tab.Screen name="Report" component={ReportIncidentScreen} />
-      <Tab.Screen name="Live" component={LiveTerminalScreen} />
+      <Tab.Screen name="Live" component={LiveStack} />
     </Tab.Navigator>
   );
 }
