@@ -31,10 +31,10 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx --yes @playwright/test install --with-deps chromium
 
       - name: Run E2E tests
-        run: npx playwright test
+        run: npx --yes @playwright/test test
         env:
           # Tests run against the live Vercel deployment — no local server needed
           CI: true
