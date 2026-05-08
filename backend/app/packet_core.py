@@ -33,41 +33,65 @@ def create_packet_snapshot(
     citations: list[Citation],
     rubric_version: str,
 ) -> UnderwritingPacket:
+    # Ensure the rubric exists and is flushed so the FK on UnderwritingPacket holds.
     rubric = _ensure_rubric_version(session, rubric_version)
-    packet_id = f"pkt-{uuid4().hex[:12]}"
-    citation_ids: list[str] = []
+    session.flush()
 
+    packet_id = f"pkt-{uuid4().hex[:12]}"
+
+    # Insert the parent UnderwritingPacket BEFORE any CitationRecords.
+    # SQLAlchemy's flush ordering relies on ORM relationships, and these
+    # tables only have column-level FKs — so on Postgres, child INSERTs
+    # can otherwise be sent before the parent row exists. We finalize
+    # citation_ids and validation on the packet after the children are built.
+    packet = UnderwritingPacket(
+        id=packet_id,
+        venue_id=venue_id,
+        incident_id=incident_id,
+        rubric_version_id=rubric.id,
+        status=_packet_status(risk_signal, underwriting_memo),
+        risk_signals=risk_signal,
+        action_plan=action_plan,
+        claims_timeline=claims_timeline,
+        memo=underwriting_memo,
+        citation_ids=[],
+        validation={},
+        snapshot_hash="",
+    )
+    session.add(packet)
+    session.flush()
+
+    citation_ids: list[str] = []
     invalid_citations: list[str] = []
-    # Use no_autoflush so Postgres doesn't try to insert CitationRecords
-    # before the parent UnderwritingPacket row exists (FK constraint).
-    with session.no_autoflush:
-        for index, citation in enumerate(citations):
-            source = _ensure_source_record(
-                session=session,
-                venue_id=venue_id,
-                incident_id=incident_id,
-                citation=citation,
-            )
-            validation_status, failure_reason = _validate_citation(
-                source=source,
-                venue_id=venue_id,
-                excerpt=citation.excerpt,
-            )
-            citation_id = f"cit-{uuid4().hex[:12]}"
-            citation_record = CitationRecord(
-                id=citation_id,
-                packet_id=packet_id,
-                source_id=source.id,
-                claim_id=f"risk_signal:{risk_signal.get('type', 'unknown')}:{index}",
-                citation_type=citation.source_type,
-                field_path="excerpt",
-                excerpt=citation.excerpt,
-                validation_status=validation_status,
-            )
-            session.add(citation_record)
-            citation_ids.append(citation_id)
-            if validation_status == "invalid":
-                invalid_citations.append(f"{citation.source_id}: {failure_reason}")
+    for index, citation in enumerate(citations):
+        source = _ensure_source_record(
+            session=session,
+            venue_id=venue_id,
+            incident_id=incident_id,
+            citation=citation,
+        )
+        # Source FK on CitationRecord requires the SourceRecord row to exist.
+        session.flush()
+        validation_status, failure_reason = _validate_citation(
+            source=source,
+            venue_id=venue_id,
+            excerpt=citation.excerpt,
+        )
+        citation_id = f"cit-{uuid4().hex[:12]}"
+        citation_record = CitationRecord(
+            id=citation_id,
+            packet_id=packet_id,
+            source_id=source.id,
+            claim_id=f"risk_signal:{risk_signal.get('type', 'unknown')}:{index}",
+            citation_type=citation.source_type,
+            field_path="excerpt",
+            excerpt=citation.excerpt,
+            validation_status=validation_status,
+        )
+        session.add(citation_record)
+        citation_ids.append(citation_id)
+        if validation_status == "invalid":
+            invalid_citations.append(f"{citation.source_id}: {failure_reason}")
 
     overall_status = "invalid" if invalid_citations else "valid"
     validation = {
@@ -99,20 +123,9 @@ def create_packet_snapshot(
         "citation_ids": citation_ids,
         "validation": validation,
     }
-    packet = UnderwritingPacket(
-        id=packet_id,
-        venue_id=venue_id,
-        incident_id=incident_id,
-        rubric_version_id=rubric.id,
-        status=_packet_status(risk_signal, underwriting_memo),
-        risk_signals=risk_signal,
-        action_plan=action_plan,
-        claims_timeline=claims_timeline,
-        memo=underwriting_memo,
-        citation_ids=citation_ids,
-        validation=validation,
-        snapshot_hash=_snapshot_hash(packet_body),
-    )
+    packet.citation_ids = citation_ids
+    packet.validation = validation
+    packet.snapshot_hash = _snapshot_hash(packet_body)
     session.add(packet)
     _add_audit_event(
         session=session,
