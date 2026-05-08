@@ -98,11 +98,19 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
 
       {/* Risk Tier + Premium */}
       <View style={styles.statsRow}>
-        <View style={[styles.statCard, { borderColor: `${tierColor}33` }]}>
+        <Pressable
+          style={({ pressed }) => [styles.statCard, { borderColor: `${tierColor}33` }, pressed && { opacity: 0.75 }]}
+          onPress={() => navigation.navigate('RiskProfileDetail', {
+            riskData: risk,
+            quoteData: quote,
+            venueName,
+            isBroker: true,
+          })}
+        >
           <Text style={styles.statEyebrow}>RISK TIER</Text>
           <Text style={[styles.statBig, { color: tierColor }]}>{tier}</Text>
           <Text style={[styles.statSub, { color: tierColor }]}>{risk?.total_score ?? 0} / 100</Text>
-        </View>
+        </Pressable>
         {quote && (
           <View style={styles.statCard}>
             <Text style={styles.statEyebrow}>PREMIUM</Text>
