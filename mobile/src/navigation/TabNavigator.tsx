@@ -4,8 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
 // Venue operator screens
-import { DashboardScreen } from '../screens/DashboardScreen';
 import { ReportIncidentScreen } from '../screens/ReportIncidentScreen';
+import { DashboardStack } from './DashboardStack';
 import { LiveTerminalScreen } from '../screens/LiveTerminalScreen';
 import { IncidentsStack } from './IncidentsStack';
 
@@ -84,7 +84,7 @@ function VenueOperatorTabs() {
         <TabIcon name={route.name} focused={focused} isReport={route.name === 'Report'} />
       ),
     })}>
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Dashboard" component={DashboardStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
       <Tab.Screen name="Report" component={ReportIncidentScreen} />
       <Tab.Screen name="Live" component={LiveTerminalScreen} />

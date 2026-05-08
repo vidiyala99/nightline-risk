@@ -180,7 +180,15 @@ export function DashboardScreen({ navigation }: any) {
 
       {/* Risk Profile card */}
       {riskData && (
-        <View style={[styles.card, { borderColor: `${tierColor}22` }]}>
+        <Pressable
+          style={({ pressed }) => [styles.card, { borderColor: `${tierColor}22` }, pressed && { opacity: 0.8 }]}
+          onPress={() => navigation.navigate('RiskProfileDetail', {
+            riskData,
+            quoteData,
+            venueName: user?.name,
+            isBroker: false,
+          })}
+        >
           <Text style={styles.sectionEyebrow}>RISK PROFILE</Text>
 
           {/* Tier badge + score */}
@@ -210,7 +218,8 @@ export function DashboardScreen({ navigation }: any) {
               ))}
             </View>
           )}
-        </View>
+          <Text style={styles.tapHint}>Tap for full risk analysis →</Text>
+        </Pressable>
       )}
 
       {/* Premium Quote card */}
@@ -425,6 +434,7 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_500Medium',
   },
   factorList: { gap: 16 },
+  tapHint: { color: '#4a4f65', fontSize: 11, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
 
   // Quote card
   quoteCard: {

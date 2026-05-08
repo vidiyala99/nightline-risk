@@ -114,7 +114,15 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
 
       {/* Risk Factors */}
       {risk?.factors && Object.keys(risk.factors).length > 0 && (
-        <View style={styles.card}>
+        <Pressable
+          style={({ pressed }) => [styles.card, pressed && { opacity: 0.8 }]}
+          onPress={() => navigation.navigate('RiskProfileDetail', {
+            riskData: risk,
+            quoteData: quote,
+            venueName,
+            isBroker: true,
+          })}
+        >
           <Text style={styles.eyebrow}>RISK FACTORS</Text>
           <View style={styles.factorList}>
             {Object.entries(risk.factors).map(([key, val]) => (
@@ -127,7 +135,8 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
               />
             ))}
           </View>
-        </View>
+          <Text style={styles.tapHint}>Tap for full risk analysis →</Text>
+        </Pressable>
       )}
 
       {/* Live Capacity */}
@@ -215,6 +224,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
 
   factorList: { gap: 16 },
+  tapHint: { color: '#4a4f65', fontSize: 11, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
 
   capacityNumbers: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
   capacityBig: { fontSize: 48, fontWeight: '800', letterSpacing: -2, lineHeight: 48, fontFamily: 'JetBrainsMono_700Bold' },
