@@ -138,17 +138,6 @@ export function LiveTerminalScreen() {
         </View>
       </View>
 
-      {/* Savings hero — operator value prop */}
-      {quoteData?.savings_annual > 0 && (
-        <View style={styles.savingsCard}>
-          <Text style={styles.savingsEyebrow}>THIRD SPACE SAVES YOU</Text>
-          <Text style={styles.savingsAmount}>${quoteData.savings_annual.toLocaleString()}<Text style={styles.savingsPerYear}>/yr</Text></Text>
-          <Text style={styles.savingsSub}>
-            vs. market rate of ${quoteData.market_rate_annual?.toLocaleString()} — {quoteData.savings_pct}% discount through evidence-first underwriting
-          </Text>
-        </View>
-      )}
-
       {/* Risk Score + Premium */}
       {riskData && (
         <View style={styles.statsRow}>

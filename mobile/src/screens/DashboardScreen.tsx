@@ -141,6 +141,20 @@ export function DashboardScreen({ navigation }: any) {
         </View>
       </View>
 
+      {/* Savings hero */}
+      {quoteData && (quoteData.savings_annual ?? 0) > 0 && (
+        <View style={styles.savingsCard}>
+          <Text style={styles.savingsEyebrow}>THIRD SPACE SAVES YOU</Text>
+          <Text style={styles.savingsAmount}>
+            ${quoteData.savings_annual.toLocaleString()}
+            <Text style={styles.savingsPerYear}>/yr</Text>
+          </Text>
+          <Text style={styles.savingsSub}>
+            vs. market rate of ${quoteData.market_rate_annual?.toLocaleString()} — {quoteData.savings_pct}% discount through evidence-first underwriting
+          </Text>
+        </View>
+      )}
+
       {/* Stats bar */}
       <View style={styles.statsRow}>
         {/* Your Venue */}
@@ -282,6 +296,20 @@ const styles = StyleSheet.create({
 
   // Hero
   heroTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  savingsCard: {
+    backgroundColor: 'rgba(200,240,0,0.05)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(200,240,0,0.2)',
+    borderRadius: 14,
+    padding: 16,
+    gap: 6,
+    marginBottom: 4,
+  },
+  savingsEyebrow: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  savingsAmount: { color: '#c8f000', fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
+  savingsPerYear: { color: '#8b90a8', fontSize: 16, fontWeight: '400', fontFamily: 'DMSans_400Regular' },
+  savingsSub: { color: '#8b90a8', fontSize: 12, lineHeight: 18, fontFamily: 'JetBrainsMono_400Regular' },
+
   heroSection: {
     marginBottom: 24,
   },
