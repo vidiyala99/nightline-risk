@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -34,7 +35,7 @@ interface PremiumQuote {
   monthly_premium: number;
 }
 
-export function DashboardScreen() {
+export function DashboardScreen({ navigation }: any) {
   const { user, signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const [riskData, setRiskData] = useState<RiskScore | null>(null);
@@ -149,18 +150,18 @@ export function DashboardScreen() {
         </View>
 
         {/* Open Incidents */}
-        <View style={styles.statCard}>
+        <Pressable style={styles.statCard} onPress={() => navigation.navigate('Incidents')}>
           <Text style={styles.statEyebrow}>OPEN INCIDENTS</Text>
           <Text style={[styles.statValue, openIncidents > 0 && styles.statError]}>
             {openIncidents}
           </Text>
-        </View>
+        </Pressable>
 
         {/* Compliance Actions */}
-        <View style={styles.statCard}>
+        <Pressable style={styles.statCard} onPress={() => navigation.navigate('Live')}>
           <Text style={styles.statEyebrow}>COMPLIANCE</Text>
           <Text style={styles.statValue}>0</Text>
-        </View>
+        </Pressable>
       </View>
 
       {/* Risk Profile card */}

@@ -10,9 +10,9 @@ import { LiveTerminalScreen } from '../screens/LiveTerminalScreen';
 import { IncidentsStack } from './IncidentsStack';
 
 // Broker screens
-import { BrokerReportsScreen } from '../screens/BrokerReportsScreen';
 import { BrokerComplianceScreen } from '../screens/BrokerComplianceScreen';
 import { PortfolioStack } from './PortfolioStack';
+import { ReportsStack } from './ReportsStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -101,7 +101,7 @@ function BrokerTabs() {
       tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
     })}>
       <Tab.Screen name="Portfolio" component={PortfolioStack} />
-      <Tab.Screen name="Reports" component={BrokerReportsScreen} />
+      <Tab.Screen name="Reports" component={ReportsStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
       <Tab.Screen name="Compliance" component={BrokerComplianceScreen} />
     </Tab.Navigator>

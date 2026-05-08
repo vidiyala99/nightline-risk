@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,7 +54,7 @@ const FILTER_LABELS: Record<Filter, string> = {
   blocked:      'Blocked',
 };
 
-export function BrokerReportsScreen() {
+export function BrokerReportsScreen({ navigation }: any) {
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const [packets, setPackets] = useState<Packet[]>([]);
@@ -187,7 +188,10 @@ export function BrokerReportsScreen() {
             : '';
 
           return (
-            <View style={[styles.card, { borderLeftColor: severityColor }]}>
+            <Pressable
+              style={({ pressed }) => [styles.card, { borderLeftColor: severityColor }, pressed && { opacity: 0.75 }]}
+              onPress={() => navigation.navigate('ReportDetail', { packetId: item.id })}
+            >
               {/* Row 1: venue_id (bold) + status badge */}
               <View style={styles.cardTopRow}>
                 <Text style={styles.venueId} numberOfLines={1}>
@@ -260,7 +264,7 @@ export function BrokerReportsScreen() {
               {dateStr ? (
                 <Text style={styles.date}>{dateStr}</Text>
               ) : null}
-            </View>
+            </Pressable>
           );
         }}
         ListEmptyComponent={
