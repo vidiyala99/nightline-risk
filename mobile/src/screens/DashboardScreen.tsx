@@ -158,10 +158,10 @@ export function DashboardScreen({ navigation }: any) {
         </Pressable>
 
         {/* Compliance Actions */}
-        <Pressable style={styles.statCard} onPress={() => navigation.navigate('Live')}>
+        <View style={styles.statCard}>
           <Text style={styles.statEyebrow}>COMPLIANCE</Text>
           <Text style={styles.statValue}>0</Text>
-        </Pressable>
+        </View>
       </View>
 
       {/* Risk Profile card */}
