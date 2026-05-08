@@ -127,7 +127,7 @@ export function ReportIncidentScreen({ navigation }: { navigation: any }) {
         ? [...evidenceLinks, footageLink.trim()]
         : evidenceLinks;
 
-      const incident = await api.request<{ id: number }>(`/api/venues/${user!.tenant_id}/incidents`, {
+      const result = await api.request<{ incident: { id: string } }>(`/api/venues/${user!.tenant_id}/incidents`, {
         method: 'POST',
         body: JSON.stringify({
           ...form,
@@ -139,7 +139,7 @@ export function ReportIncidentScreen({ navigation }: { navigation: any }) {
       for (const uri of images) {
         const fd = new FormData();
         fd.append('file', { uri, name: 'evidence.jpg', type: 'image/jpeg' } as any);
-        await api.upload(`/api/incidents/${incident.id}/evidence`, fd);
+        await api.upload(`/api/incidents/${result.incident.id}/evidence`, fd);
       }
 
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
