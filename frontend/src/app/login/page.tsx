@@ -151,24 +151,6 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setEmail("broker@thirdspace.risk");
-                  setPassword("demo123");
-                  setTimeout(() => {
-                    (document.querySelector("form") as HTMLFormElement)?.requestSubmit();
-                  }, 50);
-                }}
-                style={{
-                  flex: 1, padding: '10px', background: 'rgba(212,255,0,0.08)',
-                  border: '1px solid rgba(212,255,0,0.3)', borderRadius: '8px',
-                  color: 'var(--brand-primary)', fontFamily: 'var(--font-body)',
-                  fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
-                }}
-              >
-                ⚡ Broker Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => {
                   setEmail("venue@elsewhere.com");
                   setPassword("demo123");
                   setTimeout(() => {
@@ -183,6 +165,24 @@ export default function LoginPage() {
                 }}
               >
                 ⚡ Venue Operator
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("broker@thirdspace.risk");
+                  setPassword("demo123");
+                  setTimeout(() => {
+                    (document.querySelector("form") as HTMLFormElement)?.requestSubmit();
+                  }, 50);
+                }}
+                style={{
+                  flex: 1, padding: '10px', background: 'rgba(212,255,0,0.08)',
+                  border: '1px solid rgba(212,255,0,0.3)', borderRadius: '8px',
+                  color: 'var(--brand-primary)', fontFamily: 'var(--font-body)',
+                  fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                ⚡ Broker Demo
               </button>
             </div>
             <div className="login-investors">
