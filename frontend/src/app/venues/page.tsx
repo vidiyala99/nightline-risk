@@ -185,9 +185,29 @@ export default function VenuesPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Venue Type</label>
-                <select className="input-field" value={formData.venue_type} onChange={(e) => setFormData({ ...formData, venue_type: e.target.value })} style={{ background: "var(--bg-surface)", color: "var(--text-primary)" }}>
-                  {VENUE_TYPES.map(t => <option key={t} value={t}>{t.replace(/\b\w/g, c => c.toUpperCase())}</option>)}
-                </select>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "4px" }}>
+                  {VENUE_TYPES.map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, venue_type: t })}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: "8px",
+                        border: `1px solid ${formData.venue_type === t ? "var(--brand-primary)" : "rgba(255,255,255,0.1)"}`,
+                        background: formData.venue_type === t ? "rgba(212,255,0,0.08)" : "var(--bg-surface)",
+                        color: formData.venue_type === t ? "var(--brand-primary)" : "var(--text-tertiary)",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">Address</label>
@@ -234,9 +254,29 @@ export default function VenuesPage() {
                   </div>
                 </div>
                 <input className="input-field" placeholder="Venue name" value={editData.name ?? ""} onChange={(e) => setEditData({ ...editData, name: e.target.value })} style={{ fontSize: "0.9rem" }} />
-                <select className="input-field" value={editData.venue_type ?? "bar"} onChange={(e) => setEditData({ ...editData, venue_type: e.target.value })} style={{ background: "var(--bg-surface)", color: "var(--text-primary)", fontSize: "0.9rem" }}>
-                  {VENUE_TYPES.map(t => <option key={t} value={t}>{t.replace(/\b\w/g, c => c.toUpperCase())}</option>)}
-                </select>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {VENUE_TYPES.map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setEditData({ ...editData, venue_type: t })}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: "8px",
+                        border: `1px solid ${editData.venue_type === t ? "var(--brand-primary)" : "rgba(255,255,255,0.1)"}`,
+                        background: editData.venue_type === t ? "rgba(212,255,0,0.08)" : "var(--bg-surface)",
+                        color: editData.venue_type === t ? "var(--brand-primary)" : "var(--text-tertiary)",
+                        fontSize: "0.72rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
                 <input className="input-field" placeholder="Address" value={editData.address ?? ""} onChange={(e) => setEditData({ ...editData, address: e.target.value })} style={{ fontSize: "0.9rem" }} />
                 <div style={{ display: "flex", gap: "8px" }}>
                   <input className="input-field" type="number" placeholder="Capacity" value={editData.capacity ?? ""} onChange={(e) => setEditData({ ...editData, capacity: parseInt(e.target.value) || undefined })} style={{ fontSize: "0.9rem" }} />
