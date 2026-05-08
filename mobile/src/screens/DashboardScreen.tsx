@@ -73,7 +73,13 @@ export function DashboardScreen({ navigation }: any) {
       setQuoteData(quote);
       setOpenIncidents(Array.isArray(incidents) ? incidents.length : 0);
     } catch (e: any) {
-      setFetchError(e?.message ?? 'Failed to load venue data');
+      const msg: string = e?.message ?? '';
+      // 404 means the venue hasn't been set up yet — not a real error
+      if (msg.includes('404') || msg.toLowerCase().includes('venue not found') || msg.includes('not found')) {
+        setFetchError(null);
+      } else {
+        setFetchError(msg || 'Failed to load venue data');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
