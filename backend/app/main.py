@@ -645,8 +645,7 @@ def update_incident_status(
 
 @app.post("/api/venues/{venue_id}/incidents", response_model=IncidentFlowResponse, status_code=201)
 def create_incident(venue_id: str, payload: IncidentCreate, session: Session = Depends(get_session)) -> IncidentFlowResponse:
-    if venue_id not in VENUES:
-        raise HTTPException(status_code=404, detail="Venue not found")
+    _resolve_venue(venue_id, session)
     return create_brawl_incident_flow(venue_id, payload, session)
 
 
@@ -677,8 +676,7 @@ def get_packet(
 @app.get("/api/venues/{venue_id}/sources")
 def list_venue_sources(venue_id: str, session: Session = Depends(get_session)) -> list[dict]:
     """Source registry — all evidence sources for a venue."""
-    if venue_id not in VENUES:
-        raise HTTPException(status_code=404, detail="Venue not found")
+    _resolve_venue(venue_id, session)
     sources = session.exec(
         select(SourceRecord)
         .where(SourceRecord.venue_id == venue_id)
@@ -748,19 +746,17 @@ def simulate_event_queue(venue_id: str, events: list[StreamEvent]):
 
 
 @app.post("/api/venues/{venue_id}/events/stream", status_code=202)
-def ingest_event_stream(venue_id: str, events: list[StreamEvent], background_tasks: BackgroundTasks):
+def ingest_event_stream(venue_id: str, events: list[StreamEvent], background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
     """High-volume ingestion — accepts immediately, processes asynchronously."""
-    if venue_id not in VENUES:
-        raise HTTPException(status_code=404, detail="Venue not found")
+    _resolve_venue(venue_id, session)
     background_tasks.add_task(simulate_event_queue, venue_id, events)
     return {"status": "accepted", "message": f"Queued {len(events)} events for asynchronous processing"}
 
 
 @app.post("/api/venues/{venue_id}/events/inject")
-def inject_event_sync(venue_id: str, events: list[StreamEvent]):
+def inject_event_sync(venue_id: str, events: list[StreamEvent], session: Session = Depends(get_session)):
     """Demo endpoint — synchronously processes events so the UI can refresh immediately."""
-    if venue_id not in VENUES:
-        raise HTTPException(status_code=404, detail="Venue not found")
+    _resolve_venue(venue_id, session)
     live_state_manager.process_events(venue_id, events)
     live = live_state_manager.get_state(venue_id, VENUES[venue_id]["capacity"], VENUES[venue_id])
     return {
@@ -814,11 +810,9 @@ def _audit_event_to_dict(event: AuditEvent) -> dict:
 
 
 @app.get("/api/venues/{venue_id}/live", response_model=LiveVenueState)
-def get_live_state(venue_id: str) -> LiveVenueState:
-    if venue_id not in VENUES:
-        raise HTTPException(status_code=404, detail="Venue not found")
-
-    return live_state_manager.get_state(venue_id, VENUES[venue_id]["capacity"], VENUES[venue_id])
+def get_live_state(venue_id: str, session: Session = Depends(get_session)) -> LiveVenueState:
+    venue = _resolve_venue(venue_id, session)
+    return live_state_manager.get_state(venue_id, venue["capacity"], venue)
 
 
 @app.get("/api/venues/{venue_id}/risk-score")
@@ -834,9 +828,8 @@ def get_venue_quote(venue_id: str, session: Session = Depends(get_session)) -> d
 
 
 @app.post("/api/venues/{venue_id}/compliance/{item_id}/upload")
-async def upload_compliance_evidence(venue_id: str, item_id: str, file: UploadFile = File(...)) -> dict:
-    if venue_id not in VENUES:
-        raise HTTPException(status_code=404, detail="Venue not found")
+async def upload_compliance_evidence(venue_id: str, item_id: str, file: UploadFile = File(...), session: Session = Depends(get_session)) -> dict:
+    _resolve_venue(venue_id, session)
 
     live_state_manager.resolve_compliance_item(venue_id, item_id)
     return {
