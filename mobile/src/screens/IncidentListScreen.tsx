@@ -67,7 +67,17 @@ export function IncidentListScreen({ navigation }: any) {
               <Text style={styles.countText}>{incidents.length}</Text>
             </View>
           </View>
-          <Text style={styles.signOut} onPress={signOut}>SIGN OUT</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {!isBroker && (
+              <Pressable
+                onPress={() => navigation.navigate('ReportIncident')}
+                style={styles.addBtn}
+              >
+                <Text style={styles.addBtnText}>+</Text>
+              </Pressable>
+            )}
+            <Text style={styles.signOut} onPress={signOut}>SIGN OUT</Text>
+          </View>
         </View>
         <View style={styles.filters}>
           {(['all', 'open', 'under_review', 'closed'] as Filter[]).map(f => (
@@ -136,6 +146,8 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingBottom: 16, gap: 16 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   signOut: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingVertical: 4, paddingLeft: 12, fontFamily: 'JetBrainsMono_700Bold' },
+  addBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#c8f000', alignItems: 'center', justifyContent: 'center' },
+  addBtnText: { color: '#07080f', fontSize: 20, fontWeight: '800', lineHeight: 24 },
   title: { color: '#eeeef5', fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
   countBadge: {
     backgroundColor: 'rgba(200,240,0,0.12)',

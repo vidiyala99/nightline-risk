@@ -4,7 +4,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
 // Venue operator screens
-import { ReportIncidentScreen } from '../screens/ReportIncidentScreen';
 import { DashboardStack } from './DashboardStack';
 import { IncidentsStack } from './IncidentsStack';
 import { LiveStack } from './LiveStack';
@@ -21,7 +20,6 @@ const VENUE_ICONS: Record<string, { active: string; inactive: string }> = {
   Dashboard: { active: '◈', inactive: '◇' },
   Venues:    { active: '⊟', inactive: '⊞' },
   Incidents: { active: '!', inactive: '!' },
-  Report:    { active: '+', inactive: '+' },
   Live:      { active: '◉', inactive: '○' },
 };
 
@@ -32,14 +30,7 @@ const BROKER_ICONS: Record<string, { active: string; inactive: string }> = {
   Compliance:  { active: '✓', inactive: '○' },
 };
 
-function TabIcon({ name, focused, isReport }: { name: string; focused: boolean; isReport?: boolean }) {
-  if (isReport) {
-    return (
-      <View style={[tabStyles.reportBtn, focused && tabStyles.reportBtnActive]}>
-        <Text style={[tabStyles.reportIcon, focused && tabStyles.reportIconActive]}>+</Text>
-      </View>
-    );
-  }
+function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons = { ...VENUE_ICONS, ...BROKER_ICONS };
   return (
     <Text style={{ fontSize: 16, color: focused ? '#c8f000' : '#ffffff' }}>
@@ -83,13 +74,12 @@ function VenueOperatorTabs() {
       ...screenOptions,
       headerShown: false,
       tabBarIcon: ({ focused }) => (
-        <TabIcon name={route.name} focused={focused} isReport={route.name === 'Report'} />
+        <TabIcon name={route.name} focused={focused} />
       ),
     })}>
       <Tab.Screen name="Dashboard" component={DashboardStack} />
       <Tab.Screen name="Venues" component={VenuesStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
-      <Tab.Screen name="Report" component={ReportIncidentScreen} />
       <Tab.Screen name="Live" component={LiveStack} />
     </Tab.Navigator>
   );
@@ -117,18 +107,3 @@ export function TabNavigator() {
   return isBroker ? <BrokerTabs /> : <VenueOperatorTabs />;
 }
 
-const tabStyles = StyleSheet.create({
-  reportBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.15)',
-    backgroundColor: '#0d0f1c',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reportBtnActive: { backgroundColor: '#c8f000', borderColor: '#c8f000' },
-  reportIcon: { fontSize: 18, color: '#ffffff', lineHeight: 22 },
-  reportIconActive: { color: '#07080f' },
-});
