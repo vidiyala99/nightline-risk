@@ -224,7 +224,7 @@ export function VenuesScreen({ navigation }: any) {
         </View>
         <Pressable
           style={styles.addBtn}
-          onPress={() => navigation.navigate('VenueSetupExtra')}
+          onPress={() => navigation.navigate('VenueSetupExtra', { isExtra: true })}
         >
           <Text style={styles.addBtnText}>+ ADD</Text>
         </Pressable>
@@ -233,7 +233,7 @@ export function VenuesScreen({ navigation }: any) {
       {venues.length === 0 ? (
         <Pressable
           style={styles.emptyCard}
-          onPress={() => navigation.navigate('VenueSetupExtra')}
+          onPress={() => navigation.navigate('VenueSetupExtra', { isExtra: true })}
         >
           <Text style={styles.emptyHeading}>No venue yet</Text>
           <Text style={styles.emptyBody}>Tap to add your first venue.</Text>

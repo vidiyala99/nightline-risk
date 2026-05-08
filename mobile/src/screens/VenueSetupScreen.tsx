@@ -30,7 +30,7 @@ const VENUE_TYPES = [
 export function VenueSetupScreen({ navigation, route }: any) {
   const { user } = useAuth();
   // isExtra=true means this is an additional venue (not the primary tenant_id one)
-  const isExtra = route?.params?.onCreated != null;
+  const isExtra = route?.params?.isExtra === true;
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [capacity, setCapacity] = useState('');
