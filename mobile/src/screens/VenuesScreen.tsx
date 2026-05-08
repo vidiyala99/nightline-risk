@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -183,7 +182,7 @@ function VenueCard({
 }
 
 export function VenuesScreen({ navigation }: any) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
   const [venues, setVenues] = useState<VenueData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,11 +191,8 @@ export function VenuesScreen({ navigation }: any) {
   const loadVenues = useCallback(async () => {
     if (!user?.tenant_id) { setLoading(false); return; }
     try {
-      // Load primary venue
       const primary = await api.request<VenueData>(`/api/venues/${user.tenant_id}`);
-      // Load additional venue IDs from local storage
-      const stored = await AsyncStorage.getItem(`extra_venues_${user.tenant_id}`);
-      const extraIds: string[] = stored ? JSON.parse(stored) : [];
+      const extraIds: string[] = user.extra_venue_ids ?? [];
       const extras = await Promise.all(
         extraIds.map((id) => api.request<VenueData>(`/api/venues/${id}`).catch(() => null))
       );
@@ -207,7 +203,7 @@ export function VenuesScreen({ navigation }: any) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.tenant_id]);
+  }, [user?.tenant_id, user?.extra_venue_ids]);
 
   useFocusEffect(useCallback(() => {
     loadVenues();
@@ -224,13 +220,8 @@ export function VenuesScreen({ navigation }: any) {
   async function handleDelete(venueId: string) {
     try {
       await api.request(`/api/venues/${venueId}`, { method: 'DELETE' });
-      // Remove from AsyncStorage extra venues list
-      if (user?.tenant_id) {
-        const key = `extra_venues_${user.tenant_id}`;
-        const stored = await AsyncStorage.getItem(key);
-        const ids: string[] = stored ? JSON.parse(stored) : [];
-        await AsyncStorage.setItem(key, JSON.stringify(ids.filter((id) => id !== venueId)));
-      }
+      await api.request(`/api/auth/me/extra-venues/${venueId}`, { method: 'DELETE' });
+      await refreshUser();
       setVenues((prev) => prev.filter((v) => v.id !== venueId));
     } catch (e: any) {
       Alert.alert('Cannot delete', e.message ?? 'Something went wrong');

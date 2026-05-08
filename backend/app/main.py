@@ -90,6 +90,7 @@ async def lifespan(app: FastAPI):
         for migration in [
             "ALTER TABLE incidentrecord ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'open'",
             "ALTER TABLE venue ADD COLUMN IF NOT EXISTS venue_data TEXT",
+            "ALTER TABLE userrecord ADD COLUMN IF NOT EXISTS extra_venue_ids TEXT",
         ]:
             try:
                 conn.execute(text(migration))

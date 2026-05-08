@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
 
+
 const VENUE_TYPES = [
   'bar',
   'nightclub',
@@ -28,7 +29,7 @@ const VENUE_TYPES = [
 ];
 
 export function VenueSetupScreen({ navigation, route }: any) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   // isExtra=true means this is an additional venue (not the primary tenant_id one)
   const isExtra = route?.params?.isExtra === true;
   const [name, setName] = useState('');
@@ -64,14 +65,9 @@ export function VenueSetupScreen({ navigation, route }: any) {
         method: 'POST',
         body: JSON.stringify(body),
       });
-      if (isExtra && user?.tenant_id) {
-        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-        const key = `extra_venues_${user.tenant_id}`;
-        const stored = await AsyncStorage.getItem(key);
-        const ids: string[] = stored ? JSON.parse(stored) : [];
-        if (!ids.includes(result.id)) {
-          await AsyncStorage.setItem(key, JSON.stringify([...ids, result.id]));
-        }
+      if (isExtra) {
+        await api.request(`/api/auth/me/extra-venues/${result.id}`, { method: 'POST' });
+        await refreshUser();
       }
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();

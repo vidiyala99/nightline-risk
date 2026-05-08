@@ -74,6 +74,9 @@ def verify_password(password: str, hashed: str) -> bool:
 
 
 def _record_to_dict(record) -> dict:
+    import json as _json
+    raw = getattr(record, "extra_venue_ids", None)
+    extra_ids = _json.loads(raw) if raw else []
     return {
         "id": record.id,
         "email": record.email,
@@ -81,6 +84,7 @@ def _record_to_dict(record) -> dict:
         "name": record.name,
         "role": record.role,
         "tenant_id": record.tenant_id,
+        "extra_venue_ids": extra_ids,
     }
 
 
@@ -165,14 +169,46 @@ def register(request: RegisterRequest, session: Session = Depends(get_session)):
     return {"access_token": token, "user": {k: v for k, v in user.items() if k != "password_hash"}}
 
 
-@router.get("/me")
-def get_me(authorization: str = Header(None), session: Session = Depends(get_session)):
+def _get_current_user_record(authorization: str, session: Session):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid token")
     decoded = verify_token(authorization.split(" ")[1])
     if not decoded:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    user = get_user_by_id(decoded["sub"], session)
-    if not user:
+    from app.models import UserRecord
+    record = session.get(UserRecord, decoded["sub"])
+    if not record:
         raise HTTPException(status_code=404, detail="User not found")
+    return record
+
+
+@router.get("/me")
+def get_me(authorization: str = Header(None), session: Session = Depends(get_session)):
+    record = _get_current_user_record(authorization, session)
+    user = _record_to_dict(record)
     return {k: v for k, v in user.items() if k != "password_hash"}
+
+
+@router.post("/me/extra-venues/{venue_id}", status_code=200)
+def add_extra_venue(venue_id: str, authorization: str = Header(None), session: Session = Depends(get_session)):
+    import json as _json
+    record = _get_current_user_record(authorization, session)
+    ids: list = _json.loads(record.extra_venue_ids) if record.extra_venue_ids else []
+    if venue_id not in ids:
+        ids.append(venue_id)
+        record.extra_venue_ids = _json.dumps(ids)
+        session.add(record)
+        session.commit()
+    return {"extra_venue_ids": ids}
+
+
+@router.delete("/me/extra-venues/{venue_id}", status_code=200)
+def remove_extra_venue(venue_id: str, authorization: str = Header(None), session: Session = Depends(get_session)):
+    import json as _json
+    record = _get_current_user_record(authorization, session)
+    ids: list = _json.loads(record.extra_venue_ids) if record.extra_venue_ids else []
+    ids = [i for i in ids if i != venue_id]
+    record.extra_venue_ids = _json.dumps(ids)
+    session.add(record)
+    session.commit()
+    return {"extra_venue_ids": ids}

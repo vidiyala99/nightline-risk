@@ -91,7 +91,7 @@ export function DashboardScreen({ navigation }: any) {
   }, [fetchData]);
 
   useFocusEffect(useCallback(() => {
-    if (!riskData) setLoading(true);
+    setLoading(true);
     fetchData();
   }, [fetchData]));
 

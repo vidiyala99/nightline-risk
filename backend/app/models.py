@@ -10,6 +10,7 @@ class UserRecord(SQLModel, table=True):
     name: str
     role: str
     tenant_id: Optional[str] = Field(default=None)
+    extra_venue_ids: Optional[str] = Field(default=None)  # JSON-encoded list of extra venue IDs
 
 
 class Venue(SQLModel, table=True):
