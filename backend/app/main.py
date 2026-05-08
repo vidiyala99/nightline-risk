@@ -81,19 +81,27 @@ def _backfill_incident_packets(session: Session) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
-    with next(get_session()) as session:
-        # Migrations for columns added after initial deploy
+
+    # Run column migrations using a raw connection so each DDL statement
+    # gets its own autocommit transaction — avoids Postgres aborting the
+    # whole transaction on "column already exists" errors.
+    with engine.connect() as conn:
+        conn.execution_options(isolation_level="AUTOCOMMIT")
         for migration in [
-            "ALTER TABLE incidentrecord ADD COLUMN status TEXT NOT NULL DEFAULT 'open'",
-            "ALTER TABLE venue ADD COLUMN venue_data TEXT",
+            "ALTER TABLE incidentrecord ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'open'",
+            "ALTER TABLE venue ADD COLUMN IF NOT EXISTS venue_data TEXT",
         ]:
             try:
-                session.exec(text(migration))
-                session.commit()
+                conn.execute(text(migration))
             except Exception:
-                pass  # Column already exists
-        # Seed venues with full data so _resolve_venue has accurate info from DB
-        import json as _json
+                pass
+
+    import json as _json
+    from app.auth import DEMO_USERS, create_password_hash
+    import app.auth as _auth
+
+    with next(get_session()) as session:
+        # Seed venues with full data
         for venue_id, venue_data in VENUES.items():
             existing = session.get(Venue, venue_id)
             if not existing:
@@ -102,9 +110,8 @@ async def lifespan(app: FastAPI):
                 existing.venue_data = _json.dumps(venue_data)
                 session.add(existing)
         session.commit()
-        # Seed demo users into DB if not already present
-        from app.auth import DEMO_USERS, create_password_hash
-        import app.auth as _auth
+
+        # Seed demo users
         for demo in DEMO_USERS:
             if not session.get(UserRecord, demo["id"]):
                 session.add(UserRecord(
@@ -116,7 +123,8 @@ async def lifespan(app: FastAPI):
                     tenant_id=demo["tenant_id"],
                 ))
         session.commit()
-        # Sync USER_COUNTER to highest persisted user number
+
+        # Sync USER_COUNTER
         all_users = session.exec(select(UserRecord)).all()
         max_counter = len(DEMO_USERS) + 1
         for u in all_users:
