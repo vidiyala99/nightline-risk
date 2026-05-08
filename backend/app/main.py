@@ -646,20 +646,7 @@ def update_incident_status(
 @app.post("/api/venues/{venue_id}/incidents", response_model=IncidentFlowResponse, status_code=201)
 def create_incident(venue_id: str, payload: IncidentCreate, session: Session = Depends(get_session)) -> IncidentFlowResponse:
     _resolve_venue(venue_id, session)
-    try:
-        return create_brawl_incident_flow(venue_id, payload, session)
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        print(f"[INCIDENT_CREATE_ERROR] {type(e).__name__}: {e}\n{tb}", flush=True)
-        try:
-            session.rollback()
-        except Exception:
-            pass
-        raise HTTPException(
-            status_code=500,
-            detail=f"{type(e).__name__}: {str(e)[:300]} | tb-tail: {tb[-400:]}",
-        )
+    return create_brawl_incident_flow(venue_id, payload, session)
 
 
 @app.get("/api/incidents/{incident_id}/packets")
