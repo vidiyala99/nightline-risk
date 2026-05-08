@@ -3,7 +3,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { RiskProfileDetailScreen } from '../screens/RiskProfileDetailScreen';
 import { VenueSetupScreen } from '../screens/VenueSetupScreen';
-import { VenuesScreen } from '../screens/VenuesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -13,8 +12,6 @@ export function DashboardStack() {
       <Stack.Screen name="DashboardHome" component={DashboardScreen} />
       <Stack.Screen name="RiskProfileDetail" component={RiskProfileDetailScreen} />
       <Stack.Screen name="VenueSetup" component={VenueSetupScreen} />
-      <Stack.Screen name="VenueSetupExtra" component={VenueSetupScreen} />
-      <Stack.Screen name="VenuesTab" component={VenuesScreen} />
     </Stack.Navigator>
   );
 }

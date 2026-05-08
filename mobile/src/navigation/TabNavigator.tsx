@@ -8,7 +8,7 @@ import { ReportIncidentScreen } from '../screens/ReportIncidentScreen';
 import { DashboardStack } from './DashboardStack';
 import { IncidentsStack } from './IncidentsStack';
 import { LiveStack } from './LiveStack';
-import { VenuesScreen } from '../screens/VenuesScreen';
+import { VenuesStack } from './VenuesStack';
 
 // Broker screens
 import { BrokerComplianceScreen } from '../screens/BrokerComplianceScreen';
@@ -87,7 +87,7 @@ function VenueOperatorTabs() {
       ),
     })}>
       <Tab.Screen name="Dashboard" component={DashboardStack} />
-      <Tab.Screen name="Venues" component={VenuesScreen} />
+      <Tab.Screen name="Venues" component={VenuesStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
       <Tab.Screen name="Report" component={ReportIncidentScreen} />
       <Tab.Screen name="Live" component={LiveStack} />
