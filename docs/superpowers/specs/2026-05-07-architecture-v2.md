@@ -1,8 +1,8 @@
 # Third Space Risk Engine: Architecture v2
 
 **Date:** 2026-05-07
-**Last Updated:** 2026-05-08 (full-day mobile + web parity session)
-**Version:** v2.4
+**Last Updated:** 2026-05-08 (auth + venue management session)
+**Version:** v2.5
 **Status:** Current system + near-term roadmap
 **Audience:** Engineering, interview review
 
@@ -42,7 +42,9 @@ The core loop:
 ### 2.2 Data Models
 
 ```
-Venue
+UserRecord                           (persisted auth — survives restarts)
+
+Venue                                (venue_data JSON col — full config persisted)
   └── IncidentRecord
         ├── IncidentEvaluation       (agent output, legacy)
         ├── EvidenceFile             (uploaded photos/video/docs)
@@ -61,7 +63,8 @@ RubricVersion                        (versioned scoring rules)
 
 | Resource | Endpoints |
 |----------|-----------|
-| Venues | GET/POST /api/venues, GET /api/venues/{id}, GET /api/portfolio |
+| Auth | POST /api/auth/login, POST /api/auth/register, GET /api/auth/me |
+| Venues | GET/POST /api/venues, GET/PATCH /api/venues/{id}, GET /api/portfolio |
 | Incidents | GET/POST /api/venues/{id}/incidents, GET /api/incidents, GET /api/incidents/{id}, PATCH /api/incidents/{id}/status |
 | Evidence | POST/GET /api/incidents/{id}/evidence, GET /api/evidence/{id}/file, GET /api/incidents/{id}/evidence-analysis |
 | Packets | GET /api/packets, GET /api/packets/{id}, GET /api/incidents/{id}/packets |
@@ -98,8 +101,10 @@ PacketSnapshot          ← immutable snapshot with hash, citations, rubric vers
 
 | Role | Portal Access |
 |------|--------------|
-| Venue Operator | Live Terminal, Incidents, Compliance |
-| Broker / Third Space | Portfolio, Reports queue, Venues, Incidents |
+| Venue Operator | Dashboard, Venues, Incidents, Report, Live Terminal, Compliance |
+| Broker / Third Space | Dashboard, Venues, Reports queue, Incidents, Compliance |
+
+Both roles can self-register via the login screen (web + mobile). New venue operators go through a first-login venue setup flow. Users and venue data are persisted to SQLite and rehydrated on server restart — Railway cold starts do not lose registered accounts or venue configs.
 
 In v1 the broker role doubles as underwriter — the same login accesses both the portfolio view and the reports queue. A dedicated underwriter role with narrower permissions is a Phase 3 item.
 
@@ -321,6 +326,11 @@ Provider switching requires changing one function per agent, not the architectur
 - ✅ **Web: Compliance page** — role-aware: broker sees portfolio compliance overview, operator sees upload queue
 - ✅ **Web: Role-aware copy** — savings banner hidden from brokers, "Client Saves" vs "You Save", "Showing all venues" (removed Read-only)
 - ✅ **CI fixes** — 5 backend test failures resolved (memo review_status, shared source citations, worker context keys)
+- ✅ **Self-serve registration** — `POST /api/auth/register` wired end-to-end on web and mobile; role selection (venue_operator / broker); email format + password length validation with inline error states
+- ✅ **Venue management** — operators set up, view, edit, and add venues (web Venues page + mobile Venues tab); `PATCH /api/venues/{id}` for edits; chip-style venue type picker
+- ✅ **DB persistence for users + venues** — `UserRecord` SQLModel table; venue full data stored as JSON in `Venue.venue_data`; both rehydrated from SQLite on startup so Railway restarts preserve all data
+- ✅ **Railway stateless fix** — `_resolve_venue()` helper falls back to DB on every request; no 404s after cold starts or load-balancer routing across instances
+- ✅ **Polished error states** — inline red banners (no system alerts) on login, register, dashboard; field-level on-blur validation; on-brand error card with retry action
 
 ### Phase 2 — LLM-backed agents
 - Wire real Claude API calls behind existing interfaces
