@@ -39,7 +39,7 @@ export default function IncidentsPage() {
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "all">("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    occurred_at: new Date().toISOString().slice(0, 16),
+    occurred_at: "",
     location: "",
     summary: "",
     reported_by: "",
@@ -122,7 +122,7 @@ export default function IncidentsPage() {
       setEvidenceFiles([]);
       setEvidenceLinks([]);
       setLinkInput("");
-      setFormData({ occurred_at: new Date().toISOString().slice(0, 16), location: "", summary: "", reported_by: "", injury_observed: false, police_called: false, ems_called: false });
+      setFormData({ occurred_at: "", location: "", summary: "", reported_by: "", injury_observed: false, police_called: false, ems_called: false });
       const updated = await fetch(isBroker ? `${API_URL}/api/incidents` : `${API_URL}/api/venues/${venueId}/incidents`);
       if (updated.ok) {
         const data = await updated.json();
