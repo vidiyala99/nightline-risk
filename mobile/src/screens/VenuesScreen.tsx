@@ -202,15 +202,6 @@ export function VenuesScreen({ navigation }: any) {
     setVenues((prev) => prev.map((v) => v.id === venueId ? { ...v, ...updated } : v));
   }
 
-  async function handleAddVenue(newVenueId: string) {
-    if (!user?.tenant_id) return;
-    const stored = await AsyncStorage.getItem(`extra_venues_${user.tenant_id}`);
-    const extraIds: string[] = stored ? JSON.parse(stored) : [];
-    if (!extraIds.includes(newVenueId)) {
-      await AsyncStorage.setItem(`extra_venues_${user.tenant_id}`, JSON.stringify([...extraIds, newVenueId]));
-    }
-  }
-
   function onRefresh() {
     setRefreshing(true);
     loadVenues();
@@ -233,7 +224,7 @@ export function VenuesScreen({ navigation }: any) {
         </View>
         <Pressable
           style={styles.addBtn}
-          onPress={() => navigation.navigate('VenueSetupExtra', { onCreated: handleAddVenue })}
+          onPress={() => navigation.navigate('VenueSetupExtra')}
         >
           <Text style={styles.addBtnText}>+ ADD</Text>
         </Pressable>
@@ -242,7 +233,7 @@ export function VenuesScreen({ navigation }: any) {
       {venues.length === 0 ? (
         <Pressable
           style={styles.emptyCard}
-          onPress={() => navigation.navigate('VenueSetupExtra', { onCreated: handleAddVenue })}
+          onPress={() => navigation.navigate('VenueSetupExtra')}
         >
           <Text style={styles.emptyHeading}>No venue yet</Text>
           <Text style={styles.emptyBody}>Tap to add your first venue.</Text>

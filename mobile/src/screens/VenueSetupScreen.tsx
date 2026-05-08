@@ -64,8 +64,14 @@ export function VenueSetupScreen({ navigation, route }: any) {
         method: 'POST',
         body: JSON.stringify(body),
       });
-      if (isExtra && route.params?.onCreated) {
-        await route.params.onCreated(result.id);
+      if (isExtra && user?.tenant_id) {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const key = `extra_venues_${user.tenant_id}`;
+        const stored = await AsyncStorage.getItem(key);
+        const ids: string[] = stored ? JSON.parse(stored) : [];
+        if (!ids.includes(result.id)) {
+          await AsyncStorage.setItem(key, JSON.stringify([...ids, result.id]));
+        }
       }
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
