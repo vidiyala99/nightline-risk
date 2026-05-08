@@ -24,12 +24,15 @@ export function LoginScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailTouched, setEmailTouched] = useState(false);
+
+  const isValidEmail = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
+
+  const emailInvalid = emailTouched && email.length > 0 && !isValidEmail(email);
 
   function clearError() {
     if (error) setError(null);
   }
-
-  const isValidEmail = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
 
   async function handleLogin() {
     if (!email || !password) {
@@ -37,6 +40,7 @@ export function LoginScreen({ navigation }: Props) {
       return;
     }
     if (!isValidEmail(email)) {
+      setEmailTouched(true);
       setError('Enter a valid email address (e.g. you@venue.com).');
       return;
     }
@@ -71,14 +75,19 @@ export function LoginScreen({ navigation }: Props) {
           <View style={styles.inputWrap}>
             <Text style={styles.inputLabel}>EMAIL</Text>
             <TextInput
-              style={[styles.input, hasError && styles.inputError]}
+              style={[styles.input, (hasError || emailInvalid) && styles.inputError]}
               placeholder="operator@venue.com"
               placeholderTextColor="#2e3247"
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               value={email}
               onChangeText={(v) => { setEmail(v); clearError(); }}
+              onBlur={() => setEmailTouched(true)}
             />
+            {emailInvalid && (
+              <Text style={styles.fieldError}>Enter a valid email (e.g. you@venue.com)</Text>
+            )}
           </View>
           <View style={styles.inputWrap}>
             <Text style={styles.inputLabel}>PASSWORD</Text>
@@ -203,6 +212,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,69,87,0.5)',
     borderWidth: 1,
     backgroundColor: 'rgba(255,69,87,0.04)',
+  },
+  fieldError: {
+    color: '#ff8090',
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    marginTop: 2,
   },
 
   errorBanner: {

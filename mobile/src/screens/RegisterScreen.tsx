@@ -29,6 +29,11 @@ export function RegisterScreen({ navigation }: Props) {
   const [role, setRole] = useState<'venue_operator' | 'broker'>('venue_operator');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+
+  const emailInvalid = emailTouched && email.length > 0 && !isValidEmail(email);
+  const passwordShort = passwordTouched && password.length > 0 && password.length < 6;
 
   function clearError() {
     if (error) setError(null);
@@ -40,10 +45,12 @@ export function RegisterScreen({ navigation }: Props) {
       return;
     }
     if (!email.trim() || !isValidEmail(email)) {
+      setEmailTouched(true);
       setError('Enter a valid email address (e.g. you@venue.com).');
       return;
     }
     if (password.length < 6) {
+      setPasswordTouched(true);
       setError('Password must be at least 6 characters.');
       return;
     }
@@ -99,26 +106,35 @@ export function RegisterScreen({ navigation }: Props) {
           <View style={styles.inputWrap}>
             <Text style={styles.inputLabel}>EMAIL</Text>
             <TextInput
-              style={[styles.input, hasError && styles.inputError]}
+              style={[styles.input, (hasError || emailInvalid) && styles.inputError]}
               placeholder="you@venue.com"
               placeholderTextColor="#2e3247"
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               value={email}
               onChangeText={(v) => { setEmail(v); clearError(); }}
+              onBlur={() => setEmailTouched(true)}
             />
+            {emailInvalid && (
+              <Text style={styles.fieldError}>Enter a valid email (e.g. you@venue.com)</Text>
+            )}
           </View>
 
           <View style={styles.inputWrap}>
             <Text style={styles.inputLabel}>PASSWORD</Text>
             <TextInput
-              style={[styles.input, hasError && styles.inputError]}
+              style={[styles.input, (hasError || passwordShort) && styles.inputError]}
               placeholder="Min. 6 characters"
               placeholderTextColor="#2e3247"
               secureTextEntry
               value={password}
               onChangeText={(v) => { setPassword(v); clearError(); }}
+              onBlur={() => setPasswordTouched(true)}
             />
+            {passwordShort && (
+              <Text style={styles.fieldError}>At least 6 characters required</Text>
+            )}
           </View>
 
           <View style={styles.inputWrap}>
@@ -235,6 +251,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,69,87,0.5)',
     borderWidth: 1,
     backgroundColor: 'rgba(255,69,87,0.04)',
+  },
+  fieldError: {
+    color: '#ff8090',
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    marginTop: 2,
   },
 
   errorBanner: {
