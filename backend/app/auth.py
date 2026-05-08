@@ -98,30 +98,66 @@ USERS_DB = {
 
 USER_COUNTER = 3
 
-def authenticate_user(email: str, password: str) -> Optional[dict]:
+def _user_record_to_dict(record) -> dict:
+    return {
+        "id": record.id,
+        "email": record.email,
+        "password_hash": record.password_hash,
+        "name": record.name,
+        "role": record.role,
+        "tenant_id": record.tenant_id,
+    }
+
+
+def authenticate_user(email: str, password: str, session=None) -> Optional[dict]:
     """Authenticate a user by email and password."""
     for user in USERS_DB.values():
         if user["email"] == email and verify_password(password, user["password_hash"]):
             return user
+    # Fallback: check DB (handles restarts where USERS_DB was not rehydrated)
+    if session:
+        from sqlmodel import select
+        from app.models import UserRecord
+        record = session.exec(select(UserRecord).where(UserRecord.email == email)).first()
+        if record and verify_password(password, record.password_hash):
+            user = _user_record_to_dict(record)
+            USERS_DB[record.id] = user
+            return user
     return None
 
-def get_user_by_id(user_id: str) -> Optional[dict]:
-    """Get a user by ID."""
-    return USERS_DB.get(user_id)
 
-def register_user(email: str, password: str, name: str, role: str = "venue_operator") -> Optional[dict]:
+def get_user_by_id(user_id: str, session=None) -> Optional[dict]:
+    """Get a user by ID."""
+    if user_id in USERS_DB:
+        return USERS_DB[user_id]
+    if session:
+        from app.models import UserRecord
+        record = session.get(UserRecord, user_id)
+        if record:
+            user = _user_record_to_dict(record)
+            USERS_DB[user_id] = user
+            return user
+    return None
+
+
+def register_user(email: str, password: str, name: str, role: str = "venue_operator", session=None) -> Optional[dict]:
     """Register a new user."""
     global USER_COUNTER
-    
+
+    # Check in-memory and DB for duplicate email
     for user in USERS_DB.values():
         if user["email"] == email:
             return None
-    
+    if session:
+        from sqlmodel import select
+        from app.models import UserRecord
+        if session.exec(select(UserRecord).where(UserRecord.email == email)).first():
+            return None
+
     user_id = f"user_{USER_COUNTER:03d}"
     USER_COUNTER += 1
-    
     tenant_id = f"venue_{USER_COUNTER:03d}" if role == "venue_operator" else None
-    
+
     new_user = {
         "id": user_id,
         "email": email,
@@ -130,13 +166,23 @@ def register_user(email: str, password: str, name: str, role: str = "venue_opera
         "role": role,
         "tenant_id": tenant_id,
     }
-    
     USERS_DB[user_id] = new_user
-    
+
+    if session:
+        from app.models import UserRecord
+        session.add(UserRecord(
+            id=user_id, email=email,
+            password_hash=new_user["password_hash"],
+            name=name, role=role, tenant_id=tenant_id,
+        ))
+        session.commit()
+
     return new_user
 
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
+from sqlmodel import Session
+from app.database import get_session
 
 router = APIRouter()
 
@@ -151,26 +197,21 @@ class RegisterRequest(BaseModel):
     role: str = "venue_operator"
 
 @router.post("/login")
-def login(request: LoginRequest):
-    user = authenticate_user(request.email, request.password)
+def login(request: LoginRequest, session: Session = Depends(get_session)):
+    user = authenticate_user(request.email, request.password, session)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_token(user["id"], user["email"], user["role"], user["tenant_id"])
-    
-    # Format the user data correctly to remove password_hash before returning
     safe_user = {k: v for k, v in user.items() if k != "password_hash"}
-    
     return {"access_token": token, "user": safe_user}
 
 @router.post("/register")
-def register(request: RegisterRequest):
-    user = register_user(request.email, request.password, request.name, request.role)
+def register(request: RegisterRequest, session: Session = Depends(get_session)):
+    user = register_user(request.email, request.password, request.name, request.role, session)
     if not user:
         raise HTTPException(status_code=400, detail="User with this email already exists")
     token = create_token(user["id"], user["email"], user["role"], user["tenant_id"])
-    
     safe_user = {k: v for k, v in user.items() if k != "password_hash"}
-    
     return {"access_token": token, "user": safe_user}
 
 @router.get("/me")

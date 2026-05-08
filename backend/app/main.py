@@ -17,7 +17,7 @@ from app.schemas import Incident, IncidentCreate, IncidentFlowResponse, LiveVenu
 from app.seed_data import KNOWLEDGE_SOURCES, SEED_INCIDENTS, STREAM_EVENTS, VENUES
 from app.database import create_db_and_tables, get_session
 from app.live_state import live_state_manager
-from app.models import AuditEvent, EvidenceAnalysis, EvidenceFile, IncidentRecord, ReviewDecision, SourceRecord, UnderwritingPacket, Venue
+from app.models import AuditEvent, EvidenceAnalysis, EvidenceFile, IncidentRecord, ReviewDecision, SourceRecord, UnderwritingPacket, Venue, UserRecord
 from app.packet_core import create_packet_snapshot, record_review_decision, record_packet_opened
 from app.agents.runtime import execute_underwriting_packet_agents
 from app.underwriting import get_premium_quote, get_risk_score
@@ -97,6 +97,23 @@ async def lifespan(app: FastAPI):
             if not session.get(Venue, venue_id):
                 session.add(Venue(id=venue_id, name=venue_data["name"]))
         session.commit()
+        # Rehydrate USERS_DB from persisted user records
+        from app.auth import USERS_DB, _user_record_to_dict, USER_COUNTER
+        import app.auth as _auth
+        db_users = session.exec(select(UserRecord)).all()
+        max_counter = 3
+        for u in db_users:
+            if u.id not in USERS_DB:
+                USERS_DB[u.id] = _user_record_to_dict(u)
+                print(f"[REHYDRATE] Loaded user {u.id} from DB")
+            try:
+                num = int(u.id.split("_")[1])
+                if num >= max_counter:
+                    max_counter = num + 1
+            except Exception:
+                pass
+        _auth.USER_COUNTER = max(max_counter, _auth.USER_COUNTER)
+
         # Rehydrate VENUES from any API-created venues stored in the DB
         import json as _json
         db_venues = session.exec(select(Venue)).all()

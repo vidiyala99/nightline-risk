@@ -3,6 +3,15 @@ from typing import Optional
 from datetime import datetime
 from sqlalchemy import Column, JSON
 
+class UserRecord(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    email: str = Field(index=True)
+    password_hash: str
+    name: str
+    role: str
+    tenant_id: Optional[str] = Field(default=None)
+
+
 class Venue(SQLModel, table=True):
     id: str = Field(primary_key=True)
     name: str
