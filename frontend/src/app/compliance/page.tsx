@@ -233,26 +233,28 @@ export default function CompliancePage() {
                     {item.severity}
                   </span>
                 </div>
-                <div className="compliance-actions">
-                  <input
-                    type="file"
-                    accept="video/*,image/*,application/pdf"
-                    className="visually-hidden"
-                    id={`upload-${item.id}`}
-                    onChange={(e) => handleUpload(item.id, e)}
-                  />
-                  <label
-                    htmlFor={`upload-${item.id}`}
-                    className={`btn btn-secondary${uploadingId === item.id ? " disabled" : ""}`}
-                    style={{ cursor: uploadingId === item.id ? "not-allowed" : "pointer" }}
-                  >
-                    {uploadingId === item.id ? (
-                      <><div className="loading-spinner loading-spinner-sm" />Uploading...</>
-                    ) : (
-                      <><Upload size={18} />Upload Evidence</>
-                    )}
-                  </label>
-                </div>
+                {!isBroker && (
+                  <div className="compliance-actions">
+                    <input
+                      type="file"
+                      accept="video/*,image/*,application/pdf"
+                      className="visually-hidden"
+                      id={`upload-${item.id}`}
+                      onChange={(e) => handleUpload(item.id, e)}
+                    />
+                    <label
+                      htmlFor={`upload-${item.id}`}
+                      className={`btn btn-secondary${uploadingId === item.id ? " disabled" : ""}`}
+                      style={{ cursor: uploadingId === item.id ? "not-allowed" : "pointer" }}
+                    >
+                      {uploadingId === item.id ? (
+                        <><div className="loading-spinner loading-spinner-sm" />Uploading...</>
+                      ) : (
+                        <><Upload size={18} />Upload Evidence</>
+                      )}
+                    </label>
+                  </div>
+                )}
               </div>
             ))}
           </div>

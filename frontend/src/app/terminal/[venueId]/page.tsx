@@ -353,19 +353,21 @@ export default function VenueTerminalPage() {
                     <div key={item.id} className="card bento-card" style={{ borderColor: "rgba(255,60,60,0.25)" }}>
                       <h4 className="text-sm font-bold uppercase mb-md font-mono text-accent">{item.id}</h4>
                       <p className="text-sm mb-xl text-secondary">{item.description}</p>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept="video/*,image/*"
-                          onChange={(e) => handleUpload(item.id, e)}
-                          className="visually-hidden"
-                          id={`upload-${item.id}`}
-                        />
-                        <label htmlFor={`upload-${item.id}`} className="btn btn-secondary">
-                          <Upload size={16} />
-                          {uploadingId === item.id ? "Uploading..." : "Upload Evidence"}
-                        </label>
-                      </div>
+                      {isOperator && (
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="video/*,image/*"
+                            onChange={(e) => handleUpload(item.id, e)}
+                            className="visually-hidden"
+                            id={`upload-${item.id}`}
+                          />
+                          <label htmlFor={`upload-${item.id}`} className="btn btn-secondary">
+                            <Upload size={16} />
+                            {uploadingId === item.id ? "Uploading..." : "Upload Evidence"}
+                          </label>
+                        </div>
+                      )}
                       {uploadError && uploadingId !== item.id && (
                         <p className="text-sm text-error mt-sm">{uploadError}</p>
                       )}
