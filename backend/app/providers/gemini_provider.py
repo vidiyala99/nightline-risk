@@ -91,8 +91,17 @@ Return JSON with keys: summary (string), open_questions (list of strings)."""
             data = response.json()
 
         # Gemini returns the JSON-mode output as a string in parts[0].text
-        text = data["candidates"][0]["content"]["parts"][0]["text"]
-        parsed = json.loads(text)
+        try:
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError) as exc:
+            raise RuntimeError(f"Unexpected Gemini response shape: {json.dumps(data)[:400]}") from exc
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                f"Gemini returned invalid JSON ({exc.msg} at char {exc.pos}). "
+                f"First 400 chars: {text[:400]!r}"
+            ) from exc
 
         return MemoOutput(
             summary=parsed["summary"],
