@@ -180,7 +180,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Third Space Risk OS", lifespan=lifespan)
 
-from app.auth import router as auth_router
+from app.auth import router as auth_router, require_non_broker
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 
 from app.api.v1.ingestion import router as ingestion_router
@@ -256,7 +256,7 @@ def list_venues(session: Session = Depends(get_session)) -> list[dict]:
 
 
 @app.post("/api/venues", status_code=201)
-def create_venue(payload: dict, session: Session = Depends(get_session)) -> dict:
+def create_venue(payload: dict, session: Session = Depends(get_session), _: None = Depends(require_non_broker)) -> dict:
     import re, json as _json
     name = payload.get("name", "").strip()
     if not name:
@@ -305,7 +305,7 @@ def venue_count() -> dict:
 
 
 @app.patch("/api/venues/{venue_id}")
-def update_venue(venue_id: str, payload: dict, session: Session = Depends(get_session)) -> dict:
+def update_venue(venue_id: str, payload: dict, session: Session = Depends(get_session), _: None = Depends(require_non_broker)) -> dict:
     venue = _resolve_venue(venue_id, session)
     editable = ["name", "address", "capacity", "venue_type", "years_in_operation", "security_level"]
     for field in editable:
@@ -326,7 +326,7 @@ def update_venue(venue_id: str, payload: dict, session: Session = Depends(get_se
 
 
 @app.delete("/api/venues/{venue_id}", status_code=200)
-def delete_venue(venue_id: str, session: Session = Depends(get_session)) -> dict:
+def delete_venue(venue_id: str, session: Session = Depends(get_session), _: None = Depends(require_non_broker)) -> dict:
     _resolve_venue(venue_id, session)
     incident_count = session.exec(
         select(func.count(IncidentRecord.id)).where(IncidentRecord.venue_id == venue_id)

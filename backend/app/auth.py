@@ -169,6 +169,15 @@ def register(request: RegisterRequest, session: Session = Depends(get_session)):
     return {"access_token": token, "user": {k: v for k, v in user.items() if k != "password_hash"}}
 
 
+def require_non_broker(authorization: str = Header(None)):
+    """Raises 403 if the caller's token identifies them as a broker."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return
+    decoded = verify_token(authorization.split(" ")[1])
+    if decoded and decoded.get("role") == "broker":
+        raise HTTPException(status_code=403, detail="Brokers cannot modify venues")
+
+
 def _get_current_user_record(authorization: str, session: Session):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid token")
