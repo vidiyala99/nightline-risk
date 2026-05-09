@@ -19,6 +19,12 @@ frontend/.next/
 frontend/out/
 frontend/*.log
 frontend/*.pid
+frontend/*.tsbuildinfo
+
+# Frontend test artifacts (Playwright)
+frontend/playwright-report/
+frontend/playwright-results.xml
+frontend/test-results/
 
 # Local environment
 .env
@@ -28,7 +34,12 @@ frontend/*.pid
 # Local agent/tooling artifacts
 .agent/
 .claude/
+.cursor/
+.cursorrules
+.mcp.json
 .opencode/
+.opencode.json
+.windsurfrules
 
 # OS/editor files
 .DS_Store
