@@ -100,7 +100,7 @@ export function DashboardScreen({ navigation }: any) {
         api.request<any>(`/api/venues/${selectedVenueId}/risk-score`),
         api.request<any>(`/api/venues/${selectedVenueId}/quote`),
         api.request<any[]>(`/api/venues/${selectedVenueId}/incidents?status=open`),
-        api.request<any>(`/api/venues/${selectedVenueId}/live-state`),
+        api.request<any>(`/api/venues/${selectedVenueId}/live`),
       ]);
 
       // Normalize factors to plain numbers so they never reach JSX as objects
@@ -261,13 +261,19 @@ export function DashboardScreen({ navigation }: any) {
       {/* Stats bar */}
       <View style={styles.statsRow}>
         {/* Your Venue(s) */}
-        <Pressable style={styles.statCard} onPress={() => navigation.navigate('Venues')}>
+        <Pressable style={styles.statCard} onPress={() => navigation.getParent()?.navigate('Venues')}>
           <Text style={styles.statEyebrow}>{venuesList.length === 1 ? 'YOUR VENUE' : 'YOUR VENUES'}</Text>
           <Text style={styles.statValue}>{venuesList.length}</Text>
         </Pressable>
 
         {/* Open Incidents */}
-        <Pressable style={styles.statCard} onPress={() => navigation.navigate('Incidents')}>
+        <Pressable
+          style={styles.statCard}
+          onPress={() => navigation.getParent()?.navigate('Incidents', {
+            screen: 'IncidentList',
+            params: { venueId: selectedVenueId, initialFilter: 'open' },
+          })}
+        >
           <Text style={styles.statEyebrow}>OPEN INCIDENTS</Text>
           <Text style={[styles.statValue, openIncidents > 0 && styles.statError]}>
             {openIncidents}
@@ -275,7 +281,10 @@ export function DashboardScreen({ navigation }: any) {
         </Pressable>
 
         {/* Compliance Actions */}
-        <Pressable style={styles.statCard} onPress={() => navigation.navigate('Compliance')}>
+        <Pressable
+          style={styles.statCard}
+          onPress={() => navigation.getParent()?.navigate('Compliance', { venueId: selectedVenueId })}
+        >
           <Text style={styles.statEyebrow}>COMPLIANCE</Text>
           <Text style={[styles.statValue, complianceCount > 0 && styles.statError]}>
             {complianceCount}

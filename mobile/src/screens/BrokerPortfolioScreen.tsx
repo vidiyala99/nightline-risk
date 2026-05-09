@@ -93,17 +93,17 @@ export function BrokerPortfolioScreen({ navigation }: any) {
 
       {/* Stats bar: 3 cards */}
       <View style={styles.statsRow}>
-        <Pressable style={styles.statCard} onPress={() => navigation.navigate('Venues')}>
+        <Pressable style={styles.statCard} onPress={() => navigation.getParent()?.navigate('Venues')}>
           <Text style={styles.statNum}>{totalVenues}</Text>
           <Text style={styles.statLabel}>TOTAL VENUES</Text>
         </Pressable>
-        <Pressable style={styles.statCard} onPress={() => navigation.navigate('Incidents')}>
+        <Pressable style={styles.statCard} onPress={() => navigation.getParent()?.navigate('Incidents')}>
           <Text style={[styles.statNum, openIncidents > 0 && styles.statNumRed]}>
             {openIncidents}
           </Text>
           <Text style={styles.statLabel}>OPEN INCIDENTS</Text>
         </Pressable>
-        <Pressable style={styles.statCard} onPress={() => navigation.navigate('Compliance')}>
+        <Pressable style={styles.statCard} onPress={() => navigation.getParent()?.navigate('Compliance')}>
           <Text style={[styles.statNum, complianceActions > 0 && { color: '#ff9500' }]}>{complianceActions}</Text>
           <Text style={styles.statLabel}>COMPLIANCE</Text>
         </Pressable>

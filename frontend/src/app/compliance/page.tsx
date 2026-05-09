@@ -16,7 +16,7 @@ interface ComplianceItem {
 }
 
 interface VenueWithCompliance {
-  venue_id: string;
+  id: string;
   name: string;
   venue_type: string;
   compliance_actions: number;
@@ -271,15 +271,15 @@ export default function CompliancePage() {
           <div className="flex flex-col gap-lg">
             {brokerVenues.map((venue) => (
               <div
-                key={venue.venue_id}
+                key={venue.id}
                 className="card"
                 style={{ cursor: "pointer" }}
-                onClick={() => router.push(`/compliance?venue=${encodeURIComponent(venue.venue_id)}`)}
+                onClick={() => router.push(`/compliance?venue=${encodeURIComponent(venue.id)}`)}
               >
                 <div className="flex items-center justify-between mb-md">
                   <div>
                     <div className="text-xxs uppercase tracking-wide text-secondary mb-xs">{venue.venue_type?.replace(/_/g, " ")}</div>
-                    <h3 className="text-lg font-bold">{venue.name ?? venue.venue_id}</h3>
+                    <h3 className="text-lg font-bold">{venue.name ?? venue.id}</h3>
                   </div>
                   <span className="text-2xl font-bold" style={{ color: "var(--state-warning)" }}>
                     {venue.compliance_actions}

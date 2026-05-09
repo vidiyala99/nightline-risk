@@ -28,17 +28,22 @@ interface ComplianceItem {
   priority: string;
 }
 
-export function OperatorComplianceScreen() {
+export function OperatorComplianceScreen({ route }: any) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [queue, setQueue] = useState<ComplianceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
+  // Dashboard's chip-selected venue is forwarded via nav params; fall back to
+  // the operator's primary tenant_id when not overridden.
+  const venueOverride: string | undefined = route?.params?.venueId;
+  const venueId = venueOverride ?? user?.tenant_id ?? null;
+
   const fetchQueue = useCallback(async () => {
-    if (!user?.tenant_id) { setLoading(false); return; }
+    if (!venueId) { setLoading(false); return; }
     try {
-      const raw = await api.request<any>(`/api/venues/${user.tenant_id}/live-state`);
+      const raw = await api.request<any>(`/api/venues/${venueId}/live`);
       const items: ComplianceItem[] = (raw.compliance_queue ?? []).map((item: any) => ({
         id: String(item.id ?? ''),
         action: String(item.action ?? item.title ?? item.description ?? ''),
@@ -50,12 +55,12 @@ export function OperatorComplianceScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user?.tenant_id]);
+  }, [venueId]);
 
   useFocusEffect(useCallback(() => { fetchQueue(); }, [fetchQueue]));
 
   const handleUpload = useCallback(async (item: ComplianceItem) => {
-    if (!user?.tenant_id) return;
+    if (!venueId) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: false,
@@ -72,7 +77,7 @@ export function OperatorComplianceScreen() {
         name: asset.fileName ?? 'evidence',
         type: asset.mimeType ?? 'application/octet-stream',
       } as any);
-      await api.upload(`/api/venues/${user.tenant_id}/compliance/${item.id}/upload`, formData);
+      await api.upload(`/api/venues/${venueId}/compliance/${item.id}/upload`, formData);
       setQueue(prev => prev.filter(q => q.id !== item.id));
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
@@ -80,7 +85,7 @@ export function OperatorComplianceScreen() {
     } finally {
       setUploadingId(null);
     }
-  }, [user?.tenant_id]);
+  }, [venueId]);
 
   if (loading) {
     return <View style={styles.centered}><ActivityIndicator color="#c8f000" /></View>;

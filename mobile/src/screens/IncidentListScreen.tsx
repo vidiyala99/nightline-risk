@@ -22,19 +22,25 @@ const STATUS_ACCENT: Record<string, string> = {
   closed: '#00d97e',
 };
 
-export function IncidentListScreen({ navigation }: any) {
+export function IncidentListScreen({ navigation, route }: any) {
   const { user, signOut } = useAuth();
   const isBroker = user?.role === 'broker' || user?.role === 'admin';
   const insets = useSafeAreaInsets();
   const [incidents, setIncidents] = useState<any[]>([]);
-  const [filter, setFilter] = useState<Filter>('all');
+  const initialFilter: Filter = (route?.params?.initialFilter as Filter) ?? 'all';
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Operator dashboard can override the listing venue via params (chip-row
+  // selection). Brokers always see the global list. Falls back to tenant_id.
+  const venueOverride: string | undefined = route?.params?.venueId;
+  const effectiveVenueId = !isBroker ? (venueOverride ?? user?.tenant_id) : undefined;
+
   const fetchIncidents = useCallback(async () => {
     try {
-      const endpoint = user?.tenant_id
-        ? `/api/venues/${user.tenant_id}/incidents`
+      const endpoint = effectiveVenueId
+        ? `/api/venues/${effectiveVenueId}/incidents`
         : '/api/incidents';
       const data = await api.request<any[]>(endpoint);
       setIncidents(data);
@@ -44,7 +50,7 @@ export function IncidentListScreen({ navigation }: any) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.tenant_id]);
+  }, [effectiveVenueId]);
 
   useEffect(() => { fetchIncidents(); }, [fetchIncidents]);
 
@@ -65,7 +71,7 @@ export function IncidentListScreen({ navigation }: any) {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Text style={styles.title}>Incidents</Text>
             <View style={styles.countBadge}>
-              <Text style={styles.countText}>{incidents.length}</Text>
+              <Text style={styles.countText}>{filtered.length}</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -81,17 +87,21 @@ export function IncidentListScreen({ navigation }: any) {
           </View>
         </View>
         <View style={styles.filters}>
-          {(['all', 'open', 'under_review', 'closed'] as Filter[]).map(f => (
-            <Pressable
-              key={f}
-              style={[styles.chip, filter === f && styles.chipActive]}
-              onPress={() => setFilter(f)}
-            >
-              <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>
-                {f === 'under_review' ? 'Review' : f.charAt(0).toUpperCase() + f.slice(1)}
-              </Text>
-            </Pressable>
-          ))}
+          {(['all', 'open', 'under_review', 'closed'] as Filter[]).map(f => {
+            const count = f === 'all' ? incidents.length : incidents.filter(i => i.status === f).length;
+            const label = f === 'under_review' ? 'Review' : f.charAt(0).toUpperCase() + f.slice(1);
+            return (
+              <Pressable
+                key={f}
+                style={[styles.chip, filter === f && styles.chipActive]}
+                onPress={() => setFilter(f)}
+              >
+                <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>
+                  {label} {count}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
