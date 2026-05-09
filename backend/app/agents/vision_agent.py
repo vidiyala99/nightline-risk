@@ -127,7 +127,9 @@ def _call_gemini_vision(file_path: str, mime_type: str, prompt: str) -> dict:
             }
         ],
         "generationConfig": {
-            "maxOutputTokens": 1024,
+            # Vision response has 7 fields including a multi-sentence description;
+            # Gemini 2.5 Flash also burns reasoning tokens. 4096 leaves headroom.
+            "maxOutputTokens": 4096,
             "temperature": 0.2,
             "responseMimeType": "application/json",
             "responseSchema": _VISION_SCHEMA,

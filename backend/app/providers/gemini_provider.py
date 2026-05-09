@@ -65,7 +65,9 @@ Return JSON with keys: summary (string), open_questions (list of strings)."""
             "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
             "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
             "generationConfig": {
-                "maxOutputTokens": 512,
+                # 2048 to leave headroom for Gemini 2.5 Flash's reasoning tokens —
+                # 512 was too tight and produced truncated JSON that failed to parse
+                "maxOutputTokens": 2048,
                 "temperature": 0.2,
                 "responseMimeType": "application/json",
                 "responseSchema": {
