@@ -185,9 +185,11 @@ export default function VenuesPage() {
             {isBroker ? "Manage your insured venues" : "Your venue properties"}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-          <Plus size={18} /> Add Venue
-        </button>
+        {!isBroker && (
+          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+            <Plus size={18} /> Add Venue
+          </button>
+        )}
       </header>
 
       {/* Add Venue Modal */}
@@ -332,12 +334,14 @@ export default function VenuesPage() {
                     </div>
                   </Link>
                   <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
-                    <button
-                      onClick={() => startEdit(venue)}
-                      style={{ background: "none", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "5px 8px", cursor: "pointer", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem" }}
-                    >
-                      <Edit2 size={12} /> Edit
-                    </button>
+                    {!isBroker && (
+                      <button
+                        onClick={() => startEdit(venue)}
+                        style={{ background: "none", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "5px 8px", cursor: "pointer", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem" }}
+                      >
+                        <Edit2 size={12} /> Edit
+                      </button>
+                    )}
                     <Link href={`/terminal/${venue.id}`} style={{ color: "inherit" }}>
                       <ArrowRight size={20} className="venue-arrow" />
                     </Link>
@@ -353,10 +357,12 @@ export default function VenuesPage() {
         <div className="page-empty">
           <Building2 size={48} />
           <h3>No Venues Yet</h3>
-          <p>{isBroker ? "Add your first venue to get started" : "Set up your venue to generate a risk profile and premium quote"}</p>
-          <button className="btn btn-primary" style={{ marginTop: "16px" }} onClick={() => setShowForm(true)}>
-            <Plus size={16} /> Add Your Venue
-          </button>
+          <p>{isBroker ? "No venues on record yet" : "Set up your venue to generate a risk profile and premium quote"}</p>
+          {!isBroker && (
+            <button className="btn btn-primary" style={{ marginTop: "16px" }} onClick={() => setShowForm(true)}>
+              <Plus size={16} /> Add Your Venue
+            </button>
+          )}
         </div>
       )}
     </div>
