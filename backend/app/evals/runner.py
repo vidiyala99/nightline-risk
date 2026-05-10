@@ -118,6 +118,34 @@ _SCENARIO_OVERRIDES: dict[str, dict[str, Any]] = {
         "police_called": False,
         "ems_called": True,
     },
+    "SCENARIO-008-BYSTANDER-INJURY": {
+        "summary": "Patrons in physical fight on main floor, third-party bystander struck by debris and sustained head injury, EMS called",
+        "location": "main-floor",
+        "injury_observed": True,
+        "police_called": True,
+        "ems_called": True,
+    },
+    "SCENARIO-009-UNDERAGE-SERVICE": {
+        "summary": "Bartender served draft beer to a patron whose wristband was issued without an ID scan, dram shop and license compliance exposure",
+        "location": "front-entrance",
+        "injury_observed": False,
+        "police_called": False,
+        "ems_called": False,
+    },
+    "SCENARIO-010-MOSH-PIT-INJURY": {
+        "summary": "Patron injured at pit barrier during mosh-pit crowd surge with inadequate security staffing ratio",
+        "location": "pit-barrier",
+        "injury_observed": True,
+        "police_called": False,
+        "ems_called": False,
+    },
+    "SCENARIO-011-PARKING-LOT-VALENTINE": {
+        "summary": "Patron assaulted in venue parking lot off-premises, venue advertises lot security, no security staff present in zone",
+        "location": "parking-lot",
+        "injury_observed": True,
+        "police_called": True,
+        "ems_called": False,
+    },
 }
 
 

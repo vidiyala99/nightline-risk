@@ -515,5 +515,171 @@
       ],
       "mitigating_factors": []
     }
+  },
+  {
+    "scenario_id": "SCENARIO-008-BYSTANDER-INJURY",
+    "schema_version": 2,
+    "exposure_class": "assault_battery",
+    "difficulty": "hard",
+    "scenario_type": "subtle_catastrophic",
+    "provenance": {
+      "policy_clauses": [
+        "Section 2.1 Assault and Battery Exclusion (clause a — actual or threatened assault by any person)",
+        "Section 2.2 Expected or Intended Injury (does not bar the bystander's recovery from the venue)"
+      ],
+      "industry_pattern": "Third-party bystander injury claims routinely exceed the primary defendant's exposure; head-injury bystander verdicts span $250k–$2M depending on neurological outcome",
+      "rationale": "Probes whether the agent recognizes that bystander injury creates a separate cause of action — the venue cannot rely on the A&B exclusion to fully cover its negligence-based duty to non-combatant patrons."
+    },
+    "description": "Two patrons begin fighting on the main floor. A third patron not involved is struck by debris and sustains a head injury. EMS is called.",
+    "input_events": [
+      {
+        "event_id": "EV-CAM-011",
+        "source_type": "camera",
+        "timestamp": "2026-05-04T23:48:00Z",
+        "payload": { "zone_id": "main-floor", "aggression_score": 0.85, "detections": [{"label": "physical-fight", "confidence": 0.92, "box": [0,0,1,1]}] }
+      },
+      {
+        "event_id": "EV-CAM-012",
+        "source_type": "camera",
+        "timestamp": "2026-05-04T23:48:18Z",
+        "payload": { "zone_id": "main-floor", "detections": [{"label": "bystander-debris-impact", "confidence": 0.78, "box": [0,0,1,1]}] }
+      }
+    ],
+    "ideal_output": {
+      "risk_level": "high",
+      "risk_score": 78,
+      "underwriting_memo": "Bystander injury at Main Floor. Camera detects an active physical fight between patrons at 23:48:00 (aggression 0.85, fight confidence 0.92). Eighteen seconds later, a non-combatant patron is struck by debris (confidence 0.78). Section 2.1(a) A&B exclusion applies to the combatants; the bystander injury creates a separate negligence-based cause of action against the venue's duty of care. Head injury and EMS dispatch elevate to needs_review.",
+      "mandatory_citations": ["EV-CAM-011", "EV-CAM-012"],
+      "rubrics_triggered": ["Bystander Third-Party Injury"],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": ["third_party_bystander_injury", "patron_aggression", "head_injury_reported"],
+      "mitigating_factors": []
+    }
+  },
+  {
+    "scenario_id": "SCENARIO-009-UNDERAGE-SERVICE",
+    "schema_version": 2,
+    "exposure_class": "dram_shop",
+    "difficulty": "medium",
+    "scenario_type": "subtle_catastrophic",
+    "provenance": {
+      "policy_clauses": [
+        "Section 1.2 Liquor Liability (Dram Shop)",
+        "Section 3.1 ID Scanning Requirements (mandatory after 9:00 PM, 90-day retention)"
+      ],
+      "industry_pattern": "Underage service is a per-se violation creating license-suspension exposure plus possible criminal exposure for staff; ID-scan log gaps compound the failure-of-control finding",
+      "rationale": "Probes whether the agent recognizes that the *absence of an ID-scan record* combined with documented service is itself the violation — even without a downstream injury. License suspension exposure should drive critical severity."
+    },
+    "description": "POS records a draft beer purchase tied to a wristband issued at the door. The corresponding ID-scan record for the wristband holder is missing.",
+    "input_events": [
+      {
+        "event_id": "EV-POS-013",
+        "source_type": "pos",
+        "timestamp": "2026-05-05T22:14:00Z",
+        "payload": {
+          "items": [{"sku": "B-1", "name": "Draft Beer", "quantity": 1, "price_total": 8.0, "category": "alcohol"}],
+          "total_amount": 8.0,
+          "wristband_id": "WB-7741"
+        }
+      },
+      {
+        "event_id": "EV-CAM-014",
+        "source_type": "camera",
+        "timestamp": "2026-05-05T21:52:00Z",
+        "payload": { "zone_id": "front-entrance", "detections": [{"label": "wristband-issued-no-id-scan", "confidence": 0.86, "box": [0,0,1,1]}] }
+      }
+    ],
+    "ideal_output": {
+      "risk_level": "critical",
+      "risk_score": 92,
+      "underwriting_memo": "Critical liquor liability + control failure. POS sale of draft beer at 22:14 is tied to wristband WB-7741. The corresponding entrance-camera record at 21:52 shows the wristband was issued without a documented ID-scan, violating Section 3.1 (electronic ID scanning required after 9:00 PM with 90-day retention). The combination of documented service plus missing ID-scan log creates immediate license-suspension exposure and possible criminal exposure for staff under state ABC enforcement.",
+      "mandatory_citations": ["EV-POS-013", "EV-CAM-014"],
+      "rubrics_triggered": ["Underage Service / ID Control Failure"],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": ["underage_service", "missing_id_scan", "control_failure"],
+      "mitigating_factors": []
+    }
+  },
+  {
+    "scenario_id": "SCENARIO-010-MOSH-PIT-INJURY",
+    "schema_version": 2,
+    "exposure_class": "crowd_management",
+    "difficulty": "medium",
+    "scenario_type": "standard",
+    "provenance": {
+      "policy_clauses": [
+        "Section 3.2 Staffing Minimums (1 security guard per 100 patrons during peak hours)",
+        "shared-compliance-security-staffing (capacity-over-300 venues require 1 per 75 patrons)",
+        "shared-policy-duty-of-care"
+      ],
+      "industry_pattern": "Mosh-pit injuries at punk/metal/hardcore shows are foreseeable; courts expect proportional security density. Inadequate staffing ratios drive 6-figure settlements when injuries are documented.",
+      "rationale": "Probes whether the agent recognizes that staffing-ratio breach is itself an aggravating factor — a documented control failure independent of how the injury occurred."
+    },
+    "description": "Camera detects a moshing crowd at the pit barrier with 80 patrons in zone and only one visible security staff member. A patron is injured during the set.",
+    "input_events": [
+      {
+        "event_id": "EV-CAM-015",
+        "source_type": "camera",
+        "timestamp": "2026-05-05T22:35:00Z",
+        "payload": { "zone_id": "pit-barrier", "person_count": 80, "aggression_score": 0.4, "detections": [{"label": "moshing-crowd", "confidence": 0.91, "box": [0,0,1,1]}] }
+      },
+      {
+        "event_id": "EV-CAM-016",
+        "source_type": "camera",
+        "timestamp": "2026-05-05T22:35:30Z",
+        "payload": { "zone_id": "pit-barrier", "detections": [{"label": "single-security-staff", "confidence": 0.88, "box": [0,0,1,1]}] }
+      }
+    ],
+    "ideal_output": {
+      "risk_level": "high",
+      "risk_score": 72,
+      "underwriting_memo": "Crowd management exposure at Pit Barrier. Camera detects an active mosh pit with 80 patrons in zone at 22:35 (mosh confidence 0.91). The same zone shows only a single security staff member, breaching the 1-per-75 ratio required by shared-compliance-security-staffing for capacity-over-300 venues. Inadequate security density at a foreseeable mosh-pit event is a documented control failure.",
+      "mandatory_citations": ["EV-CAM-015", "EV-CAM-016"],
+      "rubrics_triggered": ["Staffing Ratio Breach"],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": ["inadequate_security_ratio", "mosh_pit_foreseeability", "patron_injury"],
+      "mitigating_factors": []
+    }
+  },
+  {
+    "scenario_id": "SCENARIO-011-PARKING-LOT-VALENTINE",
+    "schema_version": 2,
+    "exposure_class": "negligent_security",
+    "difficulty": "hard",
+    "scenario_type": "subtle_catastrophic",
+    "provenance": {
+      "policy_clauses": [
+        "shared-policy-duty-of-care (extending to controlled premises)",
+        "Section 2.1 A&B Exclusion (does NOT apply to negligent security claims based on advertised duty)",
+        "Section IV De-escalation Coverage (does not waive — incident is off-premises)"
+      ],
+      "industry_pattern": "Valentine v. Nayarit Restaurant and Night Club (CA Supreme Court 2000) — patron shot in nightclub parking lot, club had advertised secure parking, $7M settlement. Foreseeable third-party assault on advertised-security premises is one of the largest single-claim exposures in nightlife.",
+      "rationale": "Probes the negligent_security exposure class as distinct from A&B. The off-premises location and advertised-security duty mean Section 2.1 exclusion does not bar the claim. This is the single highest-stakes scenario in v1."
+    },
+    "description": "A patron is physically assaulted in the venue parking lot. Venue marketing materials reference 'safe valet & lot security' as an amenity. Camera shows no security personnel in the lot during the incident.",
+    "input_events": [
+      {
+        "event_id": "EV-CAM-017",
+        "source_type": "camera",
+        "timestamp": "2026-05-06T01:48:00Z",
+        "payload": { "zone_id": "parking-lot", "aggression_score": 0.88, "detections": [{"label": "physical-assault", "confidence": 0.93, "box": [0,0,1,1]}] }
+      },
+      {
+        "event_id": "EV-CAM-018",
+        "source_type": "camera",
+        "timestamp": "2026-05-06T01:48:15Z",
+        "payload": { "zone_id": "parking-lot", "detections": [{"label": "no-security-staff-detected", "confidence": 0.81, "box": [0,0,1,1]}] }
+      }
+    ],
+    "ideal_output": {
+      "risk_level": "critical",
+      "risk_score": 90,
+      "underwriting_memo": "Critical negligent-security exposure at Parking Lot. Camera detects a physical assault at 01:48:00 (confidence 0.93). The same zone shows no security staff during the incident window (01:48:15, confidence 0.81). The venue's marketing materials advertise lot security as an amenity, creating an enhanced duty under Valentine v. Nayarit precedent. The Section 2.1 A&B exclusion does not bar a negligent-security claim arising from advertised-duty failure. Catastrophic exposure — likely highest-severity claim shape in nightlife.",
+      "mandatory_citations": ["EV-CAM-017", "EV-CAM-018"],
+      "rubrics_triggered": ["Negligent Security — Advertised Duty"],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": ["off_premises_advertised_security", "foreseeable_third_party_assault", "absent_security_in_zone"],
+      "mitigating_factors": []
+    }
   }
 ]
