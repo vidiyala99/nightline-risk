@@ -156,6 +156,8 @@ def run_all(gold_path: Path = GOLD_STANDARD_PATH) -> list[ScenarioResult]:
             scorer_results.append(scorers.score_structural(run.actual))
             scorer_results.append(scorers.score_severity_match(run.actual, ideal))
             scorer_results.append(scorers.score_citation_coverage(run.actual, ideal))
+            scorer_results.append(scorers.score_review_status_match(run.actual, ideal))
+            scorer_results.append(scorers.score_factor_recognition(run.actual, ideal))
         results.append(
             ScenarioResult(
                 scenario_id=run.scenario_id,

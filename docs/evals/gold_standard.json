@@ -1,6 +1,18 @@
 [
   {
     "scenario_id": "SCENARIO-001-DELAYED-BRAWL",
+    "schema_version": 2,
+    "exposure_class": "assault_battery",
+    "difficulty": "easy",
+    "scenario_type": "standard",
+    "provenance": {
+      "policy_clauses": [
+        "Section 2.1 Assault and Battery Exclusion",
+        "Section IV De-escalation Coverage (Security Performance Rider)"
+      ],
+      "industry_pattern": "Bouncer/inadequate-response cases; verdicts in the ~$1M range when security response latency is documented",
+      "rationale": "Probes whether the agent triggers the A&B exclusion when documented security response latency exceeds the 30s duty-of-care threshold and recognizes the absence of the Security Performance Rider waiver."
+    },
     "description": "A physical struggle occurs near the rear bar. Security response is delayed by over 40 seconds.",
     "input_events": [
       {
@@ -17,37 +29,67 @@
       }
     ],
     "ideal_output": {
-      "risk_score": 85,
       "risk_level": "high",
+      "risk_score": 85,
       "underwriting_memo": "High-risk incident detected at Rear Bar. Aggression detected at 23:14:00 with 0.92 confidence. Security intervention was not detected until 23:14:42, representing a 42-second response latency. This exceeds the 30-second 'Duty of Care' threshold established in Section III of the policy. The Assault & Battery Exclusion (Clause 2.1) is likely to apply due to negligent security response.",
       "mandatory_citations": ["EV-CAM-001", "EV-CAM-002"],
-      "rubrics_triggered": ["Duty of Care Latency"]
+      "rubrics_triggered": ["Duty of Care Latency"],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": ["delayed_security_response", "documented_aggression"],
+      "mitigating_factors": []
     }
   },
   {
     "scenario_id": "SCENARIO-002-AFTER-HOURS-LIQUOR",
+    "schema_version": 2,
+    "exposure_class": "dram_shop",
+    "difficulty": "medium",
+    "scenario_type": "standard",
+    "provenance": {
+      "policy_clauses": [
+        "Section 1.2 Liquor Liability (Dram Shop)",
+        "Section 1.2 Condition: maintain valid liquor license and comply with local service hour ordinances"
+      ],
+      "industry_pattern": "Dram shop violations involving service past local cutoff; license-suspension exposure routinely escalates these to critical severity in carrier review",
+      "rationale": "Probes whether the agent recognizes that documented post-cutoff service creates license-suspension exposure in addition to dram shop liability — a combined exposure that warrants 'critical' severity."
+    },
     "description": "Multiple sales of high-ABV spirits occur after the 4:00 AM legal cutoff.",
     "input_events": [
       {
         "event_id": "EV-POS-101",
         "source_type": "pos",
         "timestamp": "2026-05-03T04:05:12Z",
-        "payload": { 
+        "payload": {
           "items": [{"sku": "S-1", "name": "Tequila Shot", "quantity": 4, "price_total": 48.0, "category": "alcohol"}],
           "total_amount": 48.0
         }
       }
     ],
     "ideal_output": {
-      "risk_score": 95,
       "risk_level": "critical",
+      "risk_score": 95,
       "underwriting_memo": "Critical Liquor Liability violation. POS logs indicate sale of 4x 'Tequila Shot' at 04:05:12 AM, exceeding the 04:00 AM legal service cutoff. This violates Section 1.2 (Condition) of the policy regarding compliance with local service hour ordinances. This creates immediate exposure for Dram Shop lawsuits and potential license suspension.",
       "mandatory_citations": ["EV-POS-101"],
-      "rubrics_triggered": ["Closing Time Pressure"]
+      "rubrics_triggered": ["Closing Time Pressure"],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": ["service_past_cutoff", "license_compliance_breach"],
+      "mitigating_factors": []
     }
   },
   {
     "scenario_id": "SCENARIO-003-PROACTIVE-MITIGATION",
+    "schema_version": 2,
+    "exposure_class": "crowd_management",
+    "difficulty": "hard",
+    "scenario_type": "mitigating_factor_bait",
+    "provenance": {
+      "policy_clauses": [
+        "Section IV Security Performance Rider — Mitigation Factors",
+        "Implicit duty-of-care: documented proactive measures reduce exposure"
+      ],
+      "industry_pattern": "Carriers reduce severity when contemporaneous evidence shows proactive mitigation (security presence + hydration distribution + capacity within limits); duty-of-care defense pattern",
+      "rationale": "Probes over-classification: the keyword 'crowd' suggests crowd_management exposure, but documented mitigating factors (security present, water distributed, capacity not exceeded) should drop severity to low. Tests whether the agent recognizes mitigating factors as a category, not just keyword-matches."
+    },
     "description": "High crowd density is detected, but POS data shows proactive water distribution and security is present.",
     "input_events": [
       {
@@ -60,18 +102,21 @@
         "event_id": "EV-POS-202",
         "source_type": "pos",
         "timestamp": "2026-05-03T01:32:00Z",
-        "payload": { 
+        "payload": {
           "items": [{"sku": "W-1", "name": "Bottled Water", "quantity": 10, "price_total": 0.0, "category": "water"}],
           "total_amount": 0.0
         }
       }
     ],
     "ideal_output": {
-      "risk_score": 30,
       "risk_level": "low",
+      "risk_score": 30,
       "underwriting_memo": "Crowd density at Dance Floor is elevated (125 patrons), but risk is mitigated by proactive measures. Security personnel presence confirmed in zone at 01:30:00. POS logs show distribution of 10 free water units at 01:32:00. These actions demonstrate 'High Duty of Care' and proactive risk management under Section IV (Mitigation Factors).",
       "mandatory_citations": ["EV-CAM-201", "EV-POS-202"],
-      "rubrics_triggered": ["Hydration-to-Alcohol", "Capacity Creep (Mitigated)"]
+      "rubrics_triggered": ["Hydration-to-Alcohol", "Capacity Creep (Mitigated)"],
+      "expected_review_status": "approved",
+      "aggravating_factors": ["elevated_crowd_density"],
+      "mitigating_factors": ["security_present", "hydration_distributed", "capacity_within_limits"]
     }
   }
 ]

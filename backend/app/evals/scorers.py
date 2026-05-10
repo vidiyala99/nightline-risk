@@ -13,6 +13,7 @@ REQUIRED_RISK_FIELDS = ("type", "severity", "confidence", "explanation", "review
 REQUIRED_MEMO_FIELDS = ("summary", "open_questions", "review_status")
 SEVERITY_LADDER = ("low", "medium", "high", "critical")
 VALID_SEVERITIES = set(SEVERITY_LADDER)
+VALID_REVIEW_STATUSES = {"approved", "needs_review", "blocked"}
 
 
 def score_structural(actual: UnderwritingPacketAgentResult) -> ScorerResult:
@@ -124,3 +125,101 @@ def score_citation_coverage(
         + (f"; missing {missing}" if missing else "")
     )
     return ScorerResult(name="citation_coverage", passed=passed, score=score, detail=detail)
+
+
+def score_review_status_match(
+    actual: UnderwritingPacketAgentResult, ideal: dict[str, Any]
+) -> ScorerResult:
+    """Compare agent risk_signal.review_status to gold expected_review_status.
+
+    Strict equality. Surfaces the disagreement in the detail line.
+    Skipped (passes) when gold doesn't specify an expected status.
+    """
+    expected = (ideal.get("expected_review_status") or "").lower()
+    got = (actual.risk_signal.review_status or "").lower()
+
+    if not expected:
+        return ScorerResult(
+            name="review_status_match",
+            passed=True,
+            score=1.0,
+            detail="no expected_review_status in gold — skipped",
+        )
+    if expected not in VALID_REVIEW_STATUSES:
+        return ScorerResult(
+            name="review_status_match",
+            passed=False,
+            score=0.0,
+            detail=f"gold expected_review_status {expected!r} not in {sorted(VALID_REVIEW_STATUSES)}",
+        )
+
+    passed = got == expected
+    detail = f"{got} == {expected}" if passed else f"agent={got}, gold={expected}"
+    return ScorerResult(
+        name="review_status_match",
+        passed=passed,
+        score=1.0 if passed else 0.0,
+        detail=detail,
+    )
+
+
+def _factor_text_pool(actual: UnderwritingPacketAgentResult) -> str:
+    """Concatenate the agent text surfaces where factor evidence may appear."""
+    parts: list[str] = []
+    parts.append(actual.risk_signal.explanation or "")
+    for c in actual.risk_signal.citations:
+        parts.append(c.excerpt or "")
+    parts.append(actual.underwriting_memo.summary or "")
+    for q in actual.underwriting_memo.open_questions or []:
+        parts.append(q)
+    return " ".join(parts).lower()
+
+
+def _factor_recognized(factor_name: str, text_pool: str) -> bool:
+    """Heuristic: does the agent's text mention the substance of the factor?
+
+    Factor names are snake_case (e.g. 'delayed_security_response'). We split
+    on underscores and require all non-trivial tokens to appear in the agent
+    text. This is intentionally permissive for v1 — the deterministic stub
+    won't paraphrase, so missed recognition is real signal.
+    """
+    tokens = [t for t in factor_name.split("_") if len(t) > 2]
+    if not tokens:
+        return False
+    return all(t in text_pool for t in tokens)
+
+
+def score_factor_recognition(
+    actual: UnderwritingPacketAgentResult, ideal: dict[str, Any]
+) -> ScorerResult:
+    """Fraction of expected aggravating + mitigating factors recognized in agent output.
+
+    Skipped (passes) when gold has no factor expectations. Pass requires score = 1.0.
+    """
+    aggravating = list(ideal.get("aggravating_factors") or [])
+    mitigating = list(ideal.get("mitigating_factors") or [])
+    expected = aggravating + mitigating
+
+    if not expected:
+        return ScorerResult(
+            name="factor_recognition",
+            passed=True,
+            score=1.0,
+            detail="no factors in gold — skipped",
+        )
+
+    pool = _factor_text_pool(actual)
+    recognized = [f for f in expected if _factor_recognized(f, pool)]
+    missing = [f for f in expected if f not in recognized]
+    score = len(recognized) / len(expected)
+    passed = score == 1.0
+
+    detail = f"{len(recognized)}/{len(expected)} recognized"
+    if missing:
+        detail += f"; missing {missing}"
+    return ScorerResult(
+        name="factor_recognition",
+        passed=passed,
+        score=score,
+        detail=detail,
+    )
