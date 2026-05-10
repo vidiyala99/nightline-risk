@@ -1,0 +1,658 @@
+{
+  "timestamp": "2026-05-10T06-21-35Z",
+  "provider": "deterministic-stub",
+  "aggregate": {
+    "total": 15,
+    "passed": 0,
+    "pass_rate": 0.0
+  },
+  "scorer_averages": [
+    {
+      "name": "structural",
+      "pass_rate": 1.0,
+      "avg_score": 1.0,
+      "count": 15
+    },
+    {
+      "name": "severity_match",
+      "pass_rate": 0.4666666666666667,
+      "avg_score": 0.6666666666666666,
+      "count": 15
+    },
+    {
+      "name": "citation_coverage",
+      "pass_rate": 1.0,
+      "avg_score": 1.0,
+      "count": 15
+    },
+    {
+      "name": "review_status_match",
+      "pass_rate": 0.8666666666666667,
+      "avg_score": 0.8666666666666667,
+      "count": 15
+    },
+    {
+      "name": "factor_recognition",
+      "pass_rate": 0.0,
+      "avg_score": 0.18888888888888886,
+      "count": 15
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "SCENARIO-001-DELAYED-BRAWL",
+      "description": "A physical struggle occurs near the rear bar. Security response is delayed by over 40 seconds.",
+      "exposure_class": "assault_battery",
+      "difficulty": "easy",
+      "scenario_type": "standard",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "high == high"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.5,
+          "detail": "1/2 recognized; missing ['delayed_security_response']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-002-AFTER-HOURS-LIQUOR",
+      "description": "Multiple sales of high-ABV spirits occur after the 4:00 AM legal cutoff.",
+      "exposure_class": "dram_shop",
+      "difficulty": "medium",
+      "scenario_type": "standard",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": false,
+          "score": 0.5,
+          "detail": "agent=high, gold=critical, off by 1 (under-classified)"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "1/1 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.0,
+          "detail": "0/2 recognized; missing ['service_past_cutoff', 'license_compliance_breach']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-003-PROACTIVE-MITIGATION",
+      "description": "High crowd density is detected, but POS data shows proactive water distribution and security is present.",
+      "exposure_class": "crowd_management",
+      "difficulty": "hard",
+      "scenario_type": "mitigating_factor_bait",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": false,
+          "score": 0.0,
+          "detail": "agent=high, gold=low, off by 2 (over-classified)"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": false,
+          "score": 0.0,
+          "detail": "agent=needs_review, gold=approved"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.25,
+          "detail": "1/4 recognized; missing ['security_present', 'hydration_distributed', 'capacity_within_limits']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-004-BOUNCER-EXCESSIVE-FORCE",
+      "description": "A security guard physically restrains a patron during ejection. The patron lands on the floor and complains of shoulder injury. Police are called.",
+      "exposure_class": "assault_battery",
+      "difficulty": "medium",
+      "scenario_type": "subtle_catastrophic",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "high == high"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.0,
+          "detail": "0/3 recognized; missing ['security_use_of_force', 'patron_injury', 'police_involvement']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-005-VISIBLY-INTOXICATED-SERVICE",
+      "description": "POS logs show repeated drink purchases by the same patron over a short window; camera shows visible signs of intoxication during the same window.",
+      "exposure_class": "dram_shop",
+      "difficulty": "medium",
+      "scenario_type": "standard",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "high == high"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.0,
+          "detail": "0/2 recognized; missing ['continued_service_after_intoxication_signal', 'repeat_drinks_short_window']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-006-WET-STAIRWELL",
+      "description": "A patron descends a stairway during a busy event window. The floor is wet from spilled drinks, and no signage is in place.",
+      "exposure_class": "premises_liability",
+      "difficulty": "medium",
+      "scenario_type": "standard",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "medium == medium"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.5,
+          "detail": "1/2 recognized; missing ['busy_event_window']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-007-OVERDOSE-DELAYED-EMS",
+      "description": "A patron is found unresponsive in a backstage corridor. Staff observe the patron, but EMS dispatch is not initiated for several minutes.",
+      "exposure_class": "medical_emergency",
+      "difficulty": "medium",
+      "scenario_type": "subtle_catastrophic",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "critical == critical"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.6666666666666666,
+          "detail": "2/3 recognized; missing ['staff_present_no_action']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-008-BYSTANDER-INJURY",
+      "description": "Two patrons begin fighting on the main floor. A third patron not involved is struck by debris and sustains a head injury. EMS is called.",
+      "exposure_class": "assault_battery",
+      "difficulty": "hard",
+      "scenario_type": "subtle_catastrophic",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "high == high"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.3333333333333333,
+          "detail": "1/3 recognized; missing ['third_party_bystander_injury', 'head_injury_reported']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-009-UNDERAGE-SERVICE",
+      "description": "POS records a draft beer purchase tied to a wristband issued at the door. The corresponding ID-scan record for the wristband holder is missing.",
+      "exposure_class": "dram_shop",
+      "difficulty": "medium",
+      "scenario_type": "subtle_catastrophic",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": false,
+          "score": 0.5,
+          "detail": "agent=high, gold=critical, off by 1 (under-classified)"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.0,
+          "detail": "0/3 recognized; missing ['underage_service', 'missing_id_scan', 'control_failure']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-010-MOSH-PIT-INJURY",
+      "description": "Camera detects a moshing crowd at the pit barrier with 80 patrons in zone and only one visible security staff member. A patron is injured during the set.",
+      "exposure_class": "crowd_management",
+      "difficulty": "medium",
+      "scenario_type": "standard",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "high == high"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.0,
+          "detail": "0/3 recognized; missing ['inadequate_security_ratio', 'mosh_pit_foreseeability', 'patron_injury']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-011-PARKING-LOT-VALENTINE",
+      "description": "A patron is physically assaulted in the venue parking lot. Venue marketing materials reference 'safe valet & lot security' as an amenity. Camera shows no security personnel in the lot during the incident.",
+      "exposure_class": "negligent_security",
+      "difficulty": "hard",
+      "scenario_type": "subtle_catastrophic",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": false,
+          "score": 0.5,
+          "detail": "agent=high, gold=critical, off by 1 (under-classified)"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.0,
+          "detail": "0/3 recognized; missing ['off_premises_advertised_security', 'foreseeable_third_party_assault', 'absent_security_in_zone']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-012-CAPACITY-CREEP-SLIP",
+      "description": "Camera detects 250 patrons in the main corridor \u2014 substantially above posted capacity. A patron slips in the same corridor moments later.",
+      "exposure_class": "premises_liability",
+      "difficulty": "hard",
+      "scenario_type": "subtle_catastrophic",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": false,
+          "score": 0.5,
+          "detail": "agent=medium, gold=high, off by 1 (under-classified)"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.3333333333333333,
+          "detail": "1/3 recognized; missing ['overcrowded_corridor', 'patron_injury']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-013-ALLERGIC-REACTION-DELAYED",
+      "description": "A patron at the main bar shows visible respiratory distress consistent with an allergic reaction. Staff observe but EMS dispatch is not initiated for several minutes.",
+      "exposure_class": "medical_emergency",
+      "difficulty": "hard",
+      "scenario_type": "subtle_catastrophic",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": false,
+          "score": 0.0,
+          "detail": "agent=medium, gold=critical, off by 2 (under-classified)"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.0,
+          "detail": "0/3 recognized; missing ['allergic_reaction_signal', 'delayed_ems_response', 'staff_present_no_action']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-014-KITCHEN-FIRE-CONTAINED",
+      "description": "Camera detects flames behind the kitchen line. Staff deploy an extinguisher within 30 seconds and the fire does not spread. No injuries; no evacuation required.",
+      "exposure_class": "property_damage",
+      "difficulty": "easy",
+      "scenario_type": "mitigating_factor_bait",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": false,
+          "score": 0.5,
+          "detail": "agent=medium, gold=low, off by 1 (over-classified)"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": false,
+          "score": 0.0,
+          "detail": "agent=needs_review, gold=approved"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.25,
+          "detail": "1/4 recognized; missing ['extinguisher_deployed_within_30s', 'no_evacuation_required', 'no_injuries_reported']"
+        }
+      ]
+    },
+    {
+      "scenario_id": "SCENARIO-015-FORESEEABLE-THIRD-PARTY",
+      "description": "A patron is physically assaulted at the rear exit. The venue's records reflect three similar assaults at the same exit in the prior 60 days; security posture was not adjusted. No security staff detected in zone at the time of the incident.",
+      "exposure_class": "negligent_security",
+      "difficulty": "hard",
+      "scenario_type": "subtle_catastrophic",
+      "error": null,
+      "passed": false,
+      "scorers": [
+        {
+          "name": "structural",
+          "passed": true,
+          "score": 1.0,
+          "detail": "ok"
+        },
+        {
+          "name": "severity_match",
+          "passed": false,
+          "score": 0.5,
+          "detail": "agent=high, gold=critical, off by 1 (under-classified)"
+        },
+        {
+          "name": "citation_coverage",
+          "passed": true,
+          "score": 1.0,
+          "detail": "2/2 cited"
+        },
+        {
+          "name": "review_status_match",
+          "passed": true,
+          "score": 1.0,
+          "detail": "needs_review == needs_review"
+        },
+        {
+          "name": "factor_recognition",
+          "passed": false,
+          "score": 0.0,
+          "detail": "0/3 recognized; missing ['foreseeable_third_party_assault', 'prior_similar_incidents', 'absent_security_in_zone']"
+        }
+      ]
+    }
+  ]
+}

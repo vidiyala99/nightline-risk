@@ -1,8 +1,9 @@
-"""Eval report rendering — markdown writer + result types shared with runner/scorers."""
+"""Eval report rendering — markdown + JSON writers + result types shared with runner/scorers."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import json
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 
@@ -18,6 +19,9 @@ class ScorerResult:
 class ScenarioResult:
     scenario_id: str
     description: str
+    exposure_class: str = ""
+    difficulty: str = ""
+    scenario_type: str = ""
     error: str | None = None
     scorers: list[ScorerResult] = field(default_factory=list)
 
@@ -97,3 +101,53 @@ def write_markdown_report(
         lines.append("")
 
     path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_json_snapshot(
+    results: list[ScenarioResult],
+    path: Path,
+    *,
+    timestamp: str,
+    provider: str = "deterministic-stub",
+) -> None:
+    """Emit a structured snapshot consumable by the frontend dashboard."""
+    total = len(results)
+    passed = sum(1 for r in results if r.passed)
+
+    scorer_names: list[str] = []
+    for r in results:
+        for s in r.scorers:
+            if s.name not in scorer_names:
+                scorer_names.append(s.name)
+
+    averages = []
+    for name in scorer_names:
+        scores = [s for r in results for s in r.scorers if s.name == name]
+        if not scores:
+            continue
+        averages.append({
+            "name": name,
+            "pass_rate": sum(1 for s in scores if s.passed) / len(scores),
+            "avg_score": sum(s.score for s in scores) / len(scores),
+            "count": len(scores),
+        })
+
+    snapshot = {
+        "timestamp": timestamp,
+        "provider": provider,
+        "aggregate": {
+            "total": total,
+            "passed": passed,
+            "pass_rate": (passed / total) if total else 0.0,
+        },
+        "scorer_averages": averages,
+        "scenarios": [
+            {
+                **{k: v for k, v in asdict(r).items() if k != "scorers"},
+                "passed": r.passed,
+                "scorers": [asdict(s) for s in r.scorers],
+            }
+            for r in results
+        ],
+    }
+    path.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")

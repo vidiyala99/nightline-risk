@@ -19,7 +19,12 @@ from app.agents.runtime import (
 from app.schemas import IncidentCreate
 
 from app.evals import scorers
-from app.evals.report import ScenarioResult, ScorerResult, write_markdown_report
+from app.evals.report import (
+    ScenarioResult,
+    ScorerResult,
+    write_json_snapshot,
+    write_markdown_report,
+)
 
 GOLD_STANDARD_PATH = Path(__file__).resolve().parents[3] / "docs" / "evals" / "gold_standard.json"
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
@@ -246,6 +251,9 @@ def run_all(gold_path: Path = GOLD_STANDARD_PATH) -> list[ScenarioResult]:
             ScenarioResult(
                 scenario_id=run.scenario_id,
                 description=run.description,
+                exposure_class=scenario.get("exposure_class", ""),
+                difficulty=scenario.get("difficulty", ""),
+                scenario_type=scenario.get("scenario_type", ""),
                 error=run.error,
                 scorers=scorer_results,
             )
@@ -258,8 +266,11 @@ def main() -> int:
     results = run_all()
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
     report_path = RESULTS_DIR / f"{timestamp}.md"
+    json_path = RESULTS_DIR / f"{timestamp}.json"
     write_markdown_report(results, report_path, timestamp=timestamp)
+    write_json_snapshot(results, json_path, timestamp=timestamp)
     print(f"Wrote {report_path}")
+    print(f"Wrote {json_path}")
     passed = sum(1 for r in results if r.passed)
     print(f"Aggregate: {passed}/{len(results)} scenarios passed all scorers")
     return 0 if passed == len(results) else 1
