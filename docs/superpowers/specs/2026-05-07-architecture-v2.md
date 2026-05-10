@@ -1,8 +1,8 @@
 # Third Space Risk Engine: Architecture v2
 
 **Date:** 2026-05-07
-**Last Updated:** 2026-05-09 (compliance detail pages + Postgres + portfolio search)
-**Version:** v2.6
+**Last Updated:** 2026-05-10 (eval set v2: 15 scenarios, 5 scorers, methodology doc)
+**Version:** v2.7
 **Status:** Current system + near-term roadmap
 **Audience:** Engineering, interview review
 
@@ -336,6 +336,7 @@ Provider switching requires changing one function per agent, not the architectur
 - ✅ **Mobile broker Venues tab** — dedicated `BrokerVenuesScreen` and `BrokerVenueDetailScreen` mirroring the web venue terminal layout
 - ✅ **Portfolio venue search** — broker-only search-and-filter on web `/dashboard`, web `/venues`, and mobile broker portfolio + venues tab; filters by name, address, and venue type
 - ✅ **Eval harness for agent outputs** — `backend/app/evals/` runner scores each `gold_standard.json` scenario on structural validity + citation coverage, writes dated markdown report; baseline 3/3 green vs deterministic stub provider
+- ✅ **Eval set v2 — research-grounded gold standard** — 15 scenarios across 7 exposure classes (assault_battery, dram_shop, premises_liability, medical_emergency, property_damage, crowd_management, negligent_security) with provenance citing real policy clauses + industry patterns (e.g. Valentine v. Nayarit). Schema v2 adds `exposure_class`, `difficulty`, `scenario_type`, `provenance`, `expected_review_status`, factor lists. Five deterministic scorers: structural, severity_match (ladder-graded), citation_coverage, review_status_match, factor_recognition. Methodology doc (`docs/evals/README.md`) codifies 8 guardrails (provenance, author separation, diversity quotas, difficulty tagging, no leakage, Goodhart guard, volume cap, versioning) and a findings ledger. Baseline against deterministic stub: 47% severity_match, 87% review_status_match, 0% factor_recognition — making the stub→LLM uplift case quantitative.
 
 ### Phase 2 — LLM-backed agents
 - Wire real Claude API calls behind existing interfaces
