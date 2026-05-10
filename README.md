@@ -62,21 +62,14 @@ Or create a new account via **Sign Up / Create Account** on the login screen (we
 
 ## Key Features
 
-- **Dual portal** — operator terminal and broker workbench with role-based navigation and copy
+- **Dual portal** — operator terminal and broker workbench with role-aware navigation
 - **Agent pipeline** — retrieval, risk evaluation, claims timeline, memo drafting (~200ms synchronous)
 - **Two-phase packets** — instant text analysis + async vision processing for uploaded evidence
-- **Vision agent** — analyzes images, corroborates against written report (CONSISTENT / PARTIAL / CONTRADICTED)
-- **Evidence upload** — photos, video clips, documents + footage link for large files
-- **Reports queue** — broker workbench with severity-sorted packet list and review decisions
-- **Risk Profile page** — factor-by-factor breakdown, what's working / what to improve, premium impact
-- **Compliance page** — role-aware: broker sees portfolio compliance overview, operator sees upload queue
-- **Shared knowledge sources** — policy docs apply across all venues (venue_id="*")
-- **Startup backfill** — all incidents get packets on boot, idempotent
-- **Self-serve registration** — operators and brokers sign up directly on web or mobile; new operators walk through a guided venue setup on first login
-- **Venue management** — operators view, edit, and add multiple venues via a dedicated Venues tab (mobile) and Venues page (web); name, type, address, capacity, years in operation
-- **Mobile app** — full iOS/Android app with role-aware tab navigation (operator: Dashboard / Venues / Incidents / Report / Live; broker: Portfolio / Reports / Incidents / Compliance), matching web typography and design system
-- **Mobile broker screens** — portfolio with search/filter, report detail with full packet + review decisions, venue detail with live terminal layout
-- **Mobile operator screens** — dashboard with savings hero, live terminal with compliance uploads, risk profile detail, incident reporting with datetime picker and evidence links, venue management with inline edit and multi-venue support
+- **Vision corroboration** — visual findings flagged CONSISTENT / PARTIAL / CONTRADICTED against the written report
+- **Reports queue** — severity-sorted packet list with review decisions and full audit trail
+- **Risk Profile + Compliance pages** — factor breakdowns, premium impact, role-aware compliance views
+- **Self-serve registration + venue management** — sign up on web or mobile, add/edit multiple venues
+- **Mobile app** — full iOS/Android app with role-aware tabs and the same typography system as the web
 
 ---
 

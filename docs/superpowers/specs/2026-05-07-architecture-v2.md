@@ -1,8 +1,8 @@
 # Third Space Risk Engine: Architecture v2
 
 **Date:** 2026-05-07
-**Last Updated:** 2026-05-08 (auth + venue management session)
-**Version:** v2.5
+**Last Updated:** 2026-05-09 (compliance detail pages + Postgres + portfolio search)
+**Version:** v2.6
 **Status:** Current system + near-term roadmap
 **Audience:** Engineering, interview review
 
@@ -31,7 +31,7 @@ The core loop:
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | FastAPI + SQLModel + SQLite |
+| Backend | FastAPI + SQLModel (Postgres on Railway via `DATABASE_URL`, SQLite locally) |
 | Frontend | Next.js 16.2 (App Router), DM Sans + Cormorant Garamond + JetBrains Mono |
 | Mobile | React Native (Expo managed), expo-secure-store, React Navigation bottom tabs + native stack | 
 | Auth | Custom HMAC-signed JWT (role-aware: broker, venue_operator, admin) |
@@ -331,6 +331,10 @@ Provider switching requires changing one function per agent, not the architectur
 - ✅ **DB persistence for users + venues** — `UserRecord` SQLModel table; venue full data stored as JSON in `Venue.venue_data`; both rehydrated from SQLite on startup so Railway restarts preserve all data
 - ✅ **Railway stateless fix** — `_resolve_venue()` helper falls back to DB on every request; no 404s after cold starts or load-balancer routing across instances
 - ✅ **Polished error states** — inline red banners (no system alerts) on login, register, dashboard; field-level on-blur validation; on-brand error card with retry action
+- ✅ **Postgres on production** — Railway `DATABASE_URL` provisions Postgres; SQLAlchemy URL scheme normalized; SQLite remains the local default
+- ✅ **Compliance per-item detail pages** — `/compliance/[venueId]/[itemId]` (web) and `ComplianceItemDetailScreen` (mobile) with venue-scoped URL params; broker and operator routing through dedicated stacks
+- ✅ **Mobile broker Venues tab** — dedicated `BrokerVenuesScreen` and `BrokerVenueDetailScreen` mirroring the web venue terminal layout
+- ✅ **Portfolio venue search** — broker-only search-and-filter on web `/dashboard`, web `/venues`, and mobile broker portfolio + venues tab; filters by name, address, and venue type
 
 ### Phase 2 — LLM-backed agents
 - Wire real Claude API calls behind existing interfaces
@@ -341,7 +345,6 @@ Provider switching requires changing one function per agent, not the architectur
 - Evaluation set to validate agent outputs
 
 ### Phase 3 — Production infrastructure
-- Postgres migration
 - Object storage for evidence files
 - Background worker (Celery or arq)
 - Role-based access enforcement
