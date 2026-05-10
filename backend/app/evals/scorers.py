@@ -11,7 +11,8 @@ from app.evals.report import ScorerResult
 
 REQUIRED_RISK_FIELDS = ("type", "severity", "confidence", "explanation", "review_status")
 REQUIRED_MEMO_FIELDS = ("summary", "open_questions", "review_status")
-VALID_SEVERITIES = {"low", "medium", "high", "critical"}
+SEVERITY_LADDER = ("low", "medium", "high", "critical")
+VALID_SEVERITIES = set(SEVERITY_LADDER)
 
 
 def score_structural(actual: UnderwritingPacketAgentResult) -> ScorerResult:
@@ -60,6 +61,44 @@ def _collect_actual_source_ids(actual: UnderwritingPacketAgentResult) -> set[str
     ids |= {c.source_id for c in actual.risk_signal.citations}
     ids |= {c.source_id for c in actual.underwriting_memo.citations}
     return ids
+
+
+def score_severity_match(
+    actual: UnderwritingPacketAgentResult, ideal: dict[str, Any]
+) -> ScorerResult:
+    """Compare agent severity to gold risk_level.
+
+    Pass requires exact match. Score grades by ladder distance:
+    exact = 1.0, off-by-1 = 0.5, off-by-2 = 0.25, off-by-3 = 0.0.
+    Detail surfaces the distance so under/over-classification is visible.
+    """
+    expected = (ideal.get("risk_level") or "").lower()
+    got = (actual.risk_signal.severity or "").lower()
+
+    if expected not in VALID_SEVERITIES:
+        return ScorerResult(
+            name="severity_match",
+            passed=True,
+            score=1.0,
+            detail=f"no/unknown gold risk_level ({expected!r}) — skipped",
+        )
+    if got not in VALID_SEVERITIES:
+        return ScorerResult(
+            name="severity_match",
+            passed=False,
+            score=0.0,
+            detail=f"agent severity {got!r} not in ladder",
+        )
+
+    distance = abs(SEVERITY_LADDER.index(got) - SEVERITY_LADDER.index(expected))
+    score = max(0.0, 1.0 - 0.5 * distance)
+    passed = distance == 0
+    if passed:
+        detail = f"{got} == {expected}"
+    else:
+        direction = "over" if SEVERITY_LADDER.index(got) > SEVERITY_LADDER.index(expected) else "under"
+        detail = f"agent={got}, gold={expected}, off by {distance} ({direction}-classified)"
+    return ScorerResult(name="severity_match", passed=passed, score=score, detail=detail)
 
 
 def score_citation_coverage(

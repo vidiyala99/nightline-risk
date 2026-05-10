@@ -152,10 +152,10 @@ def run_all(gold_path: Path = GOLD_STANDARD_PATH) -> list[ScenarioResult]:
         run = run_scenario(scenario)
         scorer_results: list[ScorerResult] = []
         if run.actual is not None:
+            ideal = scenario["ideal_output"]
             scorer_results.append(scorers.score_structural(run.actual))
-            scorer_results.append(
-                scorers.score_citation_coverage(run.actual, scenario["ideal_output"])
-            )
+            scorer_results.append(scorers.score_severity_match(run.actual, ideal))
+            scorer_results.append(scorers.score_citation_coverage(run.actual, ideal))
         results.append(
             ScenarioResult(
                 scenario_id=run.scenario_id,
