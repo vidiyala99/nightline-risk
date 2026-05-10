@@ -90,6 +90,34 @@ _SCENARIO_OVERRIDES: dict[str, dict[str, Any]] = {
         "police_called": False,
         "ems_called": False,
     },
+    "SCENARIO-004-BOUNCER-EXCESSIVE-FORCE": {
+        "summary": "Security guard used physical force ejecting a patron, patron alleges shoulder injury, police arrived",
+        "location": "main-bar",
+        "injury_observed": True,
+        "police_called": True,
+        "ems_called": False,
+    },
+    "SCENARIO-005-VISIBLY-INTOXICATED-SERVICE": {
+        "summary": "Bartender continued serving visibly intoxicated patron multiple drinks despite slurred speech and stumbling",
+        "location": "main-bar",
+        "injury_observed": False,
+        "police_called": False,
+        "ems_called": False,
+    },
+    "SCENARIO-006-WET-STAIRWELL": {
+        "summary": "Patron slipped and fell on wet stairs in main stairwell with no wet-floor signage during a busy event",
+        "location": "main-stairwell",
+        "injury_observed": True,
+        "police_called": False,
+        "ems_called": False,
+    },
+    "SCENARIO-007-OVERDOSE-DELAYED-EMS": {
+        "summary": "Patron found unresponsive in backstage corridor, staff delayed calling EMS for several minutes after detection",
+        "location": "backstage-corridor",
+        "injury_observed": True,
+        "police_called": False,
+        "ems_called": True,
+    },
 }
 
 

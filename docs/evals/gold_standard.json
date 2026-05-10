@@ -19,23 +19,50 @@
         "event_id": "EV-CAM-001",
         "source_type": "camera",
         "timestamp": "2026-05-02T23:14:00Z",
-        "payload": { "zone_id": "rear-bar", "aggression_score": 0.92, "person_count": 55 }
+        "payload": {
+          "zone_id": "rear-bar",
+          "aggression_score": 0.92,
+          "person_count": 55
+        }
       },
       {
         "event_id": "EV-CAM-002",
         "source_type": "camera",
         "timestamp": "2026-05-02T23:14:42Z",
-        "payload": { "zone_id": "rear-bar", "detections": [{"label": "security-uniform", "confidence": 0.95, "box": [0,0,1,1]}], "aggression_score": 0.10 }
+        "payload": {
+          "zone_id": "rear-bar",
+          "detections": [
+            {
+              "label": "security-uniform",
+              "confidence": 0.95,
+              "box": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ],
+          "aggression_score": 0.1
+        }
       }
     ],
     "ideal_output": {
       "risk_level": "high",
       "risk_score": 85,
       "underwriting_memo": "High-risk incident detected at Rear Bar. Aggression detected at 23:14:00 with 0.92 confidence. Security intervention was not detected until 23:14:42, representing a 42-second response latency. This exceeds the 30-second 'Duty of Care' threshold established in Section III of the policy. The Assault & Battery Exclusion (Clause 2.1) is likely to apply due to negligent security response.",
-      "mandatory_citations": ["EV-CAM-001", "EV-CAM-002"],
-      "rubrics_triggered": ["Duty of Care Latency"],
+      "mandatory_citations": [
+        "EV-CAM-001",
+        "EV-CAM-002"
+      ],
+      "rubrics_triggered": [
+        "Duty of Care Latency"
+      ],
       "expected_review_status": "needs_review",
-      "aggravating_factors": ["delayed_security_response", "documented_aggression"],
+      "aggravating_factors": [
+        "delayed_security_response",
+        "documented_aggression"
+      ],
       "mitigating_factors": []
     }
   },
@@ -60,7 +87,15 @@
         "source_type": "pos",
         "timestamp": "2026-05-03T04:05:12Z",
         "payload": {
-          "items": [{"sku": "S-1", "name": "Tequila Shot", "quantity": 4, "price_total": 48.0, "category": "alcohol"}],
+          "items": [
+            {
+              "sku": "S-1",
+              "name": "Tequila Shot",
+              "quantity": 4,
+              "price_total": 48.0,
+              "category": "alcohol"
+            }
+          ],
           "total_amount": 48.0
         }
       }
@@ -69,10 +104,17 @@
       "risk_level": "critical",
       "risk_score": 95,
       "underwriting_memo": "Critical Liquor Liability violation. POS logs indicate sale of 4x 'Tequila Shot' at 04:05:12 AM, exceeding the 04:00 AM legal service cutoff. This violates Section 1.2 (Condition) of the policy regarding compliance with local service hour ordinances. This creates immediate exposure for Dram Shop lawsuits and potential license suspension.",
-      "mandatory_citations": ["EV-POS-101"],
-      "rubrics_triggered": ["Closing Time Pressure"],
+      "mandatory_citations": [
+        "EV-POS-101"
+      ],
+      "rubrics_triggered": [
+        "Closing Time Pressure"
+      ],
       "expected_review_status": "needs_review",
-      "aggravating_factors": ["service_past_cutoff", "license_compliance_breach"],
+      "aggravating_factors": [
+        "service_past_cutoff",
+        "license_compliance_breach"
+      ],
       "mitigating_factors": []
     }
   },
@@ -96,14 +138,37 @@
         "event_id": "EV-CAM-201",
         "source_type": "camera",
         "timestamp": "2026-05-03T01:30:00Z",
-        "payload": { "zone_id": "dance-floor", "person_count": 125, "detections": [{"label": "security-uniform", "confidence": 0.99, "box": [0,0,1,1]}] }
+        "payload": {
+          "zone_id": "dance-floor",
+          "person_count": 125,
+          "detections": [
+            {
+              "label": "security-uniform",
+              "confidence": 0.99,
+              "box": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ]
+        }
       },
       {
         "event_id": "EV-POS-202",
         "source_type": "pos",
         "timestamp": "2026-05-03T01:32:00Z",
         "payload": {
-          "items": [{"sku": "W-1", "name": "Bottled Water", "quantity": 10, "price_total": 0.0, "category": "water"}],
+          "items": [
+            {
+              "sku": "W-1",
+              "name": "Bottled Water",
+              "quantity": 10,
+              "price_total": 0.0,
+              "category": "water"
+            }
+          ],
           "total_amount": 0.0
         }
       }
@@ -112,11 +177,343 @@
       "risk_level": "low",
       "risk_score": 30,
       "underwriting_memo": "Crowd density at Dance Floor is elevated (125 patrons), but risk is mitigated by proactive measures. Security personnel presence confirmed in zone at 01:30:00. POS logs show distribution of 10 free water units at 01:32:00. These actions demonstrate 'High Duty of Care' and proactive risk management under Section IV (Mitigation Factors).",
-      "mandatory_citations": ["EV-CAM-201", "EV-POS-202"],
-      "rubrics_triggered": ["Hydration-to-Alcohol", "Capacity Creep (Mitigated)"],
+      "mandatory_citations": [
+        "EV-CAM-201",
+        "EV-POS-202"
+      ],
+      "rubrics_triggered": [
+        "Hydration-to-Alcohol",
+        "Capacity Creep (Mitigated)"
+      ],
       "expected_review_status": "approved",
-      "aggravating_factors": ["elevated_crowd_density"],
-      "mitigating_factors": ["security_present", "hydration_distributed", "capacity_within_limits"]
+      "aggravating_factors": [
+        "elevated_crowd_density"
+      ],
+      "mitigating_factors": [
+        "security_present",
+        "hydration_distributed",
+        "capacity_within_limits"
+      ]
+    }
+  },
+  {
+    "scenario_id": "SCENARIO-004-BOUNCER-EXCESSIVE-FORCE",
+    "schema_version": 2,
+    "exposure_class": "assault_battery",
+    "difficulty": "medium",
+    "scenario_type": "subtle_catastrophic",
+    "provenance": {
+      "policy_clauses": [
+        "Section 2.1 Assault and Battery Exclusion (clause b: failure to prevent or suppress)",
+        "Section IV De-escalation Coverage — exception applies only if security attempted de-escalation"
+      ],
+      "industry_pattern": "Bouncer use-of-force cases routinely settle in the $100k–$1M range; shoulder/spinal injury claims are the most frequent presentation",
+      "rationale": "Probes whether the agent recognizes that security as the *aggressor* (rather than responder) does not benefit from the Section IV waiver — and that injury + police involvement should drive needs_review even when the incident looks like a routine ejection."
+    },
+    "description": "A security guard physically restrains a patron during ejection. The patron lands on the floor and complains of shoulder injury. Police are called.",
+    "input_events": [
+      {
+        "event_id": "EV-CAM-004",
+        "source_type": "camera",
+        "timestamp": "2026-05-04T01:18:00Z",
+        "payload": {
+          "zone_id": "main-bar",
+          "aggression_score": 0.65,
+          "detections": [
+            {
+              "label": "security-physical-contact",
+              "confidence": 0.94,
+              "box": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "event_id": "EV-CAM-005",
+        "source_type": "camera",
+        "timestamp": "2026-05-04T01:18:14Z",
+        "payload": {
+          "zone_id": "main-bar-exit",
+          "detections": [
+            {
+              "label": "patron-on-ground",
+              "confidence": 0.88,
+              "box": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "ideal_output": {
+      "risk_level": "high",
+      "risk_score": 80,
+      "underwriting_memo": "Use-of-force incident at Main Bar. Camera shows physical contact initiated by security personnel at 01:18:00 (confidence 0.94). Patron is observed on ground at the exit at 01:18:14. Section 2.1(b) of the A&B exclusion applies; Section IV de-escalation rider does not apply because security was the aggressor, not the responder. Police involvement and reported shoulder injury require needs_review.",
+      "mandatory_citations": [
+        "EV-CAM-004",
+        "EV-CAM-005"
+      ],
+      "rubrics_triggered": [
+        "Use of Force"
+      ],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": [
+        "security_use_of_force",
+        "patron_injury",
+        "police_involvement"
+      ],
+      "mitigating_factors": []
+    }
+  },
+  {
+    "scenario_id": "SCENARIO-005-VISIBLY-INTOXICATED-SERVICE",
+    "schema_version": 2,
+    "exposure_class": "dram_shop",
+    "difficulty": "medium",
+    "scenario_type": "standard",
+    "provenance": {
+      "policy_clauses": [
+        "Section 1.2 Liquor Liability (Dram Shop)",
+        "shared-policy-dram-shop: Over-service of visibly intoxicated patrons voids claims defense"
+      ],
+      "industry_pattern": "Continued service to visibly impaired patrons drives the largest dram shop verdicts, especially when patrons later drive or injure third parties",
+      "rationale": "Probes whether the agent recognizes that contemporaneous evidence of impairment plus continued service satisfies the dram shop liability trigger — even without a downstream incident in the same scenario."
+    },
+    "description": "POS logs show repeated drink purchases by the same patron over a short window; camera shows visible signs of intoxication during the same window.",
+    "input_events": [
+      {
+        "event_id": "EV-POS-005",
+        "source_type": "pos",
+        "timestamp": "2026-05-04T02:42:00Z",
+        "payload": {
+          "items": [
+            {
+              "sku": "S-2",
+              "name": "Whiskey Double",
+              "quantity": 1,
+              "price_total": 18.0,
+              "category": "alcohol"
+            },
+            {
+              "sku": "S-2",
+              "name": "Whiskey Double",
+              "quantity": 1,
+              "price_total": 18.0,
+              "category": "alcohol"
+            },
+            {
+              "sku": "S-3",
+              "name": "Vodka Soda",
+              "quantity": 1,
+              "price_total": 14.0,
+              "category": "alcohol"
+            }
+          ],
+          "total_amount": 50.0
+        }
+      },
+      {
+        "event_id": "EV-CAM-006",
+        "source_type": "camera",
+        "timestamp": "2026-05-04T02:43:00Z",
+        "payload": {
+          "zone_id": "main-bar",
+          "detections": [
+            {
+              "label": "patron-stumbling",
+              "confidence": 0.87,
+              "box": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "ideal_output": {
+      "risk_level": "high",
+      "risk_score": 75,
+      "underwriting_memo": "Dram shop exposure at Main Bar. POS logs at 02:42 show three alcoholic drinks (two whiskey doubles, one vodka soda) sold within a one-minute window to a single patron. Camera at 02:43 detects stumbling consistent with visible intoxication. Continued service after a contemporaneous impairment signal voids claims defense per shared-policy-dram-shop. Needs underwriter review.",
+      "mandatory_citations": [
+        "EV-POS-005",
+        "EV-CAM-006"
+      ],
+      "rubrics_triggered": [
+        "Over-Service Pattern"
+      ],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": [
+        "continued_service_after_intoxication_signal",
+        "repeat_drinks_short_window"
+      ],
+      "mitigating_factors": []
+    }
+  },
+  {
+    "scenario_id": "SCENARIO-006-WET-STAIRWELL",
+    "schema_version": 2,
+    "exposure_class": "premises_liability",
+    "difficulty": "medium",
+    "scenario_type": "standard",
+    "provenance": {
+      "policy_clauses": [
+        "shared-policy-premises-liability: Premises liability requires venues to maintain safe conditions including wet floor signage, adequate lighting on stairs, and regular hazard inspections",
+        "shared-policy-duty-of-care"
+      ],
+      "industry_pattern": "Slip-and-fall on stairs without signage is a top-3 frequency claim in nightlife; settlements driven by injury severity (knee/back) and contributory-negligence analysis",
+      "rationale": "Probes whether the agent recognizes the absence of a control (wet-floor signage) as an aggravating factor — not just the presence of a hazard."
+    },
+    "description": "A patron descends a stairway during a busy event window. The floor is wet from spilled drinks, and no signage is in place.",
+    "input_events": [
+      {
+        "event_id": "EV-CAM-007",
+        "source_type": "camera",
+        "timestamp": "2026-05-04T00:55:00Z",
+        "payload": {
+          "zone_id": "main-stairwell",
+          "person_count": 30,
+          "detections": [
+            {
+              "label": "wet-floor-no-signage",
+              "confidence": 0.91,
+              "box": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "event_id": "EV-CAM-008",
+        "source_type": "camera",
+        "timestamp": "2026-05-04T00:55:42Z",
+        "payload": {
+          "zone_id": "main-stairwell",
+          "detections": [
+            {
+              "label": "patron-fall",
+              "confidence": 0.93,
+              "box": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "ideal_output": {
+      "risk_level": "medium",
+      "risk_score": 55,
+      "underwriting_memo": "Premises liability exposure at Main Stairwell. Camera detects wet floor without signage at 00:55:00 (confidence 0.91) during a busy event window (30 persons in zone). A patron fall occurs 42 seconds later at the same location (confidence 0.93). Absence of wet-floor signage breaches the venue's duty of care under shared-policy-premises-liability.",
+      "mandatory_citations": [
+        "EV-CAM-007",
+        "EV-CAM-008"
+      ],
+      "rubrics_triggered": [
+        "Premises Hazard No Control"
+      ],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": [
+        "no_wet_floor_signage",
+        "busy_event_window"
+      ],
+      "mitigating_factors": []
+    }
+  },
+  {
+    "scenario_id": "SCENARIO-007-OVERDOSE-DELAYED-EMS",
+    "schema_version": 2,
+    "exposure_class": "medical_emergency",
+    "difficulty": "medium",
+    "scenario_type": "subtle_catastrophic",
+    "provenance": {
+      "policy_clauses": [
+        "shared-compliance-medical-response: Failure to call EMS for an unresponsive patron constitutes negligence and voids medical expense coverage",
+        "shared-policy-duty-of-care"
+      ],
+      "industry_pattern": "Backstage/restroom overdose with delayed EMS is a recurring catastrophic claim shape; delays beyond 2–3 minutes after detection drive the largest negligence findings",
+      "rationale": "Probes whether the agent treats the *delay* between unresponsive-patron detection and EMS dispatch as the primary aggravator — not just the presence of an overdose. Severity should remain critical even when EMS is eventually called."
+    },
+    "description": "A patron is found unresponsive in a backstage corridor. Staff observe the patron, but EMS dispatch is not initiated for several minutes.",
+    "input_events": [
+      {
+        "event_id": "EV-CAM-009",
+        "source_type": "camera",
+        "timestamp": "2026-05-04T03:12:00Z",
+        "payload": {
+          "zone_id": "backstage-corridor",
+          "aggression_score": 0.0,
+          "detections": [
+            {
+              "label": "patron-unresponsive",
+              "confidence": 0.96,
+              "box": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "event_id": "EV-CAM-010",
+        "source_type": "camera",
+        "timestamp": "2026-05-04T03:16:30Z",
+        "payload": {
+          "zone_id": "backstage-corridor",
+          "detections": [
+            {
+              "label": "staff-bystander-no-ems-call",
+              "confidence": 0.82,
+              "box": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "ideal_output": {
+      "risk_level": "critical",
+      "risk_score": 95,
+      "underwriting_memo": "Critical medical emergency at Backstage Corridor. Camera detects an unresponsive patron at 03:12:00 (confidence 0.96). At 03:16:30 — 4 minutes 30 seconds later — staff are visible in the same zone with no EMS dispatch detected. Failure to initiate EMS for an unresponsive patron triggers shared-compliance-medical-response and voids medical expense coverage; substantial negligence exposure remains even if EMS is dispatched after this window.",
+      "mandatory_citations": [
+        "EV-CAM-009",
+        "EV-CAM-010"
+      ],
+      "rubrics_triggered": [
+        "Duty of Care — Medical Response"
+      ],
+      "expected_review_status": "needs_review",
+      "aggravating_factors": [
+        "delayed_ems_response",
+        "unresponsive_patron",
+        "staff_present_no_action"
+      ],
+      "mitigating_factors": []
     }
   }
 ]
