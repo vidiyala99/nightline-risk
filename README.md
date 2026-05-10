@@ -53,7 +53,7 @@ Or create a new account via **Sign Up / Create Account** on the login screen (we
 |-------|-----------|
 | Frontend | Next.js 16.2 (App Router), DM Sans + Cormorant Garamond + JetBrains Mono |
 | Mobile | React Native (Expo SDK 54), expo-secure-store, React Navigation |
-| Backend | FastAPI + SQLModel + SQLite |
+| Backend | FastAPI + SQLModel (Postgres on Railway, SQLite locally) |
 | Agents | Deterministic stubs with LLM-ready interfaces |
 | Auth | HMAC-signed JWT tokens (role-aware: broker, venue_operator) |
 | Deployment | Vercel (frontend) + Railway (backend) |
@@ -70,6 +70,7 @@ Or create a new account via **Sign Up / Create Account** on the login screen (we
 - **Risk Profile + Compliance pages** — factor breakdowns, premium impact, role-aware compliance views
 - **Self-serve registration + venue management** — sign up on web or mobile, add/edit multiple venues
 - **Mobile app** — full iOS/Android app with role-aware tabs and the same typography system as the web
+- **Eval set** — 15 research-grounded scenarios across 7 exposure classes with provenance, 5 deterministic scorers, methodology doc with 8 guardrails (see [`docs/evals/README.md`](docs/evals/README.md))
 
 ---
 
