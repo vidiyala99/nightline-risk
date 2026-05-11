@@ -13,17 +13,7 @@ from app.seed_data import KNOWLEDGE_SOURCES, STREAM_EVENTS, VENUES
 
 
 def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: Session) -> IncidentFlowResponse:
-    # Use the resolved venue data (loaded by _resolve_venue before this call)
-    venue_data = VENUES.get(venue_id) or {
-        "name": venue_id,
-        "capacity": 300,
-        "venue_type": "bar",
-        "incident_count": 0,
-        "compliance_items": 0,
-        "security_level": "medium",
-        "years_in_operation": 1,
-        "infrastructure": [],
-    }
+    venue_data = VENUES[venue_id]
     incident = Incident(
         id=f"inc-{venue_id}-{uuid4().hex[:12]}",
         venue_id=venue_id,
