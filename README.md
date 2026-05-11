@@ -1,5 +1,7 @@
 # Third Space Risk OS
 
+[![Tests](https://github.com/vidiyala99/ThirdSpaceRisk/actions/workflows/test.yml/badge.svg)](https://github.com/vidiyala99/ThirdSpaceRisk/actions/workflows/test.yml)
+
 Evidence-first underwriting infrastructure for nightlife venues. Built as a working prototype of what Third Space's core platform could look like.
 
 **Live demo:** https://frontend-mu-ebon-n3x8uw2rpx.vercel.app  
