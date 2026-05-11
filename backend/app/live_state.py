@@ -4,14 +4,9 @@ class LiveStateManager:
     def __init__(self):
         self._states = {}
 
-    def get_state(self, venue_id: str, max_capacity: int, venue_data: dict | None = None) -> LiveVenueState:
+    def get_state(self, venue_id: str, max_capacity: int, venue_data: dict) -> LiveVenueState:
         if venue_id not in self._states:
             seeded_capacity = int(max_capacity * 0.93)
-            vd = venue_data or {}
-            # Use venue-specific infrastructure if available, else a generic fallback
-            raw_infra = vd.get("infrastructure", [
-                {"name": "DOOR_ID_SCANNER", "status": "ACTIVE", "detail": "[ONLINE]", "is_degraded": False},
-            ])
             infrastructure = [
                 InfrastructureItem(
                     name=item["name"],
@@ -19,9 +14,8 @@ class LiveStateManager:
                     detail=item["detail"],
                     is_degraded=item["is_degraded"],
                 )
-                for item in raw_infra
+                for item in venue_data.get("infrastructure", [])
             ]
-            # Pre-seed compliance items defined in venue seed data (demo use)
             seed_compliance = [
                 ComplianceItem(
                     id=c["id"],
@@ -29,7 +23,7 @@ class LiveStateManager:
                     description=c["description"],
                     severity=c["severity"],
                 )
-                for c in vd.get("seed_compliance", [])
+                for c in venue_data.get("seed_compliance", [])
             ]
             self._states[venue_id] = LiveVenueState(
                 venue_id=venue_id,
@@ -41,11 +35,10 @@ class LiveStateManager:
             )
         return self._states[venue_id]
 
-    def process_events(self, venue_id: str, events: list[StreamEvent]) -> None:
+    def process_events(self, venue_id: str, events: list[StreamEvent], venue_data: dict) -> None:
         if venue_id not in self._states:
-            # Initialize with 0 for demo purposes if not seen yet
-            self.get_state(venue_id, 800) 
-            
+            self.get_state(venue_id, venue_data["capacity"], venue_data)
+
         state = self._states[venue_id]
         
         for event in events:

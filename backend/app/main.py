@@ -812,26 +812,26 @@ def list_packet_audit_events(packet_id: str, session: Session = Depends(get_sess
     return [_audit_event_to_dict(event) for event in events]
 
 
-def simulate_event_queue(venue_id: str, events: list[StreamEvent]):
+def simulate_event_queue(venue_id: str, events: list[StreamEvent], venue_data: dict):
     time.sleep(0.5)
-    live_state_manager.process_events(venue_id, events)
+    live_state_manager.process_events(venue_id, events, venue_data)
     print(f"[QUEUE WORKER] Processed {len(events)} events for venue {venue_id}")
 
 
 @app.post("/api/venues/{venue_id}/events/stream", status_code=202)
 def ingest_event_stream(venue_id: str, events: list[StreamEvent], background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
     """High-volume ingestion — accepts immediately, processes asynchronously."""
-    _resolve_venue(venue_id, session)
-    background_tasks.add_task(simulate_event_queue, venue_id, events)
+    venue_data = _resolve_venue(venue_id, session)
+    background_tasks.add_task(simulate_event_queue, venue_id, events, venue_data)
     return {"status": "accepted", "message": f"Queued {len(events)} events for asynchronous processing"}
 
 
 @app.post("/api/venues/{venue_id}/events/inject")
 def inject_event_sync(venue_id: str, events: list[StreamEvent], session: Session = Depends(get_session)):
     """Demo endpoint — synchronously processes events so the UI can refresh immediately."""
-    _resolve_venue(venue_id, session)
-    live_state_manager.process_events(venue_id, events)
-    live = live_state_manager.get_state(venue_id, VENUES[venue_id]["capacity"], VENUES[venue_id])
+    venue_data = _resolve_venue(venue_id, session)
+    live_state_manager.process_events(venue_id, events, venue_data)
+    live = live_state_manager.get_state(venue_id, venue_data["capacity"], venue_data)
     return {
         "status": "processed",
         "events_count": len(events),
