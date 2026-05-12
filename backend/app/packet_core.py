@@ -146,6 +146,81 @@ def create_packet_snapshot(
     return packet
 
 
+def regenerate_packet_with_corroboration(
+    *,
+    session: Session,
+    prior_packet: UnderwritingPacket,
+    incident: IncidentCreate,
+    corroboration_summary: str,
+    corroboration_status: str,
+    corroboration_flags: list[str],
+    confidence_adjustment: float,
+    evidence_analysis_ids: list[str],
+) -> UnderwritingPacket:
+    """Produce a v2 packet incorporating vision corroboration without mutating v1.
+
+    The prior packet's snapshot_hash and content remain intact for audit defense;
+    v2 is a new row whose audit event links back to the parent.
+    """
+    base_confidence = prior_packet.risk_signals.get("confidence", 0.78)
+    new_confidence = min(round(base_confidence + confidence_adjustment, 2), 0.99)
+    updated_risk_signals = {**prior_packet.risk_signals, "confidence": new_confidence}
+
+    visual_section = (
+        f"\n\nVisual Evidence Analysis ({len(evidence_analysis_ids)} file(s) processed): "
+        f"{corroboration_summary} "
+        f"Corroboration status: {corroboration_status}. "
+        f"Flags: {'; '.join(corroboration_flags)}."
+    )
+    updated_memo = {
+        **prior_packet.memo,
+        "summary": prior_packet.memo.get("summary", "") + visual_section,
+    }
+
+    prior_citations = session.exec(
+        select(CitationRecord).where(CitationRecord.packet_id == prior_packet.id)
+    ).all()
+    citations = [
+        Citation(
+            source_id=c.source_id,
+            source_type=c.citation_type,
+            excerpt=c.excerpt,
+        )
+        for c in prior_citations
+    ]
+
+    new_packet = create_packet_snapshot(
+        session=session,
+        venue_id=prior_packet.venue_id,
+        incident_id=prior_packet.incident_id,
+        incident=incident,
+        risk_signal=updated_risk_signals,
+        action_plan=prior_packet.action_plan,
+        claims_timeline=prior_packet.claims_timeline,
+        underwriting_memo=updated_memo,
+        citations=citations,
+        rubric_version=prior_packet.rubric_version_id,
+    )
+
+    _add_audit_event(
+        session=session,
+        actor_id="system",
+        actor_type="system",
+        entity_type="underwriting_packet",
+        entity_id=new_packet.id,
+        event_type="packet.regenerated_with_vision",
+        event_metadata={
+            "parent_packet_id": prior_packet.id,
+            "evidence_analysis_ids": evidence_analysis_ids,
+            "confidence_adjustment": confidence_adjustment,
+            "corroboration_status": corroboration_status,
+        },
+    )
+    session.commit()
+    session.refresh(new_packet)
+    return new_packet
+
+
 def record_review_decision(
     *,
     session: Session,

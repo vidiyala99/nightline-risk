@@ -178,6 +178,21 @@ def require_non_broker(authorization: str = Header(None)):
         raise HTTPException(status_code=403, detail="Brokers cannot modify venues")
 
 
+def require_broker(authorization: str = Header(None)):
+    """Raises 401 without a valid token, or 403 if the caller is not a broker/admin.
+
+    Stricter than require_non_broker (which allows anonymous): policy doc upload
+    is a broker-onboarding action — there's no operator path through this gate.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    decoded = verify_token(authorization.split(" ")[1])
+    if not decoded:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    if decoded.get("role") not in ("broker", "admin"):
+        raise HTTPException(status_code=403, detail="Broker access required")
+
+
 def _get_current_user_record(authorization: str, session: Session):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid token")

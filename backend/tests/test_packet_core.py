@@ -5,6 +5,7 @@ from app.packet_core import (
     PacketCitationValidationError,
     create_packet_snapshot,
     record_review_decision,
+    regenerate_packet_with_corroboration,
 )
 from app.schemas import Citation, IncidentCreate
 
@@ -109,6 +110,74 @@ def test_create_packet_snapshot_rejects_citation_from_different_venue():
             assert "does not belong to venue elsewhere-brooklyn" in str(error)
         else:
             raise AssertionError("Expected cross-venue citation validation to fail")
+
+
+def test_regenerate_packet_with_corroboration_preserves_v1_and_links_v2():
+    with make_session() as session:
+        v1 = create_packet_snapshot(
+            session=session,
+            venue_id="elsewhere-brooklyn",
+            incident_id="inc-1",
+            incident=DEMO_INCIDENT,
+            risk_signal={
+                "type": "altercation_event",
+                "severity": "medium",
+                "confidence": 0.78,
+                "review_status": "needs_review",
+            },
+            action_plan=[],
+            claims_timeline=[],
+            underwriting_memo={
+                "summary": "Original memo body.",
+                "open_questions": [],
+                "review_status": "draft",
+            },
+            citations=[
+                Citation(
+                    source_id="policy-2026-liquor-liability",
+                    source_type="policy",
+                    excerpt="Liquor liability policy requires documented security response.",
+                )
+            ],
+            rubric_version="demo-rubric-v1",
+        )
+        v1_hash = v1.snapshot_hash
+        v1_memo = dict(v1.memo)
+        v1_confidence = v1.risk_signals.get("confidence")
+
+        v2 = regenerate_packet_with_corroboration(
+            session=session,
+            prior_packet=v1,
+            incident=DEMO_INCIDENT,
+            corroboration_summary="Visual evidence consistent.",
+            corroboration_status="CONSISTENT",
+            corroboration_flags=["Timestamp matches", "Injury visible"],
+            confidence_adjustment=0.07,
+            evidence_analysis_ids=["ea-1", "ea-2"],
+        )
+
+        # v1 must remain untouched
+        persisted_v1 = session.get(UnderwritingPacket, v1.id)
+        assert persisted_v1.snapshot_hash == v1_hash
+        assert persisted_v1.memo == v1_memo
+        assert persisted_v1.risk_signals.get("confidence") == v1_confidence
+
+        # v2 carries the corroborated payload
+        assert v2.id != v1.id
+        assert v2.snapshot_hash and v2.snapshot_hash != v1_hash
+        assert "Visual Evidence Analysis" in v2.memo["summary"]
+        assert v2.risk_signals["confidence"] == round(v1_confidence + 0.07, 2)
+
+        # Audit chain: v1 generated, v2 generated, v2 regenerated_with_vision
+        v2_events = session.exec(
+            select(AuditEvent).where(AuditEvent.entity_id == v2.id)
+        ).all()
+        event_types = [e.event_type for e in v2_events]
+        assert "packet.generated" in event_types
+        assert "packet.regenerated_with_vision" in event_types
+        link_event = next(e for e in v2_events if e.event_type == "packet.regenerated_with_vision")
+        assert link_event.event_metadata["parent_packet_id"] == v1.id
+        assert link_event.event_metadata["evidence_analysis_ids"] == ["ea-1", "ea-2"]
 
 
 def test_record_review_decision_requires_override_reason_for_reject_and_emits_audit_event():
