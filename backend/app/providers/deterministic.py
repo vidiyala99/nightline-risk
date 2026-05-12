@@ -1,4 +1,128 @@
-from app.providers.base import MemoOutput, MemoProvider, ProviderMode
+from app.providers.base import (
+    EmbeddingOutput,
+    EmbeddingProvider,
+    MemoOutput,
+    MemoProvider,
+    ProviderMode,
+    RiskClassification,
+    RiskClassifierProvider,
+    TranscriptionOutput,
+    TranscriptionProvider,
+)
+
+
+class DeterministicTranscriptionProvider(TranscriptionProvider):
+    """Placeholder transcription used when OPENAI_API_KEY is not configured.
+
+    Returns a clear "unavailable" marker so the downstream audit trail records
+    that audio was received but not transcribed, rather than silently producing
+    an empty string that could be mistaken for a real (empty) transcript.
+    """
+
+    @property
+    def provider_name(self) -> str:
+        return "deterministic-transcription-v1"
+
+    @property
+    def mode(self) -> ProviderMode:
+        return ProviderMode.DETERMINISTIC
+
+    def transcribe(self, *, file_path: str, content_type: str) -> TranscriptionOutput:
+        return TranscriptionOutput(
+            text="[transcription unavailable — OPENAI_API_KEY not configured]",
+            language=None,
+            duration_seconds=None,
+            provider=self.provider_name,
+            mode=self.mode,
+        )
+
+
+class DeterministicEmbeddingProvider(EmbeddingProvider):
+    """No-op embeddings — raises on use.
+
+    Unlike memo / classifier / transcription, there is no meaningful local
+    deterministic fallback for embeddings: a TF-IDF retriever already covers
+    that gap (see app/rag.py). If you reach this provider, you have asked for
+    embeddings without configuring an embedding API — which is a configuration
+    error, not a fallback condition. Fail loudly so the retriever isn't fed
+    garbage vectors.
+    """
+
+    DIMENSIONS = 0
+
+    @property
+    def provider_name(self) -> str:
+        return "deterministic-embedding-v1"
+
+    @property
+    def mode(self) -> ProviderMode:
+        return ProviderMode.DETERMINISTIC
+
+    @property
+    def dimensions(self) -> int:
+        return self.DIMENSIONS
+
+    def embed(self, texts: list[str]) -> EmbeddingOutput:
+        raise NotImplementedError(
+            "DeterministicEmbeddingProvider does not produce vectors. "
+            "Configure OPENAI_API_KEY for OpenAIEmbeddingProvider, or use the "
+            "TF-IDF retriever in app/rag.py for keyword-similarity retrieval."
+        )
+
+
+_KEYWORD_LADDER = [
+    (("fire", "electrical"), "property_damage", "medium", 0.82),
+    (("overdose", "unresponsive", "hospital"), "medical_emergency", "critical", 0.94),
+    (("assault", "excessive force", "fight", "brawl", "fighting"), "altercation_event", "medium", 0.78),
+    (("slip", "fell", "fall", "stairs"), "premises_liability", "medium", 0.81),
+    (("serving", "liquor", "intoxicated", "cutoff", "dram"), "liquor_liability", "high", 0.91),
+    (("crowd", "surge", "faint"), "crowd_management", "high", 0.87),
+    (("vandal", "damage"), "property_damage", "low", 0.74),
+]
+
+
+class DeterministicRiskClassifier(RiskClassifierProvider):
+    """Keyword-ladder classifier. Used as fallback and in tests.
+
+    Preserves the exact behavior the runtime had before the LLM provider was
+    introduced, so swapping providers can't silently change scoring on the
+    seeded scenarios.
+    """
+
+    @property
+    def provider_name(self) -> str:
+        return "deterministic-classifier-v1"
+
+    @property
+    def mode(self) -> ProviderMode:
+        return ProviderMode.DETERMINISTIC
+
+    def classify(
+        self,
+        *,
+        incident_summary: str,
+        incident_location: str,
+        citation_excerpts: list[str],
+    ) -> RiskClassification:
+        summary = (incident_summary or "").lower()
+        for keywords, risk_type, severity, confidence in _KEYWORD_LADDER:
+            if any(k in summary for k in keywords):
+                return RiskClassification(
+                    risk_type=risk_type,
+                    base_severity=severity,
+                    base_confidence=confidence,
+                    rationale=f"Keyword match on {next(k for k in keywords if k in summary)}",
+                    provider=self.provider_name,
+                    mode=self.mode,
+                )
+        return RiskClassification(
+            risk_type="general_incident",
+            base_severity="low",
+            base_confidence=0.70,
+            rationale="No keyword match — defaulting to general_incident.",
+            provider=self.provider_name,
+            mode=self.mode,
+        )
 
 
 class DeterministicProvider(MemoProvider):

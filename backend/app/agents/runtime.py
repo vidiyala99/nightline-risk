@@ -2,7 +2,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from app.rag import SemanticKnowledgeBase as VenueKnowledgeBase
-from app.providers import MemoProvider, get_default_provider
+from app.providers import (
+    MemoProvider,
+    RiskClassifierProvider,
+    get_default_provider,
+    get_default_risk_classifier,
+)
 from app.schemas import ActionItem, Citation, IncidentCreate, RiskSignal, TimelineEvent, UnderwritingMemo
 
 
@@ -43,9 +48,13 @@ class UnderwritingPacketAgentRuntime:
         self,
         contracts_dir: Path | None = None,
         memo_provider: MemoProvider | None = None,
+        risk_classifier: RiskClassifierProvider | None = None,
     ):
         self._contracts_dir = contracts_dir or Path(__file__).resolve().parent
         self._memo_provider = memo_provider or get_default_provider()
+        self._risk_classifier = risk_classifier or get_default_risk_classifier()
+        self._last_risk_evaluator_mode = "deterministic"
+        self._last_memo_mode = "deterministic"
 
     def execute(
         self,
@@ -70,7 +79,9 @@ class UnderwritingPacketAgentRuntime:
         trace.append(self._trace_step("retrieval_agent", contracts))
 
         risk_signal = self._run_risk_evaluator_agent(citations=citations, incident=incident)
-        trace.append(self._trace_step("risk_evaluator_agent", contracts))
+        trace.append(self._trace_step(
+            "risk_evaluator_agent", contracts, execution_mode=self._last_risk_evaluator_mode,
+        ))
 
         action_plan = self._run_customer_action_agent()
         trace.append(self._trace_step("customer_action_agent", contracts))
@@ -85,7 +96,9 @@ class UnderwritingPacketAgentRuntime:
         underwriting_memo = self._run_underwriter_memo_agent(
             incident=incident, risk_signal=risk_signal, citations=citations
         )
-        trace.append(self._trace_step("underwriter_memo_agent", contracts))
+        trace.append(self._trace_step(
+            "underwriter_memo_agent", contracts, execution_mode=self._last_memo_mode,
+        ))
 
         return UnderwritingPacketAgentResult(
             citations=citations,
@@ -108,11 +121,17 @@ class UnderwritingPacketAgentRuntime:
             contracts[agent_name] = contract_path
         return contracts
 
-    def _trace_step(self, agent_name: str, contracts: dict[str, Path]) -> AgentExecutionStep:
+    def _trace_step(
+        self,
+        agent_name: str,
+        contracts: dict[str, Path],
+        execution_mode: str = "deterministic",
+    ) -> AgentExecutionStep:
         return AgentExecutionStep(
             agent_name=agent_name,
             contract_version=CONTRACT_VERSION,
             contract_path=str(contracts[agent_name]),
+            execution_mode=execution_mode,
         )
 
     def _run_retrieval_agent(
@@ -146,37 +165,37 @@ class UnderwritingPacketAgentRuntime:
     def _run_risk_evaluator_agent(
         self, *, citations: list[Citation], incident: IncidentCreate | None = None
     ) -> RiskSignal:
+        """Classify (LLM or deterministic) then apply hard-signal escalation.
+
+        The classifier picks (risk_type, base_severity, base_confidence). The
+        injury/police/EMS escalation runs in code so the model can never relax
+        a severity that the hard signals imply.
+        """
         injury = getattr(incident, "injury_observed", False) if incident else False
         police = getattr(incident, "police_called", False) if incident else False
         ems = getattr(incident, "ems_called", False) if incident else False
-        summary = (getattr(incident, "summary", "") or "").lower() if incident else ""
+        summary = getattr(incident, "summary", "") if incident else ""
+        location = getattr(incident, "location", "") if incident else ""
 
-        # Determine type from summary keywords
-        if any(k in summary for k in ["fire", "electrical"]):
-            incident_type, base_severity, base_confidence = "property_damage", "medium", 0.82
-        elif any(k in summary for k in ["overdose", "unresponsive", "hospital"]):
-            incident_type, base_severity, base_confidence = "medical_emergency", "critical", 0.94
-        elif any(k in summary for k in ["assault", "excessive force", "fight", "brawl", "fighting"]):
-            incident_type, base_severity, base_confidence = "altercation_event", "medium", 0.78
-        elif any(k in summary for k in ["slip", "fell", "fall", "stairs"]):
-            incident_type, base_severity, base_confidence = "premises_liability", "medium", 0.81
-        elif any(k in summary for k in ["serving", "liquor", "intoxicated", "cutoff", "dram"]):
-            incident_type, base_severity, base_confidence = "liquor_liability", "high", 0.91
-        elif any(k in summary for k in ["crowd", "surge", "faint"]):
-            incident_type, base_severity, base_confidence = "crowd_management", "high", 0.87
-        elif any(k in summary for k in ["vandal", "damage"]):
-            incident_type, base_severity, base_confidence = "property_damage", "low", 0.74
-        else:
-            incident_type, base_severity, base_confidence = "general_incident", "low", 0.70
+        classification = self._classify_with_fallback(
+            incident_summary=summary,
+            incident_location=location,
+            citation_excerpts=[c.excerpt for c in citations],
+        )
+        self._last_risk_evaluator_mode = classification.mode.value
 
-        # Escalate severity based on flags
         severity_order = ["low", "medium", "high", "critical"]
-        severity = base_severity
+        severity = classification.base_severity
+        if severity not in severity_order:
+            severity = "low"  # defensive — should be impossible via enum schema
         if ems and severity_order.index(severity) < severity_order.index("critical"):
             severity = severity_order[severity_order.index(severity) + 1]
         if injury and police and severity_order.index(severity) < severity_order.index("high"):
             severity = "high"
-        confidence = min(base_confidence + (0.04 if police else 0) + (0.03 if ems else 0), 0.99)
+        confidence = min(
+            classification.base_confidence + (0.04 if police else 0) + (0.03 if ems else 0),
+            0.99,
+        )
 
         severity_explanations = {
             "critical": "Multiple aggravating factors present. Immediate carrier escalation and legal hold recommended.",
@@ -188,13 +207,45 @@ class UnderwritingPacketAgentRuntime:
         review_status = "approved" if severity == "low" else "needs_review"
 
         return RiskSignal(
-            type=incident_type,
+            type=classification.risk_type,
             severity=severity,
             confidence=round(confidence, 2),
             explanation=severity_explanations[severity],
             review_status=review_status,
             citations=citations,
         )
+
+    def _classify_with_fallback(
+        self,
+        *,
+        incident_summary: str,
+        incident_location: str,
+        citation_excerpts: list[str],
+    ):
+        """Call the configured classifier; fall back to deterministic on any error.
+
+        A transient LLM hiccup must never block a packet — the deterministic
+        keyword ladder is a complete classifier on its own.
+        """
+        try:
+            return self._risk_classifier.classify(
+                incident_summary=incident_summary,
+                incident_location=incident_location,
+                citation_excerpts=citation_excerpts,
+            )
+        except Exception as exc:
+            import logging
+            primary = getattr(self._risk_classifier, "provider_name", "unknown")
+            logging.warning(
+                "Risk classifier %s failed (%s); using deterministic.",
+                primary, exc.__class__.__name__,
+            )
+            from app.providers.deterministic import DeterministicRiskClassifier
+            return DeterministicRiskClassifier().classify(
+                incident_summary=incident_summary,
+                incident_location=incident_location,
+                citation_excerpts=citation_excerpts,
+            )
 
     def _run_customer_action_agent(self) -> list[ActionItem]:
         return [
@@ -270,6 +321,7 @@ class UnderwritingPacketAgentRuntime:
                 confidence=risk_signal.confidence,
                 citation_excerpts=[c.excerpt for c in citations],
             )
+        self._last_memo_mode = memo_output.mode.value
         return UnderwritingMemo(
             summary=memo_output.summary,
             open_questions=memo_output.open_questions,

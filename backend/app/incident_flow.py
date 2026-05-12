@@ -9,7 +9,8 @@ from app.schemas import (
 )
 from app.models import IncidentRecord, IncidentEvaluation
 from app.packet_core import create_packet_snapshot
-from app.seed_data import KNOWLEDGE_SOURCES, STREAM_EVENTS, VENUES
+from app.seed_data import STREAM_EVENTS, VENUES
+from app.knowledge_sources import load_knowledge_sources_for_venue
 
 
 def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: Session) -> IncidentFlowResponse:
@@ -19,11 +20,12 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
         venue_id=venue_id,
         **payload.model_dump(),
     )
+    knowledge_sources = load_knowledge_sources_for_venue(session, venue_id)
     agent_result = execute_underwriting_packet_agents(
         venue_id=venue_id,
         venue=venue_data,
         incident=payload,
-        knowledge_sources=KNOWLEDGE_SOURCES,
+        knowledge_sources=knowledge_sources,
         stream_events=STREAM_EVENTS,
     )
 
