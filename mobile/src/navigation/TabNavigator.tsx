@@ -92,6 +92,7 @@ function VenueOperatorTabs() {
       <Tab.Screen name="Reports" component={ReportsStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
       <Tab.Screen name="Claims" component={ClaimsStack} />
+      <Tab.Screen name="Venues" component={VenuesStack} />
       <Tab.Screen name="Live" component={LiveStack} />
       <Tab.Screen name="Compliance" component={OperatorComplianceStack} />
     </Tab.Navigator>
