@@ -2,40 +2,42 @@ from app.fastapi_compat import patch_starlette_router_for_fastapi
 
 patch_starlette_router_for_fastapi()
 
-from contextlib import asynccontextmanager
-from pathlib import Path
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, UploadFile, File, Query
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from sqlmodel import Session, select, text, func
-import time
+from contextlib import asynccontextmanager  # noqa: E402
+from pathlib import Path  # noqa: E402
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, UploadFile, File, Query  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+from sqlmodel import Session, select, text, func  # noqa: E402
+import time  # noqa: E402
 
-from app.claim_proposals import (
+from app.auth import router as auth_router, require_broker, require_non_broker  # noqa: E402
+from app.api.v1.ingestion import router as ingestion_router  # noqa: E402
+from app.claim_proposals import (  # noqa: E402
     ClaimProposalValidationError,
     compute_override_stats,
     create_proposal as create_claim_proposal,
     record_broker_decision as record_claim_broker_decision,
     stats_to_dict as override_stats_to_dict,
 )
-from app.claim_recommendation import recommend_claim_filing, recommendation_to_dict
-from app.incident_flow import create_brawl_incident_flow
-from app.agents.vision_agent import analyze_image, analyze_video_keyframes
-from app.agents.corroboration_agent import corroborate
-from app.knowledge_sources import INGESTED_ORIGIN, load_knowledge_sources_for_venue
-from app.policy_parser import chunk_policy_text
-from app.schemas import Incident, IncidentCreate, IncidentFlowResponse, LiveVenueState, StreamEvent
-from app.seed_data import SEED_INCIDENTS, STREAM_EVENTS, VENUES
-from app.database import create_db_and_tables, get_session, engine
-from app.live_state import live_state_manager
-from app.models import AuditEvent, ClaimProposal, ComplianceEvidence, EvidenceAnalysis, EvidenceFile, IncidentRecord, ReviewDecision, SourceRecord, UnderwritingPacket, Venue, UserRecord
-from app.packet_core import (
+from app.claim_recommendation import recommend_claim_filing, recommendation_to_dict  # noqa: E402
+from app.incident_flow import create_brawl_incident_flow  # noqa: E402
+from app.agents.vision_agent import analyze_image, analyze_video_keyframes  # noqa: E402
+from app.agents.corroboration_agent import corroborate  # noqa: E402
+from app.knowledge_sources import INGESTED_ORIGIN, load_knowledge_sources_for_venue  # noqa: E402
+from app.policy_parser import chunk_policy_text  # noqa: E402
+from app.schemas import Incident, IncidentCreate, IncidentFlowResponse, LiveVenueState, StreamEvent  # noqa: E402
+from app.seed_data import SEED_INCIDENTS, STREAM_EVENTS, VENUES  # noqa: E402
+from app.database import create_db_and_tables, get_session, engine  # noqa: E402
+from app.live_state import live_state_manager  # noqa: E402
+from app.models import AuditEvent, ClaimProposal, ComplianceEvidence, EvidenceAnalysis, EvidenceFile, IncidentRecord, ReviewDecision, SourceRecord, UnderwritingPacket, Venue, UserRecord  # noqa: E402
+from app.packet_core import (  # noqa: E402
     create_packet_snapshot,
     record_review_decision,
     record_packet_opened,
     regenerate_packet_with_corroboration,
 )
-from app.agents.runtime import execute_underwriting_packet_agents
-from app.underwriting import get_premium_quote, get_risk_score
+from app.agents.runtime import execute_underwriting_packet_agents  # noqa: E402
+from app.underwriting import get_premium_quote, get_risk_score  # noqa: E402
 
 
 class ReviewDecisionCreate(BaseModel):
@@ -248,10 +250,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Third Space Risk OS", lifespan=lifespan)
 
-from app.auth import router as auth_router, require_broker, require_non_broker
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
-
-from app.api.v1.ingestion import router as ingestion_router
 app.include_router(ingestion_router, prefix="/api/v1", tags=["ingestion"])
 
 app.add_middleware(
@@ -325,7 +324,8 @@ def list_venues(session: Session = Depends(get_session)) -> list[dict]:
 
 @app.post("/api/venues", status_code=201)
 def create_venue(payload: dict, session: Session = Depends(get_session), _: None = Depends(require_non_broker)) -> dict:
-    import re, json as _json
+    import re
+    import json as _json
     name = payload.get("name", "").strip()
     if not name:
         raise HTTPException(status_code=400, detail="Venue name is required")
