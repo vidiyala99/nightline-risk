@@ -7,7 +7,7 @@ from pathlib import Path  # noqa: E402
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, UploadFile, File, Query  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
-from sqlmodel import Session, select, text, func  # noqa: E402
+from sqlmodel import Session, select, func  # noqa: E402
 import time  # noqa: E402
 
 from app.auth import router as auth_router, require_broker, require_non_broker  # noqa: E402
@@ -24,12 +24,14 @@ from app.incident_flow import create_brawl_incident_flow  # noqa: E402
 from app.agents.vision_agent import analyze_image, analyze_video_keyframes  # noqa: E402
 from app.agents.corroboration_agent import corroborate  # noqa: E402
 from app.knowledge_sources import INGESTED_ORIGIN, load_knowledge_sources_for_venue  # noqa: E402
-from app.policy_parser import chunk_policy_text  # noqa: E402
+from app.policy_document import build_policy_tree  # noqa: E402
+from app.rag import SemanticKnowledgeBase  # noqa: E402
+from app.policy_parser import chunk_policy_text  # noqa: F401, E402  # legacy fallback referenced by build_policy_tree's regex path
 from app.schemas import Incident, IncidentCreate, IncidentFlowResponse, LiveVenueState, StreamEvent  # noqa: E402
 from app.seed_data import SEED_INCIDENTS, STREAM_EVENTS, VENUES  # noqa: E402
-from app.database import create_db_and_tables, get_session, engine  # noqa: E402
+from app.database import create_db_and_tables, get_session, engine  # noqa: F401, E402  # `engine` re-exported for tests that monkeypatch app.main.engine
 from app.live_state import live_state_manager  # noqa: E402
-from app.models import AuditEvent, ClaimProposal, ComplianceEvidence, EvidenceAnalysis, EvidenceFile, IncidentRecord, ReviewDecision, SourceRecord, UnderwritingPacket, Venue, UserRecord  # noqa: E402
+from app.models import AuditEvent, ClaimProposal, ComplianceEvidence, EvidenceAnalysis, EvidenceFile, IncidentRecord, PolicyDocument, ReviewDecision, SourceRecord, UnderwritingPacket, Venue, UserRecord  # noqa: E402
 from app.packet_core import (  # noqa: E402
     create_packet_snapshot,
     record_review_decision,
@@ -152,20 +154,8 @@ def _backfill_incident_packets(session: Session) -> None:
 async def lifespan(app: FastAPI):
     create_db_and_tables()
 
-    # Run column migrations using a raw connection so each DDL statement
-    # gets its own autocommit transaction — avoids Postgres aborting the
-    # whole transaction on "column already exists" errors.
-    with engine.connect() as conn:
-        conn.execution_options(isolation_level="AUTOCOMMIT")
-        for migration in [
-            "ALTER TABLE incidentrecord ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'open'",
-            "ALTER TABLE venue ADD COLUMN IF NOT EXISTS venue_data TEXT",
-            "ALTER TABLE userrecord ADD COLUMN IF NOT EXISTS extra_venue_ids TEXT",
-        ]:
-            try:
-                conn.execute(text(migration))
-            except Exception:
-                pass
+    # Column-level ALTER migrations now live in app.database.create_db_and_tables
+    # so they run on every session bootstrap, not only the FastAPI lifespan path.
 
     import json as _json
     from app.auth import DEMO_USERS, create_password_hash
@@ -828,9 +818,17 @@ def ingest_policy_doc(
 ) -> dict:
     """Ingest a markdown policy document for this venue.
 
-    Splits on ## / ### headings via app.policy_parser.chunk_policy_text and stores
-    each chunk as a SourceRecord (origin_system="policy_ingestion"). Re-ingesting
-    the same content is idempotent — chunk IDs are deterministic content hashes.
+    Builds a PageIndex-style hierarchical tree (regex fallback in Phase 1) and
+    persists:
+      * one PolicyDocument row with the full tree_json (source for deep retrieve
+        + citation rendering)
+      * N SourceRecord leaf rows (one per clause) with source_metadata enriched
+        with doc_id / node_id / page_start / page_end / path — the retrieval
+        layer reads these and surfaces them in Citation objects.
+
+    Idempotent at both layers: the PolicyDocument id is a hash of the full input
+    text, and SourceRecord ids are hashes of leaf content. Re-uploading the same
+    text returns the existing doc_id and 0 newly-inserted chunks.
     """
     import hashlib
     _resolve_venue(venue_id, session)
@@ -839,21 +837,39 @@ def ingest_policy_doc(
         raise HTTPException(status_code=400, detail="`text` (markdown body) is required")
     source_file = payload.get("source_file", "uploaded_policy.md")
 
-    chunks = chunk_policy_text(text)
-    if not chunks:
+    tree_json, leaves = build_policy_tree(text=text, source_file=source_file)
+    if not leaves:
         raise HTTPException(
             status_code=400,
             detail="No chunks extracted. Policy must use '## Section' / '### Clause' headings.",
         )
 
+    # Deterministic doc_id over (venue, source_file, text) — re-upload of the
+    # same content returns the same PolicyDocument row.
+    doc_hash_input = f"{venue_id}|{source_file}|{text}".encode("utf-8")
+    doc_id = f"policy-{hashlib.sha256(doc_hash_input).hexdigest()[:16]}"
+
+    existing_doc = session.get(PolicyDocument, doc_id)
+    if existing_doc is None:
+        session.add(PolicyDocument(
+            id=doc_id,
+            venue_id=venue_id,
+            source_file=source_file,
+            content_type="text/markdown",
+            page_count=len(leaves),  # synthesized: 1 page per leaf in regex mode
+            tree_json=tree_json,
+            status="ready",
+        ))
+
     inserted_ids: list[str] = []
-    for chunk in chunks:
+    for chunk in leaves:
         content = chunk["content"]
         content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
         source_id = f"ingested-{content_hash[:16]}"
         if session.get(SourceRecord, source_id):
             continue
-        meta = chunk.get("metadata", {})
+        meta = dict(chunk.get("metadata", {}))
+        meta["doc_id"] = doc_id  # back-reference into PolicyDocument
         source_type = "policy_exclusion" if meta.get("is_exclusion") else "policy"
         session.add(SourceRecord(
             id=source_id,
@@ -870,7 +886,8 @@ def ingest_policy_doc(
     session.commit()
     return {
         "venue_id": venue_id,
-        "chunks_extracted": len(chunks),
+        "doc_id": doc_id,
+        "chunks_extracted": len(leaves),
         "chunks_inserted": len(inserted_ids),
         "source_ids": inserted_ids,
     }
@@ -1187,6 +1204,49 @@ def get_venue_quote(venue_id: str, session: Session = Depends(get_session)) -> d
 COMPLIANCE_EVIDENCE_MAX_BYTES = 20 * 1024 * 1024  # 20MB
 
 
+def _predict_evidence_citation(venue_id: str, item_description: str, session: Session):
+    """Top TF-IDF citation for a compliance item description.
+
+    Used both to stamp `cited_*` on a ComplianceEvidence row at upload time and
+    to power the citation chip the FE renders before upload. Returns `None`
+    when there's nothing to cite (no ingested policy docs yet).
+    """
+    if not item_description:
+        return None
+    sources = load_knowledge_sources_for_venue(session, venue_id)
+    kb = SemanticKnowledgeBase(sources, stream_events=[])
+    hits = kb.retrieve(venue_id, item_description, limit=1)
+    return hits[0] if hits else None
+
+
+def _find_compliance_item(venue_id: str, venue: dict, item_id: str):
+    """Pull a ComplianceItem out of the LiveVenueState's queue by id."""
+    state = live_state_manager.get_state(venue_id, venue["capacity"], venue)
+    for q in state.compliance_queue:
+        if q.id == item_id:
+            return q
+    return None
+
+
+@app.get("/api/venues/{venue_id}/compliance/{item_id}/citation")
+def predict_compliance_citation(
+    venue_id: str,
+    item_id: str,
+    session: Session = Depends(get_session),
+) -> dict:
+    """Predict the policy clause this compliance item maps to.
+
+    Returns `{citation: null}` when no policy doc is ingested yet or the item
+    is unknown — the FE chip stays hidden in that case.
+    """
+    venue = _resolve_venue(venue_id, session)
+    item = _find_compliance_item(venue_id, venue, item_id)
+    if item is None:
+        return {"citation": None}
+    hit = _predict_evidence_citation(venue_id, item.description, session)
+    return {"citation": hit.model_dump() if hit else None}
+
+
 @app.post("/api/venues/{venue_id}/compliance/{item_id}/upload")
 async def upload_compliance_evidence(
     venue_id: str,
@@ -1204,7 +1264,7 @@ async def upload_compliance_evidence(
     validation gating is a separate fix.
     """
     from uuid import uuid4
-    _resolve_venue(venue_id, session)
+    venue = _resolve_venue(venue_id, session)
 
     contents = await file.read()
     if len(contents) > COMPLIANCE_EVIDENCE_MAX_BYTES:
@@ -1213,6 +1273,12 @@ async def upload_compliance_evidence(
             detail=f"File too large. Maximum size for compliance evidence is "
                    f"{COMPLIANCE_EVIDENCE_MAX_BYTES // (1024 * 1024)}MB.",
         )
+
+    # Look up the citation BEFORE resolve_compliance_item runs (which removes
+    # the item from the live queue). Best-effort: missing item or missing
+    # policy docs just leaves the cited_* columns null.
+    item = _find_compliance_item(venue_id, venue, item_id)
+    citation = _predict_evidence_citation(venue_id, item.description, session) if item else None
 
     evidence_id = f"ce-{uuid4().hex[:12]}"
     safe_name = f"{evidence_id}_{file.filename or 'upload'}"
@@ -1228,6 +1294,11 @@ async def upload_compliance_evidence(
         file_path=str(dest),
         file_size=len(contents),
         uploaded_by=uploaded_by,
+        cited_source_id=citation.source_id if citation else None,
+        cited_doc_id=citation.doc_id if citation else None,
+        cited_node_id=citation.node_id if citation else None,
+        cited_page_start=citation.page_start if citation else None,
+        cited_page_end=citation.page_end if citation else None,
     )
     session.add(record)
     session.commit()
@@ -1242,6 +1313,7 @@ async def upload_compliance_evidence(
         "filename": record.filename,
         "file_size": record.file_size,
         "uploaded_at": record.uploaded_at.isoformat(),
+        "citation": citation.model_dump() if citation else None,
     }
 
 

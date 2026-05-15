@@ -14,6 +14,15 @@ class Citation(BaseModel):
     source_id: str
     source_type: str
     excerpt: str
+    # PageIndex-derived locators. All optional so existing callers stay green;
+    # populated when the underlying SourceRecord was ingested with a tree-build
+    # (see app.policy_document.build_policy_tree).
+    doc_id: Optional[str] = None
+    node_id: Optional[str] = None
+    page_start: Optional[int] = None
+    page_end: Optional[int] = None
+    path: Optional[str] = None  # breadcrumb e.g. "Coverage > 4.2 Premises Liability"
+    clause_id: Optional[str] = None
 
 class Incident(BaseModel):
     id: str

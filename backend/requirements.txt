@@ -11,3 +11,9 @@ instructor>=1.2.6
 python-dotenv>=1.0.0
 pgvector>=0.2.0
 psycopg2-binary>=2.9.0
+# PageIndex: vectorless reasoning-based RAG for policy-doc citation anchoring.
+# Phase 1 ships the regex fallback only; Phase 2 wires the live invocation when
+# POLICY_PARSER=pageindex and OPENAI_API_KEY are set. Pin to a known-good tag —
+# upstream is moving quickly, and the dispatcher catches ImportError so older
+# pins keep working.
+pageindex==0.1.4

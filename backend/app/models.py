@@ -80,6 +80,24 @@ class SourceRecord(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class PolicyDocument(SQLModel, table=True):
+    """Full hierarchical tree of a broker-uploaded policy doc.
+
+    Leaves of this tree are also flattened into SourceRecord rows (one per
+    leaf) for the retrieval layer; tree_json here is the canonical source for
+    PageIndex deep-retrieve and for citation rendering.
+    """
+    id: str = Field(primary_key=True)
+    venue_id: str = Field(index=True)
+    source_file: str
+    content_type: str = "text/markdown"
+    page_count: int = 0
+    tree_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    status: str = Field(default="ready", index=True)  # indexing | ready | failed
+    indexed_at: datetime = Field(default_factory=datetime.utcnow)
+    error: Optional[str] = None
+
+
 class RubricVersion(SQLModel, table=True):
     id: str = Field(primary_key=True)
     name: str
@@ -197,6 +215,14 @@ class ComplianceEvidence(SQLModel, table=True):
     file_size: int = 0
     uploaded_by: str = "operator"
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    # Citation linkage — the policy clause this evidence is being submitted
+    # against. Stamped at upload time by retrieving against the compliance
+    # item's description. All optional: pre-PageIndex evidence has none.
+    cited_source_id: Optional[str] = Field(default=None, foreign_key="sourcerecord.id")
+    cited_doc_id: Optional[str] = None
+    cited_node_id: Optional[str] = None
+    cited_page_start: Optional[int] = None
+    cited_page_end: Optional[int] = None
 
 
 class AuditEvent(SQLModel, table=True):

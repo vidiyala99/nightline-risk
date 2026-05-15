@@ -86,6 +86,12 @@ class SemanticKnowledgeBase:
                 source_id=doc["source_id"],
                 source_type=doc.get("source_type", "stream"),
                 excerpt=doc.get("text") or doc["label"],
+                doc_id=doc.get("doc_id"),
+                node_id=doc.get("node_id"),
+                page_start=doc.get("page_start"),
+                page_end=doc.get("page_end"),
+                path=doc.get("path"),
+                clause_id=doc.get("clause_id"),
             )
             for _, doc in ranked[:limit]
         ]
@@ -105,6 +111,12 @@ class SemanticKnowledgeBase:
                 source_id=doc["source_id"],
                 source_type=doc.get("source_type", "stream"),
                 excerpt=doc.get("text") or doc["label"],
+                doc_id=doc.get("doc_id"),
+                node_id=doc.get("node_id"),
+                page_start=doc.get("page_start"),
+                page_end=doc.get("page_end"),
+                path=doc.get("path"),
+                clause_id=doc.get("clause_id"),
             )
             for _, doc in ranked[:limit]
         ]

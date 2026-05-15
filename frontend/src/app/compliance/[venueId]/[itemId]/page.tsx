@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
-import { ArrowLeft, Upload, Clock, AlertCircle, CheckSquare } from "lucide-react";
+import { ArrowLeft, Upload, Clock, AlertCircle, CheckSquare, FileText } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -14,6 +14,24 @@ interface ComplianceItem {
   title?: string;
   description: string;
   severity: string;
+}
+
+interface CitationChip {
+  source_id: string;
+  source_type: string;
+  excerpt: string;
+  doc_id: string | null;
+  node_id: string | null;
+  page_start: number | null;
+  page_end: number | null;
+  path: string | null;
+  clause_id: string | null;
+}
+
+function formatPageAnchor(start: number | null, end: number | null): string {
+  if (start === null) return "";
+  if (end === null || end === start) return ` · p.${start}`;
+  return ` · p.${start}–${end}`;
 }
 
 function humanize(id: string) {
@@ -34,6 +52,7 @@ export default function ComplianceDetailPage() {
   const [venueName, setVenueName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [citation, setCitation] = useState<CitationChip | null>(null);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) router.push("/login");
@@ -73,6 +92,16 @@ export default function ComplianceDetailPage() {
       .catch(() => { if (!cancelled) setVenueName(venueId); });
     return () => { cancelled = true; };
   }, [venueId]);
+
+  useEffect(() => {
+    if (!venueId || !itemId) return;
+    let cancelled = false;
+    fetch(`${API_URL}/api/venues/${venueId}/compliance/${itemId}/citation`)
+      .then((r) => (r.ok ? r.json() : { citation: null }))
+      .then((data) => { if (!cancelled) setCitation(data.citation ?? null); })
+      .catch(() => { if (!cancelled) setCitation(null); });
+    return () => { cancelled = true; };
+  }, [venueId, itemId]);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -142,6 +171,45 @@ export default function ComplianceDetailPage() {
                 {item.severity}
               </span>
             </div>
+            {citation && (
+              <div
+                role="note"
+                aria-label="Policy clause this evidence resolves"
+                style={{
+                  marginTop: "var(--space-md)",
+                  padding: "var(--space-sm)",
+                  background: "var(--bg-elevated)",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--border-subtle)",
+                }}
+              >
+                <div className="flex items-center gap-sm mb-xs">
+                  <FileText size={12} />
+                  <span
+                    className="text-xs font-mono"
+                    style={{
+                      color:
+                        citation.source_type === "policy_exclusion"
+                          ? "var(--state-warning)"
+                          : "var(--brand-primary)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    {citation.path ?? citation.source_type.replace("_", " ")}
+                    {formatPageAnchor(citation.page_start, citation.page_end)}
+                  </span>
+                </div>
+                <p
+                  className="text-xs text-secondary"
+                  style={{ lineHeight: 1.5, margin: 0 }}
+                >
+                  {citation.excerpt.length > 180
+                    ? citation.excerpt.slice(0, 180) + "…"
+                    : citation.excerpt}
+                </p>
+              </div>
+            )}
             {!isBroker && (
               <div className="compliance-actions">
                 <input

@@ -26,6 +26,15 @@ def load_ingested_policy_sources(session: Session, venue_id: str) -> list[dict]:
             "venue_id": r.venue_id,
             "source_type": r.source_type,
             "text": r.excerpt,
+            # PageIndex-derived locators flow through to Citation so the FE can
+            # render "Policy §4.2(b) · p.14". Missing keys default to None at
+            # the Citation layer — seed knowledge sources stay unaffected.
+            "doc_id": (r.source_metadata or {}).get("doc_id"),
+            "node_id": (r.source_metadata or {}).get("node_id"),
+            "page_start": (r.source_metadata or {}).get("page_start"),
+            "page_end": (r.source_metadata or {}).get("page_end"),
+            "path": (r.source_metadata or {}).get("path"),
+            "clause_id": (r.source_metadata or {}).get("clause_id"),
         }
         for r in rows
     ]
