@@ -83,7 +83,7 @@ class UnderwritingPacketAgentRuntime:
             "risk_evaluator_agent", contracts, execution_mode=self._last_risk_evaluator_mode,
         ))
 
-        action_plan = self._run_customer_action_agent()
+        action_plan = self._run_customer_action_agent(incident=incident, risk_signal=risk_signal)
         trace.append(self._trace_step("customer_action_agent", contracts))
 
         claims_timeline = self._run_claims_timeline_agent(
@@ -247,23 +247,177 @@ class UnderwritingPacketAgentRuntime:
                 citation_excerpts=citation_excerpts,
             )
 
-    def _run_customer_action_agent(self) -> list[ActionItem]:
-        return [
+    def _run_customer_action_agent(
+        self,
+        *,
+        incident: IncidentCreate,
+        risk_signal: RiskSignal,
+    ) -> list[ActionItem]:
+        """Produce a venue-facing action plan keyed to the incident type and
+        the hard signals (injury / police / EMS).
+
+        The first action is always the universal preservation task — existing
+        consumers (frontend, brawl-flow tests) pin to that position. Subsequent
+        items are added based on:
+          1) risk_signal.type   — defensibility tasks specific to the claim
+                                   family (altercation/premises/liquor/medical).
+          2) hard signals       — police, EMS, injury each demand specific
+                                   third-party records.
+          3) severity           — critical/high incidents add an
+                                   immediate-escalation task.
+        """
+        actions: list[ActionItem] = [
             ActionItem(
                 title="Preserve incident evidence",
                 rationale="A clean evidence package makes the event defensible if a claim appears later.",
                 evidence_needed=[
-                    "Reviewed rear-bar clip from 23:10-23:18",
-                    "Completed witness/contact section",
+                    "Camera footage covering the incident window (±15 min)",
+                    "Completed witness / contact section",
                     "Security lead narrative",
                 ],
             ),
             ActionItem(
                 title="Complete same-night manager follow-up",
                 rationale="Underwriters value contemporaneous records over reconstructed notes.",
-                evidence_needed=["Manager sign-off", "Police/EMS confirmation fields", "Removal/trespass outcome"],
+                evidence_needed=[
+                    "Manager sign-off",
+                    "Police / EMS confirmation fields",
+                    "Removal / trespass outcome",
+                ],
             ),
         ]
+
+        actions.extend(self._risk_type_actions(risk_signal))
+        actions.extend(self._hard_signal_actions(incident))
+
+        if risk_signal.severity in ("critical", "high"):
+            actions.append(ActionItem(
+                title="Escalate to broker on-call within 24 hours",
+                rationale=(
+                    f"Severity={risk_signal.severity} incidents typically trigger "
+                    "carrier reserve set-aside; broker engagement before the next "
+                    "business day prevents reserve disputes later."
+                ),
+                evidence_needed=[
+                    "Broker on-call acknowledgement",
+                    "Reserve / notice-of-occurrence intent",
+                ],
+            ))
+
+        return actions
+
+    @staticmethod
+    def _risk_type_actions(risk_signal: RiskSignal) -> list[ActionItem]:
+        """Risk-type-specific defensibility tasks. Mirrors the taxonomy in
+        DeterministicProvider.draft_memo so the action plan and memo agree
+        on what the claim family is."""
+        risk_type = risk_signal.type
+        if risk_type == "altercation_event":
+            return [ActionItem(
+                title="Isolate involved parties and document security response",
+                rationale=(
+                    "Altercation claims hinge on whether security separated "
+                    "parties promptly. A documented isolation timeline + a "
+                    "trespass / removal outcome blocks the 'failure to intervene' "
+                    "argument carriers see most."
+                ),
+                evidence_needed=[
+                    "Timestamped security action log (intervention, removal)",
+                    "Trespass or 86 list update for involved patrons",
+                    "Door-staff narrative on re-entry attempts",
+                ],
+            )]
+        if risk_type == "premises_liability":
+            return [ActionItem(
+                title="Document site condition and hazard inspection",
+                rationale=(
+                    "Premises claims turn on whether the venue had notice of the "
+                    "hazard. Photo evidence of the location, plus the latest "
+                    "inspection log, defends against constructive-notice claims."
+                ),
+                evidence_needed=[
+                    "Site photos taken within 30 minutes of the incident",
+                    "Most recent floor / stairs / lighting inspection log",
+                    "Maintenance ticket history for the area (last 30 days)",
+                ],
+            )]
+        if risk_type == "liquor_liability":
+            return [ActionItem(
+                title="Pull pour log and cutoff documentation for involved patrons",
+                rationale=(
+                    "Liquor-liability defenses require evidence the venue did not "
+                    "over-serve and applied a cutoff. POS pour history + bartender "
+                    "training records are the standard ask."
+                ),
+                evidence_needed=[
+                    "POS service log for involved patron(s)",
+                    "Bartender's account of cutoff timing",
+                    "Current bartender alcohol-service training certificates",
+                ],
+            )]
+        if risk_type == "medical_emergency":
+            return [ActionItem(
+                title="Request hospital release and EMS transport documentation",
+                rationale=(
+                    "Medical-emergency packets need third-party medical records "
+                    "to align the venue's account with the patient's outcome. "
+                    "Without these, the claim sits with reserve set-aside but "
+                    "no quantified loss."
+                ),
+                evidence_needed=[
+                    "Hospital admission / discharge confirmation",
+                    "EMS transport run sheet",
+                    "Signed release authorizing carrier review of records",
+                ],
+            )]
+        return []
+
+    @staticmethod
+    def _hard_signal_actions(incident: IncidentCreate) -> list[ActionItem]:
+        items: list[ActionItem] = []
+        if incident.police_called:
+            items.append(ActionItem(
+                title="Request police report and officer contact",
+                rationale=(
+                    "Police-involved incidents require the official report number "
+                    "to anchor the timeline; carriers will not finalize reserves "
+                    "without it."
+                ),
+                evidence_needed=[
+                    "Police report number",
+                    "Responding officer name / badge",
+                    "Booking outcome (if any patron arrested)",
+                ],
+            ))
+        if incident.ems_called:
+            items.append(ActionItem(
+                title="Obtain EMS / paramedic transport documentation",
+                rationale=(
+                    "EMS dispatch logs prove the venue called for help promptly "
+                    "and document patient acuity on scene — both are levers "
+                    "against negligence claims."
+                ),
+                evidence_needed=[
+                    "EMS dispatch call timestamp",
+                    "Paramedic / ambulance run sheet",
+                    "Receiving hospital name",
+                ],
+            ))
+        if incident.injury_observed:
+            items.append(ActionItem(
+                title="Lock witness contact details same-night",
+                rationale=(
+                    "Witness recall degrades within 48 hours; an injury-observed "
+                    "incident demands signed witness contact records before the "
+                    "shift ends."
+                ),
+                evidence_needed=[
+                    "Witness name, phone, email (minimum two witnesses)",
+                    "Witness statement on what they directly observed",
+                    "Manager-signed contemporaneous witness log",
+                ],
+            ))
+        return items
 
     def _run_claims_timeline_agent(
         self,
