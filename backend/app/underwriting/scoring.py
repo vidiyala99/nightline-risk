@@ -10,6 +10,7 @@ Calculates venue risk scores based on:
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Optional
 
 
 @dataclass
@@ -195,9 +196,96 @@ class RiskScoringEngine:
         return "D"
 
 
-def get_risk_score(venue_id: str, venues: dict) -> dict:
-    """Helper function to get risk score as dict."""
-    engine = RiskScoringEngine(venues)
+class IncidentDeltaTracker:
+    """Tracks incidents logged *after* the curated underwriter baseline.
+
+    VENUES[vid]["incident_count"] represents an underwriter's curated 12-month
+    claim history (per the design comment in seed_data.py). When the operator
+    or a demo simulator writes a NEW incident via the API, that's a delta on
+    top of the baseline — and that delta is what should move the risk score
+    in real time.
+
+    Restart resets the tracker; the curated VENUES baseline is preserved.
+    This is intentional: the next quote cycle should fold the delta into the
+    baseline manually, not silently extend the curated history forever.
+    """
+
+    def __init__(self) -> None:
+        self._deltas: dict[str, int] = {}
+        self._compliance_deltas: dict[str, int] = {}
+
+    def bump_incident(self, venue_id: str, by: int = 1) -> int:
+        self._deltas[venue_id] = self._deltas.get(venue_id, 0) + by
+        return self._deltas[venue_id]
+
+    def bump_compliance(self, venue_id: str, by: int = 1) -> int:
+        self._compliance_deltas[venue_id] = self._compliance_deltas.get(venue_id, 0) + by
+        return self._compliance_deltas[venue_id]
+
+    def incident_delta(self, venue_id: str) -> int:
+        return self._deltas.get(venue_id, 0)
+
+    def compliance_delta(self, venue_id: str) -> int:
+        return self._compliance_deltas.get(venue_id, 0)
+
+    def snapshot(self, venue_id: str) -> dict[str, int]:
+        return {
+            "incident_delta": self.incident_delta(venue_id),
+            "compliance_delta": self.compliance_delta(venue_id),
+        }
+
+    def reset(self, venue_id: str | None = None) -> None:
+        if venue_id is None:
+            self._deltas.clear()
+            self._compliance_deltas.clear()
+        else:
+            self._deltas.pop(venue_id, None)
+            self._compliance_deltas.pop(venue_id, None)
+
+
+# Module-level singleton — used by main.py call sites and by the incident_flow
+# hook that bumps the counter when a new incident is persisted.
+incident_delta_tracker = IncidentDeltaTracker()
+
+
+def get_risk_score(
+    venue_id: str,
+    venues: dict,
+    session: Any | None = None,  # accepted for API symmetry; not currently read
+    live_state_manager: Any | None = None,  # accepted for API symmetry; live_state's compliance_queue is the operator queue, not the underwriter view, so it's intentionally not consulted here
+    delta_tracker: "IncidentDeltaTracker | None" = None,
+) -> dict:
+    """Compute a venue's risk score.
+
+    Baseline (`VENUES[vid]["incident_count"]` and `compliance_items`) is the
+    underwriter's curated 12-month view. New incidents and compliance items
+    logged at runtime are tracked as deltas on top of that baseline via the
+    module-level `incident_delta_tracker`, so the score moves in real time
+    during a demo without overwriting the curated history.
+
+    LiveStateManager.compliance_queue is intentionally NOT consulted here:
+    that queue is the *operator's* active floor view (including auto-generated
+    items from camera anomalies), which is a different concept from the
+    underwriter's curated compliance count. Auto-generated items that should
+    affect scoring must explicitly bump `delta_tracker.bump_compliance()`.
+    """
+    _ = (session, live_state_manager)  # accepted but unused; see docstring
+    base_venue = venues.get(venue_id, {})
+    tracker = delta_tracker if delta_tracker is not None else incident_delta_tracker
+
+    overrides: dict = {}
+
+    incident_delta = tracker.incident_delta(venue_id)
+    if incident_delta > 0:
+        overrides["incident_count"] = base_venue.get("incident_count", 0) + incident_delta
+
+    compliance_delta = tracker.compliance_delta(venue_id)
+    if compliance_delta > 0:
+        overrides["compliance_items"] = base_venue.get("compliance_items", 0) + compliance_delta
+
+    effective_venues = {**venues, venue_id: {**base_venue, **overrides}} if overrides else venues
+
+    engine = RiskScoringEngine(effective_venues)
     result = engine.calculate_score(venue_id)
     return {
         "venue_id": result.venue_id,
@@ -205,4 +293,5 @@ def get_risk_score(venue_id: str, venues: dict) -> dict:
         "tier": result.tier,
         "factors": result.factors,
         "updated_at": result.updated_at,
+        "delta": tracker.snapshot(venue_id),
     }

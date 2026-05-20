@@ -407,7 +407,7 @@ def get_portfolio(session: Session = Depends(get_session), _: None = Depends(req
     """Single endpoint for broker portfolio view — all venues with scores + live state."""
     result = []
     for venue_id, venue_data in VENUES.items():
-        risk = get_risk_score(venue_id, VENUES)
+        risk = get_risk_score(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
         live = live_state_manager.get_state(venue_id, venue_data["capacity"], venue_data)
         open_count = session.exec(
             select(func.count(IncidentRecord.id))
@@ -1206,13 +1206,13 @@ def get_live_state(
 @app.get("/api/venues/{venue_id}/risk-score")
 def get_venue_risk_score(venue_id: str, session: Session = Depends(get_session)) -> dict:
     _resolve_venue(venue_id, session)
-    return get_risk_score(venue_id, VENUES)
+    return get_risk_score(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
 
 
 @app.get("/api/venues/{venue_id}/quote")
 def get_venue_quote(venue_id: str, session: Session = Depends(get_session)) -> dict:
     _resolve_venue(venue_id, session)
-    return get_premium_quote(venue_id, VENUES)
+    return get_premium_quote(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
 
 
 COMPLIANCE_EVIDENCE_MAX_BYTES = 20 * 1024 * 1024  # 20MB

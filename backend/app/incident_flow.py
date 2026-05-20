@@ -11,6 +11,7 @@ from app.models import IncidentRecord, IncidentEvaluation
 from app.packet_core import create_packet_snapshot
 from app.seed_data import STREAM_EVENTS, VENUES
 from app.knowledge_sources import load_knowledge_sources_for_venue
+from app.underwriting.scoring import incident_delta_tracker
 
 
 def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: Session) -> IncidentFlowResponse:
@@ -54,6 +55,11 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
     session.add(db_incident)
     session.add(db_eval)
     session.flush()
+
+    # Bump the live risk delta so the score moves in real time. The curated
+    # 12-month baseline in VENUES is preserved; new incidents accumulate on
+    # top of it until the next quote cycle.
+    incident_delta_tracker.bump_incident(venue_id)
 
     create_packet_snapshot(
         session=session,

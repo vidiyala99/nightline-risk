@@ -139,10 +139,20 @@ class PremiumCalculator:
             return "D"
 
 
-def get_premium_quote(venue_id: str, venues: dict, billing: str = "annual") -> dict:
-    """Helper function to get premium quote as dict, using actual risk score tier."""
+def get_premium_quote(
+    venue_id: str,
+    venues: dict,
+    billing: str = "annual",
+    session=None,
+    live_state_manager=None,
+) -> dict:
+    """Helper function to get premium quote as dict, using actual risk score tier.
+
+    Passes session/live_state_manager through so the risk score (and therefore
+    the quote tier) reflects live incident + compliance data when available.
+    """
     from app.underwriting.scoring import get_risk_score
-    risk = get_risk_score(venue_id, venues)
+    risk = get_risk_score(venue_id, venues, session=session, live_state_manager=live_state_manager)
     calculator = PremiumCalculator(venues)
     result = calculator.calculate_quote(venue_id, billing, tier_override=risk["tier"])
     return result.model_dump()
