@@ -227,18 +227,16 @@ a:hover { color: var(--text-primary); }
 .btn-primary {
   background: var(--brand-primary);
   color: var(--text-inverse);
-  box-shadow: var(--shadow-glow-primary);
+  box-shadow: 0 0 16px rgba(200, 240, 0, 0.18);
 }
-
 .btn-primary:hover {
   background: var(--brand-primary-dim);
-  box-shadow: 0 0 28px rgba(200, 240, 0, 0.28), 0 4px 16px rgba(0,0,0,0.4);
+  box-shadow: 0 0 22px rgba(200, 240, 0, 0.28);
   transform: translateY(-1px);
 }
-
 .btn-primary:active {
-  transform: scale(0.97) translateY(0);
-  box-shadow: 0 0 14px rgba(200, 240, 0, 0.18);
+  transform: scale(0.97);
+  box-shadow: 0 0 10px rgba(200, 240, 0, 0.14);
 }
 
 .btn-secondary {
@@ -260,6 +258,16 @@ a:hover { color: var(--text-primary); }
 .btn-ghost:hover {
   background: var(--bg-surface);
   color: var(--text-primary);
+}
+
+.btn-danger {
+  background: rgba(244,63,94,0.12);
+  color: var(--tier-d);
+  border: 1px solid rgba(244,63,94,0.25);
+}
+.btn-danger:hover {
+  background: rgba(244,63,94,0.18);
+  border-color: rgba(244,63,94,0.4);
 }
 
 .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
