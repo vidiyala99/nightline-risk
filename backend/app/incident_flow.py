@@ -56,11 +56,6 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
     session.add(db_eval)
     session.flush()
 
-    # Bump the live risk delta so the score moves in real time. The curated
-    # 12-month baseline in VENUES is preserved; new incidents accumulate on
-    # top of it until the next quote cycle.
-    incident_delta_tracker.bump_incident(venue_id)
-
     create_packet_snapshot(
         session=session,
         venue_id=venue_id,
@@ -73,6 +68,13 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
         citations=agent_result.citations,
         rubric_version="demo-rubric-v1",
     )
+
+    # Bump the live risk delta AFTER the packet snapshot succeeds, so a
+    # citation-validation failure (or any other downstream error) does NOT
+    # leave us with a moved score and no audit trail. The curated 12-month
+    # baseline in VENUES is preserved; new incidents accumulate on top of it
+    # until the next quote cycle.
+    incident_delta_tracker.bump_incident(venue_id)
 
     return IncidentFlowResponse(
         incident=incident,

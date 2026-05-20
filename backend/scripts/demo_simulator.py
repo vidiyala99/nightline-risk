@@ -89,16 +89,6 @@ def get_risk(client: httpx.Client, venue_id: str) -> dict:
     return r.json()
 
 
-def print_reset_instructions() -> None:
-    """The tracker is a module-level singleton inside the backend process.
-    The simplest reset is to restart the backend."""
-    print(
-        "Reset is in-process only — restart the backend (Ctrl-C uvicorn, then "
-        "re-run) to clear accumulated deltas. Or run with --count 0 to just "
-        "inspect current state without posting new incidents."
-    )
-
-
 def post_incident(client: httpx.Client, venue_id: str, template: dict) -> dict:
     payload = {
         **template,
@@ -122,12 +112,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--count", type=int, default=4, help="Number of incidents to post (0 = just show state and exit)")
     parser.add_argument("--interval", type=float, default=8.0, help="Seconds between incidents")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Backend base URL")
-    parser.add_argument("--reset", action="store_true", help="Print reset instructions and exit")
     args = parser.parse_args(argv)
-
-    if args.reset:
-        print_reset_instructions()
-        return 0
 
     with httpx.Client(base_url=args.base_url) as client:
         try:
