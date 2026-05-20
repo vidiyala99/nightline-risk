@@ -6,7 +6,7 @@
   color-scheme: dark;
 
   /* Core Colors — Deep Navy Base */
-  --bg-dark: #0b0c15;
+  --bg-dark: #08090e;
   --bg-base: #0e0f1a;
   --bg-surface: #13151f;
   --bg-surface-elevated: #1a1c2a;
@@ -18,6 +18,12 @@
   --brand-primary-dim: #a0c200;
   --brand-secondary: #818cf8;      /* Soft indigo — replaces neon cyan */
   --brand-tertiary: #f43f5e;       /* Rose red */
+
+  /* Risk Tier Colors — semantic, NOT brand */
+  --tier-a: #22c55e;
+  --tier-b: #818cf8;
+  --tier-c: #f59e0b;
+  --tier-d: #f43f5e;
 
   /* Text Colors */
   --text-primary: #eeeef5;
@@ -91,10 +97,10 @@
   --container-wide:    1440px;
 
   /* Border Radius — Refined, not sharp */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
   --radius-full: 9999px;
 }
 
