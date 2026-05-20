@@ -4083,3 +4083,73 @@ html, body { overflow-x: clip; }
 .status-pill--warning { color: var(--tier-c); background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.22); }
 .status-pill--danger  { color: var(--tier-d); background: rgba(244,63,94,0.10); border-color: rgba(244,63,94,0.22); }
 .status-pill--info    { color: var(--tier-b); background: rgba(129,140,248,0.10); border-color: rgba(129,140,248,0.22); }
+
+/* ============================================
+   TRIAGE ROW
+   ============================================ */
+.triage-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 60px 50px 90px 90px 28px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+.triage-row:hover { background: rgba(255,255,255,0.02); }
+.triage-row--warning { background: rgba(245,158,11,0.04); }
+.triage-row--danger { background: rgba(244,63,94,0.05); }
+.triage-row--head {
+  border-bottom: 1px solid var(--border-default);
+  padding: 6px 0;
+}
+.triage-row--head > * {
+  color: var(--text-tertiary);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.triage-row__name-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+.triage-row__context {
+  color: var(--text-secondary);
+  font-size: 10px;
+  margin-top: 2px;
+}
+.triage-row__cell {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.triage-row__flag--warning { color: var(--tier-c); font-size: 10px; font-family: var(--font-body); }
+.triage-row__flag--danger { color: var(--tier-d); font-size: 10px; font-family: var(--font-body); }
+.triage-row__arrow {
+  color: var(--text-tertiary);
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+}
+.triage-row:hover .triage-row__arrow { color: var(--text-primary); }
+
+@media (max-width: 640px) {
+  .triage-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "name tier"
+      "context score"
+      "premium renewal";
+    padding: 12px 0;
+    gap: 4px 12px;
+  }
+  .triage-row__name { grid-area: name; }
+  .triage-row--head { display: none; }
+}
