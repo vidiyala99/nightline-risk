@@ -4200,3 +4200,18 @@ html, body { overflow-x: clip; }
   padding: 8px;
 }
 .sidebar-nav-item--rail .sidebar-nav-item__label { display: none; }
+
+/* ============================================
+   SIDEBAR NAV GROUPS (v3)
+   ============================================ */
+.sidebar-nav__group { margin-bottom: 14px; }
+.sidebar-nav__group:last-child { margin-bottom: 0; }
+.sidebar-nav__group-label {
+  color: var(--text-tertiary);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0 10px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}

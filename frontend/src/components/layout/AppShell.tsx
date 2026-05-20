@@ -1,7 +1,6 @@
 "use client";
 
 import { ReactNode, Suspense, useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
@@ -19,6 +18,7 @@ import {
 import { useAuth, useRole, useTenantId } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { SidebarNavItem } from "@/components/ui/SidebarNavItem";
 
 interface AppShellProps {
   children: ReactNode;
@@ -45,56 +45,70 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Priority: ?venue= query (set by dashboard switcher and /compliance,
-  // /incidents pages) > /terminal/<id> path > primary tenantId.
+  // Priority: ?venue= query > /terminal/<id> path > primary tenantId.
   const queryVenueId = searchParams.get("venue");
   const terminalVenueMatch = pathname?.match(/^\/terminal\/([^/]+)/);
   const pathVenueId = terminalVenueMatch?.[1];
   const contextVenueId = queryVenueId ?? pathVenueId ?? tenantId ?? null;
   const venueQuery = contextVenueId ? `?venue=${encodeURIComponent(contextVenueId)}` : "";
 
-  const navItems: Array<{ href: string; label: string; icon: typeof LayoutDashboard; roles?: string[] }> = [
-    { href: `/dashboard${venueQuery}`, label: "Dashboard", icon: LayoutDashboard },
-    { href: "/underwriter", label: "Reports", icon: FileSearch },
-    ...(tenantId
-      ? [{
-          href: contextVenueId ? `/terminal/${contextVenueId}` : "/terminal",
-          label: "Live Terminal",
-          icon: Activity,
-          roles: ["venue_operator"],
-        }]
+  type Item = { href: string; label: string; icon: typeof LayoutDashboard; roles?: string[]; badge?: number };
+  type Group = { label: string; items: Item[] };
+
+  const portfolioItems: Item[] = [
+    { href: `/dashboard${venueQuery}`, label: "The Book", icon: LayoutDashboard },
+    { href: "/venues", label: "Venues", icon: Building2, roles: ["broker", "admin"] },
+    ...(role === "venue_operator" && contextVenueId
+      ? [{ href: `/terminal/${contextVenueId}`, label: "Live Terminal", icon: Activity } as Item]
       : []),
-    { href: "/venues", label: "Venues", icon: Building2, roles: ["broker", "admin", "venue_operator"] },
-    { href: `/incidents${venueQuery}`, label: "Incidents", icon: AlertTriangle },
-    { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
-    { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
-    { href: "/claims", label: "Claims", icon: FileSpreadsheet },
   ];
 
-  const filtered = navItems.filter(
-    (item) => !item.roles || item.roles.includes(role || "")
-  );
+  const operationsItems: Item[] = [
+    { href: `/incidents${venueQuery}`, label: "Incidents", icon: AlertTriangle },
+    { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
+    { href: "/claims", label: "Claims", icon: FileSpreadsheet, roles: ["broker", "admin"] },
+    { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
+  ];
+
+  const underwritingItems: Item[] = [
+    { href: "/underwriter", label: "Reports", icon: FileSearch, roles: ["broker", "admin"] },
+  ];
+
+  const filterByRole = (items: Item[]) =>
+    items.filter((item) => !item.roles || item.roles.includes(role || ""));
+
+  const groups: Group[] = [
+    { label: "Portfolio", items: filterByRole(portfolioItems) },
+    { label: "Operations", items: filterByRole(operationsItems) },
+    { label: "Underwriting", items: filterByRole(underwritingItems) },
+  ].filter((g) => g.items.length > 0);
+
+  const isActive = (href: string) => {
+    const base = href.split("?")[0];
+    return pathname === base || pathname?.startsWith(base + "/");
+  };
+
+  const itemVariant: "full" | "rail" = variant === "rail" ? "rail" : "full";
 
   return (
     <>
-      {filtered.map((item) => {
-        const Icon = item.icon;
-        const itemPath = item.href.split("?")[0];
-        const isActive = pathname === itemPath || pathname?.startsWith(itemPath + "/");
-        return (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={`sidebar-nav-item sidebar-nav-item--${variant}${isActive ? " active" : ""}`}
-            onClick={onNavigate}
-            title={variant === "rail" ? item.label : undefined}
-            aria-label={item.label}
-          >
-            <Icon size={18} />
-            <span className="sidebar-nav-item__label">{item.label}</span>
-          </Link>
-        );
-      })}
+      {groups.map((group) => (
+        <div key={group.label} className="sidebar-nav__group">
+          {variant !== "rail" && <div className="sidebar-nav__group-label">{group.label}</div>}
+          {group.items.map((item) => (
+            <SidebarNavItem
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              icon={item.icon}
+              active={isActive(item.href)}
+              badge={item.badge}
+              variant={itemVariant}
+              onClick={onNavigate}
+            />
+          ))}
+        </div>
+      ))}
     </>
   );
 }
