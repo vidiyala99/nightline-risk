@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { Upload, AlertTriangle, ShieldCheck, TrendingUp, Calendar, Zap } from "lucide-react";
 import { toastLoading, toastSuccess, toastError, toastDismiss } from "@/lib/toast";
+import { authHeaders } from "@/lib/authFetch";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -102,6 +103,14 @@ export default function VenueTerminalPage() {
     if (isLoaded && !isSignedIn) router.push("/login");
   }, [isLoaded, isSignedIn, router]);
 
+  // Hard role gate: /terminal is the operator's floor surface. Brokers
+  // get routed to the broker-appropriate detail view for the same venue.
+  useEffect(() => {
+    if (isLoaded && isSignedIn && role && role !== "venue_operator") {
+      router.replace(`/risk-profile/${venueId}`);
+    }
+  }, [isLoaded, isSignedIn, role, venueId, router]);
+
   const handleUpload = async (itemId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -151,7 +160,7 @@ export default function VenueTerminalPage() {
         toastError("Simulation failed. Check backend logs.");
       }
       // Refresh live state panel
-      const live = await fetch(`${API_URL}/api/venues/${venueId}/live`);
+      const live = await fetch(`${API_URL}/api/venues/${venueId}/live`, { headers: authHeaders() });
       if (live.ok) setLiveState(await live.json());
     } catch {
       toastDismiss();
@@ -183,7 +192,7 @@ export default function VenueTerminalPage() {
   useEffect(() => {
     const fetchState = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/venues/${venueId}/live`);
+        const res = await fetch(`${API_URL}/api/venues/${venueId}/live`, { headers: authHeaders() });
         if (res.ok) setLiveState(await res.json());
       } catch {
         // fallback stays

@@ -178,6 +178,46 @@ def require_non_broker(authorization: str = Header(None)):
         raise HTTPException(status_code=403, detail="Brokers cannot modify venues")
 
 
+def current_user_optional(authorization: str = Header(None)):
+    """Decoded JWT payload if present and valid, else None. Never raises.
+
+    Use when an endpoint adapts its response to the caller's role but should
+    still respond to anonymous callers (with a degraded payload).
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    return verify_token(authorization.split(" ")[1])
+
+
+def can_read_venue_floor(user: dict | None, venue_id: str, session: Session) -> bool:
+    """True if the caller may see live floor telemetry for a specific venue.
+
+    Floor data (live capacity, infrastructure status) is the operator's
+    working surface — brokers see policy artifacts (risk, premium, compliance
+    summary) but not the live shift state of their clients' venues.
+    """
+    if not user:
+        return False
+    role = user.get("role")
+    if role == "admin":
+        return True
+    if role != "venue_operator":
+        return False
+    if user.get("tenant_id") == venue_id:
+        return True
+    # Check extra_venue_ids (operators who manage multiple venues)
+    from app.models import UserRecord
+    import json as _json
+    record = session.get(UserRecord, user.get("sub"))
+    if not record or not record.extra_venue_ids:
+        return False
+    try:
+        extras = _json.loads(record.extra_venue_ids)
+    except (ValueError, TypeError):
+        return False
+    return venue_id in extras
+
+
 def require_broker(authorization: str = Header(None)):
     """Raises 401 without a valid token, or 403 if the caller is not a broker/admin.
 

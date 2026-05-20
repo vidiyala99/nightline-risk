@@ -4,13 +4,13 @@ patch_starlette_router_for_fastapi()
 
 from contextlib import asynccontextmanager  # noqa: E402
 from pathlib import Path  # noqa: E402
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, UploadFile, File, Query  # noqa: E402
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, UploadFile, File, Query, Header  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from sqlmodel import Session, select, func  # noqa: E402
 import time  # noqa: E402
 
-from app.auth import router as auth_router, require_broker, require_non_broker  # noqa: E402
+from app.auth import router as auth_router, require_broker, require_non_broker, current_user_optional, can_read_venue_floor  # noqa: E402
 from app.api.v1.ingestion import router as ingestion_router  # noqa: E402
 from app.claim_proposals import (  # noqa: E402
     ClaimProposalValidationError,
@@ -403,7 +403,7 @@ def delete_venue(venue_id: str, session: Session = Depends(get_session), _: None
 
 
 @app.get("/api/portfolio")
-def get_portfolio(session: Session = Depends(get_session)) -> list[dict]:
+def get_portfolio(session: Session = Depends(get_session), _: None = Depends(require_broker)) -> list[dict]:
     """Single endpoint for broker portfolio view — all venues with scores + live state."""
     result = []
     for venue_id, venue_data in VENUES.items():
@@ -1184,9 +1184,23 @@ def _audit_event_to_dict(event: AuditEvent) -> dict:
 
 
 @app.get("/api/venues/{venue_id}/live", response_model=LiveVenueState)
-def get_live_state(venue_id: str, session: Session = Depends(get_session)) -> LiveVenueState:
+def get_live_state(
+    venue_id: str,
+    session: Session = Depends(get_session),
+    user: dict | None = Depends(current_user_optional),
+) -> LiveVenueState:
     venue = _resolve_venue(venue_id, session)
-    return live_state_manager.get_state(venue_id, venue["capacity"], venue)
+    state = live_state_manager.get_state(venue_id, venue["capacity"], venue)
+    # Floor telemetry (live capacity + infrastructure) is operator-only. Brokers
+    # and anonymous callers get summary fields (compliance_queue, premium_impact)
+    # with floor data zeroed out — keeps broker compliance views working without
+    # leaking the operator's live shift state.
+    if not can_read_venue_floor(user, venue_id, session):
+        state = state.model_copy(update={
+            "current_capacity": 0,
+            "infrastructure": [],
+        })
+    return state
 
 
 @app.get("/api/venues/{venue_id}/risk-score")
@@ -1338,3 +1352,220 @@ def list_compliance_evidence(venue_id: str, item_id: str, session: Session = Dep
         }
         for r in rows
     ]
+
+
+# ── Camera & Alert Endpoints ──────────────────────────────────────────────────
+
+from app.models import CameraFeed, AlertEvent, PushSubscription  # noqa: E402
+from app.services.rtsp_sampler import sampler  # noqa: E402
+from app.services.alert_dispatcher import record_feedback, get_venue_alerts  # noqa: E402
+from app.auth import verify_token  # noqa: E402
+
+
+class CameraFeedCreate(BaseModel):
+    zone: str
+    rtsp_url: str
+    sample_interval_seconds: int = 8
+
+
+class AlertFeedbackCreate(BaseModel):
+    feedback: str  # "false_alarm" | "confirmed"
+
+
+class PushSubscriptionCreate(BaseModel):
+    endpoint: str
+    p256dh: str
+    auth: str
+
+
+@app.post("/api/venues/{venue_id}/cameras")
+def register_camera(
+    venue_id: str,
+    body: CameraFeedCreate,
+    session: Session = Depends(get_session),
+    _auth=Depends(require_broker),
+):
+    from uuid import uuid4
+    camera = CameraFeed(
+        id=str(uuid4()),
+        venue_id=venue_id,
+        zone=body.zone,
+        rtsp_url=body.rtsp_url,
+        sample_interval_seconds=body.sample_interval_seconds,
+        enabled=True,
+    )
+    session.add(camera)
+    session.commit()
+    session.refresh(camera)
+    return {
+        "id": camera.id,
+        "zone": camera.zone,
+        "venue_id": camera.venue_id,
+        "enabled": camera.enabled,
+    }
+
+
+@app.get("/api/venues/{venue_id}/cameras")
+def list_cameras(
+    venue_id: str,
+    session: Session = Depends(get_session),
+    _auth=Depends(require_broker),
+):
+    cameras = session.exec(
+        select(CameraFeed).where(CameraFeed.venue_id == venue_id)
+    ).all()
+    return [
+        {
+            "id": c.id,
+            "zone": c.zone,
+            "venue_id": c.venue_id,
+            "enabled": c.enabled,
+            "sample_interval_seconds": c.sample_interval_seconds,
+        }
+        for c in cameras
+    ]
+
+
+@app.post("/api/cameras/{camera_id}/start")
+def start_camera(
+    camera_id: str,
+    session: Session = Depends(get_session),
+    _auth=Depends(require_broker),
+):
+    camera = session.get(CameraFeed, camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    sampler.start(camera)
+    return {"status": "started", "camera_id": camera_id}
+
+
+@app.post("/api/cameras/{camera_id}/stop")
+def stop_camera(
+    camera_id: str,
+    session: Session = Depends(get_session),
+    _auth=Depends(require_broker),
+):
+    sampler.stop(camera_id)
+    return {"status": "stopped", "camera_id": camera_id}
+
+
+@app.get("/api/venues/{venue_id}/alerts")
+def list_venue_alerts(
+    venue_id: str,
+    limit: int = Query(default=50, ge=1, le=500),
+    session: Session = Depends(get_session),
+    _auth=Depends(require_non_broker),
+):
+    alerts = get_venue_alerts(venue_id, session, limit)
+    return [
+        {
+            "id": a.id,
+            "venue_id": a.venue_id,
+            "zone": a.zone,
+            "event_type": a.event_type,
+            "severity": a.severity,
+            "confidence": a.confidence,
+            "frame_count": a.frame_count,
+            "alerted": a.alerted,
+            "feedback": a.feedback,
+            "description": a.description,
+            "detected_at": a.detected_at.isoformat() if a.detected_at else None,
+        }
+        for a in alerts
+    ]
+
+
+@app.post("/api/alerts/{alert_id}/feedback")
+def submit_alert_feedback(
+    alert_id: str,
+    body: AlertFeedbackCreate,
+    session: Session = Depends(get_session),
+    _auth=Depends(require_non_broker),
+):
+    alert = record_feedback(alert_id, body.feedback, session)
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {
+        "id": alert.id,
+        "venue_id": alert.venue_id,
+        "zone": alert.zone,
+        "event_type": alert.event_type,
+        "severity": alert.severity,
+        "confidence": alert.confidence,
+        "frame_count": alert.frame_count,
+        "alerted": alert.alerted,
+        "feedback": alert.feedback,
+        "description": alert.description,
+        "detected_at": alert.detected_at.isoformat() if alert.detected_at else None,
+    }
+
+
+@app.post("/api/push-subscriptions")
+def register_push_subscription(
+    body: PushSubscriptionCreate,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+    _auth=Depends(require_non_broker),
+):
+    decoded = verify_token(authorization.split(" ")[1]) if authorization and " " in authorization else None
+    user_id = (decoded or {}).get("sub") or ""
+    from uuid import uuid4 as _uuid4
+    subscription = PushSubscription(
+        id=str(_uuid4()),
+        user_id=user_id,
+        endpoint=body.endpoint,
+        p256dh=body.p256dh,
+        auth=body.auth,
+    )
+    session.add(subscription)
+    session.commit()
+    session.refresh(subscription)
+    return {
+        "id": subscription.id,
+        "user_id": subscription.user_id,
+        "endpoint": subscription.endpoint,
+    }
+
+
+class AlertSimulateBody(BaseModel):
+    zone: str = "dance_floor"
+    event_type: str = "altercation"
+    severity: str = "critical"
+    confidence: float = 0.88
+    description: str = "Simulated liability event for testing."
+
+
+@app.post("/api/venues/{venue_id}/alerts/simulate")
+def simulate_alert(
+    venue_id: str,
+    body: AlertSimulateBody,
+    session: Session = Depends(get_session),
+    _auth=Depends(require_non_broker),
+):
+    from uuid import uuid4 as _uuid4
+    _resolve_venue(venue_id, session)
+    alert = AlertEvent(
+        id=str(_uuid4()),
+        venue_id=venue_id,
+        camera_id="simulated",
+        zone=body.zone,
+        event_type=body.event_type,
+        severity=body.severity,
+        confidence=body.confidence,
+        frame_count=3,
+        alerted=False,
+        description=body.description,
+    )
+    session.add(alert)
+    session.commit()
+    session.refresh(alert)
+    return {
+        "id": alert.id,
+        "venue_id": alert.venue_id,
+        "zone": alert.zone,
+        "event_type": alert.event_type,
+        "severity": alert.severity,
+        "confidence": alert.confidence,
+        "description": alert.description,
+        "detected_at": alert.detected_at.isoformat(),
+    }

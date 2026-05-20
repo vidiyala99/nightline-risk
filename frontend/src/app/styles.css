@@ -3234,6 +3234,9 @@ a:hover { color: var(--text-primary); }
   .lc-triage__preview { display: none; }
   .lc-triage__head { padding: 14px 0 12px; }
   .lc-triage__chips { margin-left: 0; width: 100%; }
+
+  /* Operator "On The Floor" live-status hero stacks below 900px */
+  .op-floor-live { grid-template-columns: 1fr !important; gap: var(--space-lg) !important; }
 }
 
 .lc-stat-foot {

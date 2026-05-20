@@ -1,11 +1,12 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
-import { Building2, LogOut, MapPin, ArrowUpRight, WifiOff, Search } from "lucide-react";
+import { Building2, LogOut, MapPin, ArrowUpRight, WifiOff, Search, AlertTriangle, CheckSquare, Activity } from "lucide-react";
 import Link from "next/link";
 import { Grid } from "@/components/layout/Grid";
+import { authHeaders } from "@/lib/authFetch";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -135,7 +136,7 @@ function DashboardPageInner() {
     async function fetchDashboard() {
       try {
         if (isBroker) {
-          const res = await fetch(`${API_URL}/api/portfolio`);
+          const res = await fetch(`${API_URL}/api/portfolio`, { headers: authHeaders() });
           if (res.ok) {
             const venues: PortfolioVenue[] = await res.json();
             if (cancelled) return;
@@ -155,7 +156,7 @@ function DashboardPageInner() {
           }
           const totalVenueCount = Math.max(venuesList.length, 1);
           const [liveRes, riskRes, quoteRes, incidentsRes] = await Promise.all([
-            fetch(`${API_URL}/api/venues/${venueId}/live`),
+            fetch(`${API_URL}/api/venues/${venueId}/live`, { headers: authHeaders() }),
             fetch(`${API_URL}/api/venues/${venueId}/risk-score`),
             fetch(`${API_URL}/api/venues/${venueId}/quote`),
             fetch(`${API_URL}/api/venues/${venueId}/incidents?status=open`),
@@ -329,35 +330,14 @@ function DashboardPageInner() {
         </div>
       )}
 
-      {/* BROKER: portfolio */}
+      {/* BROKER: triage console */}
       {isBroker && (
-        <>
-          <div className="lc-rule">
-            <span className="lc-rule__label">Portfolio</span>
-            <span className="lc-rule__count">
-              {searchQuery.trim() ? `${filteredPortfolioVenues.length} / ${portfolioVenues.length}` : String(portfolioVenues.length).padStart(2, "0")} venues
-            </span>
-            <div className="lc-rule__line" />
-            <div className="lc-search" style={{ flex: "0 1 320px" }}>
-              <Search size={14} />
-              <input
-                placeholder="Search venues, types, addresses…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {filteredPortfolioVenues.length === 0 && searchQuery.trim() ? (
-            <div className="lc-card"><div className="lc-card__inner" style={{ textAlign: "center", padding: "48px 24px" }}>
-              <p className="text-muted">No venues match &ldquo;{searchQuery}&rdquo;</p>
-            </div></div>
-          ) : (
-            <Grid min="340px" gap="lg" className="stagger-children">
-              {filteredPortfolioVenues.map(v => <VenuePortfolioCard key={v.id} venue={v} />)}
-            </Grid>
-          )}
-        </>
+        <BrokerTriage
+          venues={filteredPortfolioVenues}
+          totalCount={portfolioVenues.length}
+          searchQuery={searchQuery}
+          onSearch={setSearchQuery}
+        />
       )}
 
       {/* OPERATOR: empty state */}
@@ -377,133 +357,121 @@ function DashboardPageInner() {
         </Link>
       )}
 
-      {/* OPERATOR: detail view */}
+      {/* OPERATOR: "On The Floor" — live state is hero, policy is secondary */}
       {!isBroker && (riskScore || quote || liveState) && (
-        <>
-          <div className="lc-rule">
-            <span className="lc-rule__label">Tonight</span>
-            <div className="lc-rule__line" />
-          </div>
+        <OperatorFloor
+          riskScore={riskScore}
+          quote={quote}
+          liveState={liveState}
+          venueId={selectedVenueId ?? tenantId}
+          portfolioVenues={portfolioVenues}
+          timeStamp={timeStamp}
+        />
+      )}
+    </div>
+  );
+}
 
-          <Grid min="340px" gap="lg">
-            {riskScore && (
-              <Link href={`/risk-profile/${selectedVenueId ?? tenantId}`} style={{ textDecoration: "none" }}>
-                <div className="lc-card"><div className="lc-card__inner">
-                  <div className="flex justify-between items-start mb-md">
-                    <span className="lc-stat-label">Risk Profile</span>
-                    <span className="lc-tier" style={{ color: TIER_COLOR[riskScore.tier] }}>Tier {riskScore.tier}</span>
-                  </div>
-                  <div className="flex items-baseline gap-sm" style={{ marginBottom: 24 }}>
-                    <span className="lc-num-data lc-num-data--lg lc-num-data--success">{riskScore.total_score}</span>
-                    <span className="text-muted" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>/ 100</span>
-                  </div>
-                  <div className="flex flex-col gap-md">
-                    {Object.entries(riskScore.factors).map(([key, data]) => (
-                      <div key={key} style={{ display: "grid", gridTemplateColumns: "minmax(0, 9rem) minmax(0, 1fr) 2.5rem", alignItems: "center", gap: 14 }}>
-                        <span className="lc-stat-label" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{key.replace(/_/g, " ")}</span>
-                        <div className="lc-bar"><div className="lc-bar__fill" style={{ width: `${data.score}%`, ['--bar-color' as string]: TIER_COLOR[riskScore.tier] }} /></div>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", textAlign: "right", color: "var(--text-secondary)" }}>{data.score}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <span className="lc-link" style={{ marginTop: 22 }}>Full analysis <ArrowUpRight size={13} /></span>
-                </div></div>
-              </Link>
-            )}
+/* ----------------------------------------------------------------------
+   OPERATOR FLOOR — at 9pm the manager doesn't want to read coverage
+   line items, they want to know: am I full, are my cameras up, can I
+   keep the door open. Live state is the hero; policy is secondary.
+   ---------------------------------------------------------------------- */
 
-            {quote && (() => {
-              const selectedVenue = portfolioVenues.find((v) => v.id === selectedVenueId);
-              const renewalDate = quote.renewal_date ?? selectedVenue?.renewal_date;
-              const carrier = selectedVenue?.current_carrier;
-              const savingsPct = Math.max(0, Math.min(100, Math.round(quote.savings_pct ?? 0)));
-              const coverageEntries = quote.coverage_breakdown
-                ? Object.entries(quote.coverage_breakdown)
-                : [];
-              return (
-              <div className="lc-card"><div className="lc-card__inner">
-                <div className="flex justify-between items-start mb-md">
-                  <span className="lc-stat-label">Premium Quote</span>
-                  <span className="lc-tier" style={{ color: TIER_COLOR[quote.tier] }}>{quote.venue_type.replace(/_/g, " ")}</span>
+interface OperatorFloorProps {
+  riskScore: RiskScore | null;
+  quote: PremiumQuote | null;
+  liveState: LiveState | null;
+  venueId: string | null;
+  portfolioVenues: PortfolioVenue[];
+  timeStamp: string;
+}
+
+function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, timeStamp }: OperatorFloorProps) {
+  const capPct = liveState && liveState.max_capacity > 0
+    ? (liveState.current_capacity / liveState.max_capacity) * 100
+    : 0;
+  const capColor = capPct >= 95 ? "#f43f5e" : capPct >= 80 ? "#f59e0b" : "#c8f000";
+  const capMood = capPct >= 95 ? "At capacity"
+    : capPct >= 80 ? "Filling fast"
+    : capPct >= 50 ? "Healthy flow"
+    : capPct > 0 ? "Quiet floor"
+    : "Doors closed";
+
+  const degradedCount = liveState?.infrastructure?.filter(i => i.is_degraded).length ?? 0;
+  const totalInfra = liveState?.infrastructure?.length ?? 0;
+
+  return (
+    <>
+      <div className="lc-rule">
+        <span className="lc-rule__label">On the floor</span>
+        <div className="lc-rule__line" />
+        {liveState && (
+          <span className="lc-stat-foot" style={{ color: degradedCount > 0 ? "var(--state-warning)" : "var(--state-success)" }}>
+            {totalInfra > 0 ? `${totalInfra - degradedCount}/${totalInfra} systems operational` : ""}
+          </span>
+        )}
+      </div>
+
+      {/* LIVE STATUS — full-width hero, this is what a venue manager opens the app for */}
+      {liveState && (
+        <div className="lc-card" style={{ marginBottom: "var(--space-lg)" }}>
+          <div className="lc-card__inner">
+            <div className="flex justify-between items-start mb-md" style={{ gap: 16, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: 999,
+                  background: "var(--state-error)",
+                  boxShadow: "0 0 10px var(--state-error)",
+                  animation: "status-pulse 1.5s ease-in-out infinite",
+                }} />
+                <span className="lc-stat-label" style={{ color: "var(--state-error)" }}>Live · {timeStamp}</span>
+              </div>
+              <span className="lc-stat-foot" style={{ fontStyle: "italic", color: capColor }}>{capMood}</span>
+            </div>
+
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)",
+              gap: "var(--space-2xl)",
+              alignItems: "end",
+            }} className="op-floor-live">
+              <div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 8 }}>
+                  <span style={{
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 500,
+                    fontStyle: "italic",
+                    fontSize: "clamp(3.5rem, 9vw, 6.5rem)",
+                    lineHeight: 0.95,
+                    letterSpacing: "-0.03em",
+                    color: capColor,
+                    fontVariantNumeric: "lining-nums tabular-nums",
+                  }}>{liveState.current_capacity}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "1rem", color: "var(--text-tertiary)" }}>
+                    / {liveState.max_capacity}
+                  </span>
+                  <span style={{
+                    marginLeft: "auto",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "1.1rem",
+                    color: capColor,
+                    fontVariantNumeric: "tabular-nums",
+                  }}>{Math.round(capPct)}%</span>
                 </div>
-                <div className="flex items-baseline gap-sm" style={{ marginBottom: 8 }}>
-                  <span className="lc-numeral lc-numeral--indigo">${quote.annual_premium.toLocaleString()}</span>
-                  <span className="lc-stat-foot" style={{ fontSize: "0.9rem" }}>/ year</span>
-                </div>
-                <span className="lc-stat-foot">${quote.monthly_premium.toLocaleString()} / month · annualized</span>
-
-                {quote.market_rate_annual != null && (
-                  <>
-                    <div style={{ height: 1, background: "var(--border-subtle)", margin: "20px 0 14px" }} />
-                    <div className="lc-cov-row">
-                      <span className="lc-cov-row__name">vs. market rate</span>
-                      <span className="lc-cov-row__check" data-included="false">${quote.market_rate_annual.toLocaleString()}/yr</span>
-                    </div>
-                    {quote.savings_annual != null && quote.savings_annual > 0 && (
-                      <>
-                        <div className="lc-cov-row" style={{ borderBottom: 0, paddingBottom: 4 }}>
-                          <span className="lc-cov-row__name">you save</span>
-                          <span className="lc-cov-row__check">${quote.savings_annual.toLocaleString()}/yr ({savingsPct}%)</span>
-                        </div>
-                        <div className="lc-savings-bar" aria-hidden style={{ marginTop: 4 }}>
-                          <div className="lc-savings-bar__fill" style={{ width: `${savingsPct}%` }} />
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {coverageEntries.length > 0 && (
-                  <>
-                    <div style={{ height: 1, background: "var(--border-subtle)", margin: "20px 0 8px" }} />
-                    <span className="lc-stat-label">Coverage included</span>
-                    <div style={{ marginTop: 8 }}>
-                      {coverageEntries.map(([key, line]) => {
-                        const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-                        const isIncluded = line.included === true;
-                        return (
-                          <div key={key} className="lc-cov-row">
-                            <span className="lc-cov-row__name">{label}</span>
-                            <span className="lc-cov-row__check" data-included={isIncluded ? "true" : "false"}>
-                              {isIncluded ? "✓ included" : "+ add-on"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-
-                {(renewalDate || carrier) && (
-                  <>
-                    <div style={{ height: 1, background: "var(--border-subtle)", margin: "16px 0 6px" }} />
-                    <p className="lc-stat-foot" style={{ marginTop: 4 }}>
-                      {renewalDate && <>Renews {renewalDate}</>}
-                      {renewalDate && carrier && " · "}
-                      {carrier && <>with {carrier}</>}
-                    </p>
-                  </>
-                )}
-              </div></div>
-              );
-            })()}
-
-            {liveState && (
-              <div className="lc-card"><div className="lc-card__inner">
-                <div className="flex justify-between items-start mb-md">
-                  <span className="lc-stat-label">Live Status</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-tertiary)" }}>LIVE · {timeStamp}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-                  <span className="lc-num-data lc-num-data--lg">{liveState.current_capacity}</span>
-                  <span className="text-muted" style={{ fontFamily: "var(--font-mono)", fontSize: "0.85rem" }}>/ {liveState.max_capacity}</span>
-                </div>
-                <div className="lc-bar" style={{ marginBottom: 20 }}>
+                <div className="lc-bar" style={{ height: 6 }}>
                   <div className="lc-bar__fill" style={{
-                    width: `${Math.min(100, (liveState.current_capacity / liveState.max_capacity) * 100)}%`,
-                    ['--bar-color' as string]: (liveState.current_capacity / liveState.max_capacity) >= 0.9 ? "#f43f5e" : "#c8f000",
+                    width: `${Math.min(100, capPct)}%`,
+                    ['--bar-color' as string]: capColor,
                   }} />
                 </div>
-                <span className="lc-stat-label" style={{ display: "block", marginBottom: 10 }}>Infrastructure</span>
+                <span className="lc-stat-foot" style={{ display: "block", marginTop: 10 }}>
+                  Capacity tracked in real-time from your door-count and venue sensors.
+                </span>
+              </div>
+
+              <div>
+                <span className="lc-stat-label" style={{ display: "block", marginBottom: 12 }}>Infrastructure</span>
                 <div className="lc-infra">
                   {liveState.infrastructure?.map((item, i) => (
                     <div key={i} className="lc-infra__cell" data-state={item.is_degraded ? "warn" : "ok"}>
@@ -511,68 +479,428 @@ function DashboardPageInner() {
                       <span className="lc-infra__dot" />
                     </div>
                   ))}
+                  {(!liveState.infrastructure || liveState.infrastructure.length === 0) && (
+                    <span className="lc-stat-foot">No infrastructure telemetry yet.</span>
+                  )}
                 </div>
-              </div></div>
-            )}
-          </Grid>
-        </>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* RISK + QUOTE — secondary policy row */}
+      {(riskScore || quote) && (
+        <div className="lc-rule">
+          <span className="lc-rule__label">Your policy</span>
+          <div className="lc-rule__line" />
+        </div>
+      )}
+
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: riskScore && quote ? "repeat(auto-fit, minmax(min(360px, 100%), 1fr))" : "1fr",
+        gap: "var(--space-lg)",
+      }}>
+        {riskScore && (
+          <Link href={`/risk-profile/${venueId}`} style={{ textDecoration: "none" }}>
+            <div className="lc-card"><div className="lc-card__inner">
+              <div className="flex justify-between items-start mb-md">
+                <span className="lc-stat-label">Risk Profile</span>
+                <span className="lc-tier" style={{ color: TIER_COLOR[riskScore.tier] }}>Tier {riskScore.tier}</span>
+              </div>
+              <div className="flex items-baseline gap-sm" style={{ marginBottom: 24 }}>
+                <span className="lc-num-data lc-num-data--lg" style={{ color: TIER_COLOR[riskScore.tier] }}>{riskScore.total_score}</span>
+                <span className="text-muted" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>/ 100</span>
+              </div>
+              <div className="flex flex-col gap-md">
+                {Object.entries(riskScore.factors).map(([key, data]) => (
+                  <div key={key} style={{ display: "grid", gridTemplateColumns: "minmax(0, 9rem) minmax(0, 1fr) 2.5rem", alignItems: "center", gap: 14 }}>
+                    <span className="lc-stat-label" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{key.replace(/_/g, " ")}</span>
+                    <div className="lc-bar"><div className="lc-bar__fill" style={{ width: `${data.score}%`, ['--bar-color' as string]: TIER_COLOR[riskScore.tier] }} /></div>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", textAlign: "right", color: "var(--text-secondary)" }}>{data.score}</span>
+                  </div>
+                ))}
+              </div>
+              <span className="lc-link" style={{ marginTop: 22 }}>Full analysis <ArrowUpRight size={13} /></span>
+            </div></div>
+          </Link>
+        )}
+
+        {quote && (() => {
+          const selectedVenue = portfolioVenues.find((v) => v.id === venueId);
+          const renewalDate = quote.renewal_date ?? selectedVenue?.renewal_date;
+          const carrier = selectedVenue?.current_carrier;
+          const savingsPct = Math.max(0, Math.min(100, Math.round(quote.savings_pct ?? 0)));
+          const coverageEntries = quote.coverage_breakdown ? Object.entries(quote.coverage_breakdown) : [];
+          return (
+            <div className="lc-card"><div className="lc-card__inner">
+              <div className="flex justify-between items-start mb-md">
+                <span className="lc-stat-label">Premium Quote</span>
+                <span className="lc-tier" style={{ color: TIER_COLOR[quote.tier] }}>{quote.venue_type.replace(/_/g, " ")}</span>
+              </div>
+              <div className="flex items-baseline gap-sm" style={{ marginBottom: 8 }}>
+                <span className="lc-numeral lc-numeral--indigo">${quote.annual_premium.toLocaleString()}</span>
+                <span className="lc-stat-foot" style={{ fontSize: "0.9rem" }}>/ year</span>
+              </div>
+              <span className="lc-stat-foot">${quote.monthly_premium.toLocaleString()} / month · annualized</span>
+
+              {quote.market_rate_annual != null && (
+                <>
+                  <div style={{ height: 1, background: "var(--border-subtle)", margin: "20px 0 14px" }} />
+                  <div className="lc-cov-row">
+                    <span className="lc-cov-row__name">vs. market rate</span>
+                    <span className="lc-cov-row__check" data-included="false">${quote.market_rate_annual.toLocaleString()}/yr</span>
+                  </div>
+                  {quote.savings_annual != null && quote.savings_annual > 0 && (
+                    <>
+                      <div className="lc-cov-row" style={{ borderBottom: 0, paddingBottom: 4 }}>
+                        <span className="lc-cov-row__name">you save</span>
+                        <span className="lc-cov-row__check">${quote.savings_annual.toLocaleString()}/yr ({savingsPct}%)</span>
+                      </div>
+                      <div className="lc-savings-bar" aria-hidden style={{ marginTop: 4 }}>
+                        <div className="lc-savings-bar__fill" style={{ width: `${savingsPct}%` }} />
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {coverageEntries.length > 0 && (
+                <>
+                  <div style={{ height: 1, background: "var(--border-subtle)", margin: "20px 0 8px" }} />
+                  <span className="lc-stat-label">Coverage included</span>
+                  <div style={{ marginTop: 8 }}>
+                    {coverageEntries.map(([key, line]) => {
+                      const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+                      const isIncluded = line.included === true;
+                      return (
+                        <div key={key} className="lc-cov-row">
+                          <span className="lc-cov-row__name">{label}</span>
+                          <span className="lc-cov-row__check" data-included={isIncluded ? "true" : "false"}>
+                            {isIncluded ? "✓ included" : "+ add-on"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {(renewalDate || carrier) && (
+                <>
+                  <div style={{ height: 1, background: "var(--border-subtle)", margin: "16px 0 6px" }} />
+                  <p className="lc-stat-foot" style={{ marginTop: 4 }}>
+                    {renewalDate && <>Renews {renewalDate}</>}
+                    {renewalDate && carrier && " · "}
+                    {carrier && <>with {carrier}</>}
+                  </p>
+                </>
+              )}
+            </div></div>
+          );
+        })()}
+      </div>
+    </>
+  );
+}
+
+/* ----------------------------------------------------------------------
+   BROKER TRIAGE — the dashboard is a working surface, not a marketing
+   page. Rows are scannable; the preview pane is where the underwriter
+   thinks. Buckets sort the book by what needs attention right now.
+   ---------------------------------------------------------------------- */
+
+type Bucket = "tonight" | "watchlist" | "standing";
+type Filter = "all" | Bucket | "renewals";
+
+function classifyVenue(v: PortfolioVenue): Bucket {
+  const capPct = v.capacity > 0 ? v.current_capacity / v.capacity : 0;
+  const acute = v.open_incidents > 0 || v.has_degraded_infra || capPct >= 0.9 || v.compliance_actions > 0;
+  if (acute) return "tonight";
+  if (v.tier === "C" || v.tier === "D") return "watchlist";
+  return "standing";
+}
+
+function daysUntil(dateStr?: string): number | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  return Math.round((d.getTime() - Date.now()) / 86400000);
+}
+
+const BUCKET_LABEL: Record<Bucket, string> = {
+  tonight: "Tonight",
+  watchlist: "Watchlist",
+  standing: "Standing",
+};
+
+interface BrokerTriageProps {
+  venues: PortfolioVenue[];
+  totalCount: number;
+  searchQuery: string;
+  onSearch: (q: string) => void;
+}
+
+function BrokerTriage({ venues, totalCount, searchQuery, onSearch }: BrokerTriageProps) {
+  const [filter, setFilter] = useState<Filter>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const tagged = useMemo(
+    () => venues.map(v => ({ ...v, _bucket: classifyVenue(v), _daysToRenew: daysUntil(v.renewal_date) })),
+    [venues],
+  );
+
+  const visible = useMemo(() => {
+    if (filter === "all") return tagged;
+    if (filter === "renewals") return tagged.filter(v => v._daysToRenew != null && v._daysToRenew <= 30 && v._daysToRenew >= -7);
+    return tagged.filter(v => v._bucket === filter);
+  }, [tagged, filter]);
+
+  // Counts for chip labels (computed against the search-filtered set, not the bucket-filtered set)
+  const counts = useMemo(() => ({
+    all: tagged.length,
+    tonight: tagged.filter(v => v._bucket === "tonight").length,
+    watchlist: tagged.filter(v => v._bucket === "watchlist").length,
+    standing: tagged.filter(v => v._bucket === "standing").length,
+    renewals: tagged.filter(v => v._daysToRenew != null && v._daysToRenew <= 30 && v._daysToRenew >= -7).length,
+  }), [tagged]);
+
+  // Default selection: first row, biased toward most urgent
+  useEffect(() => {
+    if (visible.length === 0) { setSelectedId(null); return; }
+    if (selectedId && visible.some(v => v.id === selectedId)) return;
+    const sorted = [...visible].sort((a, b) => {
+      const order = { tonight: 0, watchlist: 1, standing: 2 } as const;
+      return order[a._bucket] - order[b._bucket] || a.total_score - b.total_score;
+    });
+    setSelectedId(sorted[0]?.id ?? null);
+  }, [visible, selectedId]);
+
+  const selected = visible.find(v => v.id === selectedId) ?? null;
+
+  // Group rows when filter === "all" so the underwriter sees urgency structure
+  const grouped: Array<{ bucket: Bucket; items: typeof visible }> = useMemo(() => {
+    if (filter !== "all") return [{ bucket: "tonight", items: visible }];
+    const order: Bucket[] = ["tonight", "watchlist", "standing"];
+    return order
+      .map(bucket => ({
+        bucket,
+        items: visible
+          .filter(v => v._bucket === bucket)
+          .sort((a, b) => a.total_score - b.total_score),
+      }))
+      .filter(g => g.items.length > 0);
+  }, [visible, filter]);
+
+  return (
+    <>
+      <div className="lc-triage__head">
+        <span className="lc-triage__title">The Book</span>
+        <span className="lc-triage__kpi">
+          {searchQuery.trim() ? <><b>{visible.length}</b> / {totalCount}</> : <><b>{String(totalCount).padStart(2, "0")}</b> venues</>}
+          {counts.tonight > 0 && <> · <span className="lc-triage__kpi-hi">{counts.tonight} need eyes</span></>}
+        </span>
+
+        <div className="lc-search" style={{ flex: "0 1 280px", marginLeft: 18 }}>
+          <Search size={14} />
+          <input
+            placeholder="Search venues, types, addresses…"
+            value={searchQuery}
+            onChange={e => onSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="lc-triage__chips">
+          <button className="lc-triage__chip" data-active={filter === "all"} onClick={() => setFilter("all")}>
+            All · {counts.all}
+          </button>
+          <button className="lc-triage__chip" data-active={filter === "tonight"} onClick={() => setFilter("tonight")}>
+            Tonight · {counts.tonight}
+          </button>
+          <button className="lc-triage__chip" data-active={filter === "watchlist"} onClick={() => setFilter("watchlist")}>
+            Watchlist · {counts.watchlist}
+          </button>
+          <button className="lc-triage__chip" data-active={filter === "renewals"} onClick={() => setFilter("renewals")}>
+            Renewals 30d · {counts.renewals}
+          </button>
+        </div>
+      </div>
+
+      <div className="lc-triage">
+        <div className="lc-triage__list">
+          {visible.length === 0 ? (
+            <div className="lc-triage__empty">
+              <span className="lc-stat-label">No venues match this view</span>
+              <p className="text-muted" style={{ maxWidth: 260, fontSize: "0.85rem" }}>
+                {searchQuery.trim() ? `Nothing matches "${searchQuery}".` : "Try a different filter."}
+              </p>
+            </div>
+          ) : grouped.map(group => (
+            <React.Fragment key={group.bucket}>
+              <div className="lc-triage__group-head" data-critical={group.bucket === "tonight"}>
+                <span className="lc-triage__group-label lc-stat-label">{BUCKET_LABEL[group.bucket]}</span>
+                <span className="lc-stat-foot">{String(group.items.length).padStart(2, "0")}</span>
+              </div>
+              {group.items.map(v => (
+                <TriageRow
+                  key={v.id}
+                  venue={v}
+                  selected={v.id === selectedId}
+                  onSelect={() => setSelectedId(v.id)}
+                />
+              ))}
+            </React.Fragment>
+          ))}
+        </div>
+
+        <aside className="lc-triage__preview">
+          {selected ? <TriagePreview venue={selected} /> : (
+            <div className="lc-triage__empty">
+              <span className="lc-stat-label">Select a venue</span>
+            </div>
+          )}
+        </aside>
+      </div>
+    </>
+  );
+}
+
+function TriageRow({
+  venue,
+  selected,
+  onSelect,
+}: {
+  venue: PortfolioVenue & { _bucket: Bucket; _daysToRenew: number | null };
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const tierColor = TIER_COLOR[venue.tier] || "#8b8fa8";
+  const capPct = venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
+  const capCritical = capPct >= 95;
+  const incidentsHot = venue.open_incidents > 0;
+  const renewalSoon = venue._daysToRenew != null && venue._daysToRenew <= 14;
+
+  return (
+    <div
+      className="lc-triage__row"
+      data-selected={selected ? "true" : "false"}
+      onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
+    >
+      <span
+        className="lc-triage__dot"
+        data-filled={venue._bucket === "tonight" ? "true" : "false"}
+        style={{ color: tierColor, background: tierColor }}
+      />
+      <div style={{ minWidth: 0 }}>
+        <div className="lc-triage__row-title" style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{venue.name}</span>
+          {incidentsHot && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--font-mono)", fontStyle: "normal", fontSize: "0.62rem", color: "var(--state-error)", letterSpacing: "0.08em" }}>
+              <AlertTriangle size={9} /> {venue.open_incidents}
+            </span>
+          )}
+          {venue.compliance_actions > 0 && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--font-mono)", fontStyle: "normal", fontSize: "0.62rem", color: "var(--brand-secondary)", letterSpacing: "0.08em" }}>
+              <CheckSquare size={9} /> {venue.compliance_actions}
+            </span>
+          )}
+          {venue.has_degraded_infra && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--font-mono)", fontStyle: "normal", fontSize: "0.62rem", color: "var(--state-warning)", letterSpacing: "0.08em" }}>
+              <WifiOff size={9} /> DEG
+            </span>
+          )}
+        </div>
+        <div className="lc-triage__row-sub">
+          {venue.venue_type.replace(/_/g, " ")} · {venue.current_capacity}/{venue.capacity.toLocaleString()}
+          {capCritical && <span style={{ color: "var(--state-error)", marginLeft: 6 }}>· {Math.round(capPct)}%</span>}
+        </div>
+      </div>
+      <div className="lc-triage__row-meta">
+        <span className="conf" style={{ color: tierColor }}>{venue.total_score}</span>
+        <div className="date" style={{ color: renewalSoon ? "var(--state-warning)" : undefined }}>
+          {venue._daysToRenew != null
+            ? venue._daysToRenew < 0 ? `${Math.abs(venue._daysToRenew)}d past` : `${venue._daysToRenew}d`
+            : venue.tier}
+        </div>
+      </div>
     </div>
   );
 }
 
-function VenuePortfolioCard({ venue }: { venue: PortfolioVenue }) {
-  const capacityPct = venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
+function TriagePreview({ venue }: { venue: PortfolioVenue & { _bucket: Bucket; _daysToRenew: number | null } }) {
   const tierColor = TIER_COLOR[venue.tier] || "#8b8fa8";
-  const capacityColor = capacityPct >= 95 ? "#f43f5e" : capacityPct >= 80 ? "#f59e0b" : "#c8f000";
+  const capPct = venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
+  const capColor = capPct >= 95 ? "#f43f5e" : capPct >= 80 ? "#f59e0b" : "#c8f000";
 
   return (
-    <Link href={`/terminal/${venue.id}`} className="lc-vcard" style={{ ['--tier-color' as string]: tierColor }}>
-      <div className="flex justify-between items-start" style={{ marginBottom: 18 }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <span className="lc-stat-label" style={{ color: tierColor, display: "block", marginBottom: 6 }}>{venue.venue_type.replace(/_/g, " ")}</span>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 500, fontSize: "1.6rem", lineHeight: 1.05, letterSpacing: "-0.015em", marginBottom: 6 }}>{venue.name}</h3>
-          {venue.address && (
-            <p style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.75rem", color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>
-              <MapPin size={11} /> {venue.address}
-            </p>
-          )}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, marginLeft: 14 }}>
-          <span className="lc-tier" style={{ color: tierColor }}>Tier {venue.tier}</span>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <span className="lc-vcard__score">{venue.total_score}</span>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>/100</span>
-          </div>
+    <>
+      <div className="lc-triage__preview-head">
+        <span className="lc-stat-label" style={{ color: tierColor, display: "block", marginBottom: 8 }}>{venue.venue_type.replace(/_/g, " ")}</span>
+        <h3>{venue.name}</h3>
+        <div className="lc-triage__preview-meta" style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+          {venue.address && <><MapPin size={11} /> {venue.address}</>}
         </div>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 4 }}>
+        <span className="lc-num-data lc-num-data--lg" style={{ color: tierColor }}>{venue.total_score}</span>
+        <span className="text-muted" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>/ 100</span>
+        <span className="lc-tier" style={{ color: tierColor, marginLeft: "auto" }}>Tier {venue.tier}</span>
+      </div>
+
+      <div style={{ marginTop: 14, marginBottom: 6 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
           <span className="lc-stat-label">Live capacity</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.74rem", color: capacityColor }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.74rem", color: capColor }}>
             {venue.current_capacity} <span style={{ color: "var(--text-tertiary)" }}>/ {venue.capacity.toLocaleString()}</span>
+            <span style={{ marginLeft: 8, color: "var(--text-tertiary)" }}>{Math.round(capPct)}%</span>
           </span>
         </div>
-        <div className="lc-bar"><div className="lc-bar__fill" style={{ width: `${capacityPct}%`, ['--bar-color' as string]: capacityColor }} /></div>
+        <div className="lc-bar"><div className="lc-bar__fill" style={{ width: `${Math.min(100, capPct)}%`, ['--bar-color' as string]: capColor }} /></div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid var(--border-subtle)", gap: 10 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2, fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-tertiary)", minWidth: 0 }}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{venue.current_carrier}</span>
-          <span>Renews {venue.renewal_date}</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {venue.has_degraded_infra && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "0.68rem", color: "#f59e0b", fontFamily: "var(--font-mono)" }}>
-              <WifiOff size={10} /> DEGRADED
-            </span>
-          )}
-          {venue.open_incidents > 0 && <span className="badge badge-error" style={{ fontSize: "0.68rem" }}>{venue.open_incidents} open</span>}
-          {venue.compliance_actions > 0 && <span className="badge badge-warning" style={{ fontSize: "0.68rem" }}>{venue.compliance_actions} action{venue.compliance_actions > 1 ? "s" : ""}</span>}
-          <ArrowUpRight size={14} style={{ color: tierColor }} />
-        </div>
+      <div className="lc-triage__preview-section">
+        <h4>Open signals</h4>
+        <dl style={{ display: "grid", gap: 2 }}>
+          <div className="lc-triage__kv"><dt>Incidents</dt><dd style={{ color: venue.open_incidents > 0 ? "var(--state-error)" : "var(--text-secondary)" }}>{venue.open_incidents.toString().padStart(2, "0")} open</dd></div>
+          <div className="lc-triage__kv"><dt>Compliance</dt><dd style={{ color: venue.compliance_actions > 0 ? "var(--brand-secondary)" : "var(--text-secondary)" }}>{venue.compliance_actions.toString().padStart(2, "0")} action{venue.compliance_actions === 1 ? "" : "s"}</dd></div>
+          <div className="lc-triage__kv"><dt>Infrastructure</dt><dd style={{ color: venue.has_degraded_infra ? "var(--state-warning)" : "var(--state-success)" }}>{venue.has_degraded_infra ? "Degraded" : "Operational"}</dd></div>
+        </dl>
       </div>
-    </Link>
+
+      <div className="lc-triage__preview-section">
+        <h4>Policy</h4>
+        <dl style={{ display: "grid", gap: 2 }}>
+          <div className="lc-triage__kv"><dt>Carrier</dt><dd>{venue.current_carrier || "—"}</dd></div>
+          <div className="lc-triage__kv">
+            <dt>Renews</dt>
+            <dd style={{ color: venue._daysToRenew != null && venue._daysToRenew <= 14 ? "var(--state-warning)" : undefined }}>
+              {venue.renewal_date}
+              {venue._daysToRenew != null && (
+                <span style={{ marginLeft: 8, fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-tertiary)" }}>
+                  ({venue._daysToRenew < 0 ? `${Math.abs(venue._daysToRenew)}d past` : `in ${venue._daysToRenew}d`})
+                </span>
+              )}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="lc-triage__actions">
+        <Link href={`/risk-profile/${venue.id}`} className="lc-triage__btn" data-tone="approve">
+          <Activity size={13} /> Risk Profile <ArrowUpRight size={12} />
+        </Link>
+        <Link href={`/incidents?venue=${encodeURIComponent(venue.id)}`} className="lc-triage__btn">
+          <AlertTriangle size={13} /> Incidents
+        </Link>
+        <Link href={`/compliance?venue=${encodeURIComponent(venue.id)}`} className="lc-triage__btn">
+          <CheckSquare size={13} /> Compliance
+        </Link>
+      </div>
+    </>
   );
 }

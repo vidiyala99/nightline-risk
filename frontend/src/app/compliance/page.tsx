@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTenantId, useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { authHeaders } from "@/lib/authFetch";
 import { CheckSquare, Upload, Clock, AlertCircle, X } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -87,7 +88,7 @@ function CompliancePageInner() {
           }
         } else if (isBroker) {
           // Broker portfolio summary
-          const res = await fetch(`${API_URL}/api/portfolio`);
+          const res = await fetch(`${API_URL}/api/portfolio`, { headers: authHeaders() });
           if (res.ok) {
             const venues: VenueWithCompliance[] = await res.json();
             setBrokerVenues(venues.filter((v) => (v.compliance_actions ?? 0) > 0));
