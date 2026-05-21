@@ -595,6 +595,24 @@ def test_list_policies_defaults_to_active():
         assert any(p.id == policy.id for p in results)
 
 
+def test_snapshot_hash_is_invariant_to_coverage_line_ordering():
+    """The hash must be deterministic from CONTENT, not from JSON-storage
+    insertion order. If a future SQLAlchemy / Postgres version returns
+    coverage_lines in a different order, the hash should stay stable."""
+    with _session() as s:
+        _, q = _make_quoting_submission_with_selected_quote(s)
+        policy = bind_quote(s, q.id, policy_number="P-1", bound_by=USER_ID)
+        s.commit()
+
+        hash_original = _compute_policy_snapshot_hash(policy)
+        # Re-order the list and re-hash; result must be identical.
+        policy.coverage_lines = list(reversed(policy.coverage_lines))
+        hash_after_reorder = _compute_policy_snapshot_hash(policy)
+        assert hash_original == hash_after_reorder, (
+            "Coverage line ordering leaked into the hash — sort defensive fix regressed."
+        )
+
+
 def test_list_policies_filters_by_venue_and_carrier():
     with _session() as s:
         _, q = _make_quoting_submission_with_selected_quote(s)

@@ -95,6 +95,11 @@ def _compute_policy_snapshot_hash(policy: Policy) -> str:
     NOT re-computed by status changes (cancel, expire, lapse). The hash
     captures what the venue/carrier agreed to; operational status is
     metadata that lives outside the contract."""
+    # Sort list contents so the hash is deterministic from the data alone,
+    # not from JSON-storage layer ordering quirks. json.dumps(sort_keys=True)
+    # sorts dict keys but NOT list contents — without this, a future
+    # SQLAlchemy/Postgres version that ordered list-typed JSON differently
+    # could produce hash drift on rows where no actual content changed.
     body = {
         "id": policy.id,
         "policy_number": policy.policy_number,
@@ -105,7 +110,7 @@ def _compute_policy_snapshot_hash(policy: Policy) -> str:
         "annual_premium": str(policy.annual_premium),
         "commission_amount": str(policy.commission_amount),
         "commission_rate": str(policy.commission_rate),
-        "coverage_lines": list(policy.coverage_lines),
+        "coverage_lines": sorted(policy.coverage_lines),
         "terms_snapshot": policy.terms_snapshot,
     }
     canonical = json.dumps(body, sort_keys=True, separators=(",", ":"))
