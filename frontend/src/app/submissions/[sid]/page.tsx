@@ -31,6 +31,7 @@ import {
   formatPct,
   placementApi,
 } from "@/lib/placement";
+import { policiesApi } from "@/lib/policies";
 
 
 // ─── Carrier quote card (per-carrier comparison cell) ───────────────────
@@ -41,12 +42,14 @@ function CarrierQuoteCardComponent({
   marketType,
   onSelect,
   onRecordResponse,
+  onBind,
 }: {
   quote: CarrierQuote;
   carrierName: string;
   marketType: string;
   onSelect: () => void;
   onRecordResponse: (status: "quoted" | "declined") => void;
+  onBind: () => void;
 }) {
   const breakdown = quote.premium_breakdown as PremiumBreakdown | undefined;
   const total = breakdown?.total;
@@ -138,14 +141,30 @@ function CarrierQuoteCardComponent({
             </button>
           </>
         ) : quote.status === "quoted" ? (
-          <button
-            type="button"
-            className="submission-card__btn"
-            onClick={onSelect}
-            disabled={quote.is_selected}
-          >
-            {quote.is_selected ? "✓ Recommended" : "Recommend"}
-          </button>
+          <>
+            <button
+              type="button"
+              className="submission-card__btn"
+              onClick={onSelect}
+              disabled={quote.is_selected}
+            >
+              {quote.is_selected ? "✓ Recommended" : "Recommend"}
+            </button>
+            {quote.is_selected && (
+              <button
+                type="button"
+                className="submission-card__btn"
+                style={{
+                  background: "var(--brand-primary)",
+                  color: "var(--text-inverse)",
+                  borderColor: "var(--brand-primary)",
+                }}
+                onClick={onBind}
+              >
+                Bind →
+              </button>
+            )}
+          </>
         ) : null}
       </div>
     </div>
@@ -255,6 +274,23 @@ export default function SubmissionDetailPage() {
       await load();
     } catch (e) {
       alert(e instanceof PlacementApiError ? e.message : "Select failed");
+    }
+  };
+
+  const handleBind = async (quote: CarrierQuote) => {
+    const policyNumber = window.prompt(
+      "Carrier-issued policy number (optional — leave blank to assign later):",
+      "",
+    );
+    // null = cancelled prompt; empty string = explicit "assign later"
+    if (policyNumber === null) return;
+    try {
+      const policy = await policiesApi.bindQuote(quote.id, {
+        policy_number: policyNumber.trim() || undefined,
+      });
+      router.push(`/policies/${policy.id}`);
+    } catch (e) {
+      alert(e instanceof PlacementApiError ? e.message : "Bind failed");
     }
   };
 
@@ -385,6 +421,7 @@ export default function SubmissionDetailPage() {
                   marketType={c?.market_type ?? "—"}
                   onSelect={() => handleSelect(q)}
                   onRecordResponse={(status) => handleRecordResponse(q, status)}
+                  onBind={() => handleBind(q)}
                 />
               );
             })}

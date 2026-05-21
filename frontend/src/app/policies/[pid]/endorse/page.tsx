@@ -1,0 +1,375 @@
+"use client";
+
+/**
+ * /policies/[pid]/endorse — new endorsement form.
+ *
+ * The endorsement_type dropdown drives which payload-specific fields
+ * appear. Each combination maps to one of the Pydantic shapes in
+ * app/schemas/policy.py. The backend re-validates on POST; this form
+ * provides the right UX scaffolding per type so the broker doesn't have
+ * to remember which fields each type needs.
+ */
+import React, { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { PlacementApiError } from "@/lib/placement";
+import { policiesApi } from "@/lib/policies";
+
+
+type EndorsementType =
+  | "change_limit"
+  | "add_insured"
+  | "add_coverage"
+  | "remove_coverage"
+  | "add_location"
+  | "change_class"
+  | "correction";
+
+
+export default function EndorsePage() {
+  const params = useParams<{ pid: string }>();
+  const router = useRouter();
+  const pid = params?.pid;
+
+  const [endorsementType, setEndorsementType] = useState<EndorsementType>("change_limit");
+  const [effectiveDate, setEffectiveDate] = useState(
+    () => new Date().toISOString().slice(0, 10),
+  );
+  const [description, setDescription] = useState("");
+  const [premiumChange, setPremiumChange] = useState("0.00");
+  const [taxChange, setTaxChange] = useState("0.00");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Per-type fields.
+  const [coverageLine, setCoverageLine] = useState("gl");
+  const [limitField, setLimitField] = useState<"per_occurrence" | "aggregate" | "deductible">("per_occurrence");
+  const [limitBefore, setLimitBefore] = useState("1000000");
+  const [limitAfter, setLimitAfter] = useState("2000000");
+  const [insuredName, setInsuredName] = useState("");
+  const [insuredAddress, setInsuredAddress] = useState("");
+  const [relationship, setRelationship] = useState("landlord");
+  const [aiScope, setAiScope] = useState<"ongoing_operations" | "completed_operations" | "single_event">("ongoing_operations");
+  const [perOccLimit, setPerOccLimit] = useState("1000000");
+  const [aggLimit, setAggLimit] = useState("2000000");
+  const [deductible, setDeductible] = useState("2500");
+  const [reason, setReason] = useState("");
+  const [locationName, setLocationName] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
+  const [venueType, setVenueType] = useState("music_venue");
+  const [beforeClass, setBeforeClass] = useState("");
+  const [afterClass, setAfterClass] = useState("");
+  const [fieldCorrected, setFieldCorrected] = useState("");
+  const [valueBefore, setValueBefore] = useState("");
+  const [valueAfter, setValueAfter] = useState("");
+  const [explanation, setExplanation] = useState("");
+
+  const buildTermsDiff = (): Record<string, unknown> => {
+    switch (endorsementType) {
+      case "change_limit":
+        return {
+          coverage_line: coverageLine,
+          field: limitField,
+          before: limitBefore,
+          after: limitAfter,
+        };
+      case "add_insured":
+        return {
+          insured_name: insuredName,
+          insured_address: insuredAddress,
+          relationship,
+          scope: aiScope,
+        };
+      case "add_coverage":
+        return {
+          coverage_line: coverageLine,
+          per_occurrence_limit: perOccLimit,
+          aggregate_limit: aggLimit || null,
+          deductible: deductible,
+        };
+      case "remove_coverage":
+        return {
+          coverage_line: coverageLine,
+          reason,
+        };
+      case "add_location":
+        return {
+          location_name: locationName,
+          location_address: locationAddress,
+          venue_type: venueType,
+        };
+      case "change_class":
+        return {
+          coverage_line: coverageLine,
+          before_class: beforeClass,
+          after_class: afterClass,
+          reason,
+        };
+      case "correction":
+        return {
+          field_corrected: fieldCorrected,
+          before: valueBefore,
+          after: valueAfter,
+          explanation,
+        };
+    }
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pid) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await policiesApi.issueEndorsement(pid, {
+        endorsement_type: endorsementType,
+        effective_date: effectiveDate,
+        terms_diff: buildTermsDiff(),
+        premium_change: premiumChange || "0.00",
+        tax_change: taxChange || "0.00",
+        description: description.trim(),
+      });
+      router.push(`/policies/${pid}`);
+    } catch (e) {
+      setError(e instanceof PlacementApiError ? e.message : "Endorsement failed");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="submission-wizard">
+      <PageHeader
+        eyebrow="Policy"
+        title="New Endorsement"
+        subtitle="Mid-term change. Re-hashes the policy snapshot."
+      />
+
+      <form className="submission-wizard__form" onSubmit={submit}>
+        {error && <div className="submission-wizard__error">{error}</div>}
+
+        <div className="submission-wizard__field">
+          <label className="submission-wizard__label">Endorsement Type</label>
+          <select
+            className="input-field"
+            value={endorsementType}
+            onChange={e => setEndorsementType(e.target.value as EndorsementType)}
+          >
+            <option value="change_limit">Change Limit</option>
+            <option value="add_insured">Add Insured (additional insured)</option>
+            <option value="add_coverage">Add Coverage Line</option>
+            <option value="remove_coverage">Remove Coverage Line</option>
+            <option value="add_location">Add Location</option>
+            <option value="change_class">Change Class</option>
+            <option value="correction">Correction</option>
+          </select>
+        </div>
+
+        <div className="submission-wizard__field">
+          <label className="submission-wizard__label">Effective Date</label>
+          <input
+            type="date"
+            className="input-field"
+            value={effectiveDate}
+            onChange={e => setEffectiveDate(e.target.value)}
+            required
+          />
+        </div>
+
+        {/* Per-type field blocks */}
+        {endorsementType === "change_limit" && (
+          <>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Coverage Line</label>
+              <input className="input-field" value={coverageLine} onChange={e => setCoverageLine(e.target.value)} />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Field</label>
+              <select className="input-field" value={limitField} onChange={e => setLimitField(e.target.value as typeof limitField)}>
+                <option value="per_occurrence">Per Occurrence</option>
+                <option value="aggregate">Aggregate</option>
+                <option value="deductible">Deductible</option>
+              </select>
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Before</label>
+              <input className="input-field" value={limitBefore} onChange={e => setLimitBefore(e.target.value)} />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">After</label>
+              <input className="input-field" value={limitAfter} onChange={e => setLimitAfter(e.target.value)} />
+            </div>
+          </>
+        )}
+
+        {endorsementType === "add_insured" && (
+          <>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Insured Name</label>
+              <input className="input-field" value={insuredName} onChange={e => setInsuredName(e.target.value)} required />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Insured Address</label>
+              <input className="input-field" value={insuredAddress} onChange={e => setInsuredAddress(e.target.value)} required />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Relationship</label>
+              <select className="input-field" value={relationship} onChange={e => setRelationship(e.target.value)}>
+                <option value="landlord">Landlord</option>
+                <option value="event_client">Event Client</option>
+                <option value="contract_counterparty">Contract Counterparty</option>
+              </select>
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Scope (ISO CG endorsement form)</label>
+              <select className="input-field" value={aiScope} onChange={e => setAiScope(e.target.value as typeof aiScope)}>
+                <option value="ongoing_operations">Ongoing Operations (CG 20 10)</option>
+                <option value="completed_operations">Completed Operations (CG 20 26)</option>
+                <option value="single_event">Single Event (CG 20 37)</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        {endorsementType === "add_coverage" && (
+          <>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Coverage Line</label>
+              <input className="input-field" value={coverageLine} onChange={e => setCoverageLine(e.target.value)} />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Per-Occurrence Limit</label>
+              <input className="input-field" value={perOccLimit} onChange={e => setPerOccLimit(e.target.value)} />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Aggregate Limit (blank for property)</label>
+              <input className="input-field" value={aggLimit} onChange={e => setAggLimit(e.target.value)} />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Deductible</label>
+              <input className="input-field" value={deductible} onChange={e => setDeductible(e.target.value)} />
+            </div>
+          </>
+        )}
+
+        {endorsementType === "remove_coverage" && (
+          <>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Coverage Line</label>
+              <input className="input-field" value={coverageLine} onChange={e => setCoverageLine(e.target.value)} />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Reason</label>
+              <input className="input-field" value={reason} onChange={e => setReason(e.target.value)} required />
+            </div>
+          </>
+        )}
+
+        {endorsementType === "add_location" && (
+          <>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Location Name</label>
+              <input className="input-field" value={locationName} onChange={e => setLocationName(e.target.value)} required />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Address</label>
+              <input className="input-field" value={locationAddress} onChange={e => setLocationAddress(e.target.value)} required />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Venue Type</label>
+              <input className="input-field" value={venueType} onChange={e => setVenueType(e.target.value)} />
+            </div>
+          </>
+        )}
+
+        {endorsementType === "change_class" && (
+          <>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Coverage Line</label>
+              <input className="input-field" value={coverageLine} onChange={e => setCoverageLine(e.target.value)} />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Before Class</label>
+              <input className="input-field" value={beforeClass} onChange={e => setBeforeClass(e.target.value)} required />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">After Class</label>
+              <input className="input-field" value={afterClass} onChange={e => setAfterClass(e.target.value)} required />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Reason</label>
+              <input className="input-field" value={reason} onChange={e => setReason(e.target.value)} required />
+            </div>
+          </>
+        )}
+
+        {endorsementType === "correction" && (
+          <>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Field Corrected</label>
+              <input className="input-field" value={fieldCorrected} onChange={e => setFieldCorrected(e.target.value)} required />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Before</label>
+              <input className="input-field" value={valueBefore} onChange={e => setValueBefore(e.target.value)} required />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">After</label>
+              <input className="input-field" value={valueAfter} onChange={e => setValueAfter(e.target.value)} required />
+            </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Explanation</label>
+              <input className="input-field" value={explanation} onChange={e => setExplanation(e.target.value)} required />
+            </div>
+          </>
+        )}
+
+        <div className="submission-wizard__field">
+          <label className="submission-wizard__label">Premium Change ($)</label>
+          <input
+            type="text"
+            className="input-field"
+            value={premiumChange}
+            onChange={e => setPremiumChange(e.target.value)}
+            placeholder="0.00 (signed; negative for refund)"
+          />
+        </div>
+
+        <div className="submission-wizard__field">
+          <label className="submission-wizard__label">Tax Change ($) — E&S only</label>
+          <input
+            type="text"
+            className="input-field"
+            value={taxChange}
+            onChange={e => setTaxChange(e.target.value)}
+            placeholder="0.00"
+          />
+        </div>
+
+        <div className="submission-wizard__field">
+          <label className="submission-wizard__label">Description</label>
+          <input
+            type="text"
+            className="input-field"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Short description for the audit trail"
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => router.push(`/policies/${pid}`)}
+            disabled={busy}
+          >
+            Cancel
+          </button>
+          <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
+            {busy ? "Issuing…" : "Issue Endorsement"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

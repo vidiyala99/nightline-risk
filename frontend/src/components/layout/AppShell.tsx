@@ -59,6 +59,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
     { href: `/dashboard${venueQuery}`, label: "The Book", icon: LayoutDashboard },
     { href: "/venues", label: "Venues", icon: Building2, roles: ["broker", "admin", "venue_operator"] },
     { href: "/submissions", label: "Submissions", icon: FileSearch, roles: ["broker", "admin"] },
+    { href: "/policies", label: "Policies", icon: FileSpreadsheet, roles: ["broker", "admin"] },
     ...(role === "venue_operator" && contextVenueId
       ? [{ href: `/terminal/${contextVenueId}`, label: "Live Terminal", icon: Activity } as Item]
       : []),
