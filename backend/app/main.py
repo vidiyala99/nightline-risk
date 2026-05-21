@@ -172,6 +172,12 @@ async def lifespan(app: FastAPI):
                 session.add(existing)
         session.commit()
 
+        # Seed broker-platform reference data (Carrier + CoverageLine).
+        # Idempotent — inserts missing rows by id, leaves existing rows alone.
+        from app.seed_carriers import seed_broker_platform_data
+        seed_broker_platform_data(session)
+        session.commit()
+
         # Seed demo users
         for demo in DEMO_USERS:
             if not session.get(UserRecord, demo["id"]):

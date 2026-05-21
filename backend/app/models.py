@@ -1,7 +1,10 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional
 from datetime import datetime
-from sqlalchemy import Column, JSON
+from decimal import Decimal
+from sqlalchemy import Column, JSON, Numeric
+
+from app.time import now_utc
 
 class UserRecord(SQLModel, table=True):
     id: str = Field(primary_key=True)
@@ -234,3 +237,89 @@ class AuditEvent(SQLModel, table=True):
     event_type: str
     event_metadata: dict = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CameraFeed(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    venue_id: str = Field(foreign_key="venue.id", index=True)
+    zone: str  # entrance | bar | dance_floor | exit | other
+    rtsp_url: str  # store as-is for MVP; encrypt at rest in production
+    enabled: bool = Field(default=True)
+    sample_interval_seconds: int = Field(default=8)  # how often to sample a frame
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AlertEvent(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    venue_id: str = Field(foreign_key="venue.id", index=True)
+    camera_id: str = Field(foreign_key="camerafeed.id", index=True)
+    zone: str
+    event_type: str   # altercation | crowd_crush | person_down | weapon | other
+    severity: str     # critical | high | medium | low
+    confidence: float
+    frame_count: int = Field(default=1)  # consecutive frames that triggered this
+    alerted: bool = Field(default=False)  # whether a push notification was sent
+    feedback: Optional[str] = Field(default=None)  # false_alarm | confirmed | None
+    description: str = Field(default="")
+    detected_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class PushSubscription(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    user_id: str = Field(foreign_key="userrecord.id", index=True)
+    endpoint: str
+    p256dh: str   # public key
+    auth: str     # auth secret
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# ─── Broker Platform — Phase 1 (Placement) ────────────────────────────────
+# The broker-platform tables build on the existing claim/incident schema.
+# All money is Decimal stored as Numeric(12,2). Money inside JSON columns
+# is stored via app.money.usd_to_json / json_to_usd as strings — JSON's
+# native float type silently corrupts cent precision. Timestamps use
+# app.time.now_utc (not datetime.utcnow, which is deprecated). See the
+# broker-platform build plan for the architectural context.
+
+
+class Carrier(SQLModel, table=True):
+    """An insurance company that writes paper. Surplus lines tax is NOT on
+    this table — it's a per-state rate (NY = 3.76%), constant for all E&S
+    carriers writing in that state. See app/underwriting/pricing.py for
+    the NY_SURPLUS_LINES_TAX constant; promote to a StateTaxRule table
+    when the brokerage expands beyond NY."""
+    id: str = Field(primary_key=True)              # e.g. "markel-specialty"
+    name: str                                       # "Markel Specialty"
+    market_type: str = Field(index=True)            # "admitted" | "e&s"
+    naic_code: Optional[str] = None                 # NAIC carrier registry id
+    appetite: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    # appetite shape:
+    # {"venue_types": ["dive_bar","music_venue"],
+    #  "max_capacity": 1500,
+    #  "coverage_lines": ["gl","liquor","epli","property"]}
+    am_best_rating: Optional[str] = None            # "A" | "A-" | "B++" etc.
+    contact_email: Optional[str] = None
+    submission_portal_url: Optional[str] = None
+    created_at: datetime = Field(default_factory=now_utc)
+
+
+class CoverageLine(SQLModel, table=True):
+    """A standardized coverage product. GL = General Liability, etc.
+
+    Limits are TWO numbers, not one: per-occurrence (max payout for a single
+    claim) and aggregate (max total across the policy term). Some lines
+    (property) only have per-occurrence; aggregate is then NULL."""
+    id: str = Field(primary_key=True)               # "gl" | "liquor" | "epli" ...
+    name: str                                        # "General Liability"
+    iso_code: Optional[str] = None                   # carrier rating classification
+    description: str
+    is_required_by_default: bool = False             # GL + WC are usually required
+    default_per_occurrence_limit: Decimal = Field(
+        sa_column=Column(Numeric(12, 2), nullable=False)
+    )
+    default_aggregate_limit: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(12, 2), nullable=True)
+    )
+    default_deductible: Decimal = Field(
+        default=Decimal("0.00"), sa_column=Column(Numeric(12, 2), nullable=False)
+    )
