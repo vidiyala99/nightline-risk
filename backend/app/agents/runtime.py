@@ -8,7 +8,7 @@ from app.providers import (
     get_default_provider,
     get_default_risk_classifier,
 )
-from app.schemas import ActionItem, Citation, IncidentCreate, RiskSignal, TimelineEvent, UnderwritingMemo
+from app.schemas import ActionItem, Citation, ClaimsTimelineMeta, IncidentCreate, RiskSignal, TimelineEvent, UnderwritingMemo
 
 
 CONTRACT_VERSION = "2026-05-03"
@@ -39,6 +39,7 @@ class UnderwritingPacketAgentResult:
     risk_signal: RiskSignal
     action_plan: list[ActionItem]
     claims_timeline: list[TimelineEvent]
+    claims_timeline_meta: ClaimsTimelineMeta
     underwriting_memo: UnderwritingMemo
     execution_trace: list[AgentExecutionStep]
 
@@ -86,7 +87,7 @@ class UnderwritingPacketAgentRuntime:
         action_plan = self._run_customer_action_agent(incident=incident, risk_signal=risk_signal)
         trace.append(self._trace_step("customer_action_agent", contracts))
 
-        claims_timeline = self._run_claims_timeline_agent(
+        claims_timeline, claims_timeline_meta = self._run_claims_timeline_agent(
             venue_id=venue_id,
             incident=incident,
             stream_events=stream_events,
@@ -105,6 +106,7 @@ class UnderwritingPacketAgentRuntime:
             risk_signal=risk_signal,
             action_plan=action_plan,
             claims_timeline=claims_timeline,
+            claims_timeline_meta=claims_timeline_meta,
             underwriting_memo=underwriting_memo,
             execution_trace=trace,
         )
@@ -425,20 +427,148 @@ class UnderwritingPacketAgentRuntime:
         venue_id: str,
         incident: IncidentCreate,
         stream_events: list[dict],
-    ) -> list[TimelineEvent]:
-        claims_timeline = [
+    ) -> tuple[list[TimelineEvent], ClaimsTimelineMeta]:
+        """Reconstruct an ordered chronology AND characterize it.
+
+        Returns the event list (unchanged shape for backwards compat) plus a
+        ClaimsTimelineMeta carrying gaps, defensibility_notes, review_status
+        — the fields the contract describes that were previously ignored.
+        """
+        venue_events = [e for e in stream_events if e.get("venue_id") == venue_id]
+
+        timeline: list[TimelineEvent] = [
             TimelineEvent(at=event["at"], label=event["label"], source=event["source_id"])
-            for event in stream_events
-            if event["venue_id"] == venue_id
+            for event in venue_events
         ]
-        claims_timeline.append(
+        timeline.append(
             TimelineEvent(
                 at=incident.occurred_at,
                 label=f"Incident logged by {incident.reported_by}: {incident.summary}",
                 source="venue:incident-report",
             )
         )
-        return claims_timeline
+
+        meta = self._reconstruct_timeline_meta(incident=incident, venue_events=venue_events)
+        return timeline, meta
+
+    @staticmethod
+    def _reconstruct_timeline_meta(
+        *,
+        incident: IncidentCreate,
+        venue_events: list[dict],
+    ) -> ClaimsTimelineMeta:
+        """Compute gaps + defensibility + review_status. Pure function over
+        the venue-filtered stream events + the incident report."""
+        from datetime import datetime, timedelta
+
+        def _parse(ts: str):
+            if not ts:
+                return None
+            try:
+                return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+
+        incident_at = _parse(incident.occurred_at)
+        if incident_at is None:
+            # Contract: blocked if the reported incident can't be anchored in time.
+            return ClaimsTimelineMeta(
+                gaps=["Incident report has no parseable timestamp."],
+                defensibility_notes=["Cannot reconstruct chronology without an incident time."],
+                review_status="blocked",
+            )
+
+        parsed_events = [(_parse(e.get("at", "")), e) for e in venue_events]
+        # Drop events with unparseable timestamps but flag them as a gap.
+        unparseable = sum(1 for ts, _ in parsed_events if ts is None)
+        valid = [(ts, e) for ts, e in parsed_events if ts is not None]
+
+        before = [(ts, e) for ts, e in valid if ts < incident_at]
+        after = [(ts, e) for ts, e in valid if ts > incident_at]
+
+        # ─── Gaps ─────────────────────────────────────────────────────────
+        gaps: list[str] = []
+        if not before:
+            gaps.append("No pre-incident telemetry: nothing in the venue's event stream before the reported time.")
+        if not after:
+            gaps.append("No post-incident telemetry: no follow-up events from cameras, POS, or door-count.")
+
+        # 30-min capacity blind spot
+        window_start = incident_at - timedelta(minutes=30)
+        capacity_in_window = [
+            (ts, e) for ts, e in valid
+            if window_start <= ts <= incident_at and "door" in e.get("source_id", "").lower()
+        ]
+        if not capacity_in_window:
+            gaps.append("Capacity blind spot: no door-count reading in the 30 minutes leading up to the incident.")
+
+        # Camera coverage at incident time
+        camera_near_incident = [
+            (ts, e) for ts, e in valid
+            if abs((ts - incident_at).total_seconds()) <= 600 and "camera" in e.get("source_id", "").lower()
+        ]
+        if not camera_near_incident and valid:
+            gaps.append("No camera coverage within ±10 minutes of the incident; visual corroboration unavailable.")
+
+        if unparseable:
+            gaps.append(
+                f"{unparseable} stream event(s) had unparseable timestamps and were excluded from the chronology."
+            )
+
+        # ─── Defensibility scoring ────────────────────────────────────────
+        # Count distinct source families ("door", "pos", "camera", ...)
+        source_families: set[str] = set()
+        for _, e in valid:
+            sid = e.get("source_id", "")
+            family = sid.split(":")[1].split("-")[0] if ":" in sid else sid
+            source_families.add(family.lower())
+
+        # Hard signals on the report itself widen evidence ask (and weaken the
+        # 'operator-only narrative' case even if no streams exist).
+        hard_signals = sum([incident.injury_observed, incident.police_called, incident.ems_called])
+
+        defensibility_notes: list[str] = []
+        if len(source_families) >= 3:
+            defensibility_notes.append(
+                f"Strong defensibility: chronology corroborated by {len(source_families)} independent source types "
+                f"({', '.join(sorted(source_families))})."
+            )
+        elif len(source_families) == 2:
+            defensibility_notes.append(
+                f"Moderate defensibility: corroborated by 2 source types ({', '.join(sorted(source_families))}). "
+                "A third independent source would harden the timeline."
+            )
+        elif len(source_families) == 1:
+            family = next(iter(source_families))
+            defensibility_notes.append(
+                f"Limited defensibility: only one source type ({family}) backs the timeline outside the operator's account."
+            )
+        else:
+            defensibility_notes.append(
+                "Weak defensibility: only the operator's narrative exists — no independent stream events corroborate the timeline."
+            )
+
+        if hard_signals >= 2:
+            defensibility_notes.append(
+                f"Hard signals ({hard_signals} of injury/police/EMS) require third-party records "
+                "(police report, EMS run sheet, hospital release) to close the evidence gap."
+            )
+
+        # ─── Review status ────────────────────────────────────────────────
+        review_status = "complete"
+        # Weak defensibility OR any gaps -> needs_review
+        if not valid:
+            review_status = "needs_review"
+        elif gaps:
+            review_status = "needs_review"
+        elif len(source_families) < 2 and hard_signals == 0:
+            review_status = "needs_review"
+
+        return ClaimsTimelineMeta(
+            gaps=gaps,
+            defensibility_notes=defensibility_notes,
+            review_status=review_status,
+        )
 
     def _run_underwriter_memo_agent(
         self,

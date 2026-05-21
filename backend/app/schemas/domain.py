@@ -54,6 +54,17 @@ class TimelineEvent(BaseModel):
     label: str
     source: str
 
+class ClaimsTimelineMeta(BaseModel):
+    """Summary of the reconstructed timeline — answers the questions the
+    underwriter would otherwise have to compute manually:
+      - what's missing (gaps)
+      - how trustworthy the chronology is (defensibility_notes)
+      - can this be auto-finalized or does a human need to look (review_status)
+    """
+    gaps: List[str] = []
+    defensibility_notes: List[str] = []
+    review_status: str = "needs_review"  # complete | needs_review | blocked
+
 class UnderwritingMemo(BaseModel):
     summary: str
     open_questions: List[str]
@@ -88,6 +99,7 @@ class IncidentFlowResponse(BaseModel):
     risk_signal: RiskSignal
     action_plan: List[ActionItem]
     claims_timeline: List[TimelineEvent]
+    claims_timeline_meta: Optional[ClaimsTimelineMeta] = None
     underwriting_memo: UnderwritingMemo
 
 class StreamEvent(BaseModel):

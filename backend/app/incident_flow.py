@@ -81,5 +81,6 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
         risk_signal=agent_result.risk_signal,
         action_plan=agent_result.action_plan,
         claims_timeline=agent_result.claims_timeline,
+        claims_timeline_meta=agent_result.claims_timeline_meta,
         underwriting_memo=agent_result.underwriting_memo,
     )
