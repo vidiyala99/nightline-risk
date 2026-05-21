@@ -323,3 +323,78 @@ class CoverageLine(SQLModel, table=True):
     default_deductible: Decimal = Field(
         default=Decimal("0.00"), sa_column=Column(Numeric(12, 2), nullable=False)
     )
+
+
+from datetime import date  # noqa: E402  (importing here keeps section-local)
+
+
+class Submission(SQLModel, table=True):
+    """A broker's attempt to place coverage for one venue. The lifecycle
+    is enforced by app.lifecycles.SUBMISSION_TRANSITIONS — direct status
+    column writes are an anti-pattern; use `transition_submission()`
+    in services/submissions.py."""
+    id: str = Field(primary_key=True)               # "sub-<uuid12>"
+    venue_id: str = Field(foreign_key="venue.id", index=True)
+    assigned_producer_id: Optional[str] = Field(
+        default=None, foreign_key="userrecord.id", index=True
+    )
+    status: str = Field(default="open", index=True)
+    # See app.lifecycles.SubmissionStatus for the closed enum and
+    # SUBMISSION_TRANSITIONS for the allowed transitions.
+    effective_date: date                             # desired policy start
+    coverage_lines: list = Field(default_factory=list, sa_column=Column(JSON))
+    # ["gl","liquor","epli"] etc — references CoverageLine.id
+    requested_limits: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    # Shape per line — money fields stored as STRINGS via app.money.usd_to_json:
+    # {"gl": {"per_occurrence": "1000000", "aggregate": "2000000", "deductible": "5000"}}
+    prior_policy_id: Optional[str] = Field(default=None)
+    # FK to policy.id once that table exists; populated on renewals so the
+    # YoY context view can show prior-year terms.
+    notes: str = ""
+    submitted_at: Optional[datetime] = None          # when it went in_market
+    bound_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
+
+
+class CarrierQuote(SQLModel, table=True):
+    """One carrier's offer (or decline) for one Submission. A Submission can
+    have many quotes; exactly one becomes 'bound' if the submission binds."""
+    id: str = Field(primary_key=True)               # "q-<uuid12>"
+    submission_id: str = Field(foreign_key="submission.id", index=True)
+    carrier_id: str = Field(foreign_key="carrier.id", index=True)
+    status: str = Field(default="requested", index=True)
+    # See app.lifecycles.QuoteStatus + QUOTE_TRANSITIONS.
+
+    # is_selected marks the broker's recommended pick — separate from
+    # status='bound' which is the post-bind terminal state. A submission
+    # in 'quoting' state can have one is_selected=True quote even before
+    # the bind operation runs.
+    is_selected: bool = False
+
+    requested_at: datetime = Field(default_factory=now_utc)
+    responded_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    decline_reason: Optional[str] = None             # populated when status=declined
+
+    premium_breakdown: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    # All money in this JSON column stored as STRINGS via app.money.usd_to_json.
+    # Shape:
+    # {"lines": {"gl": {"base":"5500.00","tier_multiplier":"0.7","premium":"3850.00"},
+    #            "liquor": {...}},
+    #  "fees": {"policy_fee":"150.00","surplus_lines_tax":"144.84"},
+    #  "subtotal": "5500.00", "total": "5894.84",
+    #  "commission_rate": "0.15", "commission_amount": "884.23"}
+    coverage_terms: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    # Per-line limits, deductibles, sublimits, exclusions:
+    # {"gl": {"per_occurrence":"1000000","aggregate":"2000000","deductible":"2500",
+    #         "exclusions": ["AssaultAndBattery"]}, ...}
+
+    inputs_snapshot: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    # Frozen copy of the risk_score, loss_run id, and venue features at
+    # quote time. Required so Phase 7's `derive_premium_explanation` can
+    # REPRODUCE the quote's math months later even when the underlying
+    # risk score has since changed.
+
+    underwriter_name: Optional[str] = None           # the human at the carrier
+    quote_pdf_path: Optional[str] = None             # uploaded carrier quote (blob storage)
