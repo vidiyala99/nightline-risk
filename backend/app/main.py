@@ -252,6 +252,9 @@ app.include_router(ingestion_router, prefix="/api/v1", tags=["ingestion"])
 from app.api.v1.placement import router as placement_router  # noqa: E402
 app.include_router(placement_router, prefix="/api", tags=["placement"])
 
+from app.api.v1.policies import router as policies_router  # noqa: E402
+app.include_router(policies_router, prefix="/api", tags=["policies"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
