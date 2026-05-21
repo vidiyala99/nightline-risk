@@ -49,8 +49,24 @@ interface Packet {
   risk_signals: { type?: string; severity?: string; confidence?: number; explanation?: string };
   action_plan: Array<{ title: string; rationale: string; evidence_needed: string[] }>;
   claims_timeline: Array<{ at: string; label: string; source: string }>;
-  memo: { summary?: string; open_questions?: string[]; review_status?: string };
+  memo: {
+    summary?: string;
+    open_questions?: string[];
+    review_status?: string;
+    // Provenance: set by the memo provider so an underwriter can see whether
+    // the prose they're reading is real LLM output or a deterministic template.
+    provider?: string;        // e.g. "anthropic", "google", "deterministic"
+    model?: string;           // e.g. "claude-haiku-4-5-20251001"
+    fallback_reason?: string | null;  // populated when the primary LLM failed
+  };
   citation_ids: string[];
+  // validation: surfaced for rubric_failures, which signal that one or more
+  // packet-creation gates fired (missing citations, invalid sources, etc.).
+  validation?: {
+    citation_count?: number;
+    invalid_count?: number;
+    rubric_failures?: string[];
+  };
   generated_at: string;
   claim_recommendation?: ClaimRecommendation;
   claim_proposal?: ClaimProposal | null;
@@ -309,7 +325,88 @@ export default function ReportDetailPage() {
 
           <section className="card">
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Underwriting Memo</h2>
+
+            {/* Transparency: warn whenever the prose came from the deterministic
+                template rather than a real LLM call. Two cases trigger this:
+                  1) The configured LLM provider failed at runtime → fallback_reason
+                     is set with the failure reason (anthropic_provider.py etc.).
+                  2) No LLM keys were configured at all → provider is reported as
+                     "deterministic" / "deterministic-v1" and fallback_reason is null.
+                Both look identical to the underwriter; both deserve the same warning. */}
+            {(() => {
+              const provider = packet.memo?.provider ?? "";
+              const isDeterministic = provider.toLowerCase().startsWith("deterministic");
+              const fallbackReason = packet.memo?.fallback_reason;
+              if (!isDeterministic && !fallbackReason) return null;
+              return (
+                <div
+                  className="mb-lg"
+                  style={{
+                    background: "rgba(245,158,11,0.10)",
+                    border: "1px solid rgba(245,158,11,0.30)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "var(--space-md)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--space-xs)",
+                  }}
+                  data-testid="memo-fallback-banner"
+                >
+                  <div className="text-xs uppercase tracking-wide" style={{ color: "var(--tier-c)", fontWeight: 600 }}>
+                    ⚠ Template-generated — not from an LLM
+                  </div>
+                  <div className="text-xs text-secondary">
+                    This memo was produced by the deterministic template, not a language model.
+                    Treat the prose as a structured placeholder, not analysis.
+                  </div>
+                  <div className="text-xs" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>
+                    {fallbackReason
+                      ? `Reason: ${fallbackReason}`
+                      : `Provider: ${provider || "deterministic"} (no LLM configured)`}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Rubric gates that fired during packet creation. The default rubric
+                enforces requires_citations; richer rubrics can require minimum
+                counts, reject invalid citations, or ban prohibited fields. */}
+            {(packet.validation?.rubric_failures?.length ?? 0) > 0 ? (
+              <div
+                className="mb-lg"
+                style={{
+                  background: "rgba(244,63,94,0.10)",
+                  border: "1px solid rgba(244,63,94,0.30)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "var(--space-md)",
+                }}
+                data-testid="rubric-failures-banner"
+              >
+                <div className="text-xs uppercase tracking-wide mb-sm" style={{ color: "var(--tier-d)", fontWeight: 600 }}>
+                  ⚠ Rubric gate{packet.validation!.rubric_failures!.length === 1 ? "" : "s"} failed
+                </div>
+                <ul className="text-xs text-secondary" style={{ listStyle: "disc", paddingLeft: "var(--space-lg)", margin: 0 }}>
+                  {packet.validation!.rubric_failures!.map((f, i) => (
+                    <li key={i} style={{ fontFamily: "var(--font-mono)", marginBottom: 2 }}>{f}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <p className="text-sm leading-relaxed mb-lg">{packet.memo?.summary ?? "No memo available."}</p>
+
+            {/* Provenance caption: only shown when the memo IS from an LLM. The
+                deterministic / fallback case is covered by the warning banner above. */}
+            {(() => {
+              const provider = packet.memo?.provider ?? "";
+              const isDeterministic = provider.toLowerCase().startsWith("deterministic");
+              if (isDeterministic || packet.memo?.fallback_reason || !provider) return null;
+              return (
+                <div className="text-xs mb-lg" style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }} data-testid="memo-provenance">
+                  Generated by {provider}{packet.memo?.model ? ` · ${packet.memo.model}` : ""}
+                </div>
+              );
+            })()}
             {(packet.memo?.open_questions?.length ?? 0) > 0 && (
               <div>
                 <p className="text-xs uppercase tracking-wide text-secondary mb-md">Open Questions</p>
