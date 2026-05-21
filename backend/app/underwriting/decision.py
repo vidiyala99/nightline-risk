@@ -1,5 +1,5 @@
 """
-Third Space Risk - Coverage Decision Engine
+Nightline Risk - Coverage Decision Engine
 
 Determines coverage approval based on risk tier:
 - A/B: Auto-approve

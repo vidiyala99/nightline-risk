@@ -1,5 +1,5 @@
 """
-Third Space Risk - Premium Calculator
+Nightline Risk - Premium Calculator
 
 Calculates premium quotes based on venue type and risk tier.
 Supports both annual and monthly billing options.
@@ -200,12 +200,12 @@ class PremiumCalculator:
         )
 
     def _market_rate(self, base_rate: Decimal) -> Decimal:
-        """Market rate = what a comparable venue pays without Third Space
+        """Market rate = what a comparable venue pays without Nightline
         intelligence (Tier B = 1.0x). Cent-quantized."""
         return usd(base_rate * self.TIER_MULTIPLIERS["B"])
 
     def _annual_premium(self, base_rate: Decimal, tier: str) -> Decimal:
-        """Third Space rate = risk-adjusted with our intelligence. Cent-quantized.
+        """Nightline rate = risk-adjusted with our intelligence. Cent-quantized.
         Unknown tier falls back to 1.0x (matching legacy `.get(tier, 1.0)`)."""
         multiplier = self.TIER_MULTIPLIERS.get(tier, Decimal("1.0"))
         return usd(base_rate * multiplier)
@@ -218,7 +218,7 @@ class PremiumCalculator:
         return usd((annual_premium / Decimal("12")) * self.MONTHLY_FEE)
 
     def _savings_annual(self, market: Decimal, annual: Decimal) -> Decimal:
-        """Signed: positive when Third Space saves the venue money,
+        """Signed: positive when Nightline saves the venue money,
         negative for tiers worse than B. Cent-quantized."""
         return usd(market - annual)
 

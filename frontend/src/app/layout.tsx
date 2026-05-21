@@ -9,7 +9,7 @@ const cormorant = Cormorant_Garamond({ subsets: ['latin'], variable: '--font-cor
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono', weight: ['400', '500'] });
 
 export const metadata = {
-  title: "Third Space Risk OS",
+  title: "Nightline Risk OS",
   description: "Evidence-first underwriting for nightlife venues.",
 };
 

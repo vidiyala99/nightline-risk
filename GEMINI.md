@@ -1,7 +1,7 @@
-# Third Space Risk - Project Configuration
+# Nightline Risk - Project Configuration
 
 ## Project Overview
-Third Space Risk is a local demo of an underwriting and claims-defensibility workflow for venues. The current product slice turns a synthetic venue brawl incident into a cited underwriting packet with risk signal, customer actions, claims timeline, and underwriter memo.
+Nightline Risk is a local demo of an underwriting and claims-defensibility workflow for venues. The current product slice turns a synthetic venue brawl incident into a cited underwriting packet with risk signal, customer actions, claims timeline, and underwriter memo.
 
 The application architecture includes:
 - **Backend:** Python application using FastAPI, SQLModel, SQLite, and agent orchestration. It contains dependencies for AI integration (`google-generativeai`, `instructor`, `chromadb`).

@@ -993,7 +993,7 @@ Find the existing sidebar `<aside>` render (search for `className="lc-sidebar"` 
     <div className="app-sidebar__logo"><span className="app-sidebar__logo-mark">T</span></div>
     {variant !== "rail" && (
       <div>
-        <div className="app-sidebar__wordmark">Third Space</div>
+        <div className="app-sidebar__wordmark">Nightline</div>
         <div className="app-sidebar__wordmark-sub">Risk OS</div>
       </div>
     )}
@@ -1061,7 +1061,7 @@ The page should render with this structure (adapt to existing form logic):
       <span className="app-sidebar__logo-mark" style={{ fontSize: 14 }}>T</span>
     </div>
     <div>
-      <div style={{ color: "var(--text-primary)", fontSize: 14, fontWeight: 600 }}>Third Space</div>
+      <div style={{ color: "var(--text-primary)", fontSize: 14, fontWeight: 600 }}>Nightline</div>
       <div style={{ color: "var(--text-secondary)", fontSize: 11 }}>Risk OS</div>
     </div>
   </div>
@@ -1072,7 +1072,7 @@ The page should render with this structure (adapt to existing form logic):
   </div>
   <div className="login-shell__quote">
     <p>"Keep cultural businesses alive."</p>
-    <span>Third Space · Backed by a16z SpeedRun &amp; Dorm Room Fund</span>
+    <span>Nightline · Backed by a16z SpeedRun &amp; Dorm Room Fund</span>
   </div>
 </div>
 ```

@@ -1,9 +1,9 @@
-# Third Space Risk OS
+# Nightline Risk OS
 
-[![CI](https://github.com/vidiyala99/ThirdSpaceRisk/actions/workflows/ci.yml/badge.svg)](https://github.com/vidiyala99/ThirdSpaceRisk/actions/workflows/ci.yml)
-[![E2E](https://github.com/vidiyala99/ThirdSpaceRisk/actions/workflows/e2e.yml/badge.svg)](https://github.com/vidiyala99/ThirdSpaceRisk/actions/workflows/e2e.yml)
+[![CI](https://github.com/vidiyala99/nightline-risk/actions/workflows/ci.yml/badge.svg)](https://github.com/vidiyala99/nightline-risk/actions/workflows/ci.yml)
+[![E2E](https://github.com/vidiyala99/nightline-risk/actions/workflows/e2e.yml/badge.svg)](https://github.com/vidiyala99/nightline-risk/actions/workflows/e2e.yml)
 
-Evidence-first underwriting infrastructure for nightlife venues. Built as a working prototype of what Third Space's core platform could look like.
+Evidence-first underwriting infrastructure for nightlife venues. Built as a working prototype of what Nightline's core platform could look like.
 
 **Live demo:** https://frontend-mu-ebon-n3x8uw2rpx.vercel.app  
 **Mobile walkthrough:** https://drive.google.com/file/d/1UaMGv5HxK811FAFx8cNE9l1x2IPFVuuI/view?usp=sharing  
@@ -55,7 +55,7 @@ Live camera feed (Phase 3)
 
 | Role | Email | Password |
 |------|-------|----------|
-| Broker | broker@thirdspace.risk | demo123 |
+| Broker | broker@nightline.risk | demo123 |
 | Venue Operator | venue@elsewhere.com | demo123 |
 
 Or create a new account via **Sign Up / Create Account** on the login screen (web + mobile). New venue operators get a blank dashboard and walk through venue setup on first login.

@@ -11,7 +11,7 @@ class SourceType(str, Enum):
     IOT = "iot"
 
 class BaseEvent(BaseModel):
-    """The universal header for every signal entering the Third Space Risk Engine."""
+    """The universal header for every signal entering the Nightline Risk Engine."""
     event_id: UUID = Field(default_factory=uuid4, description="Unique identifier for the event")
     venue_id: str = Field(..., description="The unique ID of the venue (e.g., elsewhere-brooklyn)")
     source_type: SourceType = Field(..., description="The type of data source")

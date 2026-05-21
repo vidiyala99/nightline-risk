@@ -1,8 +1,8 @@
-# Third Space Risk OS - Frontend Redesign Implementation Plan
+# Nightline Risk OS - Frontend Redesign Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Redesign the Third Space Risk OS frontend with a dual-aesthetic approach: "Editorial / Nightlife Glamour" for venues and "Industrial / Mission Control" for underwriters.
+**Goal:** Redesign the Nightline Risk OS frontend with a dual-aesthetic approach: "Editorial / Nightlife Glamour" for venues and "Industrial / Mission Control" for underwriters.
 
 **Architecture:** We will update the global CSS variables and structures in `src/app/styles.css` to establish the new design system. We will then refactor the main layout (`src/components/layout/`), the venue dashboard (`src/app/dashboard/page.tsx`), and the underwriter workbench (`src/app/underwriter/page.tsx`) to implement the distinct aesthetics while sharing core typography and layout primitives.
 
@@ -23,7 +23,7 @@ Update the `:root` variables in `frontend/src/app/styles.css` to establish the "
 /* In frontend/src/app/styles.css, replace the :root section with the following: */
 :root {
   /* ============================================
-     THIRD SPACE RISK OS DESIGN SYSTEM
+     NIGHTLINE RISK OS DESIGN SYSTEM
      Midnight & Neon + Industrial Grids
      ============================================ */
   color-scheme: dark;
@@ -226,7 +226,7 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono' })
 
 export const metadata: Metadata = {
-  title: 'Third Space Risk OS',
+  title: 'Nightline Risk OS',
   description: 'Underwriting and Risk Management for Nightlife',
 }
 

@@ -72,7 +72,7 @@ def _build_vision_prompt(
     is_video: bool,
 ) -> str:
     media = "video" if is_video else "image"
-    return f"""You are a vision analyst for Third Space Risk, an underwriting system for nightlife venues.
+    return f"""You are a vision analyst for Nightline Risk, an underwriting system for nightlife venues.
 Analyze this {media} from a venue incident report and return structured findings.
 
 Incident report:

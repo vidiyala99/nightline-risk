@@ -12,7 +12,7 @@ TOKEN_EXPIRE_SECONDS = 24 * 3600
 DEMO_USERS = [
     {
         "id": "user_001",
-        "email": "broker@thirdspace.risk",
+        "email": "broker@nightline.risk",
         "name": "Alex Chen",
         "role": "broker",
         "tenant_id": None,

@@ -224,7 +224,7 @@ export default function EvalsPage() {
           motivate the next LLM provider uplift.
         </p>
         <p style={{ color: "var(--text-tertiary)", fontSize: "0.875rem" }}>
-          See <a href="https://github.com/Aakash-Vidiyala/ThirdSpaceRisk/blob/main/docs/evals/README.md" style={linkStyle} target="_blank" rel="noopener noreferrer">methodology doc</a>{" "}
+          See <a href="https://github.com/Aakash-Vidiyala/NightlineRisk/blob/main/docs/evals/README.md" style={linkStyle} target="_blank" rel="noopener noreferrer">methodology doc</a>{" "}
           for the 8 guardrails, scorer reference, baseline gating rules, and findings ledger
           linking each failure to its root cause classification (agent-gap / gold-error /
           known-limit / safety).

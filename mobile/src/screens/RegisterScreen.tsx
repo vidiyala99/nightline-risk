@@ -162,7 +162,7 @@ export function RegisterScreen({ navigation }: Props) {
                 <Text style={[styles.roleBtnLabel, role === 'broker' && styles.roleBtnLabelActive]}>
                   BROKER
                 </Text>
-                <Text style={styles.roleBtnSub}>ThirdSpace Risk</Text>
+                <Text style={styles.roleBtnSub}>Nightline Risk</Text>
               </Pressable>
             </View>
           </View>

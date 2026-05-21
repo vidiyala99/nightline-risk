@@ -70,7 +70,7 @@ export default function LoginPage() {
         <Link href="/" className="lc-login__brand">
           <span className="lc-login__logo"><Building2 size={20} /></span>
           <span>
-            <strong>Third Space</strong>
+            <strong>Nightline</strong>
             <em>Risk OS</em>
           </span>
         </Link>
@@ -172,7 +172,7 @@ export default function LoginPage() {
                 className="lc-login__demo-btn"
                 data-tone="lime"
                 disabled={loading}
-                onClick={() => performSignIn({ email: "broker@thirdspace.risk", password: "demo123" })}
+                onClick={() => performSignIn({ email: "broker@nightline.risk", password: "demo123" })}
               >
                 Broker portfolio <ArrowRight size={13} />
               </button>
@@ -186,7 +186,7 @@ export default function LoginPage() {
 
         <div className="lc-login__quote">
           <p>&ldquo;Keep cultural businesses alive.&rdquo;</p>
-          <span>Third Space · Backed by a16z SpeedRun &amp; Dorm Room Fund</span>
+          <span>Nightline · Backed by a16z SpeedRun &amp; Dorm Room Fund</span>
         </div>
       </div>
     </div>

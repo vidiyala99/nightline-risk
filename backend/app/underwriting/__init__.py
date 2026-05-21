@@ -1,5 +1,5 @@
 """
-Third Space Risk - Underwriting Module
+Nightline Risk - Underwriting Module
 
 Exports risk scoring, premium calculation, and coverage decision functions.
 """

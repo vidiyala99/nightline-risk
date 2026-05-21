@@ -237,7 +237,7 @@ export function DashboardScreen({ navigation }: any) {
       {/* Savings hero */}
       {quoteData && (quoteData.savings_annual ?? 0) > 0 && (
         <View style={styles.savingsCard}>
-          <Text style={styles.savingsEyebrow}>THIRD SPACE SAVES YOU</Text>
+          <Text style={styles.savingsEyebrow}>NIGHTLINE SAVES YOU</Text>
           <Text style={styles.savingsAmount}>
             ${(quoteData.savings_annual ?? 0).toLocaleString()}
             <Text style={styles.savingsPerYear}>/yr</Text>

@@ -126,8 +126,8 @@ export default function SettingsPage() {
           <div className="team-list mb-lg">
             {[
               { name: user?.name ?? "You", email: user?.email ?? "", role: "Admin", isYou: true },
-              { name: "Alex Rivera", email: "alex@thirdspace.risk", role: "Underwriter", isYou: false },
-              { name: "Sam Patel", email: "sam@thirdspace.risk", role: "Claims Lead", isYou: false },
+              { name: "Alex Rivera", email: "alex@nightline.risk", role: "Underwriter", isYou: false },
+              { name: "Sam Patel", email: "sam@nightline.risk", role: "Claims Lead", isYou: false },
             ].map((member) => (
               <div key={member.email} className="team-member">
                 <div className="team-avatar">{member.name[0]}</div>

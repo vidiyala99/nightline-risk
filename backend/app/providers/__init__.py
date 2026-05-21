@@ -1,5 +1,5 @@
 """
-Third Space Risk — LLM Provider Abstraction Layer
+Nightline Risk — LLM Provider Abstraction Layer
 
 Providers sit at the agent boundary. Swapping providers requires only changing
 the one returned by get_default_provider — the packet builder, citation

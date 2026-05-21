@@ -1,4 +1,4 @@
-# Third Space Risk Engine: Architecture Spec
+# Nightline Risk Engine: Architecture Spec
 
 **Date:** 2026-05-05  
 **Version:** v1.0  
@@ -9,9 +9,9 @@
 
 ## 1. Executive Summary
 
-Third Space is a new kind of AI-powered insurance broker for real-world businesses, starting with nightlife venues: bars, clubs, and music venues. The company is attacking the affordability crisis facing cultural businesses by using operational evidence to improve underwriting and defend against the lawsuits that drive premium hikes.
+Nightline is a new kind of AI-powered insurance broker for real-world businesses, starting with nightlife venues: bars, clubs, and music venues. The company is attacking the affordability crisis facing cultural businesses by using operational evidence to improve underwriting and defend against the lawsuits that drive premium hikes.
 
-The Third Space Risk Engine turns venue operational data into cited underwriting packets and claims-defense records. The product goal is not to replace underwriters with an autonomous model. The goal is to give an underwriter a defensible packet that explains what happened, which evidence supports each risk signal, which rubric version was applied, and what decision the human reviewer made.
+The Nightline Risk Engine turns venue operational data into cited underwriting packets and claims-defense records. The product goal is not to replace underwriters with an autonomous model. The goal is to give an underwriter a defensible packet that explains what happened, which evidence supports each risk signal, which rubric version was applied, and what decision the human reviewer made.
 
 The credible v1 product slice is:
 
@@ -22,9 +22,9 @@ This architecture starts from the current deterministic demo and moves toward a 
 
 ### 1.1 Company Context
 
-Third Space's mission is to keep cultural businesses alive by making insurance more affordable and more defensible. The wedge is nightlife because these venues face acute liability pressure, thin operating margins, and fragmented operational records that are hard for carriers and claims teams to evaluate.
+Nightline's mission is to keep cultural businesses alive by making insurance more affordable and more defensible. The wedge is nightlife because these venues face acute liability pressure, thin operating margins, and fragmented operational records that are hard for carriers and claims teams to evaluate.
 
-The company is founded by Dhruv Chopra, former CEO of Elsewhere, and Vinai Rachakonda, a tech lead from Ramp, and is backed by a16z SpeedRun and Dorm Room Fund. That matters architecturally: the system needs to combine operator-grade venue context with fintech-grade auditability. It should serve underwriting and claims defense together, not just produce a risk score.
+Architecturally, the system needs to combine operator-grade venue context with fintech-grade auditability. It should serve underwriting and claims defense together, not just produce a risk score.
 
 ---
 
@@ -381,7 +381,7 @@ Prerequisites:
 
 ### Phase 3: Claims Evidence Vault
 
-Goal: extend the underwriting packet history into claims defensibility so Third Space can help venues and carriers respond to lawsuits with organized, cited operational evidence.
+Goal: extend the underwriting packet history into claims defensibility so Nightline can help venues and carriers respond to lawsuits with organized, cited operational evidence.
 
 Additions:
 

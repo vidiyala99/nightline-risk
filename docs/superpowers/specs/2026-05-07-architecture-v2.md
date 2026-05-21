@@ -1,4 +1,4 @@
-# Third Space Risk Engine: Architecture v2
+# Nightline Risk Engine: Architecture v2
 
 **Date:** 2026-05-07
 **Last Updated:** 2026-05-13 (provider matrix expansion, mobile claims parity, load-bearing eval harness, operator My Reports)
@@ -7,13 +7,13 @@
 **Audience:** Engineering, interview review
 
 > **Live demo:** https://frontend-mu-ebon-n3x8uw2rpx.vercel.app  
-> Broker login: `broker@thirdspace.risk` / `demo123` — Venue operator: `venue@elsewhere.com` / `demo123`
+> Broker login: `broker@nightline.risk` / `demo123` — Venue operator: `venue@elsewhere.com` / `demo123`
 
 ---
 
 ## 1. What This System Does
 
-Third Space is an AI-powered insurance broker for nightlife venues. The Risk Engine turns venue operational data — incident reports, photos, video footage, POS logs, staffing records — into cited underwriting packets that help underwriters make faster, evidence-backed decisions.
+Nightline is an AI-powered insurance broker for nightlife venues. The Risk Engine turns venue operational data — incident reports, photos, video footage, POS logs, staffing records — into cited underwriting packets that help underwriters make faster, evidence-backed decisions.
 
 The core loop:
 
@@ -112,7 +112,7 @@ PacketSnapshot          ← immutable snapshot with hash, citations, rubric vers
 | Role | Portal Access |
 |------|--------------|
 | Venue Operator | Dashboard, Venues, Incidents, Report, Live Terminal, Compliance |
-| Broker / Third Space | Dashboard, Venues, Reports queue, Incidents, Compliance |
+| Broker / Nightline | Dashboard, Venues, Reports queue, Incidents, Compliance |
 
 Both roles can self-register via the login screen (web + mobile). New venue operators go through a first-login venue setup flow. Users and venue data are persisted to SQLite and rehydrated on server restart — Railway cold starts do not lose registered accounts or venue configs.
 

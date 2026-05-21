@@ -34,7 +34,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: thirdspace_risk
+      POSTGRES_DB: nightline_risk
     ports:
       - "5432:5432"
     volumes:

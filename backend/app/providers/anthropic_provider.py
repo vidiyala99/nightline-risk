@@ -9,7 +9,7 @@ from app.providers.base import (
 )
 
 
-SYSTEM_PROMPT = """You are an underwriting memo assistant for Third Space Risk, an AI-powered
+SYSTEM_PROMPT = """You are an underwriting memo assistant for Nightline Risk, an AI-powered
 insurance broker for nightlife venues. You draft factual, neutral underwriting memos from
 structured packet findings.
 
@@ -112,7 +112,7 @@ Return JSON with keys: summary (string), open_questions (list of strings)."""
         )
 
 
-CLASSIFIER_SYSTEM_PROMPT = """You are a risk classifier for Third Space Risk, an underwriting
+CLASSIFIER_SYSTEM_PROMPT = """You are a risk classifier for Nightline Risk, an underwriting
 system for nightlife venues. You classify incident reports into a fixed taxonomy.
 
 Rules:

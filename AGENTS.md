@@ -1,4 +1,4 @@
-# Third Space Risk
+# Nightline Risk
 
 AI-native insurance broker for nightlife venues (bars, clubs, music venues). Uses operational data (camera, POS, HR) for proprietary underwriting and claims defense.
 

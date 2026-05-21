@@ -146,7 +146,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="sidebar-brand__mark">
           <span className="sidebar-brand__logo"><Building2 size={16} /></span>
           <div className="sidebar-brand__text">
-            <h1>Third Space</h1>
+            <h1>Nightline</h1>
             <p>Risk OS</p>
           </div>
         </div>
@@ -191,7 +191,7 @@ export function AppShell({ children }: AppShellProps) {
     >
       {/* Mobile top bar — visible only when sidebar is in drawer mode */}
       <div className="mobile-nav-bar">
-        <span className="brand">Third Space</span>
+        <span className="brand">Nightline</span>
         <button className="hamburger" onClick={() => setMobileOpen(o => !o)} aria-label="Menu">
           {mobileOpen ? <X size={22} color="var(--text-primary)" /> : <Menu size={22} color="var(--text-primary)" />}
         </button>

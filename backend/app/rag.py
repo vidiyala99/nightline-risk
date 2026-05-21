@@ -1,5 +1,5 @@
 """
-Third Space Risk — Semantic Knowledge Base (Phase 2 retrieval upgrade)
+Nightline Risk — Semantic Knowledge Base (Phase 2 retrieval upgrade)
 
 Replaces keyword term-matching with TF-IDF cosine similarity so queries like
 "camera footage evidence" match documents containing "security clip metadata"

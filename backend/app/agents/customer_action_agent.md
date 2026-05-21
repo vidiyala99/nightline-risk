@@ -27,7 +27,7 @@ Return JSON-compatible fields:
     {
       "title": "string",
       "rationale": "string",
-      "owner": "venue|broker|third_space",
+      "owner": "venue|broker|nightline",
       "priority": "low|medium|high",
       "evidence_needed": ["string"],
       "due_window": "string",

@@ -370,7 +370,7 @@ def _ensure_rubric_version(session: Session, rubric_version: str) -> RubricVersi
 
     rubric = RubricVersion(
         id=rubric_version,
-        name="Third Space deterministic demo rubric",
+        name="Nightline deterministic demo rubric",
         version=rubric_version,
         rules={"mode": "deterministic", "requires_citations": True},
         prohibited_fields=[],

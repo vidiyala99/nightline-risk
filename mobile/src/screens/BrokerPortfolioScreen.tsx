@@ -86,7 +86,7 @@ export function BrokerPortfolioScreen({ navigation }: any) {
       <View style={styles.header}>
         <View>
           <Text style={styles.name}>{user?.name}</Text>
-          <Text style={styles.role}>BROKER · THIRDSPACE RISK</Text>
+          <Text style={styles.role}>BROKER · NIGHTLINE RISK</Text>
         </View>
       </View>
 

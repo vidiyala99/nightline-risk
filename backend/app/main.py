@@ -244,7 +244,7 @@ async def lifespan(app: FastAPI):
         _backfill_incident_packets(session)
     yield
 
-app = FastAPI(title="Third Space Risk OS", lifespan=lifespan)
+app = FastAPI(title="Nightline Risk OS", lifespan=lifespan)
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(ingestion_router, prefix="/api/v1", tags=["ingestion"])

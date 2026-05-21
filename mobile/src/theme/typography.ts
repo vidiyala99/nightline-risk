@@ -1,5 +1,5 @@
 /**
- * ThirdSpace Risk — Typography System
+ * Nightline Risk — Typography System
  *
  * Matches the web portal exactly:
  *   Display/headings → Cormorant Garamond (editorial, premium)
