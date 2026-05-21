@@ -1,8 +1,8 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
-from sqlalchemy import Column, JSON, Numeric
+from sqlalchemy import Column, ForeignKey, JSON, Numeric
 
 from app.time import now_utc
 
@@ -495,3 +495,97 @@ class CertificateOfInsurance(SQLModel, table=True):
     expires_on: date
     pdf_path: Optional[str] = None                     # blob-storage URL
     issued_by: str = Field(foreign_key="userrecord.id")
+
+
+# ─── Broker Platform — Phase 3 (Claims integration) ──────────────────────
+
+
+class Claim(SQLModel, table=True):
+    """A carrier-side claim. Distinct from ClaimProposal (internal
+    recommendation) — a Claim is what's been reported TO the carrier.
+
+    Lifecycle (see app.lifecycles.ClaimStatus): claim states are never
+    truly terminal — closed_paid / closed_denied / closed_dropped can
+    transition to 'reopened' for subrogation or late-discovered info.
+
+    Running totals (current_reserve, indemnity/expense/recoveries paid_to_date)
+    are denormalized for query speed; ClaimPayment + ReserveChange rows
+    are the actuarial source of truth.
+
+    snapshot_hash anchors a tamper-evident view of the claim's financial
+    state; re-hashed on every mutation of money or status."""
+    id: str = Field(primary_key=True)                  # "clm-<uuid12>"
+    policy_id: str = Field(foreign_key="policy.id", index=True)
+    incident_id: Optional[str] = Field(default=None, foreign_key="incidentrecord.id")
+    proposal_id: Optional[str] = Field(default=None, foreign_key="claimproposal.id")
+    carrier_claim_number: Optional[str] = None
+    coverage_line: str
+    status: str = Field(default="notified", index=True)
+
+    date_of_loss: date
+    fnol_submitted_at: datetime = Field(default_factory=now_utc)
+
+    current_reserve: Decimal = Field(
+        default=Decimal("0.00"),
+        sa_column=Column(Numeric(12, 2), nullable=False),
+    )
+    indemnity_paid_to_date: Decimal = Field(
+        default=Decimal("0.00"),
+        sa_column=Column(Numeric(12, 2), nullable=False),
+    )
+    expense_paid_to_date: Decimal = Field(
+        default=Decimal("0.00"),
+        sa_column=Column(Numeric(12, 2), nullable=False),
+    )
+    recoveries_to_date: Decimal = Field(
+        default=Decimal("0.00"),
+        sa_column=Column(Numeric(12, 2), nullable=False),
+    )
+
+    final_indemnity: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(12, 2), nullable=True)
+    )
+    total_incurred: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(12, 2), nullable=True)
+    )
+
+    closed_at: Optional[datetime] = None
+    reopened_at: Optional[datetime] = None
+    reopen_count: int = 0
+    adjuster_name: Optional[str] = None
+    adjuster_email: Optional[str] = None
+
+    # ON DELETE RESTRICT: packets referenced by claims cannot be deleted,
+    # or the claim's frozen defense story loses its referent.
+    defense_package_id: Optional[str] = Field(
+        default=None,
+        sa_column=Column(ForeignKey("underwritingpacket.id", ondelete="RESTRICT")),
+    )
+    snapshot_hash: str = Field(default="")
+
+
+class ClaimPayment(SQLModel, table=True):
+    """Individual payment event on a claim. Claim.indemnity_paid_to_date
+    et al. are derived sums of these rows."""
+    id: str = Field(primary_key=True)                  # "cpay-<uuid12>"
+    claim_id: str = Field(foreign_key="claim.id", index=True)
+    payment_type: str                                   # "indemnity" | "expense" | "recovery"
+    amount: Decimal = Field(sa_column=Column(Numeric(12, 2), nullable=False))
+    paid_on: date
+    description: str = ""
+    recorded_by: str = Field(foreign_key="userrecord.id")
+    recorded_at: datetime = Field(default_factory=now_utc)
+
+
+class ReserveChange(SQLModel, table=True):
+    """Audit row for every reserve adjustment communicated by the carrier.
+    Actuaries care about the trajectory, not just the current value."""
+    id: str = Field(primary_key=True)                  # "rchg-<uuid12>"
+    claim_id: str = Field(foreign_key="claim.id", index=True)
+    from_amount: Decimal = Field(sa_column=Column(Numeric(12, 2), nullable=False))
+    to_amount: Decimal = Field(sa_column=Column(Numeric(12, 2), nullable=False))
+    change_reason: str
+    received_from: str                                  # adjuster name / carrier letter ref
+    received_at: datetime
+    recorded_by: str = Field(foreign_key="userrecord.id")
+    recorded_at: datetime = Field(default_factory=now_utc)
