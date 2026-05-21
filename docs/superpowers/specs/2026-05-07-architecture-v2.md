@@ -73,8 +73,13 @@ RubricVersion                        (versioned scoring rules)
 | Packets | GET /api/packets, GET /api/packets/{id}, GET /api/incidents/{id}/packets |
 | Review | POST /api/packets/{id}/review-decisions, GET /api/packets/{id}/audit-events |
 | Live state | GET /api/venues/{id}/live, GET /api/venues/{id}/risk-score, GET /api/venues/{id}/quote |
-| Claims (v1) | POST /api/packets/{id}/claim-proposal, POST /api/claim-proposals/{id}/broker-decision, GET /api/claims, GET /api/claims/{packet_id} |
+| Claim proposals (operator → broker recommendation) | POST /api/packets/{id}/claim-proposal, POST /api/claim-proposals/{id}/broker-decision, GET /api/claim-proposals, GET /api/claim-proposals/by-packet/{packet_id} |
 | Override stats | GET /api/override-stats (cross-venue), GET /api/venues/{id}/override-stats (per-venue) |
+| Broker platform — placement (Phase 1) | POST/GET /api/submissions, GET /api/submissions/{sid}, POST /api/submissions/{sid}/submit, POST /api/submissions/{sid}/withdraw, POST /api/quotes/{qid}/response, POST /api/quotes/{qid}/select, GET /api/carriers, GET /api/submissions/transitions |
+| Broker platform — policy lifecycle (Phase 2) | POST /api/quotes/{qid}/bind, GET /api/policies, GET /api/policies/{pid}, PATCH /api/policies/{pid}/policy-number, POST /api/policies/{pid}/cancel, POST /api/policies/{pid}/endorsements, GET /api/policies/{pid}/endorsements, POST /api/policies/{pid}/certificates, GET /api/policies/{pid}/certificates, GET /api/certificates/{coi_id}/pdf |
+| Broker platform — carrier-side claims (Phase 3, distinct from claim proposals) | POST /api/policies/{pid}/claims, GET /api/policies/{pid}/claims, GET /api/claims/{cid}, POST /api/claims/{cid}/carrier-reserve, GET /api/claims/{cid}/reserve-history, POST/GET /api/claims/{cid}/payments, POST /api/claims/{cid}/close, POST /api/claims/{cid}/reopen, POST /api/claims/{cid}/defense-package |
+
+> **Vocabulary note.** `ClaimProposal` (the operator's internal recommendation routed for broker decision) and `Claim` (the carrier-side row representing a real reported loss) are now distinct entities. The pre-existing `/api/claims*` routes returned `ClaimProposal` rows and were renamed to `/api/claim-proposals*` so the URL contract matches the vocabulary. See ADR 0004.
 
 ### 2.4 Agent Pipeline (current)
 
