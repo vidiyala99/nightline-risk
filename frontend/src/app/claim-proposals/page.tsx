@@ -298,7 +298,7 @@ export default function ClaimsPortfolioPage() {
         <ResponsiveTable headers={["Venue", "State", "Flags", "Proposed"]}>
           {visible.map((p) => {
             const overrideTag = p.override_recommendation;
-            const openPacket = () => router.push(`/claims/${p.packet_id}`);
+            const openPacket = () => router.push(`/claim-proposals/${p.packet_id}`);
             return (
               <tr
                 key={p.id}

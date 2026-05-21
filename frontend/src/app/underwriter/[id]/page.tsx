@@ -752,11 +752,11 @@ export default function ReportDetailPage() {
                     )}
 
                     <Link
-                      href={`/claims/${packet.id}`}
+                      href={`/claim-proposals/${packet.id}`}
                       className="text-xs flex items-center gap-xs"
                       style={{ color: "var(--brand-primary)" }}
                     >
-                      View claim detail
+                      View claim proposal
                       <ExternalLink size={12} />
                     </Link>
                   </div>
