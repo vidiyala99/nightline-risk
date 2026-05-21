@@ -13,14 +13,38 @@ cast is `cast_money_to_float` in `app.money`.
 The characterization tests in `tests/test_pricing_decimal_refactor.py`
 lock the legacy output values to the cent and must pass on every
 commit that touches this file.
+
+The broker-path quote engine (`build_quote_for_carrier`) lives in this
+same file rather than a parallel pricing_v2 module — see the
+broker-platform plan's "Architectural decision" note. Single source of
+truth for rate tables, single module to grep.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel
 
-from app.money import cast_money_to_float, pct, usd
+from app.money import cast_money_to_float, pct, usd, usd_to_json
+
+
+# ─── Constants used by both legacy and broker paths ──────────────────────
+
+# NY surplus lines tax (2024 rate). Per the plan, this is currently a
+# per-state constant pending the StateTaxRule table that arrives when
+# the brokerage expands beyond NY. Applied to E&S quotes only (admitted
+# carriers are exempt).
+NY_SURPLUS_LINES_TAX: Decimal = Decimal("0.0376")
+
+# Default policy fee — flat fee per quote. Per-carrier overrides allowed
+# via CARRIER_RATES[carrier_id]["policy_fee"].
+DEFAULT_POLICY_FEE: Decimal = Decimal("150")
+
+# Default commission rate. 12% on new business is standard for nightlife
+# E&S programs; per-carrier overrides allowed in CARRIER_RATES.
+DEFAULT_COMMISSION_RATE: Decimal = Decimal("0.12")
 
 
 class PremiumQuote(BaseModel):
@@ -240,3 +264,360 @@ def get_premium_quote(
     calculator = PremiumCalculator(venues)
     result = calculator.calculate_quote(venue_id, billing, tier_override=risk["tier"])
     return result.model_dump()
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# Broker-path quote engine — per-carrier, per-coverage-line, Decimal end-to-end
+# ═════════════════════════════════════════════════════════════════════════
+#
+# The legacy path above (PremiumCalculator) emits a single number rolled up
+# across coverage lines, intended for the dashboard's "what would this venue
+# pay" indicator. The broker path below is what's used during real
+# placement: each carrier produces its own quote with per-line breakdown,
+# per-carrier multipliers on top of the shared BASE_RATES, surplus lines
+# tax for E&S, and explicit commission accounting.
+
+# Per-carrier rate adjustments. Shape:
+#   {carrier_id: {
+#       "venue_multipliers": {venue_type: Decimal, "_default": Decimal},
+#       "line_multipliers":  {coverage_line_id: Decimal, "_default": Decimal},
+#       "policy_fee":        Decimal | None,   # override DEFAULT_POLICY_FEE
+#       "commission_rate":   Decimal | None,   # override DEFAULT_COMMISSION_RATE
+#   }}
+#
+# Multipliers stack with TIER_MULTIPLIERS:
+#   line_premium = BASE_RATES[venue_type]
+#                  * venue_multipliers[venue_type]
+#                  * line_multipliers[line_id]
+#                  * TIER_MULTIPLIERS[tier]
+#                  * loss_adjustment
+#
+# Numbers reflect typical underwriting flavor — Markel is competitive on
+# music venues, Brit is aggressive on clubs but expensive on liquor, etc.
+# Real production rate tables would be fine-grained per program year and
+# negotiated. Seed data is "plausibly real" not "actually filed".
+
+CARRIER_RATES: dict[str, dict] = {
+    "markel-specialty": {
+        "venue_multipliers": {
+            "music_venue": Decimal("1.00"),
+            "music venue and bar": Decimal("1.00"),
+            "dive_bar": Decimal("0.95"),
+            "rooftop_bar": Decimal("1.05"),
+            "_default": Decimal("1.10"),
+        },
+        "line_multipliers": {
+            "gl": Decimal("1.00"),
+            "liquor": Decimal("1.10"),
+            "epli": Decimal("0.95"),
+            "property": Decimal("1.00"),
+            "_default": Decimal("1.00"),
+        },
+        "policy_fee": Decimal("150"),
+        "commission_rate": Decimal("0.15"),
+    },
+    "brit-syndicate": {
+        "venue_multipliers": {
+            "club": Decimal("1.00"),
+            "nightclub and performance space": Decimal("1.05"),
+            "latin_club": Decimal("1.10"),
+            "outdoor music venue": Decimal("1.15"),
+            "_default": Decimal("1.25"),
+        },
+        "line_multipliers": {
+            "gl": Decimal("1.05"),
+            "liquor": Decimal("1.20"),       # E&S premium for liquor exposure
+            "assault_battery": Decimal("0.90"),  # specialty — they want this risk
+            "umbrella": Decimal("1.10"),
+            "_default": Decimal("1.10"),
+        },
+        "policy_fee": Decimal("250"),
+        "commission_rate": Decimal("0.12"),
+    },
+    "atrium-syndicate": {
+        "venue_multipliers": {
+            "music_venue": Decimal("1.05"),
+            "nightclub and performance space": Decimal("1.00"),
+            "club": Decimal("1.00"),
+            "_default": Decimal("1.20"),
+        },
+        "line_multipliers": {
+            "gl": Decimal("1.00"),
+            "liquor": Decimal("1.15"),
+            "assault_battery": Decimal("0.85"),  # heavily competes on A&B
+            "_default": Decimal("1.05"),
+        },
+        "policy_fee": Decimal("200"),
+        "commission_rate": Decimal("0.13"),
+    },
+    "burns-wilcox": {
+        # Catch-all wholesaler — writes everything, prices like it.
+        "venue_multipliers": {"_default": Decimal("1.15")},
+        "line_multipliers": {"_default": Decimal("1.10")},
+        "policy_fee": Decimal("200"),
+        "commission_rate": Decimal("0.10"),  # wholesalers pay less
+    },
+    "rt-specialty": {
+        "venue_multipliers": {
+            "music_venue": Decimal("0.95"),         # they want music-venue business
+            "music venue and bar": Decimal("0.95"),
+            "rooftop_bar": Decimal("1.00"),
+            "diy music venue and bar": Decimal("1.05"),
+            "_default": Decimal("1.20"),
+        },
+        "line_multipliers": {
+            "gl": Decimal("0.95"),
+            "liquor": Decimal("1.05"),
+            "epli": Decimal("0.90"),
+            "cyber": Decimal("0.85"),
+            "_default": Decimal("1.05"),
+        },
+        "policy_fee": Decimal("175"),
+        "commission_rate": Decimal("0.11"),
+    },
+    "nautilus": {
+        # Property-only carrier — line_multiplier for everything except
+        # 'property' is set high so the function would never produce a
+        # competitive quote for non-property lines.
+        "venue_multipliers": {"_default": Decimal("1.00")},
+        "line_multipliers": {
+            "property": Decimal("0.95"),
+            "_default": Decimal("2.50"),
+        },
+        "policy_fee": Decimal("100"),
+        "commission_rate": Decimal("0.15"),
+    },
+}
+
+# Fallback for carriers not in CARRIER_RATES. Identity multipliers; default
+# fee + commission.
+_DEFAULT_CARRIER_RATES: dict = {
+    "venue_multipliers": {"_default": Decimal("1.00")},
+    "line_multipliers":  {"_default": Decimal("1.00")},
+    "policy_fee":        DEFAULT_POLICY_FEE,
+    "commission_rate":   DEFAULT_COMMISSION_RATE,
+}
+
+
+def carrier_rate_table(carrier_id: str) -> dict:
+    """Return the per-carrier rate adjustments dict. Falls back to identity
+    multipliers if the carrier_id isn't in CARRIER_RATES."""
+    return CARRIER_RATES.get(carrier_id, _DEFAULT_CARRIER_RATES)
+
+
+@dataclass(frozen=True)
+class LineQuote:
+    """A single coverage line within a carrier's quote.
+
+    base_premium      = BASE_RATES[venue_type] * carrier venue_multiplier
+    tier_multiplier   = TIER_MULTIPLIERS[tier]
+    loss_adjustment   = uplift from historical loss data (1.0 in Phase 1 —
+                        hook for Phase 6 LossRun integration)
+    premium           = base_premium * tier_multiplier
+                        * carrier line_multiplier * loss_adjustment
+    """
+    line: str
+    base_premium: Decimal
+    tier_multiplier: Decimal
+    line_multiplier: Decimal
+    loss_adjustment: Decimal
+    premium: Decimal
+    per_occurrence_limit: Decimal
+    aggregate_limit: Optional[Decimal]
+    deductible: Decimal
+    sublimits: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class FullQuote:
+    """A complete carrier quote: per-line breakdown + fees + tax + commission.
+
+    The shape mirrors what `CarrierQuote.premium_breakdown` stores (JSON,
+    money as strings). `to_breakdown_dict()` produces the JSON-ready shape;
+    `to_json_dict()` returns string-serialized money for direct storage."""
+    carrier_id: str
+    venue_id: str
+    tier: str
+    market_type: str
+    lines: list[LineQuote]
+    subtotal: Decimal           # sum of line premiums
+    policy_fee: Decimal
+    surplus_lines_tax: Decimal  # 0 for admitted carriers
+    total_premium: Decimal      # subtotal + policy_fee + surplus_lines_tax
+    commission_rate: Decimal
+    commission_amount: Decimal  # commission_rate * (subtotal + policy_fee)
+
+    def to_json_dict(self) -> dict:
+        """Convert to the dict shape CarrierQuote.premium_breakdown expects
+        (money as STRINGS for safe JSON storage)."""
+        return {
+            "carrier_id": self.carrier_id,
+            "venue_id": self.venue_id,
+            "tier": self.tier,
+            "market_type": self.market_type,
+            "lines": {
+                lq.line: {
+                    "base": usd_to_json(lq.base_premium),
+                    "tier_multiplier": str(lq.tier_multiplier),
+                    "line_multiplier": str(lq.line_multiplier),
+                    "loss_adjustment": str(lq.loss_adjustment),
+                    "premium": usd_to_json(lq.premium),
+                    "per_occurrence_limit": usd_to_json(lq.per_occurrence_limit),
+                    "aggregate_limit": (
+                        usd_to_json(lq.aggregate_limit) if lq.aggregate_limit is not None else None
+                    ),
+                    "deductible": usd_to_json(lq.deductible),
+                }
+                for lq in self.lines
+            },
+            "fees": {
+                "policy_fee": usd_to_json(self.policy_fee),
+                "surplus_lines_tax": usd_to_json(self.surplus_lines_tax),
+            },
+            "subtotal": usd_to_json(self.subtotal),
+            "total": usd_to_json(self.total_premium),
+            "commission_rate": str(self.commission_rate),
+            "commission_amount": usd_to_json(self.commission_amount),
+        }
+
+
+def _lookup_multiplier(table: dict, key: str) -> Decimal:
+    """Read a per-carrier multiplier with `_default` fallback. Used for both
+    venue_multipliers and line_multipliers — same pattern, distinct tables."""
+    if key in table:
+        return table[key]
+    return table.get("_default", Decimal("1.0"))
+
+
+def _carrier_multipliers_for(
+    rates: dict, venue_type: str, line_id: str
+) -> tuple[Decimal, Decimal]:
+    """Look up the (venue_multiplier, line_multiplier) pair for a given
+    carrier rate table. Pulls from `_default` when the specific key isn't
+    listed. Returns Decimals so the multiplication chain stays in Decimal."""
+    vm = _lookup_multiplier(rates.get("venue_multipliers", {}), venue_type)
+    lm = _lookup_multiplier(rates.get("line_multipliers", {}), line_id)
+    return (vm, lm)
+
+
+def _loss_adjustment_from_risk(risk_score: Optional[dict]) -> Decimal:
+    """Compute a frequency/severity uplift from the risk score.
+
+    Phase 1 model: identity (1.0) unless the score is low enough to signal
+    aggregate trouble beyond what the tier already captures. The hook is
+    here so Phase 6 (Loss Runs) can replace this with claim-history math
+    without touching call sites.
+
+    Returns 1.00 by default. For scores < 40 (already Tier D), adds another
+    10% to express that the tier multiplier on its own under-prices the
+    risk."""
+    if risk_score is None:
+        return Decimal("1.00")
+    score = risk_score.get("total_score")
+    if isinstance(score, (int, float)) and score < 40:
+        return Decimal("1.10")
+    return Decimal("1.00")
+
+
+def build_quote_for_carrier(
+    *,
+    venue: dict,
+    coverage_lines: list[str],
+    carrier_id: str,
+    market_type: str,
+    risk_score: dict,
+    loss_run: Optional[object] = None,     # placeholder; LossRun arrives Phase 6
+    requested_limits: dict,
+) -> FullQuote:
+    """Build a quote that *this carrier* would actually produce.
+
+    Each carrier has its own appetite + multiplier on top of the shared
+    BASE_RATES — Markel is 1.00x for music venues, Brit is 1.25x. The
+    quote is per-line; subtotal sums them. Surplus lines tax (3.76% in
+    NY) applies to E&S carriers only.
+
+    Inputs:
+      venue           dict like seed_data.VENUES[id] — needs "venue_type"
+                      and "id" keys.
+      coverage_lines  ordered list of CoverageLine.id values to quote.
+      carrier_id      Carrier.id — looked up in CARRIER_RATES.
+      market_type     "admitted" | "e&s" — controls surplus_lines_tax.
+      risk_score      output of get_risk_score(); used for tier + loss_adj.
+      loss_run        Phase 6 hook; currently ignored.
+      requested_limits Per-line {"per_occurrence": str, "aggregate": str,
+                       "deductible": str} from the Submission. Defaults to
+                       CoverageLine defaults if absent.
+    """
+    venue_id = venue.get("id", "")
+    venue_type = venue.get("venue_type", "")
+    tier = risk_score.get("tier", "B")
+
+    base_rate = PremiumCalculator.BASE_RATES.get(
+        venue_type.lower(),
+        PremiumCalculator.BASE_RATES.get(venue_type, PremiumCalculator._FALLBACK_BASE_RATE),
+    )
+    tier_mult = PremiumCalculator.TIER_MULTIPLIERS.get(tier, Decimal("1.0"))
+    loss_adj = _loss_adjustment_from_risk(risk_score)
+    rates = carrier_rate_table(carrier_id)
+
+    line_quotes: list[LineQuote] = []
+    for line_id in coverage_lines:
+        venue_mult, line_mult = _carrier_multipliers_for(rates, venue_type, line_id)
+        carrier_base = usd(base_rate * venue_mult)
+        line_premium = usd(carrier_base * tier_mult * line_mult * loss_adj)
+
+        line_limits = (requested_limits or {}).get(line_id, {})
+        per_occ = Decimal(line_limits.get("per_occurrence", "1000000"))
+        # Default aggregate to $2M when the key is MISSING (standard
+        # liability terms). An explicit None means "no aggregate concept"
+        # (e.g., property, which is replacement-value per occurrence).
+        if "aggregate" in line_limits:
+            agg_raw = line_limits["aggregate"]
+            agg = Decimal(agg_raw) if agg_raw is not None else None
+        else:
+            agg = Decimal("2000000")
+        ded = Decimal(line_limits.get("deductible", "2500"))
+
+        line_quotes.append(LineQuote(
+            line=line_id,
+            base_premium=carrier_base,
+            tier_multiplier=tier_mult,
+            line_multiplier=line_mult,
+            loss_adjustment=loss_adj,
+            premium=line_premium,
+            per_occurrence_limit=per_occ,
+            aggregate_limit=agg,
+            deductible=ded,
+        ))
+
+    subtotal = usd(sum((lq.premium for lq in line_quotes), Decimal("0.00")))
+    policy_fee = rates.get("policy_fee", DEFAULT_POLICY_FEE)
+    pre_tax_total = subtotal + policy_fee
+
+    # Surplus lines tax: E&S only. Applied to subtotal + policy_fee (NY
+    # rule — taxes the gross premium incl. policy fees but excl. itself).
+    if market_type == "e&s":
+        surplus_tax = usd(pre_tax_total * NY_SURPLUS_LINES_TAX)
+    else:
+        surplus_tax = Decimal("0.00")
+
+    total = usd(pre_tax_total + surplus_tax)
+
+    # Commission paid on pre-tax premium (the standard convention; taxes
+    # pass through to the state, not commissionable).
+    commission_rate = rates.get("commission_rate", DEFAULT_COMMISSION_RATE)
+    commission_amount = usd(pre_tax_total * commission_rate)
+
+    return FullQuote(
+        carrier_id=carrier_id,
+        venue_id=venue_id,
+        tier=tier,
+        market_type=market_type,
+        lines=line_quotes,
+        subtotal=subtotal,
+        policy_fee=policy_fee,
+        surplus_lines_tax=surplus_tax,
+        total_premium=total,
+        commission_rate=commission_rate,
+        commission_amount=commission_amount,
+    )
