@@ -184,6 +184,36 @@ def _evidence_strength(injury_observed: bool, police_called: bool, ems_called: b
     return round(0.04 + (flags * 0.03), 2)
 
 
+_UNVERIFIED_PREFIX = (
+    "[Unverified — template fallback, no visual analysis was performed.] "
+)
+
+
+def _stamp_unverified(finding: VisionFinding) -> VisionFinding:
+    """Overwrite a template-branch finding's integrity fields to reflect
+    the truth: nothing was actually read from the file.
+
+    Keeps the branch's content (incident_indicators, injury_detail prose,
+    environmental_hazards) so the demo packet still has visual texture,
+    but stamps these fields uniformly:
+      - corroboration       → INCONCLUSIVE  (we never compared)
+      - timestamp_matches_report → False    (we never read EXIF)
+      - timestamp_in_exif   → None
+      - confidence_delta    → 0.0           (template prose can't move score)
+      - raw_description     → prefixed with the [Unverified — …] tag
+
+    Centralizing this in one helper means a future template branch can't
+    accidentally re-introduce the corroboration lie.
+    """
+    finding.corroboration = "INCONCLUSIVE"
+    finding.timestamp_matches_report = False
+    finding.timestamp_in_exif = None
+    finding.confidence_delta = 0.0
+    if not finding.raw_description.startswith(_UNVERIFIED_PREFIX):
+        finding.raw_description = _UNVERIFIED_PREFIX + finding.raw_description
+    return finding
+
+
 def _template_finding(
     incident_summary: str,
     incident_location: str,
@@ -191,22 +221,33 @@ def _template_finding(
     police_called: bool,
     ems_called: bool,
 ) -> VisionFinding:
-    """Deterministic fallback when Gemini is unavailable or fails."""
+    """Deterministic fallback when Gemini is unavailable or fails.
+
+    All template branches go through _stamp_unverified so the result is
+    honest about not having actually read the file. The branches still
+    contribute realistic visual prose for the underwriter to read, but
+    the integrity fields (corroboration / timestamp_matches_report /
+    confidence_delta) reflect the absence of a real analysis.
+    """
     summary_lower = incident_summary.lower()
+    # Delta is computed but ignored — _stamp_unverified zeros it. We keep the
+    # signature so the branches stay symmetric with their pre-fix form.
     delta = _evidence_strength(injury_observed, police_called, ems_called)
 
     if any(k in summary_lower for k in ["brawl", "fight", "altercation", "assault", "force"]):
-        return _altercation_finding(injury_observed, police_called, incident_location, delta)
+        finding = _altercation_finding(injury_observed, police_called, incident_location, delta)
     elif any(k in summary_lower for k in ["slip", "fell", "fall", "stairs"]):
-        return _slip_fall_finding(injury_observed, incident_location, delta)
+        finding = _slip_fall_finding(injury_observed, incident_location, delta)
     elif any(k in summary_lower for k in ["overdose", "unresponsive", "medical", "ems"]):
-        return _medical_finding(incident_location, delta)
+        finding = _medical_finding(incident_location, delta)
     elif any(k in summary_lower for k in ["fire", "electrical", "smoke"]):
-        return _property_finding(incident_location, delta)
+        finding = _property_finding(incident_location, delta)
     elif any(k in summary_lower for k in ["vandal", "damage", "broken"]):
-        return _vandalism_finding(incident_location, delta)
+        finding = _vandalism_finding(incident_location, delta)
     else:
-        return _general_finding(incident_location)
+        finding = _general_finding(incident_location)
+
+    return _stamp_unverified(finding)
 
 
 def analyze_image(
