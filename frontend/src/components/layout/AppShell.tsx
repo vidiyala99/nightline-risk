@@ -68,6 +68,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
   const operationsItems: Item[] = [
     { href: `/incidents${venueQuery}`, label: "Incidents", icon: AlertTriangle },
     { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
+    { href: "/claims", label: "Claims", icon: FileSpreadsheet, roles: ["broker", "admin"] },
     { href: "/claim-proposals", label: "Claim Proposals", icon: FileSpreadsheet, roles: ["broker", "admin"] },
     { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
   ];

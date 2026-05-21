@@ -33,6 +33,9 @@ import {
   PolicyDetail,
   policiesApi,
 } from "@/lib/policies";
+import { ClaimStatusPill } from "@/components/claims/ClaimStatusPill";
+import { claimsApi, totalPaidFromClaim, type Claim } from "@/lib/claims";
+import { formatLedgerMoney } from "@/lib/claim-tokens";
 
 
 export default function PolicyDetailPage() {
@@ -45,6 +48,8 @@ export default function PolicyDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [showSupersededCois, setShowSupersededCois] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [claims, setClaims] = useState<Claim[] | null>(null);
+  const [claimsError, setClaimsError] = useState<string | null>(null);
 
   const load = async () => {
     if (!pid) return;
@@ -61,6 +66,20 @@ export default function PolicyDetailPage() {
   };
 
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [pid]);
+
+  // Claims attached to this policy. Fetched independently of the policy
+  // detail so a transient claims API failure doesn't break the page.
+  const loadClaims = async () => {
+    if (!pid) return;
+    setClaimsError(null);
+    try {
+      const rows = await claimsApi.claimsForPolicy(pid);
+      setClaims(rows);
+    } catch (e) {
+      setClaimsError(e instanceof Error ? e.message : "Failed to load claims");
+    }
+  };
+  useEffect(() => { loadClaims(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [pid]);
 
   const visibleCois = useMemo(() => {
     if (!policy) return [];
@@ -346,6 +365,81 @@ export default function PolicyDetailPage() {
                     }>
                       {c.status}
                     </StatusPill>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Claims (carrier-side) */}
+      <div className="submission-detail__section-title" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span>Claims ({claims?.length ?? 0})</span>
+        <Link
+          href={`/policies/${policy.id}/claims/new`}
+          className="btn btn-primary btn-sm"
+          style={{ marginLeft: "auto" }}
+        >
+          + File FNOL
+        </Link>
+      </div>
+      {claims === null && !claimsError ? (
+        <div className="claims-section__skeleton" aria-busy="true">
+          <div /><div /><div />
+        </div>
+      ) : claimsError ? (
+        <div className="policies-empty" role="alert" style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <span>Couldn&apos;t load claims — {claimsError}</span>
+          <button type="button" className="btn btn-sm" onClick={loadClaims}>Retry</button>
+        </div>
+      ) : claims!.length === 0 ? (
+        <div className="policies-empty">
+          No claims filed against this policy.
+        </div>
+      ) : (
+        <div className="policies-table-wrap">
+          <table className="policies-table" aria-label="Carrier claims on this policy">
+            <thead>
+              <tr>
+                <th scope="col">Claim</th>
+                <th scope="col">Coverage line</th>
+                <th scope="col">Status</th>
+                <th scope="col">Date of loss</th>
+                <th scope="col" style={{ textAlign: "right" }}>Reserve</th>
+                <th scope="col" style={{ textAlign: "right" }}>Paid (ind + exp)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {claims!.map(c => (
+                <tr
+                  key={c.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/claims/${c.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/claims/${c.id}`);
+                    }
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <td className="policies-table__mono">{c.carrier_claim_number ?? c.id}</td>
+                  <td>{c.coverage_line.toUpperCase()}</td>
+                  <td><ClaimStatusPill status={c.status} reopenCount={c.reopen_count} /></td>
+                  <td className="policies-table__mono">{new Date(c.date_of_loss).toLocaleDateString()}</td>
+                  <td
+                    className="policies-table__mono"
+                    style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {formatLedgerMoney(c.current_reserve)}
+                  </td>
+                  <td
+                    className="policies-table__mono"
+                    style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {formatLedgerMoney(totalPaidFromClaim(c))}
                   </td>
                 </tr>
               ))}
