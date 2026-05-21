@@ -398,3 +398,100 @@ class CarrierQuote(SQLModel, table=True):
 
     underwriter_name: Optional[str] = None           # the human at the carrier
     quote_pdf_path: Optional[str] = None             # uploaded carrier quote (blob storage)
+
+
+# ─── Broker Platform — Phase 2 (Policy lifecycle) ────────────────────────
+
+
+class Policy(SQLModel, table=True):
+    """A bound contract. Created by bind_quote() on a selected CarrierQuote.
+
+    Lifecycle (see app.lifecycles.PolicyStatus):
+      bound_pending_number → active → {cancelled, non_renewed, lapsed, expired}
+      lapsed → active (carrier reinstates after late premium payment)
+
+    Snapshot semantics: terms_snapshot is the FROZEN copy of premium +
+    coverage terms at bind time. It's re-hashed only when an Endorsement
+    issues; status changes (cancel, expire) leave the hash alone so
+    archived defense packages keep their referent."""
+    id: str = Field(primary_key=True)                 # "pol-<uuid12>"
+    # Carriers issue policy numbers AFTER bind (sometimes days later).
+    # Optional so a Policy can exist as 'bound_pending_number' before
+    # the number arrives.
+    policy_number: Optional[str] = Field(default=None, index=True)
+    submission_id: str = Field(foreign_key="submission.id", index=True)
+    bound_quote_id: str = Field(foreign_key="carrierquote.id")
+    venue_id: str = Field(foreign_key="venue.id", index=True)
+    carrier_id: str = Field(foreign_key="carrier.id")
+    status: str = Field(default="bound_pending_number", index=True)
+
+    effective_date: date
+    expiration_date: date
+
+    annual_premium: Decimal = Field(sa_column=Column(Numeric(12, 2), nullable=False))
+    commission_amount: Decimal = Field(sa_column=Column(Numeric(12, 2), nullable=False))
+    commission_rate: Decimal = Field(sa_column=Column(Numeric(6, 4), nullable=False))
+    commission_paid_at: Optional[datetime] = None
+
+    coverage_lines: list = Field(default_factory=list, sa_column=Column(JSON))
+    terms_snapshot: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    # Frozen snapshot of CarrierQuote.coverage_terms + premium_breakdown
+    # at bind time. Re-hashed only on endorsement.
+
+    snapshot_hash: str = Field(default="")            # default empty; computed before commit
+
+    cancelled_at: Optional[datetime] = None
+    cancellation_reason: Optional[str] = None
+    cancellation_method: Optional[str] = None         # "pro_rata" | "short_rate"
+    refund_amount: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(12, 2), nullable=True)
+    )
+
+    bound_at: datetime = Field(default_factory=now_utc)
+
+
+class Endorsement(SQLModel, table=True):
+    """A mid-term policy change. Each change_type has a corresponding
+    Pydantic schema in app.schemas.policy that validates terms_diff
+    before persistence — see app.services.policies.issue_endorsement."""
+    id: str = Field(primary_key=True)                 # "end-<uuid12>"
+    policy_id: str = Field(foreign_key="policy.id", index=True)
+    endorsement_type: str
+    # add_location | change_limit | add_insured | remove_coverage |
+    # add_coverage | change_class | cancellation | correction
+    effective_date: date
+    description: str
+    premium_change: Decimal = Field(
+        default=Decimal("0.00"),
+        sa_column=Column(Numeric(12, 2), nullable=False),
+    )
+    tax_change: Decimal = Field(
+        default=Decimal("0.00"),
+        sa_column=Column(Numeric(12, 2), nullable=False),
+    )
+    # Pre-validated discriminated-union payload — see app.schemas.policy.
+    terms_diff: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    issued_at: datetime = Field(default_factory=now_utc)
+    created_by: str = Field(foreign_key="userrecord.id")
+
+
+class CertificateOfInsurance(SQLModel, table=True):
+    """The doc venues send to landlords / event clients to prove coverage.
+    Lifecycle: active → superseded | cancelled. New COIs to the same
+    holder mark the prior one 'superseded' (audit-preserving)."""
+    id: str = Field(primary_key=True)                 # "coi-<uuid12>"
+    policy_id: str = Field(foreign_key="policy.id", index=True)
+    certificate_holder: str                            # the landlord / event client name
+    certificate_holder_address: str
+    additional_insured: bool = False
+    additional_insured_scope: Optional[str] = None
+    # null when additional_insured=False; otherwise:
+    # "ongoing_operations" | "completed_operations" | "single_event"
+    # — invokes different ISO endorsement forms (CG 20 10 / 20 26 / 20 37).
+    description_of_operations: str
+    status: str = Field(default="active", index=True)
+    # active | superseded | cancelled
+    issued_at: datetime = Field(default_factory=now_utc)
+    expires_on: date
+    pdf_path: Optional[str] = None                     # blob-storage URL
+    issued_by: str = Field(foreign_key="userrecord.id")
