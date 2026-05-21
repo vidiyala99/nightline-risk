@@ -45,7 +45,11 @@ jobs:
         shell: bash
         run: |
           set -u
-          BACKEND="https://nightlinerisk-production.up.railway.app"
+          # Railway domain is tied to the Railway project, NOT the GitHub
+          # repo name — it kept the original "thirdspacerisk" slug after
+          # the 2026-05-21 repo rename to nightline-risk. Renaming the
+          # Railway service to match is a follow-up.
+          BACKEND="https://thirdspacerisk-production.up.railway.app"
           FRONTEND="https://frontend-mu-ebon-n3x8uw2rpx.vercel.app"
           DEADLINE=$((SECONDS + 300))
 
