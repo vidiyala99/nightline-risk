@@ -249,6 +249,9 @@ app = FastAPI(title="Third Space Risk OS", lifespan=lifespan)
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(ingestion_router, prefix="/api/v1", tags=["ingestion"])
 
+from app.api.v1.placement import router as placement_router  # noqa: E402
+app.include_router(placement_router, prefix="/api", tags=["placement"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
