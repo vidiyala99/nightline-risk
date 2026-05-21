@@ -255,6 +255,9 @@ app.include_router(placement_router, prefix="/api", tags=["placement"])
 from app.api.v1.policies import router as policies_router  # noqa: E402
 app.include_router(policies_router, prefix="/api", tags=["policies"])
 
+from app.api.v1.claims import router as claims_router  # noqa: E402
+app.include_router(claims_router, prefix="/api", tags=["claims"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -999,7 +1002,7 @@ def broker_decision_on_proposal(
     return _claim_proposal_to_dict(proposal)
 
 
-@app.get("/api/claims")
+@app.get("/api/claim-proposals")
 def list_claim_proposals(
     venue_id: str | None = None,
     session: Session = Depends(get_session),
@@ -1018,7 +1021,7 @@ def list_claim_proposals(
     return [_claim_proposal_to_dict(p) for p in proposals]
 
 
-@app.get("/api/claims/{packet_id}")
+@app.get("/api/claim-proposals/by-packet/{packet_id}")
 def get_claim_for_packet(packet_id: str, session: Session = Depends(get_session)) -> dict:
     """Return the latest claim proposal for a packet, or 404 if none exists."""
     proposal = session.exec(

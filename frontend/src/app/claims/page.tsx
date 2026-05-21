@@ -63,7 +63,7 @@ export default function ClaimsPortfolioPage() {
   useEffect(() => {
     async function load() {
       try {
-        const proposalsRes = await fetch(`${API_URL}/api/claims`);
+        const proposalsRes = await fetch(`${API_URL}/api/claim-proposals`);
         if (proposalsRes.ok) {
           const all: ClaimProposal[] = await proposalsRes.json();
           // Server returns everything; client filters to the operator's

@@ -29,7 +29,7 @@ export function ClaimsListScreen({ navigation }: any) {
   useEffect(() => {
     async function load() {
       try {
-        const all = await api.request<ClaimProposal[]>('/api/claims');
+        const all = await api.request<ClaimProposal[]>('/api/claim-proposals');
         const scope = isBroker ? all : all.filter(p => {
           const ids = new Set([user?.tenant_id, ...(user?.extra_venue_ids ?? [])].filter(Boolean));
           return ids.has(p.venue_id);

@@ -200,7 +200,7 @@ def test_broker_decision_on_unknown_proposal_returns_404():
     assert response.status_code == 404
 
 
-# ---------- GET /api/claims, GET /api/claims/{packet_id} ----------
+# ---------- GET /api/claim-proposals, GET /api/claim-proposals/by-packet/{packet_id} ----------
 
 
 def test_get_claims_lists_proposals_newest_first():
@@ -211,7 +211,7 @@ def test_get_claims_lists_proposals_newest_first():
         json={"operator_id": "op-1", "override_recommendation": False},
     )
 
-    response = client.get("/api/claims")
+    response = client.get("/api/claim-proposals")
     assert response.status_code == 200
     proposals = response.json()
     assert isinstance(proposals, list)
@@ -227,8 +227,8 @@ def test_get_claims_filters_by_venue_id():
         json={"operator_id": "op-1", "override_recommendation": False},
     )
 
-    matching = client.get("/api/claims?venue_id=elsewhere-brooklyn").json()
-    non_matching = client.get("/api/claims?venue_id=some-other-venue").json()
+    matching = client.get("/api/claim-proposals?venue_id=elsewhere-brooklyn").json()
+    non_matching = client.get("/api/claim-proposals?venue_id=some-other-venue").json()
 
     assert any(p["packet_id"] == packet_id for p in matching)
     assert all(p["packet_id"] != packet_id for p in non_matching)
@@ -242,7 +242,7 @@ def test_get_claim_by_packet_id_returns_latest_proposal():
         json={"operator_id": "op-1", "override_recommendation": False},
     ).json()["id"]
 
-    response = client.get(f"/api/claims/{packet_id}")
+    response = client.get(f"/api/claim-proposals/by-packet/{packet_id}")
 
     assert response.status_code == 200
     assert response.json()["id"] == proposal_id
@@ -252,7 +252,7 @@ def test_get_claim_by_packet_id_returns_404_when_no_proposal():
     client = TestClient(app)
     packet_id = _create_packet(client)
 
-    response = client.get(f"/api/claims/{packet_id}")
+    response = client.get(f"/api/claim-proposals/by-packet/{packet_id}")
 
     assert response.status_code == 404
 
