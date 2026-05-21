@@ -111,6 +111,8 @@ def create_packet_snapshot(
             event_type="packet.validation_failed",
             event_metadata={"failures": invalid_citations},
         )
+
+    # Build the body BEFORE rubric gates so prohibited_fields can scan it.
     packet_body = {
         "incident_id": incident_id,
         "venue_id": venue_id,
@@ -123,6 +125,29 @@ def create_packet_snapshot(
         "citation_ids": citation_ids,
         "validation": validation,
     }
+
+    # Apply rubric.rules + prohibited_fields. Any failure downgrades the
+    # packet to needs_review (it must not auto-approve if a gate fired) and
+    # emits an audit event. Failures are stored in validation so the
+    # underwriter UI can render them next to the citation summary.
+    rubric_failures = _apply_rubric_gates(rubric, citation_ids, validation, packet_body)
+    if rubric_failures:
+        validation["rubric_failures"] = rubric_failures
+        # Rebuild packet_body so the snapshot_hash covers the failure list —
+        # otherwise the hash would not change when a rule trips.
+        packet_body["validation"] = validation
+        if packet.status == "approved":
+            packet.status = "needs_review"
+        _add_audit_event(
+            session=session,
+            actor_id="system",
+            actor_type="system",
+            entity_type="underwriting_packet",
+            entity_id=packet_id,
+            event_type="packet.rubric_gate_failed",
+            event_metadata={"rubric_version_id": rubric.id, "failures": rubric_failures},
+        )
+
     packet.citation_ids = citation_ids
     packet.validation = validation
     packet.snapshot_hash = _snapshot_hash(packet_body)
@@ -389,6 +414,65 @@ def _packet_status(risk_signal: dict, underwriting_memo: dict) -> str:
     if "approved" in statuses:
         return "approved"
     return "needs_review"
+
+
+def _field_appears_in(obj, field_name: str) -> bool:
+    """Recursively check whether a key named `field_name` appears anywhere
+    in a nested dict/list structure. Used by the rubric's prohibited_fields
+    gate to prevent banned keys (e.g., PII identifiers) from leaking into
+    a packet body even if they're produced by a downstream agent."""
+    if isinstance(obj, dict):
+        if field_name in obj:
+            return True
+        return any(_field_appears_in(v, field_name) for v in obj.values())
+    if isinstance(obj, list):
+        return any(_field_appears_in(item, field_name) for item in obj)
+    return False
+
+
+def _apply_rubric_gates(
+    rubric: RubricVersion,
+    citation_ids: list[str],
+    validation: dict,
+    packet_body: dict,
+) -> list[str]:
+    """Read rubric.rules and rubric.prohibited_fields, return a list of
+    human-readable gate failures. An empty list means the packet passed.
+
+    Supported rule keys:
+      - requires_citations: bool       — fail if no citations
+      - min_citations: int             — fail if fewer than N citations
+      - reject_invalid_citations: bool — fail if any invalid citation
+      - mode: str                      — informational only (e.g., 'deterministic')
+
+    Plus rubric.prohibited_fields: list[str] — any banned key appearing
+    anywhere in the packet body fails the gate. Defense-in-depth against a
+    future agent silently emitting a field the rubric forbids.
+    """
+    failures: list[str] = []
+    rules = rubric.rules or {}
+    citation_count = len(citation_ids)
+
+    if rules.get("requires_citations") and citation_count == 0:
+        failures.append("requires_citations: packet must include at least one citation")
+
+    min_c = rules.get("min_citations")
+    if isinstance(min_c, int) and citation_count < min_c:
+        failures.append(
+            f"min_citations: packet has {citation_count} citation(s), rubric requires {min_c}"
+        )
+
+    invalid_count = int(validation.get("invalid_count", 0) or 0)
+    if rules.get("reject_invalid_citations") and invalid_count > 0:
+        failures.append(
+            f"reject_invalid_citations: {invalid_count} invalid citation(s) in packet"
+        )
+
+    for banned in rubric.prohibited_fields or []:
+        if _field_appears_in(packet_body, banned):
+            failures.append(f"prohibited_fields: '{banned}' appears in packet body")
+
+    return failures
 
 
 def _status_for_review_decision(decision: str) -> str:
