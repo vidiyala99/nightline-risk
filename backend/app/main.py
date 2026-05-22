@@ -278,6 +278,9 @@ app.include_router(venues_router, prefix="/api", tags=["venues"])
 from app.api.v1.incidents import router as incidents_router  # noqa: E402
 app.include_router(incidents_router, prefix="/api", tags=["incidents"])
 
+from app.api.v1.packets import router as packets_router  # noqa: E402
+app.include_router(packets_router, prefix="/api", tags=["packets"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -614,30 +617,8 @@ def serve_evidence(evidence_id: str, session: Session = Depends(get_session)):
 # Above incident routes moved to app.api.v1.incidents (Phase B).
 
 
-@app.get("/api/incidents/{incident_id}/packets")
-def list_incident_packets(incident_id: str, session: Session = Depends(get_session)) -> list[dict]:
-    packets = session.exec(
-        select(UnderwritingPacket)
-        .where(UnderwritingPacket.incident_id == incident_id)
-        .order_by(UnderwritingPacket.generated_at.desc())
-    ).all()
-    return [_packet_to_dict(packet, session) for packet in packets]
-
-
-@app.get("/api/packets/{packet_id}")
-def get_packet(
-    packet_id: str,
-    reviewer_id: str | None = None,
-    authorization: str = Header(None),
-    session: Session = Depends(get_session),
-) -> dict:
-    packet = session.get(UnderwritingPacket, packet_id)
-    if packet is None:
-        raise HTTPException(status_code=404, detail="Packet not found")
-    require_venue_access(packet.venue_id, authorization, session)
-    if reviewer_id:
-        record_packet_opened(session=session, packet_id=packet_id, reviewer_id=reviewer_id)
-    return _packet_to_dict(packet, session)
+# Packet routes (GET /api/incidents/{id}/packets, GET /api/packets/{id})
+# moved to app.api.v1.packets.
 
 
 @app.post("/api/venues/{venue_id}/policy-docs", status_code=201)
@@ -746,24 +727,7 @@ def list_venue_sources(venue_id: str, session: Session = Depends(get_session)) -
     ]
 
 
-@app.post("/api/packets/{packet_id}/review-decisions", status_code=201)
-def create_review_decision(
-    packet_id: str,
-    payload: ReviewDecisionCreate,
-    session: Session = Depends(get_session),
-) -> dict:
-    try:
-        decision = record_review_decision(
-            session=session,
-            packet_id=packet_id,
-            reviewer_id=payload.reviewer_id,
-            decision=payload.decision,
-            override_reason=payload.override_reason,
-            notes=payload.notes,
-        )
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-    return _review_decision_to_dict(decision)
+# Review-decision route moved to app.api.v1.packets.
 
 
 @app.post("/api/packets/{packet_id}/claim-proposal", status_code=201)
@@ -875,28 +839,8 @@ def get_venue_override_stats(venue_id: str, session: Session = Depends(get_sessi
     return override_stats_to_dict(stats)
 
 
-@app.get("/api/packets")
-def list_packets(limit: int = 20, session: Session = Depends(get_session)) -> list[dict]:
-    """Return the most recent underwriting packets across all incidents."""
-    packets = session.exec(
-        select(UnderwritingPacket)
-        .order_by(UnderwritingPacket.generated_at.desc())
-        .limit(limit)
-    ).all()
-    return [_packet_to_dict(packet, session) for packet in packets]
-
-
-@app.get("/api/packets/{packet_id}/audit-events")
-def list_packet_audit_events(packet_id: str, session: Session = Depends(get_session)) -> list[dict]:
-    packet = session.get(UnderwritingPacket, packet_id)
-    if packet is None:
-        raise HTTPException(status_code=404, detail="Packet not found")
-    events = session.exec(
-        select(AuditEvent)
-        .where(AuditEvent.entity_id == packet_id)
-        .order_by(AuditEvent.created_at)
-    ).all()
-    return [_audit_event_to_dict(event) for event in events]
+# GET /api/packets and /api/packets/{id}/audit-events moved to
+# app.api.v1.packets.
 
 
 def simulate_event_queue(venue_id: str, events: list[StreamEvent], venue_data: dict):
