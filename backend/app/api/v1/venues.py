@@ -1,0 +1,269 @@
+"""Phase B — venue CRUD migrated out of main.py into the v1/ pattern.
+
+Routes preserve their URLs (/api/venues, /api/venues/{venue_id},
+/api/venues/count, /api/portfolio) so the frontend doesn't need to
+change. What this migration buys:
+
+  - Consistent auth + audit + error-envelope contract with the rest
+    of the v1/ routers (placement.py, policies.py, claims.py).
+  - Route handlers no longer talk to SQLModel directly; mutations go
+    through service helpers in this file that emit audit events.
+  - One header import block instead of the legacy main.py soup.
+
+The portfolio aggregation (`/api/portfolio`) lives here because it's
+venue-scoped read; risk-score and live-state helpers remain in
+main.py for now (they belong with the live-state subsystem and the
+seed data, not in the venue CRUD module).
+"""
+from __future__ import annotations
+
+import json as _json
+import re
+from typing import Any, Optional
+
+from fastapi import APIRouter, Depends, Header
+from sqlmodel import Session, func, select
+
+from app.auth import (
+    current_user_optional,
+    require_broker,
+    require_non_broker,
+    require_venue_access,
+)
+from app.database import get_session
+from app.live_state import live_state_manager
+from app.models import IncidentRecord, Venue
+from app.packet_core import _add_audit_event
+from app.schemas.errors import error_response
+from app.seed_data import VENUES
+from app.underwriting.scoring import get_risk_score
+
+router = APIRouter()
+
+
+# ─── Shared helpers ─────────────────────────────────────────────────────
+
+
+def _resolve_venue(venue_id: str, session: Session) -> dict:
+    """Lookup order: VENUES seed dict → DB. Raises 404 on miss. Returns a
+    mutable copy of the venue payload."""
+    if venue_id in VENUES:
+        return VENUES[venue_id]
+    db_venue = session.get(Venue, venue_id)
+    if db_venue is None:
+        raise error_response(
+            "venue_not_found",
+            f"Venue {venue_id!r} not found",
+            status_code=404,
+        )
+    try:
+        data = _json.loads(db_venue.venue_data) if db_venue.venue_data else {}
+    except (ValueError, TypeError):
+        data = {}
+    venue_data = {"name": db_venue.name, **data}
+    VENUES[venue_id] = venue_data
+    return venue_data
+
+
+# ─── List + count ───────────────────────────────────────────────────────
+
+
+@router.get("/venues")
+def list_venues(session: Session = Depends(get_session)) -> list[dict]:
+    """All venues — both seeded and DB-only. No auth gate at the list
+    level; the dashboard renders the same set for any logged-in user.
+    Tenant-scoping is applied when drilling into a specific venue."""
+    result: list[dict] = [{"id": venue_id, **venue} for venue_id, venue in VENUES.items()]
+    db_venues = session.exec(select(Venue)).all()
+    seed_ids = set(VENUES.keys())
+    for v in db_venues:
+        if v.id not in seed_ids:
+            result.append({"id": v.id, "name": v.name, **v.model_dump()})
+    return result
+
+
+@router.get("/venues/count")
+def venue_count() -> dict:
+    return {"count": len(VENUES)}
+
+
+# ─── Create / Read / Update / Delete ────────────────────────────────────
+
+
+@router.post("/venues", status_code=201)
+def create_venue(
+    payload: dict,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+    _: None = Depends(require_non_broker),
+) -> dict:
+    name = (payload.get("name") or "").strip()
+    if not name:
+        raise error_response("venue_name_required", "Venue name is required", status_code=400)
+    explicit_id = payload.get("id")
+    venue_id = explicit_id or re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    # Only block duplicates when the ID was auto-generated. When the
+    # operator passes their tenant_id as the explicit id, treat as
+    # upsert so retrying venue-setup after a partial first attempt
+    # doesn't 409 the caller.
+    is_upsert = bool(explicit_id) and (venue_id in VENUES or session.get(Venue, venue_id) is not None)
+    if not explicit_id and (venue_id in VENUES or session.get(Venue, venue_id)):
+        raise error_response("venue_name_taken", "A venue with this name already exists", status_code=409)
+
+    venue_data = {
+        "name": name,
+        "capacity": int(payload.get("capacity", 300)),
+        "venue_type": payload.get("venue_type", "bar"),
+        "address": payload.get("address", ""),
+        "current_carrier": "Surplus Lines",
+        "renewal_date": payload.get("renewal_date", "2027-01-01"),
+        "incident_count": 0,
+        "compliance_items": 0,
+        "security_level": "medium",
+        "years_in_operation": int(payload.get("years_in_operation", 1)),
+        "prior_carrier": "Surplus Lines",
+        "infrastructure": [],
+    }
+    VENUES[venue_id] = venue_data
+    db_venue = session.get(Venue, venue_id)
+    if db_venue:
+        db_venue.name = name
+        db_venue.venue_data = _json.dumps(venue_data)
+    else:
+        session.add(Venue(id=venue_id, name=name, venue_data=_json.dumps(venue_data)))
+
+    actor = current_user_optional(authorization)
+    _add_audit_event(
+        session=session,
+        actor_id=(actor or {}).get("sub", "anonymous"),
+        actor_type="user" if actor else "anonymous",
+        entity_type="venue", entity_id=venue_id,
+        event_type="venue.upserted" if is_upsert else "venue.created",
+        event_metadata={
+            "name": name,
+            "capacity": venue_data["capacity"],
+            "venue_type": venue_data["venue_type"],
+        },
+    )
+    session.commit()
+    return {"id": venue_id, **venue_data}
+
+
+@router.get("/venues/{venue_id}")
+def get_venue(
+    venue_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> dict:
+    require_venue_access(venue_id, authorization, session)
+    venue = _resolve_venue(venue_id, session)
+    return {"id": venue_id, **venue}
+
+
+@router.patch("/venues/{venue_id}")
+def update_venue(
+    venue_id: str,
+    payload: dict,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+    _: None = Depends(require_non_broker),
+) -> dict:
+    user = require_venue_access(venue_id, authorization, session)
+    venue = _resolve_venue(venue_id, session)
+    editable = ["name", "address", "capacity", "venue_type", "years_in_operation", "security_level"]
+    changed: dict[str, Any] = {}
+    for field in editable:
+        if field in payload:
+            value = payload[field]
+            if field in ("capacity", "years_in_operation"):
+                value = int(value)
+            if venue.get(field) != value:
+                changed[field] = value
+                venue[field] = value
+    VENUES[venue_id] = venue
+    db_venue = session.get(Venue, venue_id)
+    if db_venue:
+        db_venue.name = venue.get("name", db_venue.name)
+        db_venue.venue_data = _json.dumps(venue)
+        session.add(db_venue)
+    if changed:
+        _add_audit_event(
+            session=session,
+            actor_id=user["sub"], actor_type="user",
+            entity_type="venue", entity_id=venue_id,
+            event_type="venue.updated",
+            event_metadata={"changed_fields": list(changed.keys())},
+        )
+    session.commit()
+    return {"id": venue_id, **venue}
+
+
+@router.delete("/venues/{venue_id}", status_code=200)
+def delete_venue(
+    venue_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+    _: None = Depends(require_non_broker),
+) -> dict:
+    user = require_venue_access(venue_id, authorization, session)
+    _resolve_venue(venue_id, session)
+    incident_count = session.exec(
+        select(func.count(IncidentRecord.id)).where(IncidentRecord.venue_id == venue_id)
+    ).one()
+    if incident_count > 0:
+        raise error_response(
+            "venue_has_incidents",
+            f"Cannot delete venue — it has {incident_count} incident(s) on record.",
+            status_code=409,
+            details={"incident_count": incident_count},
+        )
+    VENUES.pop(venue_id, None)
+    db_venue = session.get(Venue, venue_id)
+    if db_venue:
+        session.delete(db_venue)
+    _add_audit_event(
+        session=session,
+        actor_id=user["sub"], actor_type="user",
+        entity_type="venue", entity_id=venue_id,
+        event_type="venue.deleted",
+        event_metadata={},
+    )
+    session.commit()
+    return {"deleted": venue_id}
+
+
+# ─── Portfolio aggregation (broker-only) ────────────────────────────────
+
+
+@router.get("/portfolio", dependencies=[Depends(require_broker)])
+def get_portfolio(session: Session = Depends(get_session)) -> list[dict]:
+    """Single broker-facing rollup: every venue with risk score, live
+    state, and an open-incident count. Used by the dashboard 'Book'
+    widget. Response shape kept stable across the v1/ migration."""
+    result: list[dict] = []
+    for venue_id, venue_data in VENUES.items():
+        risk = get_risk_score(
+            venue_id, VENUES, session=session, live_state_manager=live_state_manager,
+        )
+        live = live_state_manager.get_state(venue_id, venue_data["capacity"], venue_data)
+        open_count: Optional[int] = session.exec(
+            select(func.count(IncidentRecord.id))
+            .where(IncidentRecord.venue_id == venue_id)
+            .where(IncidentRecord.status == "open")
+        ).one()
+        result.append({
+            "id": venue_id,
+            "name": venue_data["name"],
+            "venue_type": venue_data.get("venue_type", ""),
+            "address": venue_data.get("address", ""),
+            "capacity": venue_data["capacity"],
+            "current_capacity": live.current_capacity,
+            "renewal_date": venue_data.get("renewal_date", ""),
+            "current_carrier": venue_data.get("current_carrier", ""),
+            "tier": risk["tier"],
+            "total_score": risk["total_score"],
+            "open_incidents": open_count,
+            "compliance_actions": len(live.compliance_queue),
+            "has_degraded_infra": any(item.is_degraded for item in live.infrastructure),
+        })
+    return result

@@ -272,6 +272,9 @@ app.include_router(policies_router, prefix="/api", tags=["policies"])
 from app.api.v1.claims import router as claims_router  # noqa: E402
 app.include_router(claims_router, prefix="/api", tags=["claims"])
 
+from app.api.v1.venues import router as venues_router  # noqa: E402
+app.include_router(venues_router, prefix="/api", tags=["venues"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -329,189 +332,10 @@ def _resolve_venue(venue_id: str, session: Session) -> dict:
     return venue_data
 
 
-@app.get("/api/venues")
-def list_venues(session: Session = Depends(get_session)) -> list[dict]:
-    result = [{"id": venue_id, **venue} for venue_id, venue in VENUES.items()]
-    # Include any DB-only venues not in the seed dict
-    db_venues = session.exec(select(Venue)).all()
-    seed_ids = set(VENUES.keys())
-    for v in db_venues:
-        if v.id not in seed_ids:
-            result.append({"id": v.id, "name": v.name, **v.model_dump()})
-    return result
-
-
-@app.post("/api/venues", status_code=201)
-def create_venue(
-    payload: dict,
-    authorization: str = Header(None),
-    session: Session = Depends(get_session),
-    _: None = Depends(require_non_broker),
-) -> dict:
-    import re
-    import json as _json
-    name = payload.get("name", "").strip()
-    if not name:
-        raise error_response("venue_name_required", "Venue name is required", status_code=400)
-    explicit_id = payload.get("id")
-    venue_id = explicit_id or re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
-    # Only block duplicates when the ID was auto-generated from the name.
-    # When an explicit ID is provided (operator's tenant_id), treat as upsert
-    # so that retrying venue setup after a prior attempt doesn't 409.
-    is_upsert = bool(explicit_id) and (venue_id in VENUES or session.get(Venue, venue_id) is not None)
-    if not explicit_id and (venue_id in VENUES or session.get(Venue, venue_id)):
-        raise error_response("venue_name_taken", "A venue with this name already exists", status_code=409)
-    venue_data = {
-        "name": name,
-        "capacity": int(payload.get("capacity", 300)),
-        "venue_type": payload.get("venue_type", "bar"),
-        "address": payload.get("address", ""),
-        "current_carrier": "Surplus Lines",
-        "renewal_date": payload.get("renewal_date", "2027-01-01"),
-        "incident_count": 0,
-        "compliance_items": 0,
-        "security_level": "medium",
-        "years_in_operation": int(payload.get("years_in_operation", 1)),
-        "prior_carrier": "Surplus Lines",
-        "infrastructure": [],
-    }
-    VENUES[venue_id] = venue_data
-    db_venue = session.get(Venue, venue_id)
-    if db_venue:
-        db_venue.name = name
-        db_venue.venue_data = _json.dumps(venue_data)
-    else:
-        session.add(Venue(id=venue_id, name=name, venue_data=_json.dumps(venue_data)))
-    actor = current_user_optional(authorization)
-    _add_audit_event(
-        session=session,
-        actor_id=(actor or {}).get("sub", "anonymous"),
-        actor_type="user" if actor else "anonymous",
-        entity_type="venue", entity_id=venue_id,
-        event_type="venue.upserted" if is_upsert else "venue.created",
-        event_metadata={"name": name, "capacity": venue_data["capacity"], "venue_type": venue_data["venue_type"]},
-    )
-    session.commit()
-    return {"id": venue_id, **venue_data}
-
-
-@app.get("/api/venues/{venue_id}")
-def get_venue(
-    venue_id: str,
-    authorization: str = Header(None),
-    session: Session = Depends(get_session),
-) -> dict:
-    require_venue_access(venue_id, authorization, session)
-    venue = _resolve_venue(venue_id, session)
-    return {"id": venue_id, **venue}
-
-
-@app.get("/api/venues/count")
-def venue_count() -> dict:
-    return {"count": len(VENUES)}
-
-
-@app.patch("/api/venues/{venue_id}")
-def update_venue(
-    venue_id: str,
-    payload: dict,
-    authorization: str = Header(None),
-    session: Session = Depends(get_session),
-    _: None = Depends(require_non_broker),
-) -> dict:
-    user = require_venue_access(venue_id, authorization, session)
-    venue = _resolve_venue(venue_id, session)
-    editable = ["name", "address", "capacity", "venue_type", "years_in_operation", "security_level"]
-    changed: dict[str, object] = {}
-    for field in editable:
-        if field in payload:
-            value = payload[field]
-            if field in ("capacity", "years_in_operation"):
-                value = int(value)
-            if venue.get(field) != value:
-                changed[field] = value
-                venue[field] = value
-    VENUES[venue_id] = venue
-    import json as _json
-    db_venue = session.get(Venue, venue_id)
-    if db_venue:
-        db_venue.name = venue.get("name", db_venue.name)
-        db_venue.venue_data = _json.dumps(venue)
-        session.add(db_venue)
-    if changed:
-        _add_audit_event(
-            session=session,
-            actor_id=user["sub"], actor_type="user",
-            entity_type="venue", entity_id=venue_id,
-            event_type="venue.updated",
-            event_metadata={"changed_fields": list(changed.keys())},
-        )
-    session.commit()
-    return {"id": venue_id, **venue}
-
-
-@app.delete("/api/venues/{venue_id}", status_code=200)
-def delete_venue(
-    venue_id: str,
-    authorization: str = Header(None),
-    session: Session = Depends(get_session),
-    _: None = Depends(require_non_broker),
-) -> dict:
-    user = require_venue_access(venue_id, authorization, session)
-    _resolve_venue(venue_id, session)
-    incident_count = session.exec(
-        select(func.count(IncidentRecord.id)).where(IncidentRecord.venue_id == venue_id)
-    ).one()
-    if incident_count > 0:
-        raise error_response(
-            "venue_has_incidents",
-            f"Cannot delete venue — it has {incident_count} incident(s) on record.",
-            status_code=409,
-            details={"incident_count": incident_count},
-        )
-    VENUES.pop(venue_id, None)
-    db_venue = session.get(Venue, venue_id)
-    if db_venue:
-        session.delete(db_venue)
-    _add_audit_event(
-        session=session,
-        actor_id=user["sub"], actor_type="user",
-        entity_type="venue", entity_id=venue_id,
-        event_type="venue.deleted",
-        event_metadata={},
-    )
-    session.commit()
-    return {"deleted": venue_id}
-
-
-@app.get("/api/portfolio")
-def get_portfolio(session: Session = Depends(get_session), _: None = Depends(require_broker)) -> list[dict]:
-    """Single endpoint for broker portfolio view — all venues with scores + live state."""
-    result = []
-    for venue_id, venue_data in VENUES.items():
-        risk = get_risk_score(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
-        live = live_state_manager.get_state(venue_id, venue_data["capacity"], venue_data)
-        open_count = session.exec(
-            select(func.count(IncidentRecord.id))
-            .where(IncidentRecord.venue_id == venue_id)
-            .where(IncidentRecord.status == "open")
-        ).one()
-        result.append({
-            "id": venue_id,
-            "name": venue_data["name"],
-            "venue_type": venue_data.get("venue_type", ""),
-            "address": venue_data.get("address", ""),
-            "capacity": venue_data["capacity"],
-            "current_capacity": live.current_capacity,
-            "renewal_date": venue_data.get("renewal_date", ""),
-            "current_carrier": venue_data.get("current_carrier", ""),
-            "tier": risk["tier"],
-            "total_score": risk["total_score"],
-            "open_incidents": open_count,
-            "compliance_actions": len(live.compliance_queue),
-            "has_degraded_infra": any(item.is_degraded for item in live.infrastructure),
-        })
-    return result
+# Venue routes (/api/venues, /api/venues/{venue_id}, /api/venues/count,
+# /api/portfolio) migrated to app.api.v1.venues — see the router mounted
+# below the FastAPI(app) declaration. Kept here as a navigation marker
+# during the Phase B migration so a `git blame` reader can find the move.
 
 
 @app.get("/api/venues/{venue_id}/incidents", response_model=list[Incident])
