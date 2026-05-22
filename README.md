@@ -55,7 +55,7 @@ Live camera feed (Phase 3)
 
 | Role | Email | Password |
 |------|-------|----------|
-| Broker | broker@nightline.risk | demo123 |
+| Broker | broker@thirdspace.risk | demo123 |
 | Venue Operator | venue@elsewhere.com | demo123 |
 
 Or create a new account via **Sign Up / Create Account** on the login screen (web + mobile). New venue operators get a blank dashboard and walk through venue setup on first login.

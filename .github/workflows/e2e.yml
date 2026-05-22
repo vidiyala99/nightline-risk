@@ -70,7 +70,7 @@ jobs:
               login_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
                 -X POST "$BACKEND/api/auth/login" \
                 -H "content-type: application/json" \
-                -d '{"email":"broker@nightline.risk","password":"demo123"}' \
+                -d '{"email":"broker@thirdspace.risk","password":"demo123"}' \
                 2>/dev/null || echo "000")
               if [ "$login_code" = "200" ]; then
                 echo "::notice::Deployments warm at t=${SECONDS}s — login smoke passed"

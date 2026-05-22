@@ -7,7 +7,7 @@
 **Audience:** Engineering, interview review
 
 > **Live demo:** https://frontend-mu-ebon-n3x8uw2rpx.vercel.app  
-> Broker login: `broker@nightline.risk` / `demo123` — Venue operator: `venue@elsewhere.com` / `demo123`
+> Broker login: `broker@thirdspace.risk` / `demo123` — Venue operator: `venue@elsewhere.com` / `demo123`
 
 ---
 

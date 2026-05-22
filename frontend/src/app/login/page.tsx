@@ -172,7 +172,7 @@ export default function LoginPage() {
                 className="lc-login__demo-btn"
                 data-tone="lime"
                 disabled={loading}
-                onClick={() => performSignIn({ email: "broker@nightline.risk", password: "demo123" })}
+                onClick={() => performSignIn({ email: "broker@thirdspace.risk", password: "demo123" })}
               >
                 Broker portfolio <ArrowRight size={13} />
               </button>

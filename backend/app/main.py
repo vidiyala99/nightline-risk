@@ -181,7 +181,7 @@ async def lifespan(app: FastAPI):
         # Seed demo users.
         # After the 2026-05-21 project rename (Third Space Risk → Nightline
         # Risk), the demo broker email moved from broker@thirdspace.risk
-        # to broker@nightline.risk. Existing rows on a long-running database
+        # to broker@thirdspace.risk. Existing rows on a long-running database
         # (Railway prod) keep the old email because the seed loop below only
         # inserts when the id is missing. The small UPDATE in the elif keeps
         # the persisted row's email in sync with DEMO_USERS on every boot —

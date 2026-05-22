@@ -50,7 +50,7 @@ test("broker login — redirects to dashboard with Evidence-First Underwriting h
   const dashboardPage = new DashboardPage(page);
 
   await loginPage.goto();
-  await loginPage.signIn("broker@nightline.risk", "demo123");
+  await loginPage.signIn("broker@thirdspace.risk", "demo123");
 
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
   await dashboardPage.waitForLoad();

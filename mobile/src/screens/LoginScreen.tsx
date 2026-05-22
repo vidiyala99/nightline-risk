@@ -153,7 +153,7 @@ export function LoginScreen({ navigation }: Props) {
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.demoBtn, pressed && styles.demoBtnPressed]}
-              onPress={() => { setEmail('broker@nightline.risk'); setPassword('demo123'); clearError(); }}
+              onPress={() => { setEmail('broker@thirdspace.risk'); setPassword('demo123'); clearError(); }}
             >
               <Text style={styles.demoBtnRole}>BROKER</Text>
               <Text style={styles.demoBtnSub}>Nightline Risk</Text>
