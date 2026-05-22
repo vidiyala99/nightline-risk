@@ -178,9 +178,17 @@ async def lifespan(app: FastAPI):
         seed_broker_platform_data(session)
         session.commit()
 
-        # Seed demo users
+        # Seed demo users.
+        # After the 2026-05-21 project rename (Third Space Risk → Nightline
+        # Risk), the demo broker email moved from broker@thirdspace.risk
+        # to broker@nightline.risk. Existing rows on a long-running database
+        # (Railway prod) keep the old email because the seed loop below only
+        # inserts when the id is missing. The small UPDATE in the elif keeps
+        # the persisted row's email in sync with DEMO_USERS on every boot —
+        # idempotent (no-op once the migration has run once).
         for demo in DEMO_USERS:
-            if not session.get(UserRecord, demo["id"]):
+            existing = session.get(UserRecord, demo["id"])
+            if existing is None:
                 session.add(UserRecord(
                     id=demo["id"],
                     email=demo["email"],
@@ -189,6 +197,9 @@ async def lifespan(app: FastAPI):
                     role=demo["role"],
                     tenant_id=demo["tenant_id"],
                 ))
+            elif existing.email != demo["email"]:
+                existing.email = demo["email"]
+                session.add(existing)
         session.commit()
 
         # Sync USER_COUNTER
