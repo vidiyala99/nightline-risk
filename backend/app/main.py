@@ -275,6 +275,9 @@ app.include_router(claims_router, prefix="/api", tags=["claims"])
 from app.api.v1.venues import router as venues_router  # noqa: E402
 app.include_router(venues_router, prefix="/api", tags=["venues"])
 
+from app.api.v1.incidents import router as incidents_router  # noqa: E402
+app.include_router(incidents_router, prefix="/api", tags=["incidents"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -338,37 +341,9 @@ def _resolve_venue(venue_id: str, session: Session) -> dict:
 # during the Phase B migration so a `git blame` reader can find the move.
 
 
-@app.get("/api/venues/{venue_id}/incidents", response_model=list[Incident])
-def list_incidents(
-    venue_id: str,
-    status: str | None = Query(default=None, description="Filter by status: open | under_review | closed"),
-    authorization: str = Header(None),
-    session: Session = Depends(get_session),
-) -> list[Incident]:
-    require_venue_access(venue_id, authorization, session)
-    _resolve_venue(venue_id, session)
-
-    query = select(IncidentRecord).where(IncidentRecord.venue_id == venue_id)
-    if status:
-        query = query.where(IncidentRecord.status == status)
-    query = query.order_by(IncidentRecord.created_at.desc())
-
-    records = session.exec(query).all()
-    return [
-        Incident(
-            id=record.id,
-            venue_id=record.venue_id,
-            occurred_at=record.occurred_at,
-            location=record.location,
-            summary=record.summary,
-            reported_by=record.reported_by,
-            injury_observed=record.injury_observed,
-            police_called=record.police_called,
-            ems_called=record.ems_called,
-            status=record.status,
-        )
-        for record in records
-    ]
+# Incident routes (/api/incidents, /api/incidents/{id}, PATCH .../status,
+# /api/venues/{vid}/incidents) migrated to app.api.v1.incidents — see the
+# router mounted below the FastAPI(app) declaration.
 
 
 EVIDENCE_DIR = Path(__file__).resolve().parent.parent / "evidence_uploads"
@@ -636,91 +611,7 @@ def serve_evidence(evidence_id: str, session: Session = Depends(get_session)):
     return FileResponse(str(path), media_type=ev.content_type, filename=ev.filename)
 
 
-@app.get("/api/incidents", response_model=list[Incident])
-def list_all_incidents(limit: int = 100, session: Session = Depends(get_session)) -> list[Incident]:
-    """Return all incidents across all venues, newest first."""
-    records = session.exec(
-        select(IncidentRecord).order_by(IncidentRecord.occurred_at.desc()).limit(limit)
-    ).all()
-    return [Incident(
-        id=r.id, venue_id=r.venue_id, occurred_at=r.occurred_at,
-        location=r.location, summary=r.summary, reported_by=r.reported_by,
-        injury_observed=r.injury_observed or False, police_called=r.police_called or False,
-        ems_called=r.ems_called or False, status=r.status,
-    ) for r in records]
-
-
-@app.get("/api/incidents/{incident_id}", response_model=Incident)
-def get_incident(
-    incident_id: str,
-    authorization: str = Header(None),
-    session: Session = Depends(get_session),
-) -> Incident:
-    record = session.get(IncidentRecord, incident_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail="Incident not found")
-    require_venue_access(record.venue_id, authorization, session)
-    return Incident(
-        id=record.id,
-        venue_id=record.venue_id,
-        occurred_at=record.occurred_at,
-        location=record.location,
-        summary=record.summary,
-        reported_by=record.reported_by,
-        injury_observed=record.injury_observed,
-        police_called=record.police_called,
-        ems_called=record.ems_called,
-        status=record.status,
-    )
-
-
-@app.patch("/api/incidents/{incident_id}/status", status_code=200)
-def update_incident_status(
-    incident_id: str,
-    body: dict,
-    authorization: str = Header(None),
-    session: Session = Depends(get_session),
-) -> dict:
-    record = session.get(IncidentRecord, incident_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail="Incident not found")
-    user = require_venue_access(record.venue_id, authorization, session)
-    new_status = body.get("status")
-    if not isinstance(new_status, str) or not new_status:
-        raise error_response(
-            "status_required",
-            "Request body must include a non-empty `status` string.",
-            status_code=400,
-        )
-    from_status = record.status
-    try:
-        assert_valid_transition(
-            INCIDENT_TRANSITIONS, from_status, new_status, entity_name="Incident",
-        )
-    except InvalidTransitionError as e:
-        raise error_response(
-            "invalid_transition",
-            str(e),
-            status_code=422,
-            details={"from": from_status, "to": new_status},
-        )
-    record.status = new_status
-    session.add(record)
-    _add_audit_event(
-        session=session,
-        actor_id=user["sub"], actor_type="user",
-        entity_type="incident", entity_id=record.id,
-        event_type=f"incident.{new_status}",
-        event_metadata={"from": from_status, "to": new_status, "venue_id": record.venue_id},
-    )
-    session.commit()
-    return {"id": incident_id, "status": record.status}
-
-
-@app.post("/api/venues/{venue_id}/incidents", response_model=IncidentFlowResponse, status_code=201)
-def create_incident(venue_id: str, payload: IncidentCreate, session: Session = Depends(get_session)) -> IncidentFlowResponse:
-    _resolve_venue(venue_id, session)
-    return create_brawl_incident_flow(venue_id, payload, session)
+# Above incident routes moved to app.api.v1.incidents (Phase B).
 
 
 @app.get("/api/incidents/{incident_id}/packets")
