@@ -281,6 +281,9 @@ app.include_router(incidents_router, prefix="/api", tags=["incidents"])
 from app.api.v1.packets import router as packets_router  # noqa: E402
 app.include_router(packets_router, prefix="/api", tags=["packets"])
 
+from app.api.v1.claim_proposals import router as claim_proposals_router  # noqa: E402
+app.include_router(claim_proposals_router, prefix="/api", tags=["claim-proposals"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -730,113 +733,8 @@ def list_venue_sources(venue_id: str, session: Session = Depends(get_session)) -
 # Review-decision route moved to app.api.v1.packets.
 
 
-@app.post("/api/packets/{packet_id}/claim-proposal", status_code=201)
-def create_claim_proposal_route(
-    packet_id: str,
-    payload: ClaimProposalCreate,
-    session: Session = Depends(get_session),
-) -> dict:
-    """Operator proposes a claim against a packet.
-
-    Mirrors `/review-decisions`: the actor ID rides in the body, no token gate.
-    The UI enforces who-can-do-what; the validation in `claim_proposals` is the
-    only contract-level guarantee (override requires reason, etc.).
-    """
-    try:
-        proposal = create_claim_proposal(
-            session=session,
-            packet_id=packet_id,
-            operator_id=payload.operator_id,
-            override_recommendation=payload.override_recommendation,
-            override_reason=payload.override_reason,
-            override_freetext=payload.override_freetext,
-        )
-    except ClaimProposalValidationError as error:
-        message = str(error)
-        # "Packet not found" is the one shape that maps to 404; the rest are
-        # 400-class input problems.
-        status = 404 if "Packet not found" in message else 400
-        raise HTTPException(status_code=status, detail=message) from error
-    return _claim_proposal_to_dict(proposal)
-
-
-@app.post("/api/claim-proposals/{proposal_id}/broker-decision")
-def broker_decision_on_proposal(
-    proposal_id: str,
-    payload: BrokerDecisionCreate,
-    session: Session = Depends(get_session),
-) -> dict:
-    """Broker approves or rejects a pending operator proposal."""
-    try:
-        proposal = record_claim_broker_decision(
-            session=session,
-            proposal_id=proposal_id,
-            broker_id=payload.broker_id,
-            decision=payload.decision,
-            notes=payload.notes,
-        )
-    except ClaimProposalValidationError as error:
-        message = str(error)
-        status = 404 if "Proposal not found" in message else 400
-        raise HTTPException(status_code=status, detail=message) from error
-    return _claim_proposal_to_dict(proposal)
-
-
-@app.get("/api/claim-proposals")
-def list_claim_proposals(
-    venue_id: str | None = None,
-    session: Session = Depends(get_session),
-) -> list[dict]:
-    """Cross-venue claim-proposal list.
-
-    No role gate at the route level — the frontend filters by the logged-in
-    user's tenant for operators, and shows the full list for brokers. The
-    optional `venue_id` query param exists so an operator's portfolio call can
-    scope server-side once an auth layer lands.
-    """
-    statement = select(ClaimProposal).order_by(ClaimProposal.proposed_at.desc())
-    if venue_id:
-        statement = statement.where(ClaimProposal.venue_id == venue_id)
-    proposals = session.exec(statement).all()
-    return [_claim_proposal_to_dict(p) for p in proposals]
-
-
-@app.get("/api/claim-proposals/by-packet/{packet_id}")
-def get_claim_for_packet(packet_id: str, session: Session = Depends(get_session)) -> dict:
-    """Return the latest claim proposal for a packet, or 404 if none exists."""
-    proposal = session.exec(
-        select(ClaimProposal)
-        .where(ClaimProposal.packet_id == packet_id)
-        .order_by(ClaimProposal.proposed_at.desc())
-    ).first()
-    if proposal is None:
-        raise HTTPException(status_code=404, detail="No claim proposal for this packet")
-    return _claim_proposal_to_dict(proposal)
-
-
-@app.get("/api/override-stats")
-def get_cross_venue_override_stats(session: Session = Depends(get_session)) -> dict:
-    """Cross-venue override-accuracy aggregates.
-
-    The broker's portfolio view of "how well-calibrated are operator overrides
-    across all my venues?" Empty DB returns the same shape with zeros and
-    None rates — contract stable so the frontend can render unconditionally.
-    """
-    stats = compute_override_stats(session=session)
-    return override_stats_to_dict(stats)
-
-
-@app.get("/api/venues/{venue_id}/override-stats")
-def get_venue_override_stats(venue_id: str, session: Session = Depends(get_session)) -> dict:
-    """Per-venue override-accuracy aggregates.
-
-    `_resolve_venue` runs first — unknown venue is a hard 404, matching the
-    pattern of /api/venues/{venue_id}/risk-score etc. Empty stats for a
-    valid venue still return 200 with the zero-shape.
-    """
-    _resolve_venue(venue_id, session)
-    stats = compute_override_stats(session=session, venue_id=venue_id)
-    return override_stats_to_dict(stats)
+# ClaimProposal + override-stats routes moved to
+# app.api.v1.claim_proposals.
 
 
 # GET /api/packets and /api/packets/{id}/audit-events moved to
