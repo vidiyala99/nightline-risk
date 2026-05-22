@@ -189,6 +189,71 @@ def current_user_optional(authorization: str = Header(None)):
     return verify_token(authorization.split(" ")[1])
 
 
+def can_access_venue(user: dict | None, venue_id: str, session: Session) -> bool:
+    """True if the caller may access ANY data scoped to `venue_id`.
+
+    Broker/admin: cross-venue access (they manage the whole portfolio).
+    Venue operator: only their own venue + any rows in `extra_venue_ids`.
+    Anonymous: never.
+
+    Sibling to `can_read_venue_floor` — that helper specifically returns
+    False for brokers because floor telemetry is an operator-side surface.
+    This helper is broader: any venue-scoped CRUD read (incidents, packets,
+    sources, compliance evidence, etc.).
+    """
+    if not user:
+        return False
+    role = user.get("role")
+    if role in ("broker", "admin"):
+        return True
+    if role != "venue_operator":
+        return False
+    if user.get("tenant_id") == venue_id:
+        return True
+    from app.models import UserRecord
+    import json as _json
+    record = session.get(UserRecord, user.get("sub"))
+    if not record or not record.extra_venue_ids:
+        return False
+    try:
+        extras = _json.loads(record.extra_venue_ids)
+    except (ValueError, TypeError):
+        return False
+    return venue_id in extras
+
+
+def require_venue_access(
+    venue_id: str,
+    authorization: str,
+    session: Session,
+) -> dict:
+    """Auth+tenant gate. Returns the decoded user payload on success,
+    raises 401/403 otherwise.
+
+    Use as a function call from inside a route handler when the
+    venue_id isn't a path param (e.g. resolved from an entity lookup):
+
+        user = require_venue_access(incident.venue_id, authorization, session)
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail={
+            "error": "auth_required",
+            "message": "Authentication required",
+        })
+    decoded = verify_token(authorization.split(" ")[1])
+    if not decoded:
+        raise HTTPException(status_code=401, detail={
+            "error": "auth_invalid",
+            "message": "Invalid or expired token",
+        })
+    if not can_access_venue(decoded, venue_id, session):
+        raise HTTPException(status_code=403, detail={
+            "error": "venue_access_denied",
+            "message": f"You do not have access to venue {venue_id!r}",
+        })
+    return decoded
+
+
 def can_read_venue_floor(user: dict | None, venue_id: str, session: Session) -> bool:
     """True if the caller may see live floor telemetry for a specific venue.
 

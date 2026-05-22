@@ -10,7 +10,10 @@ from pydantic import BaseModel  # noqa: E402
 from sqlmodel import Session, select, func  # noqa: E402
 import time  # noqa: E402
 
-from app.auth import router as auth_router, require_broker, require_non_broker, current_user_optional, can_read_venue_floor  # noqa: E402
+from app.auth import router as auth_router, require_broker, require_non_broker, current_user_optional, can_read_venue_floor, require_venue_access  # noqa: E402
+from app.lifecycles import INCIDENT_TRANSITIONS, InvalidTransitionError, assert_valid_transition  # noqa: E402
+from app.packet_core import _add_audit_event  # noqa: E402
+from app.schemas.errors import error_response  # noqa: E402
 from app.api.v1.ingestion import router as ingestion_router  # noqa: E402
 from app.claim_proposals import (  # noqa: E402
     ClaimProposalValidationError,
@@ -339,19 +342,25 @@ def list_venues(session: Session = Depends(get_session)) -> list[dict]:
 
 
 @app.post("/api/venues", status_code=201)
-def create_venue(payload: dict, session: Session = Depends(get_session), _: None = Depends(require_non_broker)) -> dict:
+def create_venue(
+    payload: dict,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+    _: None = Depends(require_non_broker),
+) -> dict:
     import re
     import json as _json
     name = payload.get("name", "").strip()
     if not name:
-        raise HTTPException(status_code=400, detail="Venue name is required")
+        raise error_response("venue_name_required", "Venue name is required", status_code=400)
     explicit_id = payload.get("id")
     venue_id = explicit_id or re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     # Only block duplicates when the ID was auto-generated from the name.
     # When an explicit ID is provided (operator's tenant_id), treat as upsert
     # so that retrying venue setup after a prior attempt doesn't 409.
+    is_upsert = bool(explicit_id) and (venue_id in VENUES or session.get(Venue, venue_id) is not None)
     if not explicit_id and (venue_id in VENUES or session.get(Venue, venue_id)):
-        raise HTTPException(status_code=409, detail="A venue with this name already exists")
+        raise error_response("venue_name_taken", "A venue with this name already exists", status_code=409)
     venue_data = {
         "name": name,
         "capacity": int(payload.get("capacity", 300)),
@@ -373,12 +382,26 @@ def create_venue(payload: dict, session: Session = Depends(get_session), _: None
         db_venue.venue_data = _json.dumps(venue_data)
     else:
         session.add(Venue(id=venue_id, name=name, venue_data=_json.dumps(venue_data)))
+    actor = current_user_optional(authorization)
+    _add_audit_event(
+        session=session,
+        actor_id=(actor or {}).get("sub", "anonymous"),
+        actor_type="user" if actor else "anonymous",
+        entity_type="venue", entity_id=venue_id,
+        event_type="venue.upserted" if is_upsert else "venue.created",
+        event_metadata={"name": name, "capacity": venue_data["capacity"], "venue_type": venue_data["venue_type"]},
+    )
     session.commit()
     return {"id": venue_id, **venue_data}
 
 
 @app.get("/api/venues/{venue_id}")
-def get_venue(venue_id: str, session: Session = Depends(get_session)) -> dict:
+def get_venue(
+    venue_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> dict:
+    require_venue_access(venue_id, authorization, session)
     venue = _resolve_venue(venue_id, session)
     return {"id": venue_id, **venue}
 
@@ -389,15 +412,25 @@ def venue_count() -> dict:
 
 
 @app.patch("/api/venues/{venue_id}")
-def update_venue(venue_id: str, payload: dict, session: Session = Depends(get_session), _: None = Depends(require_non_broker)) -> dict:
+def update_venue(
+    venue_id: str,
+    payload: dict,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+    _: None = Depends(require_non_broker),
+) -> dict:
+    user = require_venue_access(venue_id, authorization, session)
     venue = _resolve_venue(venue_id, session)
     editable = ["name", "address", "capacity", "venue_type", "years_in_operation", "security_level"]
+    changed: dict[str, object] = {}
     for field in editable:
         if field in payload:
             value = payload[field]
             if field in ("capacity", "years_in_operation"):
                 value = int(value)
-            venue[field] = value
+            if venue.get(field) != value:
+                changed[field] = value
+                venue[field] = value
     VENUES[venue_id] = venue
     import json as _json
     db_venue = session.get(Venue, venue_id)
@@ -405,26 +438,49 @@ def update_venue(venue_id: str, payload: dict, session: Session = Depends(get_se
         db_venue.name = venue.get("name", db_venue.name)
         db_venue.venue_data = _json.dumps(venue)
         session.add(db_venue)
-        session.commit()
+    if changed:
+        _add_audit_event(
+            session=session,
+            actor_id=user["sub"], actor_type="user",
+            entity_type="venue", entity_id=venue_id,
+            event_type="venue.updated",
+            event_metadata={"changed_fields": list(changed.keys())},
+        )
+    session.commit()
     return {"id": venue_id, **venue}
 
 
 @app.delete("/api/venues/{venue_id}", status_code=200)
-def delete_venue(venue_id: str, session: Session = Depends(get_session), _: None = Depends(require_non_broker)) -> dict:
+def delete_venue(
+    venue_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+    _: None = Depends(require_non_broker),
+) -> dict:
+    user = require_venue_access(venue_id, authorization, session)
     _resolve_venue(venue_id, session)
     incident_count = session.exec(
         select(func.count(IncidentRecord.id)).where(IncidentRecord.venue_id == venue_id)
     ).one()
     if incident_count > 0:
-        raise HTTPException(
+        raise error_response(
+            "venue_has_incidents",
+            f"Cannot delete venue — it has {incident_count} incident(s) on record.",
             status_code=409,
-            detail=f"Cannot delete venue — it has {incident_count} incident(s) on record.",
+            details={"incident_count": incident_count},
         )
     VENUES.pop(venue_id, None)
     db_venue = session.get(Venue, venue_id)
     if db_venue:
         session.delete(db_venue)
-        session.commit()
+    _add_audit_event(
+        session=session,
+        actor_id=user["sub"], actor_type="user",
+        entity_type="venue", entity_id=venue_id,
+        event_type="venue.deleted",
+        event_metadata={},
+    )
+    session.commit()
     return {"deleted": venue_id}
 
 
@@ -462,8 +518,10 @@ def get_portfolio(session: Session = Depends(get_session), _: None = Depends(req
 def list_incidents(
     venue_id: str,
     status: str | None = Query(default=None, description="Filter by status: open | under_review | closed"),
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> list[Incident]:
+    require_venue_access(venue_id, authorization, session)
     _resolve_venue(venue_id, session)
 
     query = select(IncidentRecord).where(IncidentRecord.venue_id == venue_id)
@@ -769,10 +827,15 @@ def list_all_incidents(limit: int = 100, session: Session = Depends(get_session)
 
 
 @app.get("/api/incidents/{incident_id}", response_model=Incident)
-def get_incident(incident_id: str, session: Session = Depends(get_session)) -> Incident:
+def get_incident(
+    incident_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> Incident:
     record = session.get(IncidentRecord, incident_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Incident not found")
+    require_venue_access(record.venue_id, authorization, session)
     return Incident(
         id=record.id,
         venue_id=record.venue_id,
@@ -791,16 +854,41 @@ def get_incident(incident_id: str, session: Session = Depends(get_session)) -> I
 def update_incident_status(
     incident_id: str,
     body: dict,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
     record = session.get(IncidentRecord, incident_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Incident not found")
+    user = require_venue_access(record.venue_id, authorization, session)
     new_status = body.get("status")
-    if new_status not in ("open", "under_review", "closed"):
-        raise HTTPException(status_code=400, detail="status must be open | under_review | closed")
+    if not isinstance(new_status, str) or not new_status:
+        raise error_response(
+            "status_required",
+            "Request body must include a non-empty `status` string.",
+            status_code=400,
+        )
+    from_status = record.status
+    try:
+        assert_valid_transition(
+            INCIDENT_TRANSITIONS, from_status, new_status, entity_name="Incident",
+        )
+    except InvalidTransitionError as e:
+        raise error_response(
+            "invalid_transition",
+            str(e),
+            status_code=422,
+            details={"from": from_status, "to": new_status},
+        )
     record.status = new_status
     session.add(record)
+    _add_audit_event(
+        session=session,
+        actor_id=user["sub"], actor_type="user",
+        entity_type="incident", entity_id=record.id,
+        event_type=f"incident.{new_status}",
+        event_metadata={"from": from_status, "to": new_status, "venue_id": record.venue_id},
+    )
     session.commit()
     return {"id": incident_id, "status": record.status}
 
@@ -825,11 +913,13 @@ def list_incident_packets(incident_id: str, session: Session = Depends(get_sessi
 def get_packet(
     packet_id: str,
     reviewer_id: str | None = None,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
     packet = session.get(UnderwritingPacket, packet_id)
     if packet is None:
         raise HTTPException(status_code=404, detail="Packet not found")
+    require_venue_access(packet.venue_id, authorization, session)
     if reviewer_id:
         record_packet_opened(session=session, packet_id=packet_id, reviewer_id=reviewer_id)
     return _packet_to_dict(packet, session)

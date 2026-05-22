@@ -1,6 +1,13 @@
 from fastapi.testclient import TestClient
 
+from app.auth import create_token
 from app.main import app
+
+
+def _op_headers():
+    # Operator scoped to elsewhere-brooklyn, matching the venue in test bodies.
+    token = create_token("user-fac-1", "fac@example.com", "venue_operator", "elsewhere-brooklyn")
+    return {"Authorization": f"Bearer {token}"}
 
 
 DEMO_INCIDENT = {
@@ -20,7 +27,7 @@ def test_frontend_can_list_created_incidents():
     created = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
     assert created.status_code == 201
 
-    response = client.get("/api/venues/elsewhere-brooklyn/incidents")
+    response = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=_op_headers())
 
     assert response.status_code == 200
     incidents = response.json()
@@ -87,7 +94,7 @@ def test_frontend_can_retrieve_packet_record_decision_and_read_audit_events():
     assert decision_response.status_code == 201
     assert decision_response.json()["decision"] == "approved"
 
-    packet_response = client.get(f"/api/packets/{packet_id}")
+    packet_response = client.get(f"/api/packets/{packet_id}", headers=_op_headers())
     assert packet_response.status_code == 200
     assert packet_response.json()["status"] == "approved"
 

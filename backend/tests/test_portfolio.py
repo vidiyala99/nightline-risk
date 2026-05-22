@@ -127,10 +127,11 @@ def test_live_state_strips_floor_for_other_operator():
 # ── Incident status filter ─────────────────────────────────────────────────────
 
 def test_incidents_status_filter_open_vs_closed():
+    h = _operator_headers()
     with TestClient(app) as client:
         client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
-        all_resp = client.get("/api/venues/elsewhere-brooklyn/incidents")
-        open_resp = client.get("/api/venues/elsewhere-brooklyn/incidents?status=open")
+        all_resp = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=h)
+        open_resp = client.get("/api/venues/elsewhere-brooklyn/incidents?status=open", headers=h)
 
     assert all_resp.status_code == 200
     assert open_resp.status_code == 200
@@ -138,30 +139,37 @@ def test_incidents_status_filter_open_vs_closed():
 
 
 def test_incident_status_patch():
+    h = _operator_headers()
     with TestClient(app) as client:
         create = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
         incident_id = create.json()["incident"]["id"]
-        patch = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "closed"})
+        patch = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "closed"}, headers=h)
         assert patch.status_code == 200
         assert patch.json()["status"] == "closed"
-        open_list = client.get("/api/venues/elsewhere-brooklyn/incidents?status=open").json()
+        open_list = client.get("/api/venues/elsewhere-brooklyn/incidents?status=open", headers=h).json()
     assert not any(i["id"] == incident_id for i in open_list)
 
 
 def test_incident_status_invalid_value_rejected():
+    h = _operator_headers()
     with TestClient(app) as client:
         create = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
         incident_id = create.json()["incident"]["id"]
-        resp = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "invalid_value"})
-    assert resp.status_code == 400
+        resp = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "invalid_value"}, headers=h)
+    # Phase A: untyped status strings now rejected via the lifecycle matrix at 422,
+    # not 400. The earlier "open|under_review|closed" hardcoded check returned 400.
+    assert resp.status_code == 422
+    body = resp.json()
+    assert body["detail"]["error"] == "invalid_transition"
 
 
 # ── Review decisions ──────────────────────────────────────────────────────────
 
 def test_review_decision_approve_changes_packet_status():
+    h = _operator_headers()
     with TestClient(app) as client:
         client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
-        incidents = client.get("/api/venues/elsewhere-brooklyn/incidents").json()
+        incidents = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=h).json()
         incident_id = incidents[0]["id"]
         packets = client.get(f"/api/incidents/{incident_id}/packets").json()
         packet_id = packets[0]["id"]
@@ -173,16 +181,17 @@ def test_review_decision_approve_changes_packet_status():
         assert decision.status_code == 201
         assert decision.json()["decision"] == "approved"
 
-        packet = client.get(f"/api/packets/{packet_id}").json()
+        packet = client.get(f"/api/packets/{packet_id}", headers=h).json()
     assert packet["status"] == "approved"
 
 
 # ── Audit trail ───────────────────────────────────────────────────────────────
 
 def test_audit_events_include_packet_generated():
+    h = _operator_headers()
     with TestClient(app) as client:
         client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
-        incidents = client.get("/api/venues/elsewhere-brooklyn/incidents").json()
+        incidents = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=h).json()
         incident_id = incidents[0]["id"]
         packets = client.get(f"/api/incidents/{incident_id}/packets").json()
         packet_id = packets[0]["id"]
@@ -193,9 +202,10 @@ def test_audit_events_include_packet_generated():
 
 
 def test_audit_events_include_decision_after_review():
+    h = _operator_headers()
     with TestClient(app) as client:
         client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
-        incidents = client.get("/api/venues/elsewhere-brooklyn/incidents").json()
+        incidents = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=h).json()
         incident_id = incidents[0]["id"]
         packets = client.get(f"/api/incidents/{incident_id}/packets").json()
         packet_id = packets[0]["id"]

@@ -97,6 +97,27 @@ POLICY_TERMINAL_STATES: frozenset[str] = frozenset(
 )
 
 
+# ─── Incident lifecycle (Phase A — operator-side reporting) ──────────────
+
+IncidentStatus = Literal[
+    "open",            # newly reported, no review yet
+    "under_review",    # operator/broker is examining
+    "closed",          # resolved / no further action
+    "closed_archived", # soft-delete for operators wanting to hide it (Phase C)
+]
+
+INCIDENT_TRANSITIONS: dict[str, set[str]] = {
+    "open":            {"under_review", "closed", "closed_archived"},
+    "under_review":    {"open", "closed", "closed_archived"},
+    "closed":          {"open", "under_review", "closed_archived"},
+    "closed_archived": set(),  # terminal — undelete requires admin DB-level fix
+}
+
+INCIDENT_TERMINAL_STATES: frozenset[str] = frozenset(
+    s for s, nexts in INCIDENT_TRANSITIONS.items() if not nexts
+)
+
+
 # ─── Claim lifecycle (carrier-side) ──────────────────────────────────────
 
 ClaimStatus = Literal[

@@ -9,7 +9,14 @@ enforces who-can-do-what.
 
 from fastapi.testclient import TestClient
 
+from app.auth import create_token
 from app.main import app
+
+
+def _op_headers():
+    # Operator scoped to elsewhere-brooklyn — matches the venue in _create_packet.
+    token = create_token("user-claim-routes-1", "op@example.com", "venue_operator", "elsewhere-brooklyn")
+    return {"Authorization": f"Bearer {token}"}
 
 
 DEMO_INCIDENT = {
@@ -264,7 +271,7 @@ def test_packet_response_has_null_claim_proposal_before_any_proposal():
     client = TestClient(app)
     packet_id = _create_packet(client)
 
-    body = client.get(f"/api/packets/{packet_id}").json()
+    body = client.get(f"/api/packets/{packet_id}", headers=_op_headers()).json()
 
     # Field is always present in the contract so the frontend can branch on it
     assert "claim_proposal" in body
@@ -283,7 +290,7 @@ def test_packet_response_embeds_latest_claim_proposal_after_creation():
         },
     ).json()["id"]
 
-    body = client.get(f"/api/packets/{packet_id}").json()
+    body = client.get(f"/api/packets/{packet_id}", headers=_op_headers()).json()
 
     assert body["claim_proposal"] is not None
     assert body["claim_proposal"]["id"] == proposal_id
