@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTenantId, useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { authHeaders } from "@/lib/authFetch";
 import {
   AlertTriangle, Plus, Calendar, MapPin, User,
   ShieldAlert, CheckCircle2, Clock, ArrowRight, X,
@@ -79,7 +80,7 @@ export default function IncidentsPage() {
       // Explicit ?venue=<id> filter takes precedence over role-based scoping.
       if (filterVenueId) {
         try {
-          const res = await fetch(`${API_URL}/api/venues/${filterVenueId}/incidents`);
+          const res = await fetch(`${API_URL}/api/venues/${filterVenueId}/incidents`, { headers: authHeaders() });
           if (res.ok) {
             const data = await res.json();
             setIncidents(Array.isArray(data) ? data : []);
@@ -105,7 +106,7 @@ export default function IncidentsPage() {
         const url = isBroker
           ? `${API_URL}/api/incidents`
           : `${API_URL}/api/venues/${tenantId}/incidents`;
-        const res = await fetch(url);
+        const res = await fetch(url, { headers: authHeaders() });
         if (res.ok) {
           const data = await res.json();
           setIncidents(Array.isArray(data) ? data : []);
@@ -123,7 +124,7 @@ export default function IncidentsPage() {
   useEffect(() => {
     if (!filterVenueId) { setFilterVenueName(null); return; }
     let cancelled = false;
-    fetch(`${API_URL}/api/venues/${filterVenueId}`)
+    fetch(`${API_URL}/api/venues/${filterVenueId}`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (!cancelled) setFilterVenueName(data?.name ?? filterVenueId); })
       .catch(() => { if (!cancelled) setFilterVenueName(filterVenueId); });
@@ -146,7 +147,7 @@ export default function IncidentsPage() {
     try {
       const res = await fetch(`${API_URL}/api/venues/${venueId}/incidents`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ ...formData, occurred_at: new Date(formData.occurred_at).toISOString() }),
       });
       if (!res.ok) {
@@ -166,7 +167,7 @@ export default function IncidentsPage() {
       setShowForm(false);
       setEvidenceFiles([]);
       setFormData({ occurred_at: "", location: "", summary: "", reported_by: "", injury_observed: false, police_called: false, ems_called: false });
-      const updated = await fetch(isBroker ? `${API_URL}/api/incidents` : `${API_URL}/api/venues/${venueId}/incidents`);
+      const updated = await fetch(isBroker ? `${API_URL}/api/incidents` : `${API_URL}/api/venues/${venueId}/incidents`, { headers: authHeaders() });
       if (updated.ok) {
         const data = await updated.json();
         setIncidents(Array.isArray(data) ? data : []);
@@ -183,7 +184,7 @@ export default function IncidentsPage() {
     try {
       const res = await fetch(`${API_URL}/api/incidents/${incidentId}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error("Failed to update status");

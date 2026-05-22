@@ -6,6 +6,7 @@ import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
 import { Building2, MapPin, Users, Plus, ArrowRight, X, Edit2, Check, Search } from "lucide-react";
 import Link from "next/link";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { authHeaders } from "@/lib/authFetch";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -75,7 +76,9 @@ export default function VenuesPage() {
 
     async function fetchVenueById(id: string): Promise<Venue | null> {
       try {
-        const res = await fetch(`${API_URL}/api/venues/${id}`);
+        const res = await fetch(`${API_URL}/api/venues/${id}`, {
+          headers: authHeaders(),
+        });
         return res.ok ? ((await res.json()) as Venue) : null;
       } catch {
         return null;
@@ -167,7 +170,7 @@ export default function VenuesPage() {
     try {
       const res = await fetch(`${API_URL}/api/venues/${venueId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(editData),
       });
       if (!res.ok) throw new Error("Failed to update venue");

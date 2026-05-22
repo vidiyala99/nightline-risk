@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { ClaimProposal } from "@/app/underwriter/[id]/page";
 import { ResponsiveTable } from "@/components/ui/ResponsiveTable";
+import { authHeaders } from "@/lib/authFetch";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -90,7 +91,7 @@ export default function ClaimDetailPage() {
   useEffect(() => {
     async function load() {
       try {
-        const pktRes = await fetch(`${API_URL}/api/packets/${packetId}`);
+        const pktRes = await fetch(`${API_URL}/api/packets/${packetId}`, { headers: authHeaders() });
         if (!pktRes.ok) {
           setError("Packet not found");
           return;

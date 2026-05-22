@@ -79,7 +79,7 @@ function CompliancePageInner() {
       try {
         // Detail view (single venue) — used when ?venue is set OR for operators
         if (detailVenueId) {
-          const res = await fetch(`${API_URL}/api/venues/${detailVenueId}/live`);
+          const res = await fetch(`${API_URL}/api/venues/${detailVenueId}/live`, { headers: authHeaders() });
           if (res.ok) {
             const state = await res.json();
             setComplianceItems(state.compliance_queue || []);
@@ -110,7 +110,7 @@ function CompliancePageInner() {
   useEffect(() => {
     if (!filterVenueId) { setFilterVenueName(null); return; }
     let cancelled = false;
-    fetch(`${API_URL}/api/venues/${filterVenueId}`)
+    fetch(`${API_URL}/api/venues/${filterVenueId}`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (!cancelled) setFilterVenueName(data?.name ?? filterVenueId); })
       .catch(() => { if (!cancelled) setFilterVenueName(filterVenueId); });

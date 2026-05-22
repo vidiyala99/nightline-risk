@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
+import { authHeaders } from "@/lib/authFetch";
 import {
   AlertTriangle, ArrowLeft, Calendar, MapPin, User,
   Clock, CheckCircle2, Shield, ExternalLink, FileText,
@@ -77,10 +78,10 @@ export default function IncidentDetailPage() {
     async function load() {
       try {
         const [incidentRes, packetsRes, evidenceRes, analysisRes] = await Promise.all([
-          fetch(`${API_URL}/api/incidents/${id}`),
-          fetch(`${API_URL}/api/incidents/${id}/packets`),
-          fetch(`${API_URL}/api/incidents/${id}/evidence`),
-          fetch(`${API_URL}/api/incidents/${id}/evidence-analysis`),
+          fetch(`${API_URL}/api/incidents/${id}`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/incidents/${id}/packets`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/incidents/${id}/evidence`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/incidents/${id}/evidence-analysis`, { headers: authHeaders() }),
         ]);
         if (incidentRes.ok) setIncident(await incidentRes.json());
         if (packetsRes.ok) setPackets(await packetsRes.json());
@@ -100,7 +101,7 @@ export default function IncidentDetailPage() {
     try {
       const res = await fetch(`${API_URL}/api/incidents/${id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) setIncident((prev) => prev ? { ...prev, status: newStatus } : prev);

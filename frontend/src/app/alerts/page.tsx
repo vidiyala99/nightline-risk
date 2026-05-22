@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTenantId, useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { authHeaders } from "@/lib/authFetch";
 import Link from "next/link";
 import { Bell, CheckCircle2, XCircle, ChevronDown, RefreshCw, ShieldAlert, ShieldCheck, Zap, ArrowRight } from "lucide-react";
 
@@ -301,7 +302,7 @@ function AlertsPageInner() {
             setSelectedVenueId(searchParams.get("venue") ?? list[0]?.id ?? "");
           }
         } else if (tenantId) {
-          const res = await fetch(`${API_URL}/api/venues/${tenantId}`);
+          const res = await fetch(`${API_URL}/api/venues/${tenantId}`, { headers: authHeaders() });
           const data = res.ok ? await res.json() : {};
           setVenues([{ id: tenantId, name: data.name ?? tenantId }]);
           setSelectedVenueId(tenantId);

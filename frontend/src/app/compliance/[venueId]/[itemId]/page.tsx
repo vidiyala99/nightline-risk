@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { authHeaders } from "@/lib/authFetch";
 import { ArrowLeft, Upload, Clock, AlertCircle, CheckSquare, FileText } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -63,7 +64,7 @@ export default function ComplianceDetailPage() {
     let cancelled = false;
     async function fetchItem() {
       try {
-        const res = await fetch(`${API_URL}/api/venues/${venueId}/live`);
+        const res = await fetch(`${API_URL}/api/venues/${venueId}/live`, { headers: authHeaders() });
         if (!res.ok) {
           if (!cancelled) setItem(null);
           return;
@@ -86,7 +87,7 @@ export default function ComplianceDetailPage() {
   useEffect(() => {
     if (!venueId) return;
     let cancelled = false;
-    fetch(`${API_URL}/api/venues/${venueId}`)
+    fetch(`${API_URL}/api/venues/${venueId}`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (!cancelled) setVenueName(data?.name ?? venueId); })
       .catch(() => { if (!cancelled) setVenueName(venueId); });

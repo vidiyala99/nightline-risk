@@ -116,7 +116,7 @@ function DashboardPageInner() {
       const results = await Promise.all(
         ids.map(async (id): Promise<VenueSummary | null> => {
           try {
-            const res = await fetch(`${API_URL}/api/venues/${id}`);
+            const res = await fetch(`${API_URL}/api/venues/${id}`, { headers: authHeaders() });
             if (!res.ok) return null;
             const data = await res.json();
             return { id, name: data.name ?? id };
@@ -160,9 +160,9 @@ function DashboardPageInner() {
           const totalVenueCount = Math.max(venuesList.length, 1);
           const [liveRes, riskRes, quoteRes, incidentsRes] = await Promise.all([
             fetch(`${API_URL}/api/venues/${venueId}/live`, { headers: authHeaders() }),
-            fetch(`${API_URL}/api/venues/${venueId}/risk-score`),
-            fetch(`${API_URL}/api/venues/${venueId}/quote`),
-            fetch(`${API_URL}/api/venues/${venueId}/incidents?status=open`),
+            fetch(`${API_URL}/api/venues/${venueId}/risk-score`, { headers: authHeaders() }),
+            fetch(`${API_URL}/api/venues/${venueId}/quote`, { headers: authHeaders() }),
+            fetch(`${API_URL}/api/venues/${venueId}/incidents?status=open`, { headers: authHeaders() }),
           ]);
           const incidentCount = incidentsRes.ok ? (await incidentsRes.json()).length : 0;
           if (cancelled) return;

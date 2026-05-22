@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, FileSpreadsheet, LockKeyhole, RefreshCw, ShieldCheck, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 import ClaimProposeModal, { type OverrideReason } from "@/components/ClaimProposeModal";
+import { authHeaders } from "@/lib/authFetch";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -128,7 +129,7 @@ export default function ReportDetailPage() {
   useEffect(() => {
     async function load() {
       try {
-        const pktRes = await fetch(`${API_URL}/api/packets/${id}`);
+        const pktRes = await fetch(`${API_URL}/api/packets/${id}`, { headers: authHeaders() });
         if (!pktRes.ok) return;
         const pkt: Packet = await pktRes.json();
         setPacket(pkt);
