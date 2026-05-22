@@ -34,6 +34,7 @@ from app.services.claims import (
     claims_for_policy,
     close_claim,
     file_fnol,
+    list_claims,
     payments_for_claim,
     record_carrier_reserve,
     record_payment,
@@ -453,3 +454,86 @@ def test_claims_for_policy_filters_by_status():
     assert notified[0].id == c1.id
     all_claims = claims_for_policy(s, pol.id)
     assert len(all_claims) == 2
+
+
+# ─── list_claims (cross-policy) ─────────────────────────────────────────
+
+
+def _second_policy(s: Session) -> Policy:
+    p = Policy(
+        id="pol-test-2",
+        policy_number="POL-2026-0002",
+        submission_id="sub-test-2",
+        bound_quote_id="q-test-2",
+        venue_id="house-of-yes",
+        carrier_id="brit-syndicate",
+        status="active",
+        effective_date=date(2026, 1, 1),
+        expiration_date=date(2027, 1, 1),
+        annual_premium=Decimal("8000.00"),
+        commission_amount=Decimal("1200.00"),
+        commission_rate=Decimal("0.15"),
+        coverage_lines=["gl"],
+        terms_snapshot={},
+        snapshot_hash="hash-test-2",
+    )
+    s.add(Venue(id="house-of-yes", name="House of Yes"))
+    s.add(p); s.commit()
+    return p
+
+
+def test_list_claims_across_policies():
+    s = _session()
+    p1 = _active_policy(s)
+    p2 = _second_policy(s)
+    a = file_fnol(s, policy_id=p1.id, coverage_line="gl",
+                  date_of_loss=date(2026, 3, 1), filed_by=USER_ID)
+    b = file_fnol(s, policy_id=p2.id, coverage_line="gl",
+                  date_of_loss=date(2026, 3, 2), filed_by=USER_ID)
+    s.commit()
+
+    all_rows = list_claims(s)
+    assert {r.id for r in all_rows} == {a.id, b.id}
+
+
+def test_list_claims_filters_by_venue():
+    s = _session()
+    p1 = _active_policy(s)
+    p2 = _second_policy(s)
+    a = file_fnol(s, policy_id=p1.id, coverage_line="gl",
+                  date_of_loss=date(2026, 3, 1), filed_by=USER_ID)
+    file_fnol(s, policy_id=p2.id, coverage_line="gl",
+              date_of_loss=date(2026, 3, 2), filed_by=USER_ID)
+    s.commit()
+
+    rows = list_claims(s, venue_id=VENUE_ID)
+    assert [r.id for r in rows] == [a.id]
+
+
+def test_list_claims_open_only_excludes_closed():
+    s = _session()
+    p1 = _active_policy(s)
+    open_claim = file_fnol(s, policy_id=p1.id, coverage_line="gl",
+                           date_of_loss=date(2026, 3, 1), filed_by=USER_ID)
+    closing = file_fnol(s, policy_id=p1.id, coverage_line="liquor",
+                        date_of_loss=date(2026, 3, 2), filed_by=USER_ID)
+    record_carrier_reserve(
+        s, closing.id, new_reserve=Decimal("100"),
+        change_reason="initial", received_from="adj",
+        received_at=datetime(2026, 3, 3, tzinfo=timezone.utc),
+        recorded_by=USER_ID,
+    )
+    close_claim(s, closing.id, disposition="denied", closed_by=USER_ID)
+    s.commit()
+
+    open_rows = list_claims(s, open_only=True)
+    assert [r.id for r in open_rows] == [open_claim.id]
+    all_rows = list_claims(s)
+    assert len(all_rows) == 2
+
+
+def test_list_claims_open_only_and_status_mutually_exclusive():
+    s = _session()
+    _active_policy(s)
+    with pytest.raises(ClaimsError, match="mutually exclusive"):
+        list_claims(s, open_only=True, status_in=["notified"])

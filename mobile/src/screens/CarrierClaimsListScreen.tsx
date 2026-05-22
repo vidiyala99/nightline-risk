@@ -54,22 +54,27 @@ export function CarrierClaimsListScreen({ navigation }: any) {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const policies = await api.request<PolicyLite[]>('/api/policies?status=all');
-      const accumulator: Row[] = [];
-      const queue = policies.slice();
-      const workers = Array.from({ length: 4 }, async () => {
-        while (queue.length > 0) {
-          const p = queue.shift();
-          if (!p) return;
-          try {
-            const claims = await claimsApi.claimsForPolicy(p.id);
-            for (const c of claims) accumulator.push({ ...c, policy: p });
-          } catch {
-            // skip policies that 4xx — absence shouldn't break the page
-          }
-        }
-      });
-      await Promise.all(workers);
+      // One cross-policy call (slice 4) — replaces the per-policy
+      // aggregation that shipped in slice 3. Policy lookup happens
+      // only for the policy_ids actually referenced.
+      const claims = await claimsApi.listClaims();
+      const policyIds = Array.from(new Set(claims.map((c) => c.policy_id)));
+      const policies = await Promise.all(
+        policyIds.map((pid) =>
+          api.request<PolicyLite>(`/api/policies/${pid}`).catch(() => null),
+        ),
+      );
+      const byId = new Map<string, PolicyLite>(
+        policies
+          .filter((p): p is PolicyLite => p !== null)
+          .map((p) => [p.id, p]),
+      );
+      const accumulator: Row[] = claims
+        .map((c) => {
+          const policy = byId.get(c.policy_id);
+          return policy ? ({ ...c, policy } as Row) : null;
+        })
+        .filter((r): r is Row => r !== null);
       setRows(accumulator);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load claims');

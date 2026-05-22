@@ -28,6 +28,7 @@ from app.services.claims import (
     claims_for_policy,
     close_claim,
     file_fnol,
+    list_claims,
     payments_for_claim,
     record_carrier_reserve,
     record_payment,
@@ -191,6 +192,50 @@ def api_list_claims_for_policy(
     else:
         status_in = [s.strip() for s in status.split(",")]
     rows = claims_for_policy(session, pid, status_in=status_in)
+    return [_claim_to_dict(c) for c in rows]
+
+
+@router.get("/claims", dependencies=[Depends(require_broker)])
+def api_list_claims(
+    status: Optional[str] = None,
+    venue_id: Optional[str] = None,
+    carrier_id: Optional[str] = None,
+    open_only: bool = False,
+    session: Session = Depends(get_session),
+) -> list[dict]:
+    """Cross-policy carrier-claim list. Drives the broker's top-level
+    portfolio page (/claims on web) and the mobile "Carrier Claims"
+    tab badge.
+
+    Query params:
+      status      Comma-separated ClaimStatus values, or "all" to
+                  drop the filter entirely. Default: all.
+      venue_id    Filter by Policy.venue_id (joined).
+      carrier_id  Filter by Policy.carrier_id (joined).
+      open_only   Shortcut: only non-closed claims. Mutually exclusive
+                  with `status`; raises 400 if both are provided.
+
+    Note on route ordering: this is registered BEFORE
+    GET /api/claims/{cid} so FastAPI's path resolver disambiguates
+    literal "/claims" against the {cid} path-param route.
+    """
+    if status is None:
+        status_in = None
+    elif status == "all":
+        status_in = ["all"]
+    else:
+        status_in = [s.strip() for s in status.split(",")]
+
+    try:
+        rows = list_claims(
+            session,
+            status_in=status_in,
+            venue_id=venue_id,
+            carrier_id=carrier_id,
+            open_only=open_only,
+        )
+    except ClaimsError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return [_claim_to_dict(c) for c in rows]
 
 

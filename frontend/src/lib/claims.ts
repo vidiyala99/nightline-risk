@@ -163,6 +163,20 @@ export const claimsApi = {
       body: JSON.stringify(body),
     }),
 
+  listClaims: (params: {
+    status?: string;
+    venue_id?: string;
+    carrier_id?: string;
+    open_only?: boolean;
+  } = {}) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== false) q.set(k, String(v));
+    }
+    const qs = q.toString();
+    return call<Claim[]>(`/api/claims${qs ? `?${qs}` : ""}`);
+  },
+
   claimsForPolicy: (pid: string, params: { status?: string } = {}) => {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {

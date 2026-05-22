@@ -519,6 +519,48 @@ def claims_for_policy(
     return list(session.exec(stmt).all())
 
 
+def list_claims(
+    session: Session,
+    *,
+    status_in: Optional[list[str]] = None,
+    venue_id: Optional[str] = None,
+    carrier_id: Optional[str] = None,
+    open_only: bool = False,
+) -> list[Claim]:
+    """Cross-policy claim list — drives /api/claims and the broker's
+    top-level portfolio + the mobile tab badge for open claims.
+
+    Filters:
+      status_in    Explicit status list. ``["all"]`` means no filter.
+      venue_id     Join through Policy to filter by venue.
+      carrier_id   Join through Policy to filter by carrier.
+      open_only    Shorthand — claims whose status is not one of the
+                   closed_* terminal-ish states. Lets the mobile tab
+                   badge count "what needs attention" with one flag.
+                   Mutually exclusive with status_in.
+    """
+    if open_only and status_in is not None:
+        raise ClaimsError("open_only and status_in are mutually exclusive")
+
+    stmt = select(Claim)
+
+    if venue_id is not None or carrier_id is not None:
+        stmt = stmt.join(Policy, Claim.policy_id == Policy.id)  # type: ignore[arg-type]
+        if venue_id is not None:
+            stmt = stmt.where(Policy.venue_id == venue_id)
+        if carrier_id is not None:
+            stmt = stmt.where(Policy.carrier_id == carrier_id)
+
+    if open_only:
+        stmt = stmt.where(Claim.status.notin_(  # type: ignore[attr-defined]
+            ["closed_paid", "closed_denied", "closed_dropped"]
+        ))
+    elif status_in is not None and status_in != ["all"]:
+        stmt = stmt.where(Claim.status.in_(status_in))  # type: ignore[attr-defined]
+
+    return list(session.exec(stmt).all())
+
+
 def payments_for_claim(session: Session, claim_id: str) -> list[ClaimPayment]:
     return list(session.exec(
         select(ClaimPayment).where(ClaimPayment.claim_id == claim_id)

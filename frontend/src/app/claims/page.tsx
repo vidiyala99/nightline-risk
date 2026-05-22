@@ -43,22 +43,28 @@ export default function CarrierClaimsListPage() {
     async function load() {
       setError(null);
       try {
-        const policies = await policiesApi.listPolicies({ status: "all" });
+        // One cross-policy call replaces the per-policy aggregation that
+        // shipped in slice 2. Policy metadata (venue, policy_number) is
+        // fetched in parallel only for the policies actually referenced
+        // by returned claims — typically far fewer than total policies.
+        // PolicyDetail upcasts to Policy here since Row only needs the
+        // base shape; the table never reads endorsements/certificates.
+        const claims = await claimsApi.listClaims();
+        const policyIds = Array.from(new Set(claims.map((c) => c.policy_id)));
+        const policies = await Promise.all(
+          policyIds.map((pid) =>
+            policiesApi.getPolicy(pid).catch(() => null),
+          ),
+        );
+        const policyById = new Map<string, Policy>();
+        for (const p of policies) {
+          if (p) policyById.set(p.id, p as Policy);
+        }
         const all: Row[] = [];
-        const queue = policies.slice();
-        const workers = Array.from({ length: 4 }, async () => {
-          while (queue.length > 0) {
-            const p = queue.shift();
-            if (!p) return;
-            try {
-              const claims = await claimsApi.claimsForPolicy(p.id);
-              for (const c of claims) all.push({ ...c, policy: p });
-            } catch {
-              // skip policies that 4xx — claims absence shouldn't break the page
-            }
-          }
-        });
-        await Promise.all(workers);
+        for (const c of claims) {
+          const policy = policyById.get(c.policy_id);
+          if (policy) all.push({ ...c, policy });
+        }
         if (!cancelled) setRows(all);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load claims");

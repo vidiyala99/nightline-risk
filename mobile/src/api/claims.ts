@@ -115,6 +115,20 @@ export const claimsApi = {
       body: JSON.stringify(body),
     }),
 
+  listClaims: (params: {
+    status?: string;
+    venue_id?: string;
+    carrier_id?: string;
+    open_only?: boolean;
+  } = {}) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== false) q.set(k, String(v));
+    }
+    const qs = q.toString();
+    return api.request<Claim[]>(`/api/claims${qs ? `?${qs}` : ''}`);
+  },
+
   claimsForPolicy: (pid: string, status?: string) => {
     const qs = status ? `?status=${encodeURIComponent(status)}` : '';
     return api.request<Claim[]>(`/api/policies/${pid}/claims${qs}`);
