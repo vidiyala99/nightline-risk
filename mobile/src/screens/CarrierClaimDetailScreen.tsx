@@ -1,0 +1,715 @@
+/**
+ * Carrier-claim detail. Mobile counterpart to /claims/[cid] on web.
+ *
+ * Layout (top → bottom):
+ *   1. Header — status badge + masthead claim ID + back link to list
+ *   2. Headline — Total incurred in Cormorant + reserve delta
+ *   3. Lifecycle strip — 5 nodes lit per current status
+ *   4. Summary tiles — reserve / indemnity / expense / recoveries
+ *   5. Payment ledger
+ *   6. Reserve history
+ *   7. Meta strip (FNOL date, adjuster, defense package, snapshot hash)
+ * Bottom pinned: state-gated action toolbar above the safe area.
+ *
+ * Pull-to-refresh + haptics on action success.
+ */
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import * as Haptics from 'expo-haptics';
+
+import { claimsApi, totalIncurredFromClaim, type ClaimDetail } from '../api/claims';
+import {
+  ACTION_PRIORITY,
+  CLAIM_STATUS_GLYPH,
+  CLAIM_STATUS_LABEL,
+  LIFECYCLE_LABEL_SHORT,
+  LIFECYCLE_ORDER,
+  PAYMENT_TYPE_LABEL,
+  formatClaimMoney,
+  formatLedgerMoney,
+  formatReserveDelta,
+  isClosedStatus,
+  lifecyclePosition,
+  type ActionEmphasis,
+  type ActionId,
+  type ClaimStatus,
+} from '../api/claim-tokens';
+import { Fonts } from '../theme/typography';
+import { StatusBadge } from '../components/StatusBadge';
+
+const ACTION_LABEL: Record<ActionId, string> = {
+  record_reserve: 'Record reserve',
+  record_payment: 'Record payment',
+  close_claim: 'Close claim',
+  reopen_claim: 'Reopen claim',
+  attach_defense_package: 'Attach defense package',
+};
+
+export function CarrierClaimDetailScreen({ route, navigation }: any) {
+  const { cid } = route.params;
+  const [claim, setClaim] = useState<ClaimDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const data = await claimsApi.claimDetail(cid);
+      setClaim(data);
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to load claim');
+    } finally {
+      setLoading(false);
+    }
+  }, [cid]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
+
+  const onAction = useCallback(
+    (id: ActionId) => {
+      if (!claim) return;
+      if (id === 'record_reserve') {
+        navigation.navigate('RecordReserve', { cid: claim.id, onSuccess: () => load() });
+      } else if (id === 'record_payment') {
+        navigation.navigate('RecordPayment', { cid: claim.id, onSuccess: () => load() });
+      } else if (id === 'close_claim') {
+        confirmClose(claim.id, () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          load();
+        });
+      } else if (id === 'reopen_claim') {
+        confirmReopen(claim.id, () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          load();
+        });
+      } else if (id === 'attach_defense_package') {
+        Alert.alert(
+          'Attach defense package',
+          'Attach is currently a web-only flow. Use the /claims/[cid] page on desktop to attach a packet.',
+        );
+      }
+    },
+    [claim, load, navigation],
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color="#c8f000" />
+      </View>
+    );
+  }
+
+  if (error || !claim) {
+    return (
+      <View style={styles.errorBox}>
+        <Text style={styles.errorText}>{error ?? 'Claim not found'}</Text>
+        <Pressable onPress={load} style={styles.retryBtn}>
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const incurred = totalIncurredFromClaim(claim);
+  const head = formatClaimMoney(incurred);
+  const delta = formatReserveDelta(claim.current_reserve, incurred);
+  const masthead = claim.carrier_claim_number ?? claim.id;
+  const closed = isClosedStatus(claim.status);
+  const lifeIdx = lifecyclePosition(claim.status);
+
+  return (
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 140 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />
+        }
+      >
+        <View style={styles.headerWrap}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backRow}>
+            <Text style={styles.backText}>← Carrier claims</Text>
+          </Pressable>
+          <Text style={styles.eyebrow}>
+            <Text style={styles.glyph}>{CLAIM_STATUS_GLYPH[claim.status]}  </Text>
+            CARRIER CLAIM
+          </Text>
+          <Text style={styles.masthead}>{masthead}</Text>
+          <View style={styles.headerRow}>
+            <StatusBadge status={claim.status} />
+            {claim.reopen_count > 0 && (
+              <Text style={styles.reopenBadge}>↻ {claim.reopen_count}</Text>
+            )}
+          </View>
+          <Text style={styles.headerSub}>
+            {claim.coverage_line.toUpperCase()} ·{' '}
+            {new Date(claim.date_of_loss).toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            })}
+            {'  ·  '}
+            {claim.policy_id}
+          </Text>
+        </View>
+
+        <View style={styles.headline}>
+          <Text style={styles.headlineLabel}>TOTAL INCURRED</Text>
+          <View style={styles.headlineValueRow}>
+            <Text style={styles.headlineUnit}>$</Text>
+            <Text style={styles.headlineDigits}>{head.digits}</Text>
+          </View>
+          {delta.label !== '—' && (
+            <Text style={[styles.delta, deltaStyle(delta.tone)]}>{delta.label}</Text>
+          )}
+        </View>
+
+        <LifecycleStrip status={claim.status} reopenCount={claim.reopen_count} pos={lifeIdx} />
+
+        <View style={styles.summaryGrid}>
+          <Tile label="Current reserve" value={formatLedgerMoney(claim.current_reserve)} />
+          <Tile label="Indemnity paid" value={formatLedgerMoney(claim.indemnity_paid_to_date)} />
+          <Tile label="Expense paid" value={formatLedgerMoney(claim.expense_paid_to_date)} />
+          <Tile label="Recoveries" value={formatLedgerMoney(claim.recoveries_to_date)} />
+        </View>
+
+        <SectionTitle>Payments</SectionTitle>
+        {claim.payments.length === 0 ? (
+          <Text style={styles.empty}>
+            No payments recorded yet. Record from the toolbar below.
+          </Text>
+        ) : (
+          claim.payments
+            .slice()
+            .sort((a, b) => new Date(b.paid_on).getTime() - new Date(a.paid_on).getTime())
+            .map((p) => (
+              <View key={p.id} style={styles.ledgerRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.ledgerType}>{PAYMENT_TYPE_LABEL[p.payment_type]}</Text>
+                  <Text style={styles.ledgerDesc} numberOfLines={2}>
+                    {p.description || '—'}
+                  </Text>
+                  <Text style={styles.ledgerSub}>
+                    {new Date(p.paid_on).toLocaleDateString()} · {p.recorded_by}
+                  </Text>
+                </View>
+                <Text style={styles.ledgerAmount}>{formatLedgerMoney(p.amount)}</Text>
+              </View>
+            ))
+        )}
+
+        <SectionTitle>Reserve history</SectionTitle>
+        {claim.reserve_changes.length === 0 ? (
+          <Text style={styles.empty}>
+            No reserve changes recorded yet. The carrier's first reserve will appear here.
+          </Text>
+        ) : (
+          claim.reserve_changes
+            .slice()
+            .sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime())
+            .map((r) => (
+              <View key={r.id} style={styles.ledgerRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.ledgerType} numberOfLines={1}>
+                    {r.change_reason}
+                  </Text>
+                  <Text style={styles.ledgerDesc}>
+                    {formatLedgerMoney(r.from_amount)} → {formatLedgerMoney(r.to_amount)}
+                  </Text>
+                  <Text style={styles.ledgerSub} numberOfLines={1}>
+                    {new Date(r.received_at).toLocaleDateString()} · {r.received_from}
+                  </Text>
+                </View>
+              </View>
+            ))
+        )}
+
+        <SectionTitle>Detail</SectionTitle>
+        <MetaRow label="FNOL filed" value={new Date(claim.fnol_submitted_at).toLocaleString()} />
+        {claim.adjuster_name && (
+          <MetaRow
+            label="Adjuster"
+            value={`${claim.adjuster_name}${claim.adjuster_email ? ' — ' + claim.adjuster_email : ''}`}
+          />
+        )}
+        {claim.defense_package_id && (
+          <MetaRow label="Defense package" value={claim.defense_package_id} mono />
+        )}
+        {closed && claim.closed_at && (
+          <MetaRow
+            label="Closed"
+            value={`${new Date(claim.closed_at).toLocaleString()} · ${CLAIM_STATUS_LABEL[claim.status]}`}
+          />
+        )}
+        {closed && claim.final_indemnity && (
+          <MetaRow label="Final indemnity" value={formatLedgerMoney(claim.final_indemnity)} />
+        )}
+        {claim.reopened_at && (
+          <MetaRow
+            label="Reopened"
+            value={`${new Date(claim.reopened_at).toLocaleString()} · ${claim.reopen_count}×`}
+          />
+        )}
+        <MetaRow label="Snapshot hash" value={claim.snapshot_hash} mono />
+      </ScrollView>
+
+      <ActionToolbar status={claim.status} onAction={onAction} />
+    </>
+  );
+}
+
+// ─── Sub-components ──────────────────────────────────────────────────────
+
+function Tile({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.tile}>
+      <Text style={styles.tileLabel}>{label.toUpperCase()}</Text>
+      <Text style={styles.tileValue}>{value}</Text>
+    </View>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.sectionTitle}>{String(children).toUpperCase()}</Text>;
+}
+
+function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <View style={styles.metaRow}>
+      <Text style={styles.metaLabel}>{label.toUpperCase()}</Text>
+      <Text style={[styles.metaValue, mono && { fontFamily: Fonts.monoRegular, fontSize: 11 }]} numberOfLines={3}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function LifecycleStrip({
+  status,
+  reopenCount,
+  pos,
+}: {
+  status: ClaimStatus;
+  reopenCount: number;
+  pos: number;
+}) {
+  return (
+    <View style={styles.lifeWrap}>
+      {reopenCount > 0 && (
+        <Text style={styles.lifeReopen}>↻ Reopened {reopenCount}×</Text>
+      )}
+      <View style={styles.lifeNodes}>
+        {LIFECYCLE_ORDER.map((node, i) => {
+          const lit = i < pos;
+          const active = i === pos && !isClosedStatus(status);
+          const finalLit = i === LIFECYCLE_ORDER.length - 1 && isClosedStatus(status);
+          const litFinalPaid = finalLit && status === 'closed_paid';
+          const dotColor = active || lit || litFinalPaid
+            ? '#c8f000'
+            : finalLit
+              ? '#8b90a8'
+              : 'rgba(255,255,255,0.12)';
+          const labelColor = active
+            ? '#c8f000'
+            : lit || finalLit
+              ? '#eeeef5'
+              : '#4a4f65';
+          return (
+            <View key={node} style={styles.lifeCol}>
+              <View style={[styles.lifeDot, { backgroundColor: dotColor }]} />
+              <Text style={[styles.lifeLabel, { color: labelColor }]}>
+                {LIFECYCLE_LABEL_SHORT[node]}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function ActionToolbar({
+  status,
+  onAction,
+}: {
+  status: ClaimStatus;
+  onAction: (id: ActionId) => void;
+}) {
+  const priority = ACTION_PRIORITY[status];
+  const buttons: { id: ActionId; emphasis: ActionEmphasis }[] = (
+    Object.keys(priority) as ActionId[]
+  )
+    .map((id) => ({ id, emphasis: priority[id] }))
+    .filter((b) => b.emphasis !== 'hidden')
+    .sort((a, b) => {
+      const order: Record<ActionEmphasis, number> = { primary: 0, secondary: 1, tertiary: 2, hidden: 3 };
+      return order[a.emphasis] - order[b.emphasis];
+    });
+
+  if (buttons.length === 0) return null;
+
+  return (
+    <View style={styles.toolbar}>
+      {buttons.map((b) => {
+        const isPrimary = b.emphasis === 'primary';
+        const isTertiary = b.emphasis === 'tertiary';
+        const isDestructive = b.id === 'close_claim' || b.id === 'reopen_claim';
+        return (
+          <Pressable
+            key={b.id}
+            onPress={() => onAction(b.id)}
+            style={[
+              styles.toolbarBtn,
+              isPrimary && styles.toolbarBtnPrimary,
+              !isPrimary && styles.toolbarBtnSecondary,
+              isTertiary && styles.toolbarBtnTertiary,
+              isDestructive && !isPrimary && styles.toolbarBtnDestructive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.toolbarBtnText,
+                isPrimary && styles.toolbarBtnTextPrimary,
+                isDestructive && !isPrimary && styles.toolbarBtnTextDestructive,
+              ]}
+              numberOfLines={1}
+            >
+              {ACTION_LABEL[b.id]}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+// ─── Inline destructive-action confirms ──────────────────────────────────
+
+function confirmClose(cid: string, onDone: () => void) {
+  const options = ['Paid', 'Denied', 'Dropped', 'Cancel'];
+  const cancelIndex = 3;
+  const handle = async (disposition: 'paid' | 'denied' | 'dropped') => {
+    let final: string | null = null;
+    if (disposition === 'paid') {
+      final = await promptAmount(
+        'Final indemnity',
+        'Required for paid disposition. Enter the settlement amount.',
+      );
+      if (final === null) return;
+    }
+    try {
+      await claimsApi.closeClaim(cid, { disposition, final_indemnity: final });
+      onDone();
+    } catch (e: any) {
+      Alert.alert('Close failed', e?.message ?? 'Try again.');
+    }
+  };
+  if (Platform.OS === 'ios') {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options, cancelButtonIndex: cancelIndex, title: 'Close claim — disposition' },
+      (idx) => {
+        if (idx === 0) handle('paid');
+        else if (idx === 1) handle('denied');
+        else if (idx === 2) handle('dropped');
+      },
+    );
+  } else {
+    Alert.alert('Close claim', 'Choose a disposition.', [
+      { text: 'Paid', onPress: () => handle('paid') },
+      { text: 'Denied', onPress: () => handle('denied') },
+      { text: 'Dropped', onPress: () => handle('dropped') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+}
+
+function confirmReopen(cid: string, onDone: () => void) {
+  promptText('Reopen reason', 'Logged on the claim audit trail.').then(async (reason) => {
+    if (!reason) return;
+    try {
+      await claimsApi.reopenClaim(cid, { reason });
+      onDone();
+    } catch (e: any) {
+      Alert.alert('Reopen failed', e?.message ?? 'Try again.');
+    }
+  });
+}
+
+function promptText(title: string, message: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    if (Platform.OS === 'ios' && (Alert as any).prompt) {
+      (Alert as any).prompt(
+        title,
+        message,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+          { text: 'OK', onPress: (text: string) => resolve(text?.trim() || null) },
+        ],
+        'plain-text',
+      );
+    } else {
+      // Android fallback — minimal: ask user to use web flow if multi-line input matters.
+      Alert.alert(title, `${message}\n\n(Android prompt UI is limited — use the web app for free-text input.)`, [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+        { text: 'Submit (placeholder)', onPress: () => resolve('Reopened from mobile') },
+      ]);
+    }
+  });
+}
+
+function promptAmount(title: string, message: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    if (Platform.OS === 'ios' && (Alert as any).prompt) {
+      (Alert as any).prompt(
+        title,
+        message,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+          { text: 'OK', onPress: (text: string) => resolve(text?.trim() || null) },
+        ],
+        'plain-text',
+        '',
+        'decimal-pad',
+      );
+    } else {
+      Alert.alert(title, `${message}\n\n(Use the web app to enter the amount.)`, [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+      ]);
+    }
+  });
+}
+
+function deltaStyle(tone: 'success' | 'danger' | 'neutral') {
+  return {
+    color: tone === 'success' ? '#c8f000' : tone === 'danger' ? '#ff4557' : '#8b90a8',
+  } as const;
+}
+
+// ─── Styles ──────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#07080f' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#07080f' },
+
+  headerWrap: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 },
+  backRow: { marginBottom: 12 },
+  backText: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  eyebrow: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: '#8b90a8',
+    marginBottom: 6,
+  },
+  glyph: { color: '#c8f000' },
+  masthead: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 16,
+    color: '#eeeef5',
+    marginBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingBottom: 8,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  reopenBadge: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 10,
+    color: '#ff4557',
+    borderColor: '#ff4557',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    overflow: 'hidden',
+  },
+  headerSub: { color: '#8b90a8', fontSize: 12, fontFamily: Fonts.monoRegular },
+
+  headline: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  headlineLabel: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 9,
+    letterSpacing: 1.6,
+    color: '#8b90a8',
+    marginBottom: 4,
+  },
+  headlineValueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  headlineUnit: { fontFamily: Fonts.displayBold, fontSize: 26, color: '#4a4f65' },
+  headlineDigits: {
+    fontFamily: Fonts.displayBold,
+    fontSize: 56,
+    lineHeight: 60,
+    color: '#eeeef5',
+    letterSpacing: -1.5,
+    fontVariant: ['tabular-nums'],
+  },
+  delta: { fontFamily: Fonts.monoBold, fontSize: 11, marginTop: 6 },
+
+  lifeWrap: { paddingHorizontal: 20, paddingVertical: 16 },
+  lifeReopen: {
+    alignSelf: 'flex-end',
+    fontFamily: Fonts.monoBold,
+    fontSize: 10,
+    color: '#ff4557',
+    marginBottom: 6,
+  },
+  lifeNodes: { flexDirection: 'row', justifyContent: 'space-between' },
+  lifeCol: { alignItems: 'center', flex: 1 },
+  lifeDot: { width: 10, height: 10, borderRadius: 5, marginBottom: 6 },
+  lifeLabel: { fontFamily: Fonts.monoBold, fontSize: 9, letterSpacing: 1.2 },
+
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 16,
+  },
+  tile: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    backgroundColor: '#0d0f1c',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  tileLabel: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    color: '#8b90a8',
+    marginBottom: 4,
+  },
+  tileValue: { fontFamily: Fonts.monoBold, fontSize: 16, color: '#eeeef5' },
+
+  sectionTitle: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 10,
+    letterSpacing: 1.6,
+    color: '#8b90a8',
+    paddingHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+
+  ledgerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  ledgerType: { fontFamily: Fonts.sansSemiBold, fontSize: 13, color: '#eeeef5' },
+  ledgerDesc: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 12,
+    color: '#8b90a8',
+    marginTop: 2,
+  },
+  ledgerSub: { fontFamily: Fonts.monoRegular, fontSize: 10, color: '#4a4f65', marginTop: 4 },
+  ledgerAmount: { fontFamily: Fonts.monoBold, fontSize: 14, color: '#eeeef5' },
+
+  empty: {
+    color: '#4a4f65',
+    fontStyle: 'italic',
+    fontFamily: Fonts.sansRegular,
+    fontSize: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    lineHeight: 16,
+  },
+
+  metaRow: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+  },
+  metaLabel: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    color: '#4a4f65',
+    marginBottom: 2,
+  },
+  metaValue: { color: '#eeeef5', fontFamily: Fonts.sansRegular, fontSize: 13 },
+
+  toolbar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#0a0b14',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 28,
+    flexDirection: 'row',
+    gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  toolbarBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  toolbarBtnPrimary: { backgroundColor: '#c8f000' },
+  toolbarBtnSecondary: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'transparent',
+  },
+  toolbarBtnTertiary: { borderStyle: 'dashed' as const, borderColor: 'rgba(255,255,255,0.12)' },
+  toolbarBtnDestructive: { borderColor: 'rgba(255,69,87,0.4)' },
+  toolbarBtnText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 12,
+    color: '#eeeef5',
+    textAlign: 'center',
+  },
+  toolbarBtnTextPrimary: { color: '#07080f' },
+  toolbarBtnTextDestructive: { color: '#ff4557' },
+
+  errorBox: { flex: 1, padding: 24, justifyContent: 'center', backgroundColor: '#07080f' },
+  errorText: { color: '#ff4557', marginBottom: 12, fontFamily: Fonts.sansMedium, fontSize: 14 },
+  retryBtn: {
+    alignSelf: 'flex-start',
+    borderColor: '#c8f000',
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  retryText: { color: '#c8f000', fontFamily: Fonts.sansMedium },
+});

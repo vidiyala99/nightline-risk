@@ -1,22 +1,40 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  open: { label: 'OPEN', color: '#ff9500', bg: 'rgba(255,149,0,0.1)', border: 'rgba(255,149,0,0.3)' },
-  under_review: { label: 'REVIEW', color: '#5b8af5', bg: 'rgba(91,138,245,0.1)', border: 'rgba(91,138,245,0.3)' },
-  closed: { label: 'CLOSED', color: '#00d97e', bg: 'rgba(0,217,126,0.08)', border: 'rgba(0,217,126,0.25)' },
+// Tone palette — keep in sync with the web's status-pill tones.
+const TONES = {
+  info:    { color: '#5b8af5', bg: 'rgba(91,138,245,0.1)',  border: 'rgba(91,138,245,0.3)' },
+  warning: { color: '#ff9500', bg: 'rgba(255,149,0,0.1)',   border: 'rgba(255,149,0,0.3)'  },
+  success: { color: '#00d97e', bg: 'rgba(0,217,126,0.08)',  border: 'rgba(0,217,126,0.25)' },
+  danger:  { color: '#ff4557', bg: 'rgba(255,69,87,0.08)',  border: 'rgba(255,69,87,0.25)' },
+  neutral: { color: '#8b90a8', bg: 'rgba(139,144,168,0.1)', border: 'rgba(139,144,168,0.2)' },
+};
+
+const STATUS_CONFIG: Record<string, { label: string; tone: keyof typeof TONES }> = {
+  // legacy operator statuses
+  open:         { label: 'OPEN',   tone: 'warning' },
+  under_review: { label: 'REVIEW', tone: 'info'    },
+  closed:       { label: 'CLOSED', tone: 'success' },
+
+  // Phase 3 carrier-claim statuses (mirror of CLAIM_STATUS_TONE)
+  notified:            { label: 'NOTIFIED',         tone: 'info'    },
+  acknowledged:        { label: 'ACKNOWLEDGED',     tone: 'info'    },
+  under_investigation: { label: 'INVESTIGATING',    tone: 'warning' },
+  reserved:            { label: 'RESERVED',         tone: 'warning' },
+  settling:            { label: 'SETTLING',         tone: 'warning' },
+  closed_paid:         { label: 'CLOSED — PAID',    tone: 'success' },
+  closed_denied:       { label: 'CLOSED — DENIED',  tone: 'neutral' },
+  closed_dropped:      { label: 'CLOSED — DROPPED', tone: 'neutral' },
+  reopened:            { label: 'REOPENED',         tone: 'warning' },
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status] ?? {
-    label: status.toUpperCase(),
-    color: '#8b90a8',
-    bg: 'rgba(139,144,168,0.1)',
-    border: 'rgba(139,144,168,0.2)',
-  };
+  const config = STATUS_CONFIG[status];
+  const tone = config ? TONES[config.tone] : TONES.neutral;
+  const label = config?.label ?? status.toUpperCase();
   return (
-    <View style={[styles.badge, { backgroundColor: config.bg, borderColor: config.border }]}>
-      <Text style={[styles.text, { color: config.color }]}>{config.label}</Text>
+    <View style={[styles.badge, { backgroundColor: tone.bg, borderColor: tone.border }]}>
+      <Text style={[styles.text, { color: tone.color }]}>{label}</Text>
     </View>
   );
 }

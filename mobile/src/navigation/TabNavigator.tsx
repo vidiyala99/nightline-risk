@@ -16,8 +16,11 @@ import { ReportsStack } from './ReportsStack';
 import { BrokerVenuesStack } from './BrokerVenuesStack';
 import { BrokerComplianceStack } from './BrokerComplianceStack';
 
-// Claims (both roles)
-import { ClaimsStack } from './ClaimsStack';
+// Claim proposals — both roles
+import { ClaimProposalsStack } from './ClaimProposalsStack';
+
+// Carrier-side claims — broker-only (Phase 3)
+import { CarrierClaimsStack } from './CarrierClaimsStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -27,7 +30,7 @@ const VENUE_ICONS: Record<string, { active: string; inactive: string }> = {
   Incidents:  { active: '!', inactive: '!' },
   Live:       { active: '◉', inactive: '○' },
   Compliance: { active: '✓', inactive: '○' },
-  Claims:     { active: '⊡', inactive: '⊡' },
+  Proposals:  { active: '⊡', inactive: '⊡' },
   Reports:    { active: '⊞', inactive: '⊟' },
 };
 
@@ -37,7 +40,8 @@ const BROKER_ICONS: Record<string, { active: string; inactive: string }> = {
   Venues:      { active: '⊟', inactive: '⊞' },
   Incidents:   { active: '◉', inactive: '○' },
   Compliance:  { active: '✓', inactive: '○' },
-  Claims:      { active: '⊡', inactive: '⊡' },
+  Proposals:   { active: '⊡', inactive: '⊡' },
+  Claims:      { active: '◆', inactive: '◇' },
 };
 
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
@@ -91,7 +95,7 @@ function VenueOperatorTabs() {
       <Tab.Screen name="Dashboard" component={DashboardStack} />
       <Tab.Screen name="Reports" component={ReportsStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
-      <Tab.Screen name="Claims" component={ClaimsStack} />
+      <Tab.Screen name="Proposals" component={ClaimProposalsStack} />
       <Tab.Screen name="Venues" component={VenuesStack} />
       <Tab.Screen name="Live" component={LiveStack} />
       <Tab.Screen name="Compliance" component={OperatorComplianceStack} />
@@ -116,7 +120,8 @@ function BrokerTabs() {
     })}>
       <Tab.Screen name="Portfolio" component={PortfolioStack} />
       <Tab.Screen name="Reports" component={ReportsStack} />
-      <Tab.Screen name="Claims" component={ClaimsStack} />
+      <Tab.Screen name="Claims" component={CarrierClaimsStack} />
+      <Tab.Screen name="Proposals" component={ClaimProposalsStack} />
       <Tab.Screen name="Venues" component={BrokerVenuesStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
       <Tab.Screen name="Compliance" component={BrokerComplianceStack} />
