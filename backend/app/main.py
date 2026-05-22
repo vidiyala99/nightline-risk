@@ -284,6 +284,18 @@ app.include_router(packets_router, prefix="/api", tags=["packets"])
 from app.api.v1.claim_proposals import router as claim_proposals_router  # noqa: E402
 app.include_router(claim_proposals_router, prefix="/api", tags=["claim-proposals"])
 
+from app.api.v1.evidence import router as evidence_router  # noqa: E402
+app.include_router(evidence_router, prefix="/api", tags=["evidence"])
+
+from app.api.v1.policy_docs import router as policy_docs_router  # noqa: E402
+app.include_router(policy_docs_router, prefix="/api", tags=["policy-docs"])
+
+from app.api.v1.operations import router as operations_router  # noqa: E402
+app.include_router(operations_router, prefix="/api", tags=["operations"])
+
+from app.api.v1.compliance import router as compliance_router  # noqa: E402
+app.include_router(compliance_router, prefix="/api", tags=["compliance"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -524,97 +536,8 @@ def _run_corroboration_and_update_packet(session, incident_id: str, incident: In
     )
 
 
-@app.post("/api/incidents/{incident_id}/evidence", status_code=201)
-async def upload_evidence(
-    incident_id: str,
-    file: UploadFile = File(...),
-    uploaded_by: str = "operator",
-    background_tasks: BackgroundTasks = None,
-    session: Session = Depends(get_session),
-) -> dict:
-    record = session.get(IncidentRecord, incident_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail="Incident not found")
-    from uuid import uuid4
-    evidence_id = f"ev-{uuid4().hex[:12]}"
-    safe_name = f"{evidence_id}_{file.filename}"
-    dest = EVIDENCE_DIR / safe_name
-    MAX_IMAGE_SIZE = 20 * 1024 * 1024   # 20MB
-    MAX_VIDEO_SIZE = 200 * 1024 * 1024  # 200MB — for larger files use the link option
-
-    contents = await file.read()
-    max_size = MAX_VIDEO_SIZE if (file.content_type or "").startswith("video/") else MAX_IMAGE_SIZE
-    if len(contents) > max_size:
-        limit_mb = max_size // (1024 * 1024)
-        raise HTTPException(status_code=413, detail=f"File too large. Maximum size for this file type is {limit_mb}MB. For larger videos, use the S3 upload path.")
-    dest.write_bytes(contents)
-    evidence = EvidenceFile(
-        id=evidence_id,
-        incident_id=incident_id,
-        filename=file.filename or "upload",
-        content_type=file.content_type or "application/octet-stream",
-        file_path=str(dest),
-        file_size=len(contents),
-        uploaded_by=uploaded_by,
-    )
-    session.add(evidence)
-    session.commit()
-    # Trigger async vision analysis
-    if background_tasks and file.content_type and (
-        file.content_type.startswith("image/") or file.content_type.startswith("video/")
-    ):
-        background_tasks.add_task(_process_evidence_sync, evidence_id)
-    return {"id": evidence_id, "filename": evidence.filename, "content_type": evidence.content_type, "file_size": evidence.file_size, "uploaded_at": evidence.uploaded_at.isoformat()}
-
-
-@app.get("/api/incidents/{incident_id}/evidence")
-def list_evidence(incident_id: str, session: Session = Depends(get_session)) -> list[dict]:
-    files = session.exec(
-        select(EvidenceFile).where(EvidenceFile.incident_id == incident_id).order_by(EvidenceFile.uploaded_at)
-    ).all()
-    return [{"id": f.id, "filename": f.filename, "content_type": f.content_type, "file_size": f.file_size, "uploaded_by": f.uploaded_by, "uploaded_at": f.uploaded_at.isoformat()} for f in files]
-
-
-@app.get("/api/incidents/{incident_id}/evidence-analysis")
-def get_evidence_analysis(incident_id: str, session: Session = Depends(get_session)) -> dict:
-    """Return aggregated vision analysis status for all evidence on an incident."""
-    analyses = session.exec(
-        select(EvidenceAnalysis).where(EvidenceAnalysis.incident_id == incident_id)
-    ).all()
-    all_files = session.exec(
-        select(EvidenceFile).where(EvidenceFile.incident_id == incident_id)
-    ).all()
-    processable = [f for f in all_files if f.content_type.startswith(("image/", "video/"))]
-    complete = [a for a in analyses if a.status == "complete"]
-    return {
-        "total_files": len(processable),
-        "processed": len(complete),
-        "status": "complete" if len(complete) >= len(processable) > 0 else "processing" if processable else "no_media",
-        "analyses": [
-            {
-                "evidence_id": a.evidence_id,
-                "analysis_type": a.analysis_type,
-                "corroboration": a.corroboration,
-                "confidence_delta": a.confidence_delta,
-                "raw_description": a.raw_description,
-                "findings": a.findings,
-                "analyzed_at": a.analyzed_at.isoformat() if a.analyzed_at else None,
-            }
-            for a in complete
-        ],
-    }
-
-
-@app.get("/api/evidence/{evidence_id}/file")
-def serve_evidence(evidence_id: str, session: Session = Depends(get_session)):
-    from fastapi.responses import FileResponse
-    ev = session.get(EvidenceFile, evidence_id)
-    if ev is None:
-        raise HTTPException(status_code=404, detail="Evidence not found")
-    path = Path(ev.file_path)
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="File not found on disk")
-    return FileResponse(str(path), media_type=ev.content_type, filename=ev.filename)
+# Evidence routes (upload, list, evidence-analysis, serve) moved to
+# app.api.v1.evidence.
 
 
 # Above incident routes moved to app.api.v1.incidents (Phase B).
@@ -624,110 +547,7 @@ def serve_evidence(evidence_id: str, session: Session = Depends(get_session)):
 # moved to app.api.v1.packets.
 
 
-@app.post("/api/venues/{venue_id}/policy-docs", status_code=201)
-def ingest_policy_doc(
-    venue_id: str,
-    payload: dict,
-    session: Session = Depends(get_session),
-    _: None = Depends(require_broker),
-) -> dict:
-    """Ingest a markdown policy document for this venue.
-
-    Builds a PageIndex-style hierarchical tree (regex fallback in Phase 1) and
-    persists:
-      * one PolicyDocument row with the full tree_json (source for deep retrieve
-        + citation rendering)
-      * N SourceRecord leaf rows (one per clause) with source_metadata enriched
-        with doc_id / node_id / page_start / page_end / path — the retrieval
-        layer reads these and surfaces them in Citation objects.
-
-    Idempotent at both layers: the PolicyDocument id is a hash of the full input
-    text, and SourceRecord ids are hashes of leaf content. Re-uploading the same
-    text returns the existing doc_id and 0 newly-inserted chunks.
-    """
-    import hashlib
-    _resolve_venue(venue_id, session)
-    text = (payload.get("text") or "").strip()
-    if not text:
-        raise HTTPException(status_code=400, detail="`text` (markdown body) is required")
-    source_file = payload.get("source_file", "uploaded_policy.md")
-
-    tree_json, leaves = build_policy_tree(text=text, source_file=source_file)
-    if not leaves:
-        raise HTTPException(
-            status_code=400,
-            detail="No chunks extracted. Policy must use '## Section' / '### Clause' headings.",
-        )
-
-    # Deterministic doc_id over (venue, source_file, text) — re-upload of the
-    # same content returns the same PolicyDocument row.
-    doc_hash_input = f"{venue_id}|{source_file}|{text}".encode("utf-8")
-    doc_id = f"policy-{hashlib.sha256(doc_hash_input).hexdigest()[:16]}"
-
-    existing_doc = session.get(PolicyDocument, doc_id)
-    if existing_doc is None:
-        session.add(PolicyDocument(
-            id=doc_id,
-            venue_id=venue_id,
-            source_file=source_file,
-            content_type="text/markdown",
-            page_count=len(leaves),  # synthesized: 1 page per leaf in regex mode
-            tree_json=tree_json,
-            status="ready",
-        ))
-
-    inserted_ids: list[str] = []
-    for chunk in leaves:
-        content = chunk["content"]
-        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-        source_id = f"ingested-{content_hash[:16]}"
-        if session.get(SourceRecord, source_id):
-            continue
-        meta = dict(chunk.get("metadata", {}))
-        meta["doc_id"] = doc_id  # back-reference into PolicyDocument
-        source_type = "policy_exclusion" if meta.get("is_exclusion") else "policy"
-        session.add(SourceRecord(
-            id=source_id,
-            venue_id=venue_id,
-            source_type=source_type,
-            origin_system=INGESTED_ORIGIN,
-            external_ref=source_file,
-            excerpt=content[:2000],
-            content_hash=content_hash,
-            source_metadata=meta,
-        ))
-        inserted_ids.append(source_id)
-
-    session.commit()
-    return {
-        "venue_id": venue_id,
-        "doc_id": doc_id,
-        "chunks_extracted": len(leaves),
-        "chunks_inserted": len(inserted_ids),
-        "source_ids": inserted_ids,
-    }
-
-
-@app.get("/api/venues/{venue_id}/sources")
-def list_venue_sources(venue_id: str, session: Session = Depends(get_session)) -> list[dict]:
-    """Source registry — all evidence sources for a venue."""
-    _resolve_venue(venue_id, session)
-    sources = session.exec(
-        select(SourceRecord)
-        .where(SourceRecord.venue_id == venue_id)
-        .order_by(SourceRecord.created_at.desc())
-    ).all()
-    return [
-        {
-            "id": s.id,
-            "source_type": s.source_type,
-            "excerpt": s.excerpt,
-            "incident_id": s.incident_id,
-            "content_hash": s.content_hash,
-            "created_at": s.created_at.isoformat(),
-        }
-        for s in sources
-    ]
+# Policy-docs ingest + sources list moved to app.api.v1.policy_docs.
 
 
 # Review-decision route moved to app.api.v1.packets.
@@ -747,25 +567,7 @@ def simulate_event_queue(venue_id: str, events: list[StreamEvent], venue_data: d
     print(f"[QUEUE WORKER] Processed {len(events)} events for venue {venue_id}")
 
 
-@app.post("/api/venues/{venue_id}/events/stream", status_code=202)
-def ingest_event_stream(venue_id: str, events: list[StreamEvent], background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
-    """High-volume ingestion — accepts immediately, processes asynchronously."""
-    venue_data = _resolve_venue(venue_id, session)
-    background_tasks.add_task(simulate_event_queue, venue_id, events, venue_data)
-    return {"status": "accepted", "message": f"Queued {len(events)} events for asynchronous processing"}
-
-
-@app.post("/api/venues/{venue_id}/events/inject")
-def inject_event_sync(venue_id: str, events: list[StreamEvent], session: Session = Depends(get_session)):
-    """Demo endpoint — synchronously processes events so the UI can refresh immediately."""
-    venue_data = _resolve_venue(venue_id, session)
-    live_state_manager.process_events(venue_id, events, venue_data)
-    live = live_state_manager.get_state(venue_id, venue_data["capacity"], venue_data)
-    return {
-        "status": "processed",
-        "events_count": len(events),
-        "compliance_queue_length": len(live.compliance_queue),
-    }
+# Stream/inject event routes moved to app.api.v1.operations.
 
 
 def _packet_to_dict(packet: UnderwritingPacket, session: Session | None = None) -> dict:
@@ -856,36 +658,7 @@ def _audit_event_to_dict(event: AuditEvent) -> dict:
     }
 
 
-@app.get("/api/venues/{venue_id}/live", response_model=LiveVenueState)
-def get_live_state(
-    venue_id: str,
-    session: Session = Depends(get_session),
-    user: dict | None = Depends(current_user_optional),
-) -> LiveVenueState:
-    venue = _resolve_venue(venue_id, session)
-    state = live_state_manager.get_state(venue_id, venue["capacity"], venue)
-    # Floor telemetry (live capacity + infrastructure) is operator-only. Brokers
-    # and anonymous callers get summary fields (compliance_queue, premium_impact)
-    # with floor data zeroed out — keeps broker compliance views working without
-    # leaking the operator's live shift state.
-    if not can_read_venue_floor(user, venue_id, session):
-        state = state.model_copy(update={
-            "current_capacity": 0,
-            "infrastructure": [],
-        })
-    return state
-
-
-@app.get("/api/venues/{venue_id}/risk-score")
-def get_venue_risk_score(venue_id: str, session: Session = Depends(get_session)) -> dict:
-    _resolve_venue(venue_id, session)
-    return get_risk_score(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
-
-
-@app.get("/api/venues/{venue_id}/quote")
-def get_venue_quote(venue_id: str, session: Session = Depends(get_session)) -> dict:
-    _resolve_venue(venue_id, session)
-    return get_premium_quote(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
+# Live-state / risk-score / quote routes moved to app.api.v1.operations.
 
 
 COMPLIANCE_EVIDENCE_MAX_BYTES = 20 * 1024 * 1024  # 20MB
@@ -915,114 +688,6 @@ def _find_compliance_item(venue_id: str, venue: dict, item_id: str):
     return None
 
 
-@app.get("/api/venues/{venue_id}/compliance/{item_id}/citation")
-def predict_compliance_citation(
-    venue_id: str,
-    item_id: str,
-    session: Session = Depends(get_session),
-) -> dict:
-    """Predict the policy clause this compliance item maps to.
-
-    Returns `{citation: null}` when no policy doc is ingested yet or the item
-    is unknown — the FE chip stays hidden in that case.
-    """
-    venue = _resolve_venue(venue_id, session)
-    item = _find_compliance_item(venue_id, venue, item_id)
-    if item is None:
-        return {"citation": None}
-    hit = _predict_evidence_citation(venue_id, item.description, session)
-    return {"citation": hit.model_dump() if hit else None}
-
-
-@app.post("/api/venues/{venue_id}/compliance/{item_id}/upload")
-async def upload_compliance_evidence(
-    venue_id: str,
-    item_id: str,
-    file: UploadFile = File(...),
-    uploaded_by: str = "operator",
-    session: Session = Depends(get_session),
-) -> dict:
-    """Persist the uploaded file and link it to (venue_id, compliance_item_id).
-
-    Previously this endpoint accepted the file and discarded it before resolving
-    the item — operator-friendly UX, but the audit trail was a lie. Now the file
-    lands on disk and a ComplianceEvidence row records the linkage. The
-    auto-resolve behavior is preserved for backwards compatibility; broker
-    validation gating is a separate fix.
-    """
-    from uuid import uuid4
-    venue = _resolve_venue(venue_id, session)
-
-    contents = await file.read()
-    if len(contents) > COMPLIANCE_EVIDENCE_MAX_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Maximum size for compliance evidence is "
-                   f"{COMPLIANCE_EVIDENCE_MAX_BYTES // (1024 * 1024)}MB.",
-        )
-
-    # Look up the citation BEFORE resolve_compliance_item runs (which removes
-    # the item from the live queue). Best-effort: missing item or missing
-    # policy docs just leaves the cited_* columns null.
-    item = _find_compliance_item(venue_id, venue, item_id)
-    citation = _predict_evidence_citation(venue_id, item.description, session) if item else None
-
-    evidence_id = f"ce-{uuid4().hex[:12]}"
-    safe_name = f"{evidence_id}_{file.filename or 'upload'}"
-    dest = EVIDENCE_DIR / safe_name
-    dest.write_bytes(contents)
-
-    record = ComplianceEvidence(
-        id=evidence_id,
-        venue_id=venue_id,
-        compliance_item_id=item_id,
-        filename=file.filename or "upload",
-        content_type=file.content_type or "application/octet-stream",
-        file_path=str(dest),
-        file_size=len(contents),
-        uploaded_by=uploaded_by,
-        cited_source_id=citation.source_id if citation else None,
-        cited_doc_id=citation.doc_id if citation else None,
-        cited_node_id=citation.node_id if citation else None,
-        cited_page_start=citation.page_start if citation else None,
-        cited_page_end=citation.page_end if citation else None,
-    )
-    session.add(record)
-    session.commit()
-
-    # Preserve existing auto-resolve behavior — broker validation gate is #2 in the queue.
-    live_state_manager.resolve_compliance_item(venue_id, item_id)
-
-    return {
-        "status": "accepted",
-        "evidence_id": evidence_id,
-        "item_id": item_id,
-        "filename": record.filename,
-        "file_size": record.file_size,
-        "uploaded_at": record.uploaded_at.isoformat(),
-        "citation": citation.model_dump() if citation else None,
-    }
-
-
-@app.get("/api/venues/{venue_id}/compliance/{item_id}/evidence")
-def list_compliance_evidence(venue_id: str, item_id: str, session: Session = Depends(get_session)) -> list[dict]:
-    """Return all persisted evidence files for a compliance item (audit-trail readout)."""
-    _resolve_venue(venue_id, session)
-    rows = session.exec(
-        select(ComplianceEvidence)
-        .where(ComplianceEvidence.venue_id == venue_id)
-        .where(ComplianceEvidence.compliance_item_id == item_id)
-        .order_by(ComplianceEvidence.uploaded_at)
-    ).all()
-    return [
-        {
-            "id": r.id,
-            "filename": r.filename,
-            "content_type": r.content_type,
-            "file_size": r.file_size,
-            "uploaded_by": r.uploaded_by,
-            "uploaded_at": r.uploaded_at.isoformat(),
-        }
-        for r in rows
-    ]
+# Compliance citation / upload / evidence routes moved to
+# app.api.v1.compliance.
 

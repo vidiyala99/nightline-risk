@@ -96,4 +96,14 @@ def test_compliance_upload_rejects_oversized_file(client_and_engine):
         files={"file": ("huge.jpg", io.BytesIO(big), "image/jpeg")},
     )
     assert response.status_code == 413
-    assert "too large" in response.json()["detail"].lower()
+    # Phase B: compliance route migrated to v1/compliance.py which uses the
+    # ErrorEnvelope shape ({detail: {error, message, details?}}). The old
+    # shape was a plain string `detail`; both versions of the assertion
+    # remain meaningful so the test outlives the next envelope migration.
+    body = response.json()
+    detail = body["detail"]
+    if isinstance(detail, dict):
+        assert detail["error"] == "compliance_evidence_too_large"
+        assert "too large" in detail["message"].lower()
+    else:
+        assert "too large" in detail.lower()
