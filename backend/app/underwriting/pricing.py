@@ -542,6 +542,7 @@ def build_quote_for_carrier(
     risk_score: dict,
     loss_run: Optional[object] = None,     # placeholder; LossRun arrives Phase 6
     requested_limits: dict,
+    loss_adjustment: Optional[Decimal] = None,
 ) -> FullQuote:
     """Build a quote that *this carrier* would actually produce.
 
@@ -571,7 +572,14 @@ def build_quote_for_carrier(
         PremiumCalculator.BASE_RATES.get(venue_type, PremiumCalculator._FALLBACK_BASE_RATE),
     )
     tier_mult = PremiumCalculator.TIER_MULTIPLIERS.get(tier, Decimal("1.0"))
-    loss_adj = _loss_adjustment_from_risk(risk_score)
+    # Renewal path passes an experience-based override; new business passes
+    # None and falls back to the risk-score heuristic (unchanged behavior -
+    # this is what keeps the pricing characterization tests green).
+    loss_adj = (
+        loss_adjustment
+        if loss_adjustment is not None
+        else _loss_adjustment_from_risk(risk_score)
+    )
     rates = carrier_rate_table(carrier_id)
 
     line_quotes: list[LineQuote] = []
