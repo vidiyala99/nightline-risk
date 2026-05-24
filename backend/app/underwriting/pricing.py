@@ -519,6 +519,20 @@ def _loss_adjustment_from_risk(risk_score: Optional[dict]) -> Decimal:
     return Decimal("1.00")
 
 
+def loss_adjustment_from_loss_ratio(loss_ratio: Decimal) -> Decimal:
+    """Map a prior-term loss ratio (incurred / earned premium) to the
+    renewal loss_adjustment multiplier. Bands per the Phase 4 spec:
+      <0.40 -> 0.90 (credit), 0.40-0.70 -> 1.00, 0.70-1.00 -> 1.25, >=1.00 -> 1.60.
+    Pure: no DB, no I/O - the renewals service computes the ratio and calls this."""
+    if loss_ratio < Decimal("0.40"):
+        return Decimal("0.90")
+    if loss_ratio < Decimal("0.70"):
+        return Decimal("1.00")
+    if loss_ratio < Decimal("1.00"):
+        return Decimal("1.25")
+    return Decimal("1.60")
+
+
 def build_quote_for_carrier(
     *,
     venue: dict,
