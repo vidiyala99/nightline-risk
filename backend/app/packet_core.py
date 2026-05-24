@@ -227,6 +227,12 @@ def regenerate_packet_with_corroboration(
         rubric_version=prior_packet.rubric_version_id,
     )
 
+    # Persist the corroboration verdict structurally (in addition to the memo
+    # prose) so the defense package + API can read it without parsing text.
+    new_packet.corroboration_status = corroboration_status
+    new_packet.corroboration_flags = list(corroboration_flags or [])
+    session.add(new_packet)
+
     _add_audit_event(
         session=session,
         actor_id="system",

@@ -167,6 +167,9 @@ def test_regenerate_packet_with_corroboration_preserves_v1_and_links_v2():
         assert v2.snapshot_hash and v2.snapshot_hash != v1_hash
         assert "Visual Evidence Analysis" in v2.memo["summary"]
         assert v2.risk_signals["confidence"] == round(v1_confidence + 0.07, 2)
+        # Corroboration verdict is now persisted structurally (not just memo prose).
+        assert v2.corroboration_status == "CONSISTENT"
+        assert v2.corroboration_flags == ["Timestamp matches", "Injury visible"]
 
         # Audit chain: v1 generated, v2 generated, v2 regenerated_with_vision
         v2_events = session.exec(
