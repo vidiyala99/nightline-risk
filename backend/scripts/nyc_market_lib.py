@@ -140,12 +140,13 @@ def transform_record(record: dict, *, lat: float | None, lng: float | None) -> d
     if lat is None or lng is None:
         return None
 
-    name = _first(record, "doing_business_as_name", "premises_name", "premise_name", default="Unnamed venue")
-    address = _first(record, "actual_address_of_premises_address_1", "premises_address", "premise_address")
-    city = _first(record, "premises_city", "premise_city")
-    county = _first(record, "county").upper()
-    license_class = _first(record, "license_type_name", "license_class_code", "method_of_operation")
-    license_serial = _first(record, "serial_number", "license_serial_number", "id", default=name)
+    # Column names match the NY Open Data dataset 9s3h-dpkz.
+    name = _first(record, "dba", "legalname", default="Unnamed venue")
+    address = _first(record, "actualaddressofpremises")
+    city = _first(record, "city")
+    county = _first(record, "premisescounty").upper()
+    license_class = _first(record, "description")
+    license_serial = _first(record, "licensepermitid", "legacyserialnumber", default=name)
 
     venue_type = classify_venue_type(license_class)
     est = estimate_for_venue(venue_type)

@@ -64,12 +64,12 @@ def test_likely_carriers_are_appetite_matched_admitted_first():
 
 def test_transform_record_builds_a_full_row():
     record = {
-        "doing_business_as_name": "House of Yes",
-        "premises_address": "2 Wyckoff Ave",
-        "premises_city": "Brooklyn",
-        "county": "KINGS",
-        "license_type_name": "Cabaret",
-        "serial_number": "1234567",
+        "dba": "House of Yes",
+        "actualaddressofpremises": "2 Wyckoff Ave",
+        "city": "Brooklyn",
+        "premisescounty": "Kings",
+        "description": "Cabaret",
+        "licensepermitid": "1234567",
     }
     row = transform_record(record, lat=40.7066, lng=-73.9229)
     assert row is not None
@@ -89,11 +89,11 @@ def test_transform_record_skips_when_no_coords():
 def test_aggregate_rolls_up():
     rows = [
         transform_record(
-            {"doing_business_as_name": "A", "county": "KINGS", "license_type_name": "Club Liquor", "serial_number": "1"},
+            {"dba": "A", "premisescounty": "Kings", "description": "Club", "licensepermitid": "1"},
             lat=40.7, lng=-73.9,
         ),
         transform_record(
-            {"doing_business_as_name": "B", "county": "NEW YORK", "license_type_name": "Tavern", "serial_number": "2"},
+            {"dba": "B", "premisescounty": "New York", "description": "Food & Beverage Business", "licensepermitid": "2"},
             lat=40.75, lng=-73.98,
         ),
     ]
