@@ -2,7 +2,7 @@ import pytest
 from datetime import date
 from decimal import Decimal
 
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.underwriting.pricing import loss_adjustment_from_loss_ratio
 
@@ -27,11 +27,12 @@ def test_loss_adjustment_bands():
     assert loss_adjustment_from_loss_ratio(Decimal("3.5")) == Decimal("1.60")
 
 
-from app.models import Claim, Policy
+from app.models import AuditEvent, Claim, Policy, Submission, Venue
 from app.services.renewals import (
     LossExperience,
     RenewalsError,
     compute_loss_experience,
+    create_renewal,
 )
 
 
@@ -79,3 +80,52 @@ def test_loss_experience_open_and_closed_claims(session):
 def test_loss_experience_unknown_policy(session):
     with pytest.raises(RenewalsError):
         compute_loss_experience(session, "pol-missing")
+
+
+def _seed_prior_submission(session):
+    import json as _json
+    # Venue row needed so _venue_dict falls back to DB when "v1" not in VENUES dict.
+    # venue_data must be non-empty JSON for _venue_dict's DB fallback path.
+    session.add(Venue(id="v1", name="Test Venue", venue_data=_json.dumps({"name": "Test Venue"})))
+    session.flush()
+    sub = Submission(
+        id="sub-prior", venue_id="v1", status="bound",
+        effective_date=date(2025, 1, 1), coverage_lines=["gl", "liquor"],
+        requested_limits={"gl": {"per_occurrence": "1000000", "aggregate": "2000000"}},
+        assigned_producer_id="user-broker",
+    )
+    session.add(sub)
+    session.flush()
+    return sub
+
+
+def test_create_renewal_carries_forward_terms(session):
+    _seed_prior_submission(session)
+    pol = _make_active_policy(session, pid="pol-renew1")
+    pol.submission_id = "sub-prior"
+    session.add(pol)
+    session.flush()
+
+    renewal = create_renewal(
+        session, "pol-renew1", effective_date=date(2026, 1, 1), actor_id="user-broker",
+    )
+    assert renewal.status == "open"
+    assert renewal.prior_policy_id == "pol-renew1"
+    assert renewal.coverage_lines == ["gl", "liquor"]
+    assert renewal.requested_limits == {"gl": {"per_occurrence": "1000000", "aggregate": "2000000"}}
+    assert renewal.venue_id == "v1"
+    events = list(session.exec(
+        select(AuditEvent).where(AuditEvent.entity_id == renewal.id)
+    ))
+    assert any(e.event_type == "submission.renewal_created" for e in events)
+
+
+def test_create_renewal_rejects_non_active_policy(session):
+    _seed_prior_submission(session)
+    pol = _make_active_policy(session, pid="pol-cancelled")
+    pol.submission_id = "sub-prior"
+    pol.status = "cancelled"
+    session.add(pol)
+    session.flush()
+    with pytest.raises(RenewalsError):
+        create_renewal(session, "pol-cancelled", effective_date=date(2026, 1, 1))
