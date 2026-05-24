@@ -340,6 +340,16 @@ def api_build_indicative_quote(
 
     venue = {**VENUES[sub.venue_id], "id": sub.venue_id}
     risk = get_risk_score(sub.venue_id, VENUES, session=session)
+
+    # Renewal pricing: if this submission renews a prior policy, re-price
+    # using that term's realized losses (Phase 4 experience rating).
+    loss_adjustment = None
+    if sub.prior_policy_id:
+        from app.services.renewals import compute_loss_experience
+        from app.underwriting.pricing import loss_adjustment_from_loss_ratio
+        exp = compute_loss_experience(session, sub.prior_policy_id)
+        loss_adjustment = loss_adjustment_from_loss_ratio(exp.loss_ratio)
+
     full_quote = build_quote_for_carrier(
         venue=venue,
         coverage_lines=sub.coverage_lines,
@@ -347,6 +357,7 @@ def api_build_indicative_quote(
         market_type=carrier.market_type,
         risk_score=risk,
         requested_limits=sub.requested_limits,
+        loss_adjustment=loss_adjustment,
     )
     return full_quote.to_json_dict()
 

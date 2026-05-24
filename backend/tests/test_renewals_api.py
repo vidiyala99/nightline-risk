@@ -207,3 +207,86 @@ def test_renew_non_active_policy_returns_400(client):
     )
     assert r.status_code == 400
     # _seed_renewable() in subsequent tests will restore status=active
+
+
+# ─── POST /api/quotes/{qid}/build-indicative — renewal experience rating ─────
+
+
+def test_renewal_quote_applies_loss_adjustment(client):
+    """Renewal submission with loss ratio ≥ 1.0 must get loss_adjustment 1.60."""
+    from app.models import Claim, CarrierQuote
+
+    session = next(get_session())
+    try:
+        # prior policy with a loss ratio of 1.2 (12000 incurred / 10000 premium) -> band 1.60
+        if session.get(Submission, "sub-renewal-quote-prior") is None:
+            session.add(
+                Submission(
+                    id="sub-renewal-quote-prior",
+                    venue_id=VENUE_ID,
+                    status="bound",
+                    effective_date=date(2025, 1, 1),
+                    coverage_lines=["gl"],
+                    requested_limits={},
+                )
+            )
+        if session.get(Policy, "pol-renewal-quote") is None:
+            session.add(
+                Policy(
+                    id="pol-renewal-quote",
+                    submission_id="sub-renewal-quote-prior",
+                    bound_quote_id="q-rq-x",
+                    venue_id=VENUE_ID,
+                    carrier_id="markel-specialty",
+                    status="active",
+                    effective_date=date(2025, 1, 1),
+                    expiration_date=date(2026, 1, 1),
+                    annual_premium=Decimal("10000.00"),
+                    commission_amount=Decimal("1500.00"),
+                    commission_rate=Decimal("0.15"),
+                    coverage_lines=["gl"],
+                )
+            )
+        if session.get(Claim, "clm-rq-big") is None:
+            session.add(
+                Claim(
+                    id="clm-rq-big",
+                    policy_id="pol-renewal-quote",
+                    coverage_line="gl",
+                    date_of_loss=date(2025, 6, 1),
+                    status="closed_paid",
+                    total_incurred=Decimal("12000.00"),
+                )
+            )
+        if session.get(Submission, "sub-renewal-quote") is None:
+            session.add(
+                Submission(
+                    id="sub-renewal-quote",
+                    venue_id=VENUE_ID,
+                    status="quoting",
+                    effective_date=date.today(),
+                    coverage_lines=["gl"],
+                    requested_limits={},
+                    prior_policy_id="pol-renewal-quote",
+                )
+            )
+        if session.get(CarrierQuote, "q-renewal-quote") is None:
+            session.add(
+                CarrierQuote(
+                    id="q-renewal-quote",
+                    submission_id="sub-renewal-quote",
+                    carrier_id="markel-specialty",
+                    status="requested",
+                )
+            )
+        session.commit()
+    finally:
+        session.close()
+
+    r = client.post(
+        "/api/quotes/q-renewal-quote/build-indicative",
+        headers=_broker_headers(),
+    )
+    assert r.status_code == 200, r.text
+    line = r.json()["lines"]["gl"]
+    assert line["loss_adjustment"] == "1.60"
