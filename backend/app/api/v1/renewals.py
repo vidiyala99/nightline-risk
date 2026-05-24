@@ -1,0 +1,121 @@
+"""FastAPI endpoints for Phase 4 renewals. Mounted at /api by main.py.
+Broker-gated. Error mapping mirrors the claims/policies routers:
+  RenewalsError -> 400, InvalidTransitionError -> 422."""
+from __future__ import annotations
+
+from datetime import date, timedelta
+from typing import NoReturn
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlmodel import Session, select
+
+from app.api.v1.placement import _broker_user_id
+from app.auth import require_broker
+from app.database import get_session
+from app.lifecycles import InvalidTransitionError
+from app.models import Policy
+from app.money import usd_to_json
+from app.services.renewals import (
+    RenewalsError,
+    compute_loss_experience,
+    create_renewal,
+)
+from app.underwriting.pricing import loss_adjustment_from_loss_ratio
+
+router = APIRouter()
+
+
+def _map_service_error(e: Exception) -> NoReturn:
+    if isinstance(e, InvalidTransitionError):
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "invalid_transition", "message": str(e)},
+        )
+    if isinstance(e, RenewalsError):
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "renewals_error", "message": str(e)},
+        )
+    raise e
+
+
+class RenewBody(BaseModel):
+    effective_date: date
+
+
+@router.get("/renewals/due", dependencies=[Depends(require_broker)])
+def renewals_due(
+    within_days: int = 60,
+    session: Session = Depends(get_session),
+) -> list[dict]:
+    cutoff = date.today() + timedelta(days=within_days)
+    rows = session.exec(
+        select(Policy)
+        .where(Policy.status == "active")
+        .where(Policy.expiration_date <= cutoff)
+        .order_by(Policy.expiration_date)
+    )
+    out: list[dict] = []
+    for pol in rows:
+        exp = compute_loss_experience(session, pol.id)
+        out.append({
+            "policy_id": pol.id,
+            "policy_number": pol.policy_number,
+            "venue_id": pol.venue_id,
+            "expiration_date": pol.expiration_date.isoformat(),
+            "annual_premium": usd_to_json(pol.annual_premium),
+            "loss_ratio": str(exp.loss_ratio),
+            "claim_count": exp.claim_count,
+            "projected_loss_adjustment": str(loss_adjustment_from_loss_ratio(exp.loss_ratio)),
+        })
+    return out
+
+
+@router.post(
+    "/policies/{policy_id}/renew",
+    status_code=201,
+    dependencies=[Depends(require_broker)],
+)
+def renew_policy(
+    policy_id: str,
+    body: RenewBody,
+    session: Session = Depends(get_session),
+    actor_id: str = Depends(_broker_user_id),
+) -> dict:
+    try:
+        prior = session.get(Policy, policy_id)
+        if prior is None:
+            raise HTTPException(status_code=404, detail=f"Policy {policy_id} not found")
+        exp = compute_loss_experience(session, policy_id)
+        sub = create_renewal(
+            session,
+            policy_id,
+            effective_date=body.effective_date,
+            actor_id=actor_id,
+        )
+        session.commit()
+        session.refresh(sub)
+    except (RenewalsError, InvalidTransitionError) as e:
+        session.rollback()
+        _map_service_error(e)
+
+    return {
+        "submission": {
+            "id": sub.id,
+            "venue_id": sub.venue_id,
+            "status": sub.status,
+            "prior_policy_id": sub.prior_policy_id,
+            "coverage_lines": sub.coverage_lines,
+            "requested_limits": sub.requested_limits,
+            "effective_date": sub.effective_date.isoformat(),
+        },
+        "yoy_context": {
+            "prior_policy_id": policy_id,
+            "prior_annual_premium": usd_to_json(prior.annual_premium),
+            "prior_coverage_lines": prior.coverage_lines,
+            "loss_ratio": str(exp.loss_ratio),
+            "claim_count": exp.claim_count,
+            "loss_adjustment": str(loss_adjustment_from_loss_ratio(exp.loss_ratio)),
+        },
+    }
