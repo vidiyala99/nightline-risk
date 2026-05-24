@@ -47,3 +47,19 @@ frontend/test-results/
 Thumbs.db
 .vscode/
 .idea/
+
+# Agent/tooling runtime state
+.superpowers/
+.swarm/
+ruvector.db
+
+# Verification / debug scratch
+frontend/*.png
+frontend/screenshot-*.mjs
+frontend/verify-*.mjs
+
+# Personal / scratch (not part of the codebase)
+design-scratch/
+draft_ui_ux.md.txt
+jobhunt.txt
+mails/
