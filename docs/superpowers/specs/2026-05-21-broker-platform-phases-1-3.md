@@ -1,7 +1,7 @@
 # Broker Platform — Phases 1–3 (Placement, Policy Lifecycle, Claims)
 
 **Date:** 2026-05-21
-**Status:** Shipped backend across all three phases; Phase 3 frontend deferred.
+**Status:** Shipped backend across all three phases; Phase 3 frontend shipped 2026-05-23 (see §5.5).
 **ADR:** [0004-broker-platform-and-claim-vocabulary-split](../../adr/0004-broker-platform-and-claim-vocabulary-split.md)
 **Build plan:** `plans/sleepy-prancing-clover.md` (the Year 1–2 plan; this doc covers what actually shipped through Phase 3)
 
@@ -391,9 +391,14 @@ POST   /api/claims/{cid}/defense-package   attach_defense_package_to_claim
 
 Error mapping: `ClaimsError → 400`, `InvalidTransitionError → 422`.
 
-### 5.5 Frontend (deferred)
+### 5.5 Frontend (shipped 2026-05-23)
 
-Phase 3 frontend (`/claims/[cid]` carrier-side detail + `PaymentLedger` component) is not yet built. The existing `/claims` route still renders `ClaimProposal` rows from `/api/claim-proposals`.
+Phase 3 frontend is built (commit `17b2e04`):
+
+- **`/claims/[cid]`** — carrier-claim detail: total-incurred headline, `ClaimLifecycleStrip` + `ClaimStatusPill`, financial summary tiles (reserve / indemnity / expense / recoveries), and a broker-only `ClaimActionToolbar` with keyboard shortcuts (R/P/C/O/D) driving five action modals: record reserve, record payment, close, reopen, attach defense package.
+- **Payment ledger + reserve history** render inline in `claims/[cid]/page.tsx` (the `PaymentLedger` function at the bottom of the file — *not* a standalone `PaymentLedger.tsx` component, despite earlier plan wording).
+- **`/claims`** — carrier-side claims list across the broker's book. It currently aggregates per-policy (lists policies, then fetches claims for each, throttled to 4 parallel). The cross-policy `GET /api/claims` endpoint now exists (commit `685d052`, slice 4), so this page can collapse to a single call — that swap is the one open follow-up here.
+- `ClaimProposal` rows moved to **`/claim-proposals`** (renamed from the old `/claims`, commit `894fb45`). Don't reintroduce the old path.
 
 ---
 
@@ -426,7 +431,7 @@ Note: `Carrier.check_appetite` is case-sensitive on `venue_type`. The script use
 - `backend/tests/test_submission_carrierquote_schema.py`, `test_policy_schema.py` — schema characterization
 - `backend/tests/test_phase_1.py` — pricing characterization tests (62 cases pinning every (venue × tier × billing) cell)
 
-**As of 2026-05-21:** 552 backend tests pass.
+**As of 2026-05-24:** 573 backend tests pass (was 552 on 2026-05-21; +21 from the Phase A tenant-isolation suite and the Phase B v1-API migration).
 
 ---
 
@@ -439,4 +444,4 @@ From `plans/sleepy-prancing-clover.md` — not yet shipped:
 - **Phase 6 — Loss runs + carrier reporting.** New `LossRun` table. `services/loss_runs.py` + CSV/PDF exports.
 - **Phase 7 — Underwriting transparency.** `services/underwriting_breakdown.py` + `PremiumDerivationTree` frontend component.
 
-The Phase 3 frontend (`/claims/[cid]`, `PaymentLedger.tsx`) is the closest open slice; it doesn't appear in the plan's phase list because the plan splits backend and frontend by phase, not by route. It will land alongside Phase 5 (defense package needs claim-level UI to attach packets).
+The Phase 3 frontend shipped on 2026-05-23 (see §5.5), so **Phase 4 (Renewals) is the next open slice.** The one small carry-over from Phase 3 is swapping the `/claims` list page from per-policy fan-out to the now-existing cross-policy `GET /api/claims` (slice 4).
