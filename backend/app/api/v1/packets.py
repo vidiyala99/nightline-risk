@@ -15,12 +15,18 @@ will move into a `services/packets.py` module.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Header
+from fastapi.responses import Response
 from sqlmodel import Session, select
 
 from app.auth import require_venue_access
 from app.database import get_session
+from app.defense_package import (
+    DefensePackageError,
+    build_defense_sections,
+    render_defense_pdf,
+)
 from app.models import AuditEvent, UnderwritingPacket
-from app.packet_core import record_packet_opened
+from app.packet_core import _add_audit_event, record_packet_opened
 from app.schemas.errors import error_response
 
 router = APIRouter()
@@ -91,6 +97,36 @@ def get_packet(
     if reviewer_id:
         record_packet_opened(session=session, packet_id=packet_id, reviewer_id=reviewer_id)
     return _packet_to_dict_lazy(packet, session)
+
+
+@router.get("/packets/{packet_id}/defense-package.pdf")
+def get_defense_package_pdf(
+    packet_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+):
+    """Render the packet as a defense-grade PDF (cover+hash, incident facts,
+    timeline, corroboration verdict, evidence inventory w/ hashes, citations,
+    audit trail). Same tenant gate as the packet-detail route."""
+    packet = session.get(UnderwritingPacket, packet_id)
+    if packet is None:
+        raise error_response("packet_not_found", f"Packet {packet_id!r} not found", status_code=404)
+    require_venue_access(packet.venue_id, authorization, session)
+    try:
+        pdf = render_defense_pdf(build_defense_sections(session, packet_id))
+    except DefensePackageError as e:
+        raise error_response("defense_package_error", str(e), status_code=404)
+    _add_audit_event(
+        session=session, actor_id="system", actor_type="user",
+        entity_type="underwriting_packet", entity_id=packet_id,
+        event_type="packet.defense_pdf_exported", event_metadata={},
+    )
+    session.commit()
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="defense-{packet_id}.pdf"'},
+    )
 
 
 @router.get("/packets/{packet_id}/audit-events")

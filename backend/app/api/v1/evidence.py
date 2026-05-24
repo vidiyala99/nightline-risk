@@ -12,6 +12,7 @@ collapse into a services/evidence.py module after Phase B completes.
 """
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
@@ -34,6 +35,7 @@ async def upload_evidence(
     incident_id: str,
     file: UploadFile = File(...),
     uploaded_by: str = "operator",
+    captured_at: str | None = None,   # client-supplied capture time; falls back to upload time
     background_tasks: BackgroundTasks = None,
     session: Session = Depends(get_session),
 ) -> dict:
@@ -63,6 +65,7 @@ async def upload_evidence(
             details={"limit_mb": limit_mb, "received_bytes": len(contents)},
         )
     dest.write_bytes(contents)
+    content_hash = hashlib.sha256(contents).hexdigest()
 
     evidence = EvidenceFile(
         id=evidence_id,
@@ -72,7 +75,12 @@ async def upload_evidence(
         file_path=str(dest),
         file_size=len(contents),
         uploaded_by=uploaded_by,
+        content_hash=content_hash,
+        captured_at=captured_at,
     )
+    # Fall back to upload time when the client doesn't supply a capture time.
+    if not evidence.captured_at:
+        evidence.captured_at = evidence.uploaded_at.isoformat()
     session.add(evidence)
     session.commit()
 
@@ -88,6 +96,8 @@ async def upload_evidence(
         "content_type": evidence.content_type,
         "file_size": evidence.file_size,
         "uploaded_at": evidence.uploaded_at.isoformat(),
+        "content_hash": evidence.content_hash,
+        "captured_at": evidence.captured_at,
     }
 
 

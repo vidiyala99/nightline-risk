@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   ClaimsApiError,
   claimsApi,
+  downloadDefensePackagePdf,
   totalIncurredFromClaim,
   type ClaimDetail,
 } from "@/lib/claims";
@@ -243,7 +244,17 @@ export default function CarrierClaimDetailPage() {
           {claim.defense_package_id && (
             <div>
               <dt>Defense package</dt>
-              <dd className="claim-detail__meta-mono">{claim.defense_package_id}</dd>
+              <dd className="claim-detail__meta-mono">
+                {claim.defense_package_id}
+                {" · "}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => downloadDefensePackagePdf(claim.defense_package_id!).catch(() => {})}
+                >
+                  Download PDF
+                </button>
+              </dd>
             </div>
           )}
           {claim.incident_id && (

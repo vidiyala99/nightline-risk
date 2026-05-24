@@ -32,6 +32,18 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     ("complianceevidence", "cited_node_id", "TEXT", ""),
     ("complianceevidence", "cited_page_start", "INTEGER", ""),
     ("complianceevidence", "cited_page_end", "INTEGER", ""),
+    # Defense-package build — added 2026-05-24.
+    ("evidencefile", "content_hash", "TEXT", ""),
+    ("evidencefile", "captured_at", "TEXT", ""),
+    ("underwritingpacket", "corroboration_status", "TEXT", ""),
+    ("underwritingpacket", "corroboration_flags", "TEXT", ""),
+    ("incidentrecord", "incident_category", "TEXT", ""),
+    ("incidentrecord", "parties", "TEXT", ""),
+    ("incidentrecord", "witnesses", "TEXT", ""),
+    ("incidentrecord", "security_response", "TEXT", ""),
+    ("incidentrecord", "weapon_involved", "BOOLEAN", ""),
+    ("incidentrecord", "refused_service_or_overserved", "TEXT", ""),
+    ("incidentrecord", "injury_detail", "TEXT", ""),
 ]
 
 

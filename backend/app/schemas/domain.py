@@ -9,6 +9,14 @@ class IncidentCreate(BaseModel):
     injury_observed: bool
     police_called: bool
     ems_called: bool
+    # A&B / liquor structured facts — all optional so existing intake is unaffected.
+    incident_category: Optional[str] = None
+    parties: List[dict] = Field(default_factory=list)
+    witnesses: List[dict] = Field(default_factory=list)
+    security_response: List[dict] = Field(default_factory=list)
+    weapon_involved: Optional[bool] = None
+    refused_service_or_overserved: Optional[str] = None
+    injury_detail: Optional[str] = None
 
 class Citation(BaseModel):
     source_id: str
