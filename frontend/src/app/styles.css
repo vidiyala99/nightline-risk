@@ -5609,3 +5609,156 @@ html, body { overflow-x: clip; }
   color: var(--text-primary);
 }
 
+/* ─── NYC nightlife market map (/market) ──────────────────────────────── */
+.market {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.market__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+}
+.market__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.market__stat-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  color: var(--brand-primary);
+  font-variant-numeric: tabular-nums;
+}
+.market__stat-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.market__filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.market__filters select {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font: inherit;
+}
+.market__count {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+}
+.market__body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-lg);
+}
+@media (min-width: 900px) {
+  .market__body {
+    grid-template-columns: 1.7fr 1fr;
+  }
+}
+.market__map,
+.market__map-loading {
+  height: 60vh;
+  min-height: 420px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.market__map-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+.market-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.market-card--empty {
+  color: var(--text-tertiary);
+}
+.market-card__name {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  margin: 0;
+}
+.market-card__addr,
+.market-card__type {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.market-card__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+.market-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.market-chip {
+  font-size: 0.78rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+}
+.market-chip--admitted {
+  background: color-mix(in srgb, var(--state-success) 14%, transparent);
+  border-color: var(--state-success);
+}
+.market-chip--es {
+  background: color-mix(in srgb, var(--brand-secondary) 14%, transparent);
+  border-color: var(--brand-secondary);
+}
+.market-card__nums {
+  margin: var(--space-sm) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.market-card__nums div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.market-card__nums dt {
+  color: var(--text-secondary);
+}
+.market-card__nums dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.market-card__save dd {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+.market-card__cta {
+  margin-top: var(--space-sm);
+  text-align: center;
+  text-decoration: none;
+}
+.market-card__foot {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+  margin: var(--space-xs) 0 0;
+}
+
