@@ -149,3 +149,4 @@ Broker separately transitions prior policy P: active → expired / non_renewed
 - The Phase 6 `LossRun` table — Phase 4 computes loss experience directly from `Claim` rows; the `LossRun` abstraction can wrap this later without changing the banding seam.
 - Automatic/scheduled renewal generation — this phase is manual (broker-initiated) + a due-list.
 - Multi-state surplus-lines-tax rules (still NY-only constant).
+- **YoY context strip on the submission-detail view (§4.5) — deferred.** As shipped, the YoY context (prior premium, loss ratio, experience adjustment) is shown on the `/renewals` page immediately after the renew action, which delivers the "legible story" at the moment of decision. Surfacing the same context later on `submissions/[sid]` is a nice-to-have; deferred to a follow-up rather than built in this slice.
