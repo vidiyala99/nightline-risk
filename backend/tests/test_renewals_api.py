@@ -7,7 +7,6 @@ real shared DB. Seeds data directly via get_session() and exercises:
 """
 from datetime import date, timedelta
 from decimal import Decimal
-import json as _json
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,10 +14,12 @@ from fastapi.testclient import TestClient
 from app.auth import create_token
 from app.database import get_session
 from app.main import app
-from app.models import Policy, Submission, Venue
+from app.models import Policy, Submission
 
 USER_ID = "user-broker-renewals-api"
-VENUE_ID = "v1-renewals-test"
+# Reuse a real seeded venue (has full venue_data including capacity) so we
+# don't pollute the shared DB with a bare/malformed Venue row.
+VENUE_ID = "elsewhere-brooklyn"
 
 
 def _broker_headers():
@@ -40,21 +41,14 @@ def client():
 
 
 def _seed_renewable():
-    """Insert a Venue + Submission + active Policy expiring within 30 days.
+    """Insert a Submission + active Policy expiring within 30 days.
 
+    Reuses the real seeded venue VENUE_ID = "elsewhere-brooklyn" — no Venue
+    row is created here (the seed data already has it with full venue_data).
     Idempotent: skips rows that already exist (test isolation via unique IDs).
-    Returns (session_to_close, policy_id).
     """
     session = next(get_session())
     try:
-        if session.get(Venue, VENUE_ID) is None:
-            session.add(
-                Venue(
-                    id=VENUE_ID,
-                    name="Test Venue Renewals",
-                    venue_data=_json.dumps({"name": "Test Venue Renewals"}),
-                )
-            )
         if session.get(Submission, "sub-renewals-prior") is None:
             session.add(
                 Submission(
