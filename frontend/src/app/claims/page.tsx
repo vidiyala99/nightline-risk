@@ -3,13 +3,10 @@
 /**
  * /claims — carrier-side claims list across the broker's whole book.
  *
- * No cross-policy endpoint exists yet (plan §slice-4 follow-up); until it
- * lands, the page aggregates per-policy by listing the broker's policies
- * first and fetching claims for each. Throttled to 4 parallel requests so
- * a broker with a large book doesn't fan out hundreds of fetches at once.
- *
- * When the backend ships `GET /api/claims?status=&venue_id=`, this entire
- * useEffect collapses to a single call.
+ * One cross-policy `GET /api/claims` call (`claimsApi.listClaims`) returns
+ * every claim in the broker's book. Policy metadata (venue, policy_number)
+ * is then fetched in parallel only for the policies actually referenced by
+ * returned claims — typically far fewer than the broker's total policies.
  */
 import Link from "next/link";
 import { useRouter } from "next/navigation";

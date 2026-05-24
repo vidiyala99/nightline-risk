@@ -397,7 +397,7 @@ Phase 3 frontend is built (commit `17b2e04`):
 
 - **`/claims/[cid]`** — carrier-claim detail: total-incurred headline, `ClaimLifecycleStrip` + `ClaimStatusPill`, financial summary tiles (reserve / indemnity / expense / recoveries), and a broker-only `ClaimActionToolbar` with keyboard shortcuts (R/P/C/O/D) driving five action modals: record reserve, record payment, close, reopen, attach defense package.
 - **Payment ledger + reserve history** render inline in `claims/[cid]/page.tsx` (the `PaymentLedger` function at the bottom of the file — *not* a standalone `PaymentLedger.tsx` component, despite earlier plan wording).
-- **`/claims`** — carrier-side claims list across the broker's book. It currently aggregates per-policy (lists policies, then fetches claims for each, throttled to 4 parallel). The cross-policy `GET /api/claims` endpoint now exists (commit `685d052`, slice 4), so this page can collapse to a single call — that swap is the one open follow-up here.
+- **`/claims`** — carrier-side claims list across the broker's book, via a single cross-policy `GET /api/claims` call (`claimsApi.listClaims`, shipped slice 4 / commit `685d052`); policy metadata for the referenced policies is fetched in parallel for the table rows.
 - `ClaimProposal` rows moved to **`/claim-proposals`** (renamed from the old `/claims`, commit `894fb45`). Don't reintroduce the old path.
 
 ---
@@ -444,4 +444,4 @@ From `plans/sleepy-prancing-clover.md` — not yet shipped:
 - **Phase 6 — Loss runs + carrier reporting.** New `LossRun` table. `services/loss_runs.py` + CSV/PDF exports.
 - **Phase 7 — Underwriting transparency.** `services/underwriting_breakdown.py` + `PremiumDerivationTree` frontend component.
 
-The Phase 3 frontend shipped on 2026-05-23 (see §5.5), so **Phase 4 (Renewals) is the next open slice.** The one small carry-over from Phase 3 is swapping the `/claims` list page from per-policy fan-out to the now-existing cross-policy `GET /api/claims` (slice 4).
+The Phase 3 frontend shipped on 2026-05-23 (see §5.5), so **Phase 4 (Renewals) is the next open slice.**
