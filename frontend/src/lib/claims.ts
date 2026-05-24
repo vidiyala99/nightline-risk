@@ -243,3 +243,24 @@ export function totalPaidFromClaim(c: Claim): number {
   const exp = parseFloat(c.expense_paid_to_date) || 0;
   return ind + exp;
 }
+
+/** Fetch the defense-package PDF for a packet (auth-gated) and trigger a
+ * browser download. A plain <a href> can't send the auth header, so we
+ * fetch the blob with authHeaders() and download it client-side. */
+export async function downloadDefensePackagePdf(packetId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/packets/${packetId}/defense-package.pdf`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    throw new PlacementApiError(res.status, "Failed to download defense package");
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `defense-${packetId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
