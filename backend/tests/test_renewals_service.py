@@ -29,7 +29,6 @@ def test_loss_adjustment_bands():
 
 from app.models import AuditEvent, Claim, Policy, Submission, Venue
 from app.services.renewals import (
-    LossExperience,
     RenewalsError,
     compute_loss_experience,
     create_renewal,
