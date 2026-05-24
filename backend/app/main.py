@@ -614,6 +614,8 @@ def _packet_to_dict(packet: UnderwritingPacket, session: Session | None = None) 
         "validation": packet.validation,
         "snapshot_hash": packet.snapshot_hash,
         "generated_at": packet.generated_at.isoformat(),
+        "corroboration_status": packet.corroboration_status,
+        "corroboration_flags": packet.corroboration_flags or [],
         "claim_recommendation": recommendation_to_dict(recommendation),
         "claim_proposal": _claim_proposal_to_dict(latest_proposal) if latest_proposal else None,
     }

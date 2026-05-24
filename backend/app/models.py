@@ -31,6 +31,14 @@ class IncidentRecord(SQLModel, table=True):
     injury_observed: bool
     police_called: bool
     ems_called: bool
+    # A&B / liquor structured facts (all optional; legacy incidents leave them null).
+    incident_category: Optional[str] = Field(default=None)
+    parties: list = Field(default_factory=list, sa_column=Column(JSON))
+    witnesses: list = Field(default_factory=list, sa_column=Column(JSON))
+    security_response: list = Field(default_factory=list, sa_column=Column(JSON))
+    weapon_involved: Optional[bool] = Field(default=None)
+    refused_service_or_overserved: Optional[str] = Field(default=None)
+    injury_detail: Optional[str] = Field(default=None)
     status: str = Field(default="open")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -126,6 +134,10 @@ class UnderwritingPacket(SQLModel, table=True):
     validation: dict = Field(default_factory=dict, sa_column=Column(JSON))
     snapshot_hash: str
     generated_at: datetime = Field(default_factory=datetime.utcnow)
+    # Structured corroboration verdict (set on the v2 packet after vision runs;
+    # previously only prose in memo.summary).
+    corroboration_status: Optional[str] = Field(default=None)
+    corroboration_flags: list = Field(default_factory=list, sa_column=Column(JSON))
 
 
 class CitationRecord(SQLModel, table=True):
@@ -200,6 +212,8 @@ class EvidenceFile(SQLModel, table=True):
     file_size: int = 0
     uploaded_by: str = "operator"
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    content_hash: Optional[str] = Field(default=None)   # SHA-256 of file bytes, at upload
+    captured_at: Optional[str] = Field(default=None)     # client-supplied capture time, else upload time
 
 
 class ComplianceEvidence(SQLModel, table=True):
