@@ -1,0 +1,185 @@
+"""Pure (network-free) logic for the NYC nightlife market-map prep pipeline.
+
+Split out from `build_nyc_market.py` so the classification + estimation +
+aggregation logic is unit-testable without hitting the SLA / GeoSearch APIs.
+
+Everything here reuses the existing pricing + appetite primitives so the
+numbers are produced by the *same engine* the product uses:
+  - app.underwriting.pricing.PremiumCalculator  (market vs tier-adjusted)
+  - app.services.submissions.check_appetite      (likely-carrier inference)
+  - app.seed_carriers.CARRIERS                   (the real-mapped carrier set)
+
+Estimation methodology (see also the methodology_note emitted in the JSON):
+  market_premium = Tier B baseline ("what a comparable venue pays without
+                   Nightline intelligence").
+  Third Space estimated premium range = Tier A (best case) .. Tier B (market
+                   neutral). We do NOT extend to Tier C/D: those are surcharge
+                   tiers (>market), and a *savings* surface shows achievable
+                   savings, not the downside for a poorly-run venue. The
+                   methodology note discloses that higher-risk venues may not
+                   see savings.
+  savings range  = market - ts_high (=0 at Tier B) .. market - ts_low (max, at
+                   Tier A). savings_mid = midpoint, used for map coloring.
+
+All money is emitted as cent-quantized strings via app.money.usd_to_json.
+"""
+from __future__ import annotations
+
+from decimal import Decimal
+
+from app.models import Carrier
+from app.money import usd, usd_to_json
+from app.seed_carriers import CARRIERS
+from app.services.submissions import check_appetite
+from app.underwriting.pricing import PremiumCalculator
+
+# Coverage profile assumed for a typical nightlife venue when inferring
+# likely carriers (GL + liquor are near-universal; A&B is the nightlife driver).
+NIGHTLIFE_COVERAGE: list[str] = ["gl", "liquor", "assault_battery"]
+
+# Carrier objects built once from the real seeded set (no DB needed).
+_CARRIERS: list[Carrier] = [Carrier(**row) for row in CARRIERS]
+
+# NYC county name -> borough label (SLA data uses county names).
+COUNTY_TO_BOROUGH: dict[str, str] = {
+    "NEW YORK": "Manhattan",
+    "KINGS": "Brooklyn",
+    "QUEENS": "Queens",
+    "BRONX": "The Bronx",
+    "RICHMOND": "Staten Island",
+}
+
+
+def classify_venue_type(license_class: str, *, places_category: str | None = None) -> str:
+    """Heuristic SLA-license-class -> PremiumCalculator venue_type.
+
+    SLA license data only distinguishes coarse classes (on-premises liquor,
+    tavern, club, cabaret), so this is intentionally coarse. `places_category`
+    is the documented seam for future Google Places enrichment — when present
+    it takes precedence and can resolve finer types (music_venue, rooftop_bar).
+    Returns a key guaranteed to exist in PremiumCalculator.BASE_RATES.
+    """
+    text = f"{places_category or ''} {license_class or ''}".lower()
+
+    if any(w in text for w in ("nightclub", "cabaret")):
+        return "nightclub and performance space"
+    if "club" in text:
+        return "club"
+    if any(w in text for w in ("music", "concert", "performance", "live")):
+        return "music_venue"
+    if "rooftop" in text:
+        return "rooftop_bar"
+    # tavern / on-premises liquor / bar / restaurant -> generic bar baseline.
+    return "dive_bar"
+
+
+def likely_carriers(venue_type: str, coverage_lines: list[str] | None = None) -> list[dict]:
+    """Appetite-matched carriers for a venue_type (inference, not fact).
+
+    Capacity is unknown from SLA data, so matching is on venue_type + coverage
+    only (check_appetite skips the capacity dimension when capacity is 0).
+    Admitted carriers are listed before E&S; ties broken by name.
+    """
+    coverage = coverage_lines or NIGHTLIFE_COVERAGE
+    venue = {"venue_type": venue_type}  # no capacity -> capacity check skipped
+    matched: list[dict] = []
+    for carrier in _CARRIERS:
+        ok, _reasons = check_appetite(carrier, venue, coverage)
+        if ok:
+            matched.append(
+                {"id": carrier.id, "name": carrier.name, "market_type": carrier.market_type}
+            )
+    matched.sort(key=lambda c: (c["market_type"] != "admitted", c["name"]))
+    return matched
+
+
+def estimate_for_venue(venue_type: str, coverage_lines: list[str] | None = None) -> dict:
+    """Compute market premium + Third Space savings range for a venue_type,
+    reusing PremiumCalculator. Returns money as cent strings."""
+    vid = "_est"
+    calc = PremiumCalculator({vid: {"id": vid, "venue_type": venue_type}})
+    market = usd(calc.calculate_quote(vid, tier_override="B").market_rate_annual)
+    ts_best = usd(calc.calculate_quote(vid, tier_override="A").annual_premium)  # cheapest
+    ts_neutral = market  # Tier B == market rate
+
+    savings_high = usd(market - ts_best)   # best case (Tier A)
+    savings_low = usd(market - ts_neutral)  # market-neutral (Tier B) -> 0
+    savings_mid = usd((savings_high + savings_low) / 2)
+
+    return {
+        "venue_type": venue_type,
+        "market_premium": usd_to_json(market),
+        "ts_low": usd_to_json(ts_best),       # low end of TS premium (best tier)
+        "ts_high": usd_to_json(ts_neutral),   # high end of TS premium (market neutral)
+        "savings_low": usd_to_json(savings_low),
+        "savings_high": usd_to_json(savings_high),
+        "savings_mid": usd_to_json(savings_mid),
+        "likely_carriers": likely_carriers(venue_type, coverage_lines),
+    }
+
+
+# ─── SLA record field accessors ──────────────────────────────────────────
+# The hrvs-fxs2 SODA dataset's exact column names must be confirmed against a
+# live sample; these readers try the common variants and fall back gracefully.
+
+def _first(record: dict, *keys: str, default: str = "") -> str:
+    for k in keys:
+        v = record.get(k)
+        if v:
+            return str(v).strip()
+    return default
+
+
+def transform_record(record: dict, *, lat: float | None, lng: float | None) -> dict | None:
+    """Map one SLA SODA record (+ geocoded coords) to a market-map venue row.
+
+    Returns None when the row can't be placed on the map (no coordinates) —
+    the caller skips+logs those. License-class filtering to nightlife happens
+    upstream in the fetch script; this assembles the row + estimate.
+    """
+    if lat is None or lng is None:
+        return None
+
+    name = _first(record, "doing_business_as_name", "premises_name", "premise_name", default="Unnamed venue")
+    address = _first(record, "actual_address_of_premises_address_1", "premises_address", "premise_address")
+    city = _first(record, "premises_city", "premise_city")
+    county = _first(record, "county").upper()
+    license_class = _first(record, "license_type_name", "license_class_code", "method_of_operation")
+    license_serial = _first(record, "serial_number", "license_serial_number", "id", default=name)
+
+    venue_type = classify_venue_type(license_class)
+    est = estimate_for_venue(venue_type)
+
+    row = {
+        "id": license_serial,
+        "name": name,
+        "address": ", ".join(p for p in (address, city) if p),
+        "borough": COUNTY_TO_BOROUGH.get(county, county.title()),
+        "lat": lat,
+        "lng": lng,
+        "license_class": license_class,
+    }
+    row.update(est)
+    return row
+
+
+def aggregate(venues: list[dict]) -> dict:
+    """Roll up the TAM summary across venue rows. Money as cent strings."""
+    total_market = sum((Decimal(v["market_premium"]) for v in venues), Decimal("0"))
+    total_low = sum((Decimal(v["savings_low"]) for v in venues), Decimal("0"))
+    total_high = sum((Decimal(v["savings_high"]) for v in venues), Decimal("0"))
+
+    by_borough: dict[str, int] = {}
+    by_type: dict[str, int] = {}
+    for v in venues:
+        by_borough[v["borough"]] = by_borough.get(v["borough"], 0) + 1
+        by_type[v["venue_type"]] = by_type.get(v["venue_type"], 0) + 1
+
+    return {
+        "venue_count": len(venues),
+        "total_market_premium": usd_to_json(total_market),
+        "total_savings_low": usd_to_json(total_low),
+        "total_savings_high": usd_to_json(total_high),
+        "by_borough": [{"borough": b, "count": c} for b, c in sorted(by_borough.items())],
+        "by_type": [{"venue_type": t, "count": c} for t, c in sorted(by_type.items())],
+    }
