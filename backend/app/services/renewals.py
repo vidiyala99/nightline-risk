@@ -1,0 +1,118 @@
+"""Renewals service - experience-rated re-placement of expiring policies.
+
+A renewal is a new Submission (status='open') that points at the expiring
+policy via prior_policy_id and carries forward its coverage terms. The
+prior term's actual claims are aggregated into a loss ratio (see
+compute_loss_experience) which, via pricing.loss_adjustment_from_loss_ratio,
+re-prices the renewal's carrier quotes.
+
+Conventions match the broker-platform services: keyword-only args, no
+commit inside the service (caller owns the transaction), audit event on
+state creation, typed RenewalsError mapped to HTTP 400 by the router."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
+
+from sqlmodel import Session, select
+
+from app.models import Claim, Policy, Submission
+from app.money import usd
+from app.packet_core import _add_audit_event
+from app.services.submissions import create_submission
+
+
+class RenewalsError(Exception):
+    """Base error for the renewals service (router maps -> HTTP 400)."""
+
+
+@dataclass(frozen=True)
+class LossExperience:
+    incurred: Decimal
+    earned_premium: Decimal
+    loss_ratio: Decimal
+    claim_count: int
+
+
+def compute_loss_experience(session: Session, policy_id: str) -> LossExperience:
+    """Aggregate the prior term's realized losses for one policy.
+
+    incurred per claim = total_incurred (if set) else
+    current_reserve + indemnity_paid + expense_paid - recoveries.
+    loss_ratio = incurred / annual_premium; 0 when premium is 0 (no crash)."""
+    policy = session.get(Policy, policy_id)
+    if policy is None:
+        raise RenewalsError(f"Policy {policy_id} not found")
+
+    claims = list(session.exec(select(Claim).where(Claim.policy_id == policy_id)))
+    incurred = Decimal("0.00")
+    for c in claims:
+        if c.total_incurred is not None:
+            incurred += c.total_incurred
+        else:
+            incurred += (
+                c.current_reserve
+                + c.indemnity_paid_to_date
+                + c.expense_paid_to_date
+                - c.recoveries_to_date
+            )
+
+    earned = policy.annual_premium
+    loss_ratio = (incurred / earned) if earned and earned > 0 else Decimal("0")
+    return LossExperience(
+        incurred=usd(incurred),
+        earned_premium=earned,
+        loss_ratio=loss_ratio,
+        claim_count=len(claims),
+    )
+
+
+def create_renewal(
+    session: Session,
+    policy_id: str,
+    *,
+    effective_date: date,
+    actor_id: str = "system",
+) -> Submission:
+    """Create a renewal Submission (status='open') from an active policy.
+
+    Carries forward coverage_lines + requested_limits from the prior
+    submission, links prior_policy_id, emits an audit event. Does NOT
+    auto-submit and does NOT change the prior policy's status (that is a
+    separate explicit broker action - a renewal term may overlap the old
+    one). Caller owns commit/rollback."""
+    policy = session.get(Policy, policy_id)
+    if policy is None:
+        raise RenewalsError(f"Policy {policy_id} not found")
+    if policy.status != "active":
+        raise RenewalsError(
+            f"Can only renew an active policy; {policy_id} is {policy.status!r}"
+        )
+    prior_sub = session.get(Submission, policy.submission_id)
+    if prior_sub is None:
+        raise RenewalsError(f"Prior submission {policy.submission_id} missing")
+
+    sub = create_submission(
+        session,
+        venue_id=policy.venue_id,
+        effective_date=effective_date,
+        coverage_lines=prior_sub.coverage_lines,
+        requested_limits=prior_sub.requested_limits,
+        producer_id=prior_sub.assigned_producer_id,
+        notes=f"Renewal of {policy_id}",
+        actor_id=actor_id,
+    )
+    sub.prior_policy_id = policy_id
+    session.add(sub)
+    session.flush()
+    _add_audit_event(
+        session=session,
+        actor_id=actor_id,
+        actor_type="user",
+        entity_type="submission",
+        entity_id=sub.id,
+        event_type="submission.renewal_created",
+        event_metadata={"prior_policy_id": policy_id, "venue_id": policy.venue_id},
+    )
+    return sub
