@@ -89,6 +89,11 @@ export default function RenewalsPage() {
     return (n * 100).toFixed(1) + "%";
   }
 
+  function fmtMultiplier(s: string) {
+    const n = parseFloat(s);
+    return Number.isNaN(n) ? s : `×${n.toFixed(2)}`;
+  }
+
   function fmtMoney(s: string) {
     return formatLedgerMoney(parseFloat(s));
   }
@@ -140,7 +145,7 @@ export default function RenewalsPage() {
                 <td className="policies-table__mono">{fmtMoney(result.yoy_context.prior_annual_premium)}</td>
                 <td className="policies-table__mono">{fmtPct(result.yoy_context.loss_ratio)}</td>
                 <td className="policies-table__mono">{result.yoy_context.claim_count}</td>
-                <td className="policies-table__mono">{fmtPct(result.yoy_context.loss_adjustment)}</td>
+                <td className="policies-table__mono">{fmtMultiplier(result.yoy_context.loss_adjustment)}</td>
               </tr>
             </tbody>
           </table>
@@ -212,7 +217,7 @@ export default function RenewalsPage() {
                     className="policies-table__mono"
                     style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
                   >
-                    {fmtPct(r.projected_loss_adjustment)}
+                    {fmtMultiplier(r.projected_loss_adjustment)}
                   </td>
                   <td className="policies-table__mono">{r.claim_count}</td>
                   <td style={{ textAlign: "right" }}>

@@ -14,6 +14,7 @@ import {
   Bell,
   Menu,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth, useRole, useTenantId } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
@@ -60,6 +61,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
     { href: "/venues", label: "Venues", icon: Building2, roles: ["broker", "admin", "venue_operator"] },
     { href: "/submissions", label: "Submissions", icon: FileSearch, roles: ["broker", "admin"] },
     { href: "/policies", label: "Policies", icon: FileSpreadsheet, roles: ["broker", "admin"] },
+    { href: "/renewals", label: "Renewals", icon: RefreshCw, roles: ["broker", "admin"] },
     ...(role === "venue_operator" && contextVenueId
       ? [{ href: `/terminal/${contextVenueId}`, label: "Live Terminal", icon: Activity } as Item]
       : []),
