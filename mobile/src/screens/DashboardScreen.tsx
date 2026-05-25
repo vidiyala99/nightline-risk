@@ -322,6 +322,15 @@ export function DashboardScreen({ navigation }: any) {
         </Pressable>
       )}
 
+      {/* Coverage entry — operator's policy + request surface (nested in DashboardStack) */}
+      <Pressable
+        style={({ pressed }) => [styles.coverageLink, pressed && { opacity: 0.8 }]}
+        onPress={() => navigation.navigate('Coverage')}
+      >
+        <Text style={styles.coverageLinkLabel}>MY COVERAGE</Text>
+        <Text style={styles.coverageLinkArrow}>→</Text>
+      </Pressable>
+
       {/* Risk Profile card */}
       {riskData && (
         <Pressable
@@ -568,6 +577,20 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 12,
   },
+  coverageLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#0d0f1c',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(200,240,0,0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  coverageLinkLabel: { color: '#c8f000', fontSize: 11, letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  coverageLinkArrow: { color: '#c8f000', fontSize: 16, fontFamily: 'JetBrainsMono_700Bold' },
   sectionEyebrow: {
     color: '#4a4f65',
     fontSize: 10,

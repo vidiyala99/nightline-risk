@@ -4,6 +4,7 @@ import { BrokerPortfolioScreen } from '../screens/BrokerPortfolioScreen';
 import { BrokerVenueDetailScreen } from '../screens/BrokerVenueDetailScreen';
 import { RiskProfileDetailScreen } from '../screens/RiskProfileDetailScreen';
 import { RenewalsScreen } from '../screens/RenewalsScreen';
+import { PolicyRequestsScreen } from '../screens/PolicyRequestsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -14,6 +15,7 @@ export function PortfolioStack() {
       <Stack.Screen name="VenueDetail" component={BrokerVenueDetailScreen} />
       <Stack.Screen name="RiskProfileDetail" component={RiskProfileDetailScreen} />
       <Stack.Screen name="Renewals" component={RenewalsScreen} />
+      <Stack.Screen name="PolicyRequests" component={PolicyRequestsScreen} />
     </Stack.Navigator>
   );
 }

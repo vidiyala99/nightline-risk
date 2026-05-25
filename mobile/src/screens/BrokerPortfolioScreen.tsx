@@ -114,6 +114,12 @@ export function BrokerPortfolioScreen({ navigation }: any) {
         <Text style={styles.renewalsLinkArrow}>→</Text>
       </Pressable>
 
+      {/* Operator request queue */}
+      <Pressable style={styles.renewalsLink} onPress={() => navigation.navigate('PolicyRequests')}>
+        <Text style={styles.renewalsLinkLabel}>POLICY REQUESTS</Text>
+        <Text style={styles.renewalsLinkArrow}>→</Text>
+      </Pressable>
+
       {/* Search bar */}
       <View style={styles.searchWrap}>
         <Text style={styles.searchIcon}>⌕</Text>
