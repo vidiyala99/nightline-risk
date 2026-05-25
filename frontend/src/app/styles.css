@@ -5679,6 +5679,57 @@ html, body { overflow-x: clip; }
   justify-content: center;
   color: var(--text-tertiary);
 }
+/* Map fills its bordered container; relative for the legend overlay. */
+.market__map-wrap { position: relative; height: 100%; width: 100%; }
+/* Dark base so tile gaps / load state never flash white against the theme. */
+.market__map .leaflet-container { background: var(--bg-base); }
+/* Theme Leaflet's default white tooltip to match the dark cards. */
+.market-tooltip.leaflet-tooltip {
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-dm-sans);
+  font-size: 0.78rem;
+}
+.market-tooltip.leaflet-tooltip::before { display: none; } /* hide the white arrow */
+/* On-map legend for the savings color scale (chart legend-visible rule). */
+.market-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  pointer-events: none;
+}
+.market-legend__title {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+.market-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+.market-legend__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
 .market-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);

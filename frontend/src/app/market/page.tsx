@@ -74,7 +74,7 @@ export default function MarketPage() {
     <div className="market">
       <PageHeader
         eyebrow="NYC NIGHTLIFE · OPPORTUNITY MAP"
-        title="Where Third Space saves nightlife venues money"
+        title="Where Nightline saves nightlife venues money"
         subtitle="Real NYC on-premises nightlife licensees (NY State Liquor Authority open data). Estimated savings vs. current market pricing."
       />
 
@@ -151,7 +151,7 @@ export default function MarketPage() {
                   <dd>~{money(selected.market_premium)}/yr</dd>
                 </div>
                 <div>
-                  <dt>Third Space est.</dt>
+                  <dt>Nightline est.</dt>
                   <dd>
                     {money(selected.ts_low)}–{money(selected.ts_high)}/yr
                   </dd>
