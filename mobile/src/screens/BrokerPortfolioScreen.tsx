@@ -46,7 +46,9 @@ export function BrokerPortfolioScreen({ navigation }: any) {
 
   const fetchPortfolio = useCallback(async () => {
     try {
-      const data = await api.request<PortfolioVenue[]>('/api/portfolio');
+      // Book only — the 300 real prospect venues live on the Venues tab
+      // (filterable), so they don't flood the live portfolio dashboard.
+      const data = await api.request<PortfolioVenue[]>('/api/portfolio?source=book');
       setVenues(data);
     } catch {
       // keep stale
