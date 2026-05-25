@@ -15,6 +15,8 @@ import {
   Menu,
   X,
   RefreshCw,
+  ShieldCheck,
+  Inbox,
 } from "lucide-react";
 import { useAuth, useRole, useTenantId } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
@@ -61,6 +63,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
     { href: "/venues", label: "Venues", icon: Building2, roles: ["broker", "admin", "venue_operator"] },
     { href: "/submissions", label: "Submissions", icon: FileSearch, roles: ["broker", "admin"] },
     { href: "/policies", label: "Policies", icon: FileSpreadsheet, roles: ["broker", "admin"] },
+    { href: "/coverage", label: "Coverage", icon: ShieldCheck, roles: ["venue_operator"] },
     { href: "/renewals", label: "Renewals", icon: RefreshCw, roles: ["broker", "admin"] },
     ...(role === "venue_operator" && contextVenueId
       ? [{ href: `/terminal/${contextVenueId}`, label: "Live Terminal", icon: Activity } as Item]
@@ -72,6 +75,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
     { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
     { href: "/claims", label: "Claims", icon: FileSpreadsheet, roles: ["broker", "admin"] },
     { href: "/claim-proposals", label: "Claim Proposals", icon: FileSpreadsheet, roles: ["broker", "admin"] },
+    { href: "/policy-requests", label: "Requests", icon: Inbox, roles: ["broker", "admin"] },
     { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
   ];
 

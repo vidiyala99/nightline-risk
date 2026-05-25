@@ -5762,3 +5762,146 @@ html, body { overflow-x: clip; }
   margin: var(--space-xs) 0 0;
 }
 
+/* ── PolicyRequest surfaces: /coverage (operator) + /policy-requests (broker) ── */
+
+/* Inline text-link button (used in empty states + table actions) */
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--brand-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link-button:hover { color: var(--text-primary); }
+.link-button--danger { color: var(--state-error); }
+.link-button--danger:hover { color: #ff6b81; }
+
+/* Filter chip row (broker queue) */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 20px;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+.filter-chip:hover { color: var(--text-primary); }
+.filter-chip--active { border-color: var(--brand-primary); color: var(--brand-primary); }
+.filter-chip__count {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Coverage cards */
+.coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+.coverage-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: coverage-card-in 240ms ease-out both;
+}
+.coverage-grid > .coverage-card:nth-child(2) { animation-delay: 50ms; }
+.coverage-grid > .coverage-card:nth-child(3) { animation-delay: 100ms; }
+.coverage-grid > .coverage-card:nth-child(n+4) { animation-delay: 150ms; }
+@keyframes coverage-card-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.coverage-card__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.coverage-card__eyebrow {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+.coverage-card__number { font-size: 1.05rem; font-weight: 600; color: var(--text-primary); }
+.coverage-card__facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin: 0;
+}
+.coverage-card__facts dt {
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+.coverage-card__facts dd { margin: 0; font-size: 0.85rem; color: var(--text-primary); }
+.coverage-card__mono { font-variant-numeric: tabular-nums; font-family: var(--font-mono, monospace); }
+.coverage-card__cta { align-self: flex-start; margin-top: 2px; }
+
+/* Request history (operator) */
+.coverage-requests { margin-top: 32px; }
+.coverage-requests__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+}
+.coverage-requests__note { color: var(--text-secondary); max-width: 42ch; }
+
+/* Request modal form */
+.preq-form { display: flex; flex-direction: column; gap: 16px; }
+.preq-field { display: flex; flex-direction: column; gap: 6px; }
+.preq-field__label { font-size: 0.8rem; font-weight: 500; color: var(--text-primary); }
+.preq-field__optional { color: var(--text-tertiary); font-weight: 400; }
+.preq-field__control {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+}
+.preq-field__control:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+.preq-field__control--area { resize: vertical; min-height: 70px; }
+.preq-field__hint { font-size: 0.72rem; color: var(--text-tertiary); line-height: 1.4; }
+.preq-form__error { color: var(--state-error); font-size: 0.8rem; margin: 0; }
+.preq-form__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+/* Broker queue row actions */
+.preq-actions { display: inline-flex; gap: 8px; justify-content: flex-end; }
+.preq-actions__decline { color: var(--state-error); border-color: var(--state-error); }
+.preq-decided-by { font-size: 0.72rem; color: var(--text-tertiary); }
+.preq-detail-sub { color: var(--text-tertiary); }
+.preq-policy-link { display: inline-block; margin-left: 10px; font-size: 0.75rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .coverage-card { animation: none; }
+}
+

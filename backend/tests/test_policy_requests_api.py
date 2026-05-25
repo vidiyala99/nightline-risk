@@ -168,6 +168,24 @@ def test_operator_cancels_pending(client):
     assert r.json()["status"] == "cancelled"
 
 
+def test_operator_sees_own_venue_coverage(client):
+    r = client.get(f"/api/venues/{VENUE_A}/policies", headers=_operator_headers())
+    assert r.status_code == 200, r.text
+    assert POLICY_ID in {p["id"] for p in r.json()}
+
+
+def test_coverage_denied_for_other_venue_operator(client):
+    r = client.get(
+        f"/api/venues/{VENUE_A}/policies", headers=_operator_headers(venue=VENUE_OTHER),
+    )
+    assert r.status_code == 403
+
+
+def test_coverage_requires_auth(client):
+    r = client.get(f"/api/venues/{VENUE_A}/policies")
+    assert r.status_code == 401
+
+
 def test_list_and_per_policy_read(client):
     rid = _create(client).json()["id"]
     # cross-venue list filtered to VENUE_A includes our request

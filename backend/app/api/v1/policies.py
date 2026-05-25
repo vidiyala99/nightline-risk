@@ -19,12 +19,12 @@ from datetime import date
 from decimal import Decimal
 from typing import NoReturn, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from app.api.v1.placement import _broker_user_id
-from app.auth import require_broker
+from app.auth import require_broker, require_venue_access
 from app.database import get_session
 from app.lifecycles import InvalidTransitionError
 from app.models import CertificateOfInsurance, Endorsement, Policy
@@ -216,6 +216,24 @@ def api_list_policies(
         venue_id=venue_id,
         carrier_id=carrier_id,
     )
+    return [_policy_to_dict(p) for p in rows]
+
+
+@router.get("/venues/{venue_id}/policies")
+def api_list_venue_policies(
+    venue_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> list[dict]:
+    """Policies for a single venue — the operator's read-only 'My Coverage'
+    surface. Unlike GET /policies (broker-only), this is tenant-gated via
+    require_venue_access, so a venue operator can see their own venue's
+    coverage (and brokers, who have cross-venue access, can see any).
+
+    Returns every status so the operator sees current + lapsed/expired
+    history; the frontend foregrounds the active policy."""
+    require_venue_access(venue_id, authorization, session)
+    rows = list_policies(session, status_in=["all"], venue_id=venue_id)
     return [_policy_to_dict(p) for p in rows]
 
 
