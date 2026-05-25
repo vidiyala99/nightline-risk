@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useResponsive } from '../hooks/useResponsive';
 import {
   renewalsApi,
   type RenewalDue,
@@ -51,6 +52,7 @@ function tomorrowIso(): string {
 
 export function RenewalsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
   const [rows, setRows] = useState<RenewalDue[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -105,7 +107,10 @@ export function RenewalsScreen({ navigation }: any) {
       <FlatList
         data={rows ?? []}
         keyExtractor={(r) => r.policy_id}
-        contentContainerStyle={{ paddingBottom: 32, paddingTop: insets.top + 12 }}
+        contentContainerStyle={[
+          { paddingBottom: 32, paddingTop: insets.top + 12 },
+          isTablet && { maxWidth: 720, alignSelf: 'center', width: '100%' },
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />
         }
