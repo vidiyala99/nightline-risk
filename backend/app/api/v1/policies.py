@@ -184,6 +184,9 @@ def api_bind_quote(
             term_length_days=body.term_length_days,
             bound_by=user_id,
         )
+        # A bind on a prospect venue promotes it into the book (same txn).
+        from app.prospects import convert_prospect_to_book
+        convert_prospect_to_book(session, policy.venue_id)
         session.commit()
         return _policy_to_dict(policy)
     except (PoliciesError, InvalidTransitionError) as e:

@@ -69,16 +69,28 @@ def _resolve_venue(venue_id: str, session: Session) -> dict:
 
 
 @router.get("/venues")
-def list_venues(session: Session = Depends(get_session)) -> list[dict]:
+def list_venues(
+    source: Optional[str] = None,
+    session: Session = Depends(get_session),
+) -> list[dict]:
     """All venues — both seeded and DB-only. No auth gate at the list
     level; the dashboard renders the same set for any logged-in user.
-    Tenant-scoping is applied when drilling into a specific venue."""
-    result: list[dict] = [{"id": venue_id, **venue} for venue_id, venue in VENUES.items()]
+    Tenant-scoping is applied when drilling into a specific venue.
+
+    Each row carries `source` ("book" | "prospect"). Real NYC venues seeded
+    as leads are "prospect"; the underwritten demo book defaults to "book".
+    `?source=book|prospect|all` filters server-side (default: all)."""
+    result: list[dict] = [
+        {"id": venue_id, **venue, "source": venue.get("source", "book")}
+        for venue_id, venue in VENUES.items()
+    ]
     db_venues = session.exec(select(Venue)).all()
     seed_ids = set(VENUES.keys())
     for v in db_venues:
         if v.id not in seed_ids:
-            result.append({"id": v.id, "name": v.name, **v.model_dump()})
+            result.append({"id": v.id, "name": v.name, **v.model_dump(), "source": "book"})
+    if source and source != "all":
+        result = [r for r in result if r.get("source") == source]
     return result
 
 
@@ -236,34 +248,60 @@ def delete_venue(
 
 
 @router.get("/portfolio", dependencies=[Depends(require_broker)])
-def get_portfolio(session: Session = Depends(get_session)) -> list[dict]:
+def get_portfolio(
+    source: Optional[str] = None,
+    session: Session = Depends(get_session),
+) -> list[dict]:
     """Single broker-facing rollup: every venue with risk score, live
-    state, and an open-incident count. Used by the dashboard 'Book'
-    widget. Response shape kept stable across the v1/ migration."""
+    state, and an open-incident count. Used by the dashboard 'Book' widget.
+
+    Each row carries `source` ("book" | "prospect"). Prospects are real NYC
+    venues seeded as leads — they have NO live telemetry, so the live-state
+    manager and open-incident query are short-circuited for them (their tier/
+    score still come from the same absolute risk engine, computed from their
+    generated attributes). `?source=book|prospect|all` filters (default: all)."""
     result: list[dict] = []
     for venue_id, venue_data in VENUES.items():
+        vsource = venue_data.get("source", "book")
+        if source and source != "all" and vsource != source:
+            continue
         risk = get_risk_score(
             venue_id, VENUES, session=session, live_state_manager=live_state_manager,
         )
-        live = live_state_manager.get_state(venue_id, venue_data["capacity"], venue_data)
-        open_count: Optional[int] = session.exec(
-            select(func.count(IncidentRecord.id))
-            .where(IncidentRecord.venue_id == venue_id)
-            .where(IncidentRecord.status == "open")
-        ).one()
+        if vsource == "prospect":
+            # No live floor state for a lead — don't run the live engine.
+            current_capacity = 0
+            open_count: Optional[int] = 0
+            compliance_actions = 0
+            has_degraded = False
+        else:
+            live = live_state_manager.get_state(venue_id, venue_data["capacity"], venue_data)
+            open_count = session.exec(
+                select(func.count(IncidentRecord.id))
+                .where(IncidentRecord.venue_id == venue_id)
+                .where(IncidentRecord.status == "open")
+            ).one()
+            current_capacity = live.current_capacity
+            compliance_actions = len(live.compliance_queue)
+            has_degraded = any(item.is_degraded for item in live.infrastructure)
         result.append({
             "id": venue_id,
             "name": venue_data["name"],
             "venue_type": venue_data.get("venue_type", ""),
             "address": venue_data.get("address", ""),
-            "capacity": venue_data["capacity"],
-            "current_capacity": live.current_capacity,
+            "capacity": venue_data.get("capacity", 0),
+            "current_capacity": current_capacity,
             "renewal_date": venue_data.get("renewal_date", ""),
             "current_carrier": venue_data.get("current_carrier", ""),
             "tier": risk["tier"],
             "total_score": risk["total_score"],
             "open_incidents": open_count,
-            "compliance_actions": len(live.compliance_queue),
-            "has_degraded_infra": any(item.is_degraded for item in live.infrastructure),
+            "compliance_actions": compliance_actions,
+            "has_degraded_infra": has_degraded,
+            "source": vsource,
+            # Pitch fields — only present on prospects (estimated savings).
+            "savings_low": venue_data.get("savings_low"),
+            "savings_high": venue_data.get("savings_high"),
+            "market_premium": venue_data.get("market_premium"),
         })
     return result

@@ -5730,6 +5730,32 @@ html, body { overflow-x: clip; }
   border-radius: 999px;
   flex-shrink: 0;
 }
+
+/* Prospect venues (real NYC leads) — visually distinct from the book. */
+.venue-card--prospect {
+  border-style: dashed;
+  border-color: var(--border-default);
+}
+.venue-card--prospect .venue-icon { opacity: 0.7; }
+.venue-prospect-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+.venue-prospect-savings {
+  color: var(--brand-primary);
+  font-size: 0.78rem;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
 .market-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);

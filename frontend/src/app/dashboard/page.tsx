@@ -139,7 +139,9 @@ function DashboardPageInner() {
     async function fetchDashboard() {
       try {
         if (isBroker) {
-          const res = await fetch(`${API_URL}/api/portfolio`, { headers: authHeaders() });
+          // Live "Book" shows the underwritten book only; the 300 real prospect
+          // venues live in /venues (filterable) so they don't flood this view.
+          const res = await fetch(`${API_URL}/api/portfolio?source=book`, { headers: authHeaders() });
           if (res.ok) {
             const venues: PortfolioVenue[] = await res.json();
             if (cancelled) return;
