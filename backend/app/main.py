@@ -256,6 +256,15 @@ async def lifespan(app: FastAPI):
             print(f"[SEED] Inserted {inserted} new seed incident(s).")
         # Backfill packets for any incidents that don't have one yet
         _backfill_incident_packets(session)
+
+    # Seed real-NYC prospect venues on boot (idempotent — skips if already
+    # present) so a deploy auto-populates them; no manual railway step needed.
+    # Manages its own session; failures are non-fatal (e.g. snapshot missing).
+    try:
+        from scripts.seed_prospects import seed_prospects
+        seed_prospects()
+    except Exception as e:  # pragma: no cover - defensive startup guard
+        print(f"[SEED] prospect seed skipped: {e}")
     yield
 
 app = FastAPI(title="Nightline Risk OS", lifespan=lifespan)

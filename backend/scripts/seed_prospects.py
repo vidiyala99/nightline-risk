@@ -26,9 +26,13 @@ from app.models import Venue
 from app.prospects import market_venue_to_venue_data
 from app.seed_data import VENUES
 
-SNAPSHOT_PATH = (
+# Prefer the copy that ships with the backend (so it's present on Railway,
+# which deploys only backend/); fall back to the frontend source in dev.
+_BACKEND_SNAPSHOT = Path(__file__).resolve().parent.parent / "app" / "data" / "nyc_market.json"
+_FRONTEND_SNAPSHOT = (
     Path(__file__).resolve().parent.parent.parent / "frontend" / "public" / "nyc_market.json"
 )
+SNAPSHOT_PATH = _BACKEND_SNAPSHOT if _BACKEND_SNAPSHOT.exists() else _FRONTEND_SNAPSHOT
 
 
 def _has_prospects(session: Session) -> bool:
