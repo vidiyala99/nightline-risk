@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { ArrowLeft, AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye } from "lucide-react";
@@ -280,11 +281,15 @@ export default function RiskProfilePage() {
   useEffect(() => {
     async function load() {
       try {
+        // The venue-detail + override-stats endpoints are access-gated, so
+        // they need the bearer token (risk-score/quote are open reads).
+        const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+        const authH: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
         const [riskRes, quoteRes, venueRes, statsRes] = await Promise.all([
           fetch(`${API_URL}/api/venues/${venueId}/risk-score`),
           fetch(`${API_URL}/api/venues/${venueId}/quote`),
-          fetch(`${API_URL}/api/venues/${venueId}`),
-          fetch(`${API_URL}/api/venues/${venueId}/override-stats`),
+          fetch(`${API_URL}/api/venues/${venueId}`, { headers: authH }),
+          fetch(`${API_URL}/api/venues/${venueId}/override-stats`, { headers: authH }),
         ]);
         if (riskRes.ok) setRiskData(await riskRes.json());
         if (quoteRes.ok) setQuoteData(await quoteRes.json());
@@ -336,13 +341,17 @@ export default function RiskProfilePage() {
   const savingsAnnual = quoteData?.savings_annual ?? 0;
   const hasImprovementHeadroom = ["B", "C", "D"].includes(tier);
 
-  const backHref = isBroker ? `/terminal/${venueId}` : "/dashboard";
+  // A prospect is a real NYC lead (not underwritten) — its figures are
+  // estimates, so the operator/broker policy-ingestion tooling doesn't apply.
+  const isProspect = venueId.startsWith("prospect-") || venueMeta?.source === "prospect";
 
-  const backLabel = isBroker ? `Back to ${venueName}` : "Back to Dashboard";
+  const backHref = isProspect ? "/venues" : isBroker ? `/terminal/${venueId}` : "/dashboard";
 
-  const isPolicyEmpty = isBroker && ingestedSources.length === 0;
+  const backLabel = isProspect ? "Back to Venues" : isBroker ? `Back to ${venueName}` : "Back to Dashboard";
 
-  const masterPolicyCard = isBroker ? (
+  const isPolicyEmpty = isBroker && !isProspect && ingestedSources.length === 0;
+
+  const masterPolicyCard = isBroker && !isProspect ? (
     <div
       className="card"
       style={
@@ -740,6 +749,43 @@ export default function RiskProfilePage() {
 
           {/* P2: empty-state onboarding placement — Master Policy is Step 1 for a new venue */}
           {isPolicyEmpty && masterPolicyCard}
+
+          {/* Prospect context — a real NYC lead, not yet underwritten. Replaces
+              the policy-ingestion tooling (which doesn't apply) and carries the
+              "get a quote" conversion path the venue card no longer does. */}
+          {isProspect && (
+            <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+              <div className="flex items-center gap-sm" style={{ justifyContent: "space-between" }}>
+                <h3 className="rp-section-title text-xs uppercase tracking-wide text-secondary">Prospect</h3>
+                <span className="venue-prospect-badge">Estimated</span>
+              </div>
+              <p className="text-sm text-secondary" style={{ margin: 0 }}>
+                Real NYC licensee, not yet on your book. Figures below are modeled
+                estimates from public license data — not live telemetry.
+              </p>
+              {(venueMeta?.savings_low || venueMeta?.savings_high) && (
+                <div>
+                  <span className="text-xs uppercase tracking-wide text-secondary">Est. annual savings</span>
+                  <div className="lc-numeral" style={{ color: "var(--brand-primary)", fontSize: "1.5rem" }}>
+                    ${Math.round(Number(venueMeta.savings_low || 0)).toLocaleString()}–${Math.round(Number(venueMeta.savings_high || 0)).toLocaleString()}/yr
+                  </div>
+                </div>
+              )}
+              {Array.isArray(venueMeta?.likely_carriers) && venueMeta.likely_carriers.length > 0 && (
+                <div>
+                  <span className="text-xs uppercase tracking-wide text-secondary">Likely carriers</span>
+                  <div className="market-card__chips" style={{ marginTop: 6 }}>
+                    {venueMeta.likely_carriers.map((c: any) => (
+                      <span key={c.id} className={`market-chip market-chip--${c.market_type === "admitted" ? "admitted" : "es"}`}>{c.name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <Link href="/submissions/new" className="btn btn-primary" style={{ textAlign: "center", textDecoration: "none" }}>
+                Get a quote →
+              </Link>
+            </div>
+          )}
 
           {/* What's working */}
           {goodFactors.length > 0 && (
