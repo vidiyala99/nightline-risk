@@ -19,7 +19,7 @@ from datetime import date
 from decimal import Decimal
 from typing import NoReturn, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
@@ -380,16 +380,25 @@ def api_list_certificates(
 
 
 @router.get("/certificates/{coi_id}/pdf", dependencies=[Depends(require_broker)])
-def api_certificate_pdf(coi_id: str, session: Session = Depends(get_session)) -> dict:
-    """Returns a JSON envelope describing the PDF location. Actual PDF
-    rendering ships in Phase 5 (defense package). For Phase 2, returns
-    the COI metadata + a 'pdf_pending' marker so the frontend can
-    surface "PDF generation arrives in Phase 5" without 500ing."""
+def api_certificate_pdf(coi_id: str, session: Session = Depends(get_session)) -> Response:
+    """Render the certificate as a downloadable PDF (ACORD-25 flavored).
+    Reuses the reportlab layout shared with the defense-package export."""
+    from app.coi_pdf import render_coi_pdf
+    from app.packet_core import _add_audit_event
+
     c = session.get(CertificateOfInsurance, coi_id)
     if c is None:
         raise HTTPException(status_code=404, detail=f"Certificate {coi_id} not found")
-    return {
-        "certificate": _coi_to_dict(c),
-        "pdf_pending": c.pdf_path is None,
-        "note": "PDF generation is a Phase 5 work item. Metadata available here.",
-    }
+    policy = session.get(Policy, c.policy_id)
+    pdf = render_coi_pdf(c, policy)
+    _add_audit_event(
+        session=session, actor_id="system", actor_type="user",
+        entity_type="certificate_of_insurance", entity_id=coi_id,
+        event_type="certificate.pdf_exported", event_metadata={},
+    )
+    session.commit()
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="coi-{coi_id}.pdf"'},
+    )

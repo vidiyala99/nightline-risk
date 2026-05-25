@@ -467,9 +467,8 @@ def test_list_certificates_hides_superseded_by_default(client):
     assert {c["id"] for c in all_rows} == {first["id"], second["id"]}
 
 
-def test_certificate_pdf_returns_pdf_pending(client):
-    """Phase 5 (defense package) brings real PDF rendering. Phase 2's
-    /pdf endpoint returns metadata + a pdf_pending marker."""
+def test_certificate_pdf_returns_real_pdf(client):
+    """The /pdf endpoint streams a real, downloadable PDF (reportlab)."""
     qid = _create_quoted_selected_quote(client)
     pol = client.post(
         f"/api/quotes/{qid}/bind",
@@ -488,9 +487,14 @@ def test_certificate_pdf_returns_pdf_pending(client):
     ).json()
     r = client.get(f"/api/certificates/{coi['id']}/pdf", headers=_broker_headers())
     assert r.status_code == 200
-    body = r.json()
-    assert body["pdf_pending"] is True
-    assert "Phase 5" in body["note"]
+    assert r.headers["content-type"] == "application/pdf"
+    assert "attachment" in r.headers.get("content-disposition", "")
+    assert r.content[:4] == b"%PDF"
+
+
+def test_certificate_pdf_unknown_404(client):
+    r = client.get("/api/certificates/coi-nope/pdf", headers=_broker_headers())
+    assert r.status_code == 404
 
 
 # ─── End-to-end full lifecycle loop ─────────────────────────────────────

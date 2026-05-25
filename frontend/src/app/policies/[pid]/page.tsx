@@ -32,9 +32,11 @@ import {
   POLICY_STATUS_TONE,
   PolicyDetail,
   policiesApi,
+  downloadCoiPdf,
 } from "@/lib/policies";
 import { ClaimStatusPill } from "@/components/claims/ClaimStatusPill";
 import { claimsApi, totalPaidFromClaim, type Claim } from "@/lib/claims";
+import { toastError } from "@/lib/toast";
 import { formatLedgerMoney } from "@/lib/claim-tokens";
 
 
@@ -336,6 +338,7 @@ export default function PolicyDetailPage() {
                 <th>Additional Insured</th>
                 <th>Expires</th>
                 <th>Status</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -365,6 +368,15 @@ export default function PolicyDetailPage() {
                     }>
                       {c.status}
                     </StatusPill>
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => downloadCoiPdf(c.id).catch(() => toastError("Could not download the certificate PDF"))}
+                    >
+                      Download PDF
+                    </button>
                   </td>
                 </tr>
               ))}

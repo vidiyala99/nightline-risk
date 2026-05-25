@@ -624,3 +624,27 @@ def test_list_policies_filters_by_venue_and_carrier():
         assert policy.id in {p.id for p in venue_match}
         assert policy.id in {p.id for p in carrier_match}
         assert no_match == []
+
+
+def test_certificate_pdf_renders():
+    """render_coi_pdf produces real PDF bytes from a COI + its policy, and
+    still renders if the policy is missing (defensive)."""
+    from app.coi_pdf import render_coi_pdf
+    with _session() as s:
+        _, q = _make_quoting_submission_with_selected_quote(s)
+        policy = bind_quote(s, q.id, policy_number="P-1", bound_by=USER_ID)
+        s.commit()
+        coi = issue_certificate(
+            s, policy.id,
+            certificate_holder="599 Johnson LLC",
+            certificate_holder_address="599 Johnson Ave, Brooklyn",
+            description_of_operations="Music venue + bar operations",
+            expires_on=date(2027, 11, 1),
+            issued_by=USER_ID,
+        )
+        s.commit()
+        pdf = render_coi_pdf(coi, policy)
+        assert pdf[:4] == b"%PDF"
+        assert len(pdf) > 800
+        # policy-missing path still produces a valid PDF
+        assert render_coi_pdf(coi, None)[:4] == b"%PDF"
