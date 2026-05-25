@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useResponsive } from '../hooks/useResponsive';
 import {
   policyRequestsApi,
   REQUEST_STATUS_COLOR,
@@ -41,6 +42,7 @@ function detailLine(r: PolicyRequest): string | null {
 
 export function PolicyRequestsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
   const [rows, setRows] = useState<PolicyRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -98,7 +100,10 @@ export function PolicyRequestsScreen({ navigation }: any) {
       <FlatList
         data={visible}
         keyExtractor={(r) => r.id}
-        contentContainerStyle={{ paddingBottom: 32, paddingTop: insets.top + 12 }}
+        contentContainerStyle={[
+          { paddingBottom: 32, paddingTop: insets.top + 12 },
+          isTablet && { maxWidth: 720, alignSelf: 'center', width: '100%' },
+        ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />}
         ListHeaderComponent={
           <View>

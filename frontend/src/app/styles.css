@@ -5813,7 +5813,9 @@ html, body { overflow-x: clip; }
 /* Coverage cards */
 .coverage-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  /* min(320px, 100%) keeps a single column from overflowing on 320px-wide
+     devices (iPhone SE) while still going multi-column where there's room. */
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 16px;
   margin-top: 8px;
 }

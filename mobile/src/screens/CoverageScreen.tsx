@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useResponsive } from '../hooks/useResponsive';
 import { useAuth } from '../contexts/AuthContext';
 import {
   policyRequestsApi,
@@ -45,6 +46,7 @@ const POLICY_STATUS_COLOR: Record<string, string> = {
 
 export function CoverageScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
   const { user } = useAuth();
 
   const venueIds = React.useMemo(() => {
@@ -118,7 +120,10 @@ export function CoverageScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 32, paddingTop: insets.top + 12 }}
+        contentContainerStyle={[
+          { paddingBottom: 32, paddingTop: insets.top + 12 },
+          isTablet && { maxWidth: 720, alignSelf: 'center', width: '100%' },
+        ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />}
       >
         <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
