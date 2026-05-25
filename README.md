@@ -11,6 +11,9 @@ Evidence-first underwriting infrastructure for nightlife venues. Built as a work
 **Architecture:**
 - [Agent pipeline, LLM integration points, and roadmap](docs/superpowers/specs/2026-05-07-architecture-v2.md) — evidence layer (incidents → packets → claim proposals)
 - [Broker platform — Phases 1–3](docs/superpowers/specs/2026-05-21-broker-platform-phases-1-3.md) — placement, policy lifecycle, carrier-side claims
+- [Phase 4 — renewals & experience rating](docs/superpowers/specs/2026-05-24-phase-4-renewals-experience-rating-design.md) — expiring-policy re-quote with loss-experience banding
+- [Defense-package export](docs/superpowers/specs/2026-05-24-defense-package-export-design.md) — evidence-authenticated, exportable A&B defense artifact (PDF)
+- [Broker-platform roadmap](docs/superpowers/specs/2026-05-25-broker-platform-roadmap.md) — benchmarked gap analysis, additions ranked by architectural coherence
 - [ADR-0004 — Claim vs. ClaimProposal vocabulary split](docs/adr/0004-broker-platform-and-claim-vocabulary-split.md)
 
 ---
