@@ -8,7 +8,10 @@
  * Money values come back as STRINGS — parse only at render time via
  * formatLedgerMoney / formatClaimMoney from claim-tokens.ts.
  */
-import { api } from './client';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+
+import { api, API_URL, getToken } from './client';
 import type { ClaimStatus, PaymentType } from './claim-tokens';
 
 // ─── Wire types ─────────────────────────────────────────────────────────
@@ -187,4 +190,36 @@ export function totalPaidFromClaim(c: Claim): number {
   const ind = parseFloat(c.indemnity_paid_to_date) || 0;
   const exp = parseFloat(c.expense_paid_to_date) || 0;
   return ind + exp;
+}
+
+/**
+ * Download a packet's defense-package PDF and hand it to the OS share
+ * sheet. Mobile counterpart of web downloadDefensePackagePdf (lib/claims.ts).
+ *
+ * The endpoint (GET /api/packets/{id}/defense-package.pdf) is keyed by
+ * packet id — which is exactly `claim.defense_package_id` — and is tenant
+ * gated, so the request must carry the bearer token. A plain Linking.openURL
+ * can't send headers, so we stream the authed response to a file via
+ * FileSystem.downloadAsync, then share it.
+ *
+ * @param packetId the claim's defense_package_id
+ */
+export async function downloadDefensePackagePdf(packetId: string): Promise<void> {
+  const token = await getToken();
+  const fileUri = `${FileSystem.documentDirectory}defense-${packetId}.pdf`;
+  const { uri, status } = await FileSystem.downloadAsync(
+    `${API_URL}/api/packets/${packetId}/defense-package.pdf`,
+    fileUri,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+  );
+  if (status !== 200) {
+    throw new Error(`Failed to download defense package (HTTP ${status})`);
+  }
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(uri, {
+      mimeType: 'application/pdf',
+      UTI: 'com.adobe.pdf',
+      dialogTitle: 'Defense package',
+    });
+  }
 }

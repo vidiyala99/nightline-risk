@@ -108,6 +108,12 @@ export function BrokerPortfolioScreen({ navigation }: any) {
         </Pressable>
       </View>
 
+      {/* Renewals entry — nested in this stack (no submissions screen on mobile) */}
+      <Pressable style={styles.renewalsLink} onPress={() => navigation.navigate('Renewals')}>
+        <Text style={styles.renewalsLinkLabel}>RENEWALS DUE</Text>
+        <Text style={styles.renewalsLinkArrow}>→</Text>
+      </Pressable>
+
       {/* Search bar */}
       <View style={styles.searchWrap}>
         <Text style={styles.searchIcon}>⌕</Text>
@@ -288,6 +294,28 @@ const styles = StyleSheet.create({
   statNum: { color: '#eeeef5', fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
   statNumRed: { color: '#ff4557' },
   statLabel: { color: '#4a4f65', fontSize: 9, fontWeight: '700', letterSpacing: 1.5, textAlign: 'center', fontFamily: 'JetBrainsMono_700Bold' },
+
+  // Renewals entry link
+  renewalsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#0d0f1c',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(200,240,0,0.25)',
+  },
+  renewalsLinkLabel: {
+    color: '#c8f000',
+    fontSize: 11,
+    letterSpacing: 1.5,
+    fontFamily: 'JetBrainsMono_700Bold',
+  },
+  renewalsLinkArrow: { color: '#c8f000', fontSize: 16, fontFamily: 'JetBrainsMono_700Bold' },
 
   // Search bar
   searchWrap: {

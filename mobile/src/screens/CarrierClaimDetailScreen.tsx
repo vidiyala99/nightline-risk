@@ -28,7 +28,12 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { claimsApi, totalIncurredFromClaim, type ClaimDetail } from '../api/claims';
+import {
+  claimsApi,
+  downloadDefensePackagePdf,
+  totalIncurredFromClaim,
+  type ClaimDetail,
+} from '../api/claims';
 import {
   ACTION_PRIORITY,
   CLAIM_STATUS_GLYPH,
@@ -62,6 +67,18 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const onDownloadDefensePdf = useCallback(async (packetId: string) => {
+    setDownloadingPdf(true);
+    try {
+      await downloadDefensePackagePdf(packetId);
+    } catch (e: any) {
+      Alert.alert('Download failed', e?.message ?? 'Could not download the defense package.');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setError(null);
@@ -254,7 +271,18 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
           />
         )}
         {claim.defense_package_id && (
-          <MetaRow label="Defense package" value={claim.defense_package_id} mono />
+          <>
+            <MetaRow label="Defense package" value={claim.defense_package_id} mono />
+            <Pressable
+              style={[styles.pdfBtn, downloadingPdf && styles.pdfBtnBusy]}
+              disabled={downloadingPdf}
+              onPress={() => onDownloadDefensePdf(claim.defense_package_id!)}
+            >
+              <Text style={styles.pdfBtnText}>
+                {downloadingPdf ? 'Preparing PDF…' : '↓ Download PDF'}
+              </Text>
+            </Pressable>
+          </>
         )}
         {closed && claim.closed_at && (
           <MetaRow
@@ -712,4 +740,17 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   retryText: { color: '#c8f000', fontFamily: Fonts.sansMedium },
+
+  pdfBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    marginBottom: 4,
+    borderColor: '#c8f000',
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  pdfBtnBusy: { opacity: 0.5 },
+  pdfBtnText: { color: '#c8f000', fontFamily: Fonts.sansMedium, fontSize: 13 },
 });
