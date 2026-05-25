@@ -1,7 +1,11 @@
 """Tests for the HMAC-signed auth token implementation."""
+import hashlib
 import time
 import pytest
-from app.auth import create_token, verify_token, create_password_hash, verify_password, _sign
+from app.auth import (
+    create_token, verify_token, create_password_hash, verify_password, _sign,
+    needs_rehash, authenticate_user,
+)
 
 
 def test_token_round_trip():
@@ -61,3 +65,43 @@ def test_secret_stability():
     token = create_token("user_001", "x@y.com", "admin")
     # The _APP_SECRET is module-level and stable — verify_token uses the same secret
     assert verify_token(token) is not None
+
+
+# ── Password hashing: bcrypt + graceful migration from legacy sha256 ──────
+
+
+def test_new_hashes_are_bcrypt():
+    h = create_password_hash("demo123")
+    assert h.startswith("$2b$") or h.startswith("$2a$")
+
+
+def test_legacy_sha256_hash_still_verifies():
+    """Existing users were hashed with unsalted sha256; they must keep working
+    until migrated on next login."""
+    legacy = hashlib.sha256("demo123".encode()).hexdigest()
+    assert verify_password("demo123", legacy)
+    assert not verify_password("wrong", legacy)
+
+
+def test_needs_rehash_flags_legacy_only():
+    legacy = hashlib.sha256("demo123".encode()).hexdigest()
+    assert needs_rehash(legacy) is True
+    assert needs_rehash(create_password_hash("demo123")) is False
+
+
+def test_authenticate_user_migrates_legacy_hash_on_login():
+    from sqlmodel import SQLModel, Session, create_engine
+    from app.models import UserRecord
+    eng = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(eng)
+    legacy = hashlib.sha256("demo123".encode()).hexdigest()
+    with Session(eng) as s:
+        s.add(UserRecord(id="u1", email="a@b.com", password_hash=legacy, name="A", role="broker"))
+        s.commit()
+        assert authenticate_user("a@b.com", "demo123", s) is not None
+        rec = s.get(UserRecord, "u1")
+        assert rec.password_hash.startswith("$2")           # rehashed to bcrypt
+        assert rec.password_hash != legacy
+        # still authenticates against the migrated hash
+        assert authenticate_user("a@b.com", "demo123", s) is not None
+        assert authenticate_user("a@b.com", "wrong", s) is None

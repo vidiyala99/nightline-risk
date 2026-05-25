@@ -1,11 +1,28 @@
 import base64
 import hashlib
 import hmac
+import logging
 import os
+import secrets
 import time
 from typing import Optional
 
-_APP_SECRET = os.getenv("APP_SECRET", "ts-risk-demo-secret-v1-do-not-use-in-prod").encode()
+import bcrypt
+
+logger = logging.getLogger(__name__)
+
+_env_secret = os.getenv("APP_SECRET")
+if _env_secret:
+    _APP_SECRET = _env_secret.encode()
+else:
+    # No hardcoded fallback: a known default in source would let anyone forge a
+    # valid session token. Generate an ephemeral per-process secret and warn —
+    # tokens won't survive a restart until APP_SECRET is set, which is the nudge.
+    _APP_SECRET = secrets.token_hex(32).encode()
+    logger.warning(
+        "APP_SECRET is not set — using an ephemeral random secret. Sessions will "
+        "reset on restart. Set APP_SECRET in any real/production deployment."
+    )
 TOKEN_EXPIRE_SECONDS = 24 * 3600
 
 # Demo seed users — written to DB on startup, not used as runtime auth store
@@ -65,12 +82,37 @@ def verify_token(token: str) -> Optional[dict]:
         return None
 
 
+def _pw_bytes(password: str) -> bytes:
+    # bcrypt hashes only the first 72 bytes; truncate to avoid backend errors
+    # on long inputs.
+    return password.encode("utf-8")[:72]
+
+
+def _is_bcrypt(hashed: str) -> bool:
+    return hashed.startswith(("$2b$", "$2a$", "$2y$"))
+
+
 def create_password_hash(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash a password with bcrypt (salted, slow). New hashes are '$2b$...'."""
+    return bcrypt.hashpw(_pw_bytes(password), bcrypt.gensalt()).decode("utf-8")
+
+
+def needs_rehash(hashed: str) -> bool:
+    """True for legacy unsalted-sha256 hashes that should be upgraded to bcrypt
+    on next successful login."""
+    return not _is_bcrypt(hashed)
 
 
 def verify_password(password: str, hashed: str) -> bool:
-    return hmac.compare_digest(create_password_hash(password), hashed)
+    """Verify against bcrypt; fall back to the legacy unsalted-sha256 hash so
+    pre-migration users can still authenticate (then get rehashed on login)."""
+    if _is_bcrypt(hashed):
+        try:
+            return bcrypt.checkpw(_pw_bytes(password), hashed.encode("utf-8"))
+        except (ValueError, TypeError):
+            return False
+    legacy = hashlib.sha256(password.encode()).hexdigest()
+    return hmac.compare_digest(legacy, hashed)
 
 
 def _record_to_dict(record) -> dict:
@@ -93,6 +135,12 @@ def authenticate_user(email: str, password: str, session) -> Optional[dict]:
     from app.models import UserRecord
     record = session.exec(select(UserRecord).where(UserRecord.email == email)).first()
     if record and verify_password(password, record.password_hash):
+        # Transparent migration: upgrade a legacy unsalted-sha256 hash to bcrypt
+        # on successful login. Existing users are migrated without a flag-day.
+        if needs_rehash(record.password_hash):
+            record.password_hash = create_password_hash(password)
+            session.add(record)
+            session.commit()
         return _record_to_dict(record)
     return None
 

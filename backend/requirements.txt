@@ -20,3 +20,5 @@ pageindex==0.1.4
 # Defense-package PDF rendering. reportlab imports PIL at load, so pin pillow too.
 reportlab>=4.0.0
 pillow>=10.0.0
+# Password hashing (salted, slow) — replaces legacy unsalted sha256.
+bcrypt>=4.1,<6.0
