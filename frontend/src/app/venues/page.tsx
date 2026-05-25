@@ -40,7 +40,7 @@ const EMPTY_FORM = { name: "", address: "", capacity: "", venue_type: "bar", ren
 
 export default function VenuesPage() {
   const router = useRouter();
-  const { isSignedIn, user, refreshUser } = useAuth();
+  const { isSignedIn, isLoaded, user, refreshUser } = useAuth();
   const role = useRole();
   const tenantId = useTenantId();
   const extraVenueIds = user?.extra_venue_ids ?? [];
@@ -74,8 +74,10 @@ export default function VenuesPage() {
   const prospectCount = venues.filter(v => v.source === "prospect").length;
 
   useEffect(() => {
-    if (!isSignedIn) router.push("/login");
-  }, [isSignedIn, router]);
+    // Wait for auth to hydrate before redirecting — otherwise a cold load /
+    // refresh / deep-link bounces a logged-in user to /login (hydration race).
+    if (isLoaded && !isSignedIn) router.push("/login");
+  }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
     async function fetchVenues() {

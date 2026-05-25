@@ -30,7 +30,7 @@ interface Incident {
 export default function IncidentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const tenantId = useTenantId();
   const role = useRole();
   const isBroker = role === "broker" || role === "admin";
@@ -60,8 +60,10 @@ export default function IncidentsPage() {
   const [selectedVenueId, setSelectedVenueId] = useState<string>("");
 
   useEffect(() => {
-    if (!isSignedIn) router.push("/login");
-  }, [isSignedIn, router]);
+    // Wait for auth to hydrate before redirecting — otherwise a cold load /
+    // refresh / deep-link bounces a logged-in user to /login (hydration race).
+    if (isLoaded && !isSignedIn) router.push("/login");
+  }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
     if (!isBroker) return;
