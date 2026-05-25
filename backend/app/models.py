@@ -603,3 +603,34 @@ class ReserveChange(SQLModel, table=True):
     received_at: datetime
     recorded_by: str = Field(foreign_key="userrecord.id")
     recorded_at: datetime = Field(default_factory=now_utc)
+
+
+class PolicyRequest(SQLModel, table=True):
+    """Operator→broker service request against an in-force policy.
+
+    The operator can't transact policy lifecycle themselves (bind/cancel/
+    renew/COI are all broker-gated). This is the structured way for them to
+    *ask*: the operator raises a request, it lands in the broker's queue,
+    and the broker approves or declines it — mirroring the ClaimProposal
+    propose→decide pattern (see app.lifecycles.PolicyRequestStatus).
+
+    `payload` carries type-specific detail as JSON (e.g. the desired
+    cancellation date, the COI holder + operations description, the
+    coverage change requested) — kept flexible so new request types don't
+    need a schema migration. Money values inside payload follow the JSON
+    contract: stored as strings, parsed only at render time."""
+    id: str = Field(primary_key=True)                   # "preq-<uuid12>"
+    policy_id: str = Field(foreign_key="policy.id", index=True)
+    venue_id: str = Field(index=True)                   # denormalized from the policy for tenant filtering
+    request_type: str                                   # "renewal" | "cancellation" | "coi" | "coverage_change"
+    status: str = Field(default="pending", index=True)
+    requested_by: str                                   # operator user id (token sub)
+    note: str = ""
+    payload: dict = Field(default_factory=dict, sa_column=Column(JSON))
+
+    decided_by: Optional[str] = None                    # broker user id
+    decision_note: Optional[str] = None
+    decided_at: Optional[datetime] = None
+
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)

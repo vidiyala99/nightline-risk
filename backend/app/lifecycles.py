@@ -149,6 +149,32 @@ CLAIM_TERMINAL_STATES: frozenset[str] = frozenset()
 # subrogation, late-discovered information, or fraud investigation.
 
 
+# ─── PolicyRequest lifecycle (operator→broker policy service request) ─────
+#
+# An operator raises a request against a policy (renew / cancel / COI /
+# coverage change); the broker decides. Mirrors the ClaimProposal
+# propose→decide pattern but as a typed lifecycle. The operator may
+# withdraw their own request while it's still pending.
+
+PolicyRequestStatus = Literal[
+    "pending",     # operator submitted, awaiting broker decision
+    "approved",    # broker accepted — terminal (broker actions it via the policy surfaces)
+    "declined",    # broker rejected — terminal
+    "cancelled",   # operator withdrew before a decision — terminal
+]
+
+POLICY_REQUEST_TRANSITIONS: dict[str, set[str]] = {
+    "pending":   {"approved", "declined", "cancelled"},
+    "approved":  set(),
+    "declined":  set(),
+    "cancelled": set(),
+}
+
+POLICY_REQUEST_TERMINAL_STATES: frozenset[str] = frozenset(
+    s for s, nexts in POLICY_REQUEST_TRANSITIONS.items() if not nexts
+)
+
+
 # ─── Errors ──────────────────────────────────────────────────────────────
 
 class InvalidTransitionError(ValueError):
