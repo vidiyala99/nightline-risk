@@ -296,6 +296,65 @@ def create_submission(
     return sub
 
 
+def update_submission(
+    session: Session,
+    submission_id: str,
+    *,
+    actor_id: str,
+    effective_date: Optional[date] = None,
+    coverage_lines: Optional[Sequence[str]] = None,
+    requested_limits: Optional[dict] = None,
+    producer_id: Optional[str] = None,
+    notes: Optional[str] = None,
+) -> Submission:
+    """Edit a submission's terms while it's still a draft.
+
+    Only allowed when status == 'open' — once it's gone to market the terms
+    are locked (you'd withdraw + re-create instead), since carriers have
+    already quoted against them. Only the fields passed (non-None) are
+    changed. Emits a `submission.updated` audit event listing changed keys.
+    """
+    sub = session.get(Submission, submission_id)
+    if sub is None:
+        raise SubmissionsError(f"Unknown submission {submission_id!r}")
+    if sub.status != "open":
+        raise SubmissionsError(
+            f"Submission {submission_id!r} is {sub.status!r}; only 'open' "
+            "submissions can be edited (withdraw and re-create to change terms after going to market)"
+        )
+
+    changed: list[str] = []
+    if effective_date is not None and effective_date != sub.effective_date:
+        sub.effective_date = effective_date
+        changed.append("effective_date")
+    if coverage_lines is not None and list(coverage_lines) != sub.coverage_lines:
+        sub.coverage_lines = list(coverage_lines)
+        changed.append("coverage_lines")
+    if requested_limits is not None and dict(requested_limits) != sub.requested_limits:
+        sub.requested_limits = dict(requested_limits)
+        changed.append("requested_limits")
+    if producer_id is not None and producer_id != sub.assigned_producer_id:
+        sub.assigned_producer_id = producer_id
+        changed.append("assigned_producer_id")
+    if notes is not None and notes != sub.notes:
+        sub.notes = notes
+        changed.append("notes")
+
+    if changed:
+        sub.updated_at = now_utc()
+        session.add(sub)
+        _add_audit_event(
+            session=session,
+            actor_id=actor_id,
+            actor_type="user",
+            entity_type="submission",
+            entity_id=sub.id,
+            event_type="submission.updated",
+            event_metadata={"changed": changed},
+        )
+    return sub
+
+
 def submit_to_market(
     session: Session,
     submission_id: str,

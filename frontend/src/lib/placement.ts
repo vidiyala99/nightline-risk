@@ -222,6 +222,18 @@ export const placementApi = {
   getSubmission: (sid: string) =>
     call<SubmissionDetail>(`/api/submissions/${sid}`),
 
+  // Edit a draft submission's terms (server allows this only while 'open').
+  updateSubmission: (sid: string, body: {
+    effective_date?: string;
+    coverage_lines?: string[];
+    requested_limits?: Record<string, RequestedLimitsLine>;
+    producer_id?: string | null;
+    notes?: string;
+  }) => call<Submission>(`/api/submissions/${sid}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  }),
+
   getTransitions: () =>
     call<TransitionMatrix>("/api/submissions/transitions"),
 

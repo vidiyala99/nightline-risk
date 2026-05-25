@@ -479,3 +479,31 @@ def test_full_placement_loop_end_to_end(client):
     for q in detail["quotes"]:
         # Quotes that were 'quoted' get withdrawn alongside the submission.
         assert q["status"] in ("withdrawn", "declined", "expired")
+
+
+# ─── PATCH /submissions/{sid} — edit while open ──────────────────────────
+
+
+def test_patch_open_submission_edits_fields(client):
+    sub = client.post("/api/submissions", json=_new_submission_body(), headers=_broker_headers()).json()
+    r = client.patch(
+        f"/api/submissions/{sub['id']}",
+        json={"notes": "priority placement", "coverage_lines": ["gl"]},
+        headers=_broker_headers(),
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["notes"] == "priority placement"
+    assert body["coverage_lines"] == ["gl"]
+    assert body["status"] == "open"
+
+
+def test_patch_submission_unknown_404(client):
+    r = client.patch("/api/submissions/sub-nope", json={"notes": "x"}, headers=_broker_headers())
+    assert r.status_code == 404
+
+
+def test_patch_submission_rejects_operator(client):
+    sub = client.post("/api/submissions", json=_new_submission_body(), headers=_broker_headers()).json()
+    r = client.patch(f"/api/submissions/{sub['id']}", json={"notes": "x"}, headers=_operator_headers())
+    assert r.status_code == 403

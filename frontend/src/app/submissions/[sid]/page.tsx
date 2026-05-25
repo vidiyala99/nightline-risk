@@ -172,6 +172,11 @@ function CarrierQuoteCardComponent({
 }
 
 
+// Coverage lines a broker can toggle while editing a draft submission.
+const COVERAGE_LINE_OPTIONS = [
+  "gl", "liquor", "assault_battery", "property", "wc", "epli", "cyber", "umbrella",
+];
+
 // ─── Page component ─────────────────────────────────────────────────────
 
 export default function SubmissionDetailPage() {
@@ -185,6 +190,12 @@ export default function SubmissionDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [selectedCarriers, setSelectedCarriers] = useState<Set<string>>(new Set());
+
+  // Editable draft terms (only while the submission is 'open').
+  const [editNotes, setEditNotes] = useState("");
+  const [editEffective, setEditEffective] = useState("");
+  const [editLines, setEditLines] = useState<string[]>([]);
+  const [savingTerms, setSavingTerms] = useState(false);
 
   const carriersById = useMemo(
     () => new Map(carriers.map(c => [c.id, c])),
@@ -210,6 +221,33 @@ export default function SubmissionDetailPage() {
   };
 
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [sid]);
+
+  // Seed the edit fields from the loaded submission.
+  useEffect(() => {
+    if (submission) {
+      setEditNotes(submission.notes ?? "");
+      setEditEffective(submission.effective_date ?? "");
+      setEditLines(submission.coverage_lines ?? []);
+    }
+  }, [submission?.id]);
+
+  const handleSaveTerms = async () => {
+    if (!submission) return;
+    setSavingTerms(true);
+    setError(null);
+    try {
+      await placementApi.updateSubmission(submission.id, {
+        notes: editNotes,
+        effective_date: editEffective,
+        coverage_lines: editLines,
+      });
+      await load();
+    } catch (e) {
+      setError(e instanceof PlacementApiError ? e.message : "Save failed");
+    } finally {
+      setSavingTerms(false);
+    }
+  };
 
   const handleSubmitToMarket = async () => {
     if (!submission || selectedCarriers.size === 0) return;
@@ -353,9 +391,61 @@ export default function SubmissionDetailPage() {
         </div>
       </div>
 
-      {/* Carrier picker — only while submission is open */}
+      {/* Edit terms — only while the submission is still a draft (open). */}
       {canSubmit && (
         <>
+          <div className="submission-detail__section-title">Edit terms</div>
+          <div className="submission-edit">
+            <label className="submission-edit__field">
+              <span className="submission-edit__label">Effective date</span>
+              <input
+                type="date"
+                className="input-field"
+                value={editEffective}
+                onChange={(e) => setEditEffective(e.target.value)}
+              />
+            </label>
+            <div className="submission-edit__field">
+              <span className="submission-edit__label">Coverage lines</span>
+              <div className="submission-wizard__coverage-grid">
+                {COVERAGE_LINE_OPTIONS.map((l) => (
+                  <label key={l} className="submission-wizard__coverage-chip">
+                    <input
+                      type="checkbox"
+                      checked={editLines.includes(l)}
+                      onChange={() =>
+                        setEditLines((prev) =>
+                          prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l],
+                        )
+                      }
+                    />
+                    <span className="submission-wizard__coverage-chip-name">
+                      {l.replace(/_/g, " ")}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <label className="submission-edit__field">
+              <span className="submission-edit__label">Notes</span>
+              <textarea
+                className="input-field"
+                rows={2}
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleSaveTerms}
+              disabled={savingTerms}
+            >
+              {savingTerms ? "Saving…" : "Save terms"}
+            </button>
+          </div>
+
+          {/* Carrier picker — only while submission is open */}
           <div className="submission-detail__section-title">
             Carriers to Submit To
           </div>

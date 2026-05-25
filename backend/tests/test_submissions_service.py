@@ -31,6 +31,7 @@ from app.services.submissions import (
     record_carrier_response,
     select_quote,
     submit_to_market,
+    update_submission,
     validate_premium_breakdown,
     withdraw_submission,
 )
@@ -497,3 +498,52 @@ def test_list_submissions_days_in_market_filter():
         assert sub.id not in {r.id for r in recent}
         old = list_submissions(s, days_in_market_min=3)
         assert sub.id in {r.id for r in old}
+
+
+# ─── update_submission (edit while open) ─────────────────────────────────
+
+
+def test_update_submission_edits_open():
+    with _session() as s:
+        sub = _make_submission(s)
+        s.commit()
+        updated = update_submission(
+            s, sub.id, actor_id="u",
+            notes="rush this one", coverage_lines=["gl"],
+            effective_date=date(2026, 12, 1),
+        )
+        s.commit()
+        assert updated.notes == "rush this one"
+        assert updated.coverage_lines == ["gl"]
+        assert updated.effective_date == date(2026, 12, 1)
+
+
+def test_update_submission_emits_audit_with_changed_keys():
+    with _session() as s:
+        sub = _make_submission(s)
+        s.commit()
+        update_submission(s, sub.id, actor_id="u", notes="x")
+        s.commit()
+        ev = s.exec(
+            select(AuditEvent)
+            .where(AuditEvent.entity_id == sub.id)
+            .where(AuditEvent.event_type == "submission.updated")
+        ).first()
+        assert ev is not None
+        assert "notes" in ev.event_metadata["changed"]
+
+
+def test_update_submission_unknown_raises():
+    with _session() as s:
+        with pytest.raises(SubmissionsError, match="Unknown submission"):
+            update_submission(s, "sub-nope", actor_id="u", notes="x")
+
+
+def test_update_submission_rejected_once_in_market():
+    with _session() as s:
+        sub = _make_submission(s)
+        s.commit()
+        submit_to_market(s, sub.id, target_carriers=["markel-specialty"], submitted_by="u")
+        s.commit()
+        with pytest.raises(SubmissionsError, match="can be edited"):
+            update_submission(s, sub.id, actor_id="u", notes="too late")

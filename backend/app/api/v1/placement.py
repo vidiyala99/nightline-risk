@@ -51,6 +51,7 @@ from app.services.submissions import (
     record_carrier_response,
     select_quote,
     submit_to_market,
+    update_submission,
     withdraw_submission,
 )
 from app.underwriting.pricing import (
@@ -85,6 +86,16 @@ class CreateSubmissionBody(BaseModel):
     requested_limits: dict = {}
     producer_id: Optional[str] = None
     notes: str = ""
+
+
+class UpdateSubmissionBody(BaseModel):
+    # All optional — only the fields provided are changed. Editing is allowed
+    # only while the submission is still 'open' (service enforces this).
+    effective_date: Optional[date] = None
+    coverage_lines: Optional[list[str]] = None
+    requested_limits: Optional[dict] = None
+    producer_id: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class SubmitToMarketBody(BaseModel):
@@ -176,6 +187,38 @@ def api_create_submission(
     except SubmissionsError as e:
         session.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.patch("/submissions/{sid}", dependencies=[Depends(require_broker)])
+def api_update_submission(
+    sid: str,
+    body: UpdateSubmissionBody,
+    user_id: str = Depends(_broker_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Edit a draft (open) submission's terms before it goes to market."""
+    try:
+        sub = update_submission(
+            session,
+            sid,
+            actor_id=user_id,
+            effective_date=body.effective_date,
+            coverage_lines=body.coverage_lines,
+            requested_limits=body.requested_limits,
+            producer_id=body.producer_id,
+            notes=body.notes,
+        )
+        session.commit()
+        return _submission_to_dict(sub)
+    except SubmissionsError as e:
+        session.rollback()
+        # "Unknown submission" → 404; "is <status>; only open" → 409 (conflict).
+        msg = str(e)
+        if "Unknown submission" in msg:
+            raise HTTPException(status_code=404, detail=msg)
+        if "can be edited" in msg:
+            raise HTTPException(status_code=409, detail=msg)
+        raise HTTPException(status_code=400, detail=msg)
 
 
 @router.get("/submissions", dependencies=[Depends(require_broker)])
