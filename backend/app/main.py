@@ -302,6 +302,9 @@ app.include_router(renewals_router, prefix="/api", tags=["renewals"])
 from app.api.v1.policy_requests import router as policy_requests_router  # noqa: E402
 app.include_router(policy_requests_router, prefix="/api", tags=["policy-requests"])
 
+from app.api.v1.tasks import router as tasks_router  # noqa: E402
+app.include_router(tasks_router, prefix="/api", tags=["tasks"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

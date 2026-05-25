@@ -17,6 +17,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Inbox,
+  ListChecks,
 } from "lucide-react";
 import { useAuth, useRole, useTenantId } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
@@ -76,6 +77,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
     { href: "/claims", label: "Claims", icon: FileSpreadsheet, roles: ["broker", "admin"] },
     { href: "/claim-proposals", label: "Claim Proposals", icon: FileSpreadsheet, roles: ["broker", "admin"] },
     { href: "/policy-requests", label: "Requests", icon: Inbox, roles: ["broker", "admin"] },
+    { href: "/tasks", label: "Tasks", icon: ListChecks, roles: ["broker", "admin"] },
     { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
   ];
 
