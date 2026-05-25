@@ -409,9 +409,11 @@ export default function VenuesPage() {
               /* Read view */
               (() => {
                 const isProspect = venue.source === "prospect";
-                // Prospects have no live terminal — their card funnels into a
-                // real submission (which converts them to book on bind).
-                const detailHref = isProspect ? "/submissions/new" : `/terminal/${venue.id}`;
+                // Clicking a venue opens the venue, not a quote form. Prospects
+                // have no live floor terminal, so they go straight to their risk
+                // profile (the broker-appropriate detail view — the same place
+                // /terminal redirects a broker to for book venues).
+                const detailHref = isProspect ? `/risk-profile/${venue.id}` : `/terminal/${venue.id}`;
                 return (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", gap: "8px" }}>
                   <Link href={detailHref} style={{ textDecoration: "none", display: "flex", gap: "12px", alignItems: "flex-start", flex: 1, color: "inherit" }}>
@@ -450,7 +452,7 @@ export default function VenuesPage() {
                         <Edit2 size={12} /> Edit
                       </button>
                     )}
-                    <Link href={detailHref} style={{ color: "inherit" }} title={isProspect ? "Start a quote" : "Open terminal"}>
+                    <Link href={detailHref} style={{ color: "inherit" }} title={isProspect ? "View risk profile" : "Open terminal"}>
                       <ArrowRight size={20} className="venue-arrow" />
                     </Link>
                   </div>
