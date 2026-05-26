@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: 'center',
   },
-  toolbarBtnTextPrimary: { color: Colors.bg },
+  toolbarBtnTextPrimary: { color: Colors.text },
   toolbarBtnTextDestructive: { color: Colors.error },
 
   errorBox: { flex: 1, padding: 24, justifyContent: 'center', backgroundColor: Colors.bg },

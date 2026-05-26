@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: Colors.accent,
   },
-  draftBtnPrimaryText: { color: Colors.bg, fontFamily: Fonts.sansSemiBold, fontSize: 12 },
+  draftBtnPrimaryText: { color: Colors.text, fontFamily: Fonts.sansSemiBold, fontSize: 12 },
   draftBtnGhost: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -438,5 +438,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: Colors.accent,
   },
-  btnPrimaryText: { color: Colors.bg, fontFamily: Fonts.sansBold },
+  btnPrimaryText: { color: Colors.text, fontFamily: Fonts.sansBold },
 });

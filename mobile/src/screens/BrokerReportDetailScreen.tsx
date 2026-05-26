@@ -245,7 +245,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
                     onPress={() => submitBrokerDecision('approved')}
                     disabled={submittingBrokerDecision}
                   >
-                    <Text style={[styles.decBtnText, { color: Colors.bg }]}>Approve & File</Text>
+                    <Text style={[styles.decBtnText, { color: Colors.text }]}>Approve & File</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.decBtn, { flex: 1, borderWidth: 1, borderColor: Colors.error }]}
@@ -286,7 +286,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
               multiline
             />
             <Pressable style={[styles.decBtn, { backgroundColor: Colors.accent }]} onPress={() => submitDecision('approved')} disabled={submitting}>
-              <Text style={[styles.decBtnText, { color: Colors.bg }]}>{submitting ? 'Recording...' : '✓  Approve'}</Text>
+              <Text style={[styles.decBtnText, { color: Colors.text }]}>{submitting ? 'Recording...' : '✓  Approve'}</Text>
             </Pressable>
             <Pressable style={[styles.decBtn, { borderWidth: 1, borderColor: Colors.warning }]} onPress={() => submitDecision('needs_more_info')} disabled={submitting}>
               <Text style={[styles.decBtnText, { color: Colors.warning }]}>Request More Info</Text>

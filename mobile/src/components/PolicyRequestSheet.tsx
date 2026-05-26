@@ -170,7 +170,7 @@ const s = StyleSheet.create({
   btn: { flex: 1, paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
   btnPrimary: { backgroundColor: Colors.accent },
   btnDisabled: { opacity: 0.5 },
-  btnPrimaryText: { color: Colors.bg, fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  btnPrimaryText: { color: Colors.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
   btnGhost: {
     paddingVertical: 14, paddingHorizontal: 20, borderRadius: 10,
     borderWidth: 1, borderColor: Colors.border, alignItems: 'center',

@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   cancelBtn: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
   cancelBtnText: { color: Colors.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
   saveBtn: { flex: 2, backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  saveBtnText: { color: Colors.bg, fontSize: 12, fontWeight: '800', letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  saveBtnText: { color: Colors.text, fontSize: 12, fontWeight: '800', letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
 
   deleteBtn: {
     marginTop: 4,

@@ -209,7 +209,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
             onPress={() => submitBrokerDecision('approved')}
             disabled={submitting}
           >
-            <Text style={[s.btnText, { color: Colors.bg }]}>Approve & File</Text>
+            <Text style={[s.btnText, { color: Colors.text }]}>Approve & File</Text>
           </Pressable>
           <Pressable
             style={[s.btn, { borderWidth: 1, borderColor: Colors.error }, submitting && { opacity: 0.5 }]}

@@ -208,5 +208,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: Colors.accent,
   },
-  btnPrimaryText: { color: Colors.bg, fontFamily: Fonts.sansBold },
+  btnPrimaryText: { color: Colors.text, fontFamily: Fonts.sansBold },
 });

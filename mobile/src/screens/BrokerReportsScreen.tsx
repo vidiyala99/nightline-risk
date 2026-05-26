@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_500Medium',
   },
   chipTextActive: {
-    color: Colors.bg,
+    color: Colors.text,
   },
 
   // ── List ─────────────────────────────────────────────────────────────────

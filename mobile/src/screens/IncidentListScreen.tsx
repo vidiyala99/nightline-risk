@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingVertical: 4, paddingLeft: 12, fontFamily: 'JetBrainsMono_700Bold' },
   addBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center' },
-  addBtnText: { color: Colors.bg, fontSize: 20, fontWeight: '800', lineHeight: 24 },
+  addBtnText: { color: Colors.text, fontSize: 20, fontWeight: '800', lineHeight: 24 },
   title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
   countBadge: {
     backgroundColor: 'rgba(200,240,0,0.12)',
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
   chipActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   chipText: { color: Colors.textMuted, fontSize: 12, fontWeight: '600', fontFamily: 'JetBrainsMono_400Regular' },
-  chipTextActive: { color: Colors.bg, fontFamily: 'JetBrainsMono_400Regular' },
+  chipTextActive: { color: Colors.text, fontFamily: 'JetBrainsMono_400Regular' },
 
   list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
   card: {

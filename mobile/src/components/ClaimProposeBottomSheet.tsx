@@ -239,7 +239,7 @@ const s = StyleSheet.create({
   },
   btnPrimary: { backgroundColor: Colors.accent },
   btnDisabled: { opacity: 0.5 },
-  btnPrimaryText: { color: Colors.bg, fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  btnPrimaryText: { color: Colors.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
   btnGhost: {
     paddingVertical: 14,
     paddingHorizontal: 20,

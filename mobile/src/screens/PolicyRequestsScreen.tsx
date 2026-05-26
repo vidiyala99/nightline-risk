@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   declineBtn: { borderWidth: 1, borderColor: Colors.error },
   declineText: { color: Colors.error, fontFamily: Fonts.sansMedium, fontSize: 13 },
   approveBtn: { backgroundColor: Colors.accent },
-  approveText: { color: Colors.bg, fontFamily: Fonts.sansBold, fontSize: 13 },
+  approveText: { color: Colors.text, fontFamily: Fonts.sansBold, fontSize: 13 },
   btnBusy: { opacity: 0.5 },
   decidedBy: { color: Colors.textMuted, fontFamily: Fonts.monoRegular, fontSize: 11, textAlign: 'right' },
 

@@ -531,5 +531,5 @@ const styles = StyleSheet.create({
   },
   submitPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   submitDisabled: { opacity: 0.5 },
-  submitText: { color: Colors.bg, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  submitText: { color: Colors.text, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
 });

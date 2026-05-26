@@ -261,5 +261,5 @@ const styles = StyleSheet.create({
   },
   btnPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   btnDisabled: { opacity: 0.5 },
-  btnText: { color: Colors.bg, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  btnText: { color: Colors.text, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
 });
