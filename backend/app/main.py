@@ -220,13 +220,16 @@ async def lifespan(app: FastAPI):
         # Rehydrate VENUES from any API-created venues stored in the DB
         import json as _json
         db_venues = session.exec(select(Venue)).all()
+        rehydrated = 0
         for v in db_venues:
             if v.id not in VENUES and v.venue_data:
                 try:
                     VENUES[v.id] = _json.loads(v.venue_data)
-                    print(f"[REHYDRATE] Loaded venue {v.id} from DB")
+                    rehydrated += 1
                 except Exception:
                     pass
+        if rehydrated:
+            print(f"[REHYDRATE] Loaded {rehydrated} venue(s) from DB.")
         # Upsert seed incidents using deterministic IDs so new entries
         # are added on deploy without re-seeding the whole table.
         from datetime import datetime as _dt
