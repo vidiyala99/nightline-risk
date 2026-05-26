@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   Pressable,
@@ -107,6 +108,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
 
       {venueName && <Text style={styles.venueName}>{venueName}</Text>}
       <Text style={styles.screenTitle}>Risk Profile</Text>
+      <HandAccent>your risk picture</HandAccent>
 
       {/* Score hero */}
       <View style={[styles.scoreCard, { borderColor: `${tierColor}33` }]}>

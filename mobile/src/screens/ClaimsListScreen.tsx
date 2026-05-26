@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -64,6 +65,7 @@ export function ClaimsListScreen({ navigation }: any) {
       {/* Header */}
       <View style={s.header}>
         <Text style={s.title}>{pageTitle}</Text>
+        <HandAccent>worth filing?</HandAccent>
         <Text style={s.subtitle}>{subtitle}</Text>
       </View>
 

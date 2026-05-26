@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -89,6 +90,7 @@ export function BrokerComplianceScreen({ navigation, route }: any) {
     <View style={styles.root}>
       <View style={styles.header}>
         <Text style={styles.title}>Compliance</Text>
+        <HandAccent>stay in the clear</HandAccent>
         <Text style={styles.subtitle}>{subtitle}</Text>
         {filterVenueId && (
           <Pressable onPress={() => navigation.goBack()} style={styles.backLink}>

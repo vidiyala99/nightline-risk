@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -99,6 +100,7 @@ export function OperatorComplianceScreen({ navigation, route }: any) {
     >
       <Text style={styles.eyebrow}>YOUR VENUE</Text>
       <Text style={styles.title}>Compliance</Text>
+      <HandAccent>stay in the clear</HandAccent>
 
       {queue.length === 0 ? (
         <View style={styles.clearCard}>

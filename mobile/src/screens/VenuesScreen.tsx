@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -251,6 +252,7 @@ export function VenuesScreen({ navigation }: any) {
         <View>
           <Text style={styles.eyebrow}>YOUR VENUES</Text>
           <Text style={styles.title}>Properties</Text>
+          <HandAccent>your spaces</HandAccent>
         </View>
         <Pressable
           style={styles.addBtn}

@@ -12,6 +12,7 @@
  *   expirationDate, onSuccess: () => void
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   Alert,
@@ -199,6 +200,7 @@ export function FileFnolScreen({ route, navigation }: any) {
           </Pressable>
           <Text style={styles.eyebrow}>FNOL</Text>
           <Text style={styles.title}>File a carrier claim</Text>
+          <HandAccent>first notice</HandAccent>
           <Text style={styles.subtitle}>
             Against policy {policyNumber ?? policyId}. Term: {effectiveDate} – {expirationDate}.
           </Text>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -87,6 +88,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
         <Text style={s.backLabel}>Claims</Text>
       </Pressable>
       <Text style={s.title}>Claim Detail</Text>
+      <HandAccent>the full file</HandAccent>
       <Text style={s.subtitle}>{packet.venue_id?.replace(/-/g, ' ')}</Text>
 
       {/* Status badge */}

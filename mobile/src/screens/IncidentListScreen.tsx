@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -82,6 +83,7 @@ export function IncidentListScreen({ navigation, route }: any) {
             </Pressable>
           )}
         </View>
+        <HandAccent>tonight's floor</HandAccent>
         <View style={styles.filters}>
           {(['all', 'open', 'under_review', 'closed'] as Filter[]).map(f => {
             const count = f === 'all' ? incidents.length : incidents.filter(i => i.status === f).length;

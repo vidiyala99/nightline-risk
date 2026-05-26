@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -172,6 +173,7 @@ export function LiveTerminalScreen({ navigation }: any) {
         </View>
       </View>
 
+      <HandAccent>the live room</HandAccent>
       {/* Risk Score + Premium */}
       {riskData && (
         <View style={styles.statsRow}>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -97,6 +98,7 @@ export function VenueSetupScreen({ navigation, route }: any) {
           </Pressable>
           <Text style={styles.eyebrow}>VENUE SETUP</Text>
           <Text style={styles.title}>Tell us about{'\n'}your venue</Text>
+          <HandAccent>the basics</HandAccent>
           <Text style={styles.subtitle}>This information powers your risk profile and premium quote.</Text>
         </View>
 

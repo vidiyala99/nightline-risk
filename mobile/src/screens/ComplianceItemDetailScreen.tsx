@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -133,6 +134,7 @@ export function ComplianceItemDetailScreen({ navigation, route }: any) {
             {venueName ? venueName.toUpperCase() : 'COMPLIANCE'}
           </Text>
           <Text style={styles.title}>{title}</Text>
+          <HandAccent>close it out</HandAccent>
 
           <View style={[styles.card, { borderLeftColor: sevColor }]}>
             <Text style={[styles.severity, { color: sevColor }]}>{sev.toUpperCase()}</Text>

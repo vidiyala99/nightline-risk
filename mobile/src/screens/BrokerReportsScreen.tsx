@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -146,6 +147,7 @@ export function BrokerReportsScreen({ navigation }: any) {
           <Text style={styles.title}>{isOperator ? 'My Reports' : 'Reports'}</Text>
         </View>
 
+        <HandAccent>the proof file</HandAccent>
         {/* Stats bar: TOTAL | PENDING | HIGH/CRIT | APPROVED | BLOCKED */}
         <View style={styles.statsRow}>
           <View style={styles.statPill}>
