@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Activity, FileText, FileSearch, Building2, Send, FileSpreadsheet } from 'lucide-react-native';
+import { ChevronRight, Activity, FileText, FileSearch, Building2, Send, FileSpreadsheet, Bell, ListChecks } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,14 +9,17 @@ type LucideIcon = typeof Activity;
 type Row = { route: string; label: string; description: string; icon: LucideIcon };
 
 const OPERATOR_OVERFLOW: Row[] = [
+  { route: 'Alerts', label: 'Alerts', description: 'Real-time liability detections', icon: Bell },
   { route: 'Live', label: 'Live Terminal', description: 'Real-time venue floor activity', icon: Activity },
   { route: 'Proposals', label: 'Claim Proposals', description: 'Incidents recommended for filing', icon: FileText },
   { route: 'Reports', label: 'Reports', description: 'Risk and loss reporting', icon: FileSearch },
 ];
 
 const BROKER_OVERFLOW: Row[] = [
+  { route: 'Tasks', label: 'Tasks', description: 'Renewals & requests needing attention', icon: ListChecks },
   { route: 'Submissions', label: 'Submissions', description: 'Place venue risk out to carriers', icon: Send },
   { route: 'Policies', label: 'Policies', description: 'Your in-force book', icon: FileSpreadsheet },
+  { route: 'Alerts', label: 'Alerts', description: 'Real-time liability detections', icon: Bell },
   { route: 'Venues', label: 'Venues', description: 'Book and prospect venues', icon: Building2 },
   { route: 'Proposals', label: 'Claim Proposals', description: 'Operator-filed proposals', icon: FileText },
   { route: 'Reports', label: 'Reports', description: 'Underwriting and loss reports', icon: FileSearch },
