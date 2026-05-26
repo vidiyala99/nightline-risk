@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Activity, FileText, FileSearch, Building2 } from 'lucide-react-native';
+import { ChevronRight, Activity, FileText, FileSearch, Building2, Send } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,6 +15,7 @@ const OPERATOR_OVERFLOW: Row[] = [
 ];
 
 const BROKER_OVERFLOW: Row[] = [
+  { route: 'Submissions', label: 'Submissions', description: 'Place venue risk out to carriers', icon: Send },
   { route: 'Venues', label: 'Venues', description: 'Book and prospect venues', icon: Building2 },
   { route: 'Proposals', label: 'Claim Proposals', description: 'Operator-filed proposals', icon: FileText },
   { route: 'Reports', label: 'Reports', description: 'Underwriting and loss reports', icon: FileSearch },

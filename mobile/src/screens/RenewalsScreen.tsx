@@ -6,10 +6,9 @@
  * year-over-year context panel inline (prior premium, loss ratio,
  * experience adjustment).
  *
- * Parity boundary: the web version deep-links to /submissions/[sid].
- * Mobile has no submissions screen (broker placement flow is web-only),
- * so we surface the new submission id as read-only text instead of a
- * link. Styling mirrors CarrierClaimsListScreen.
+ * After renewing, the YoY panel deep-links into the new submission
+ * (More › Submissions › detail) so the broker can quote and bind on
+ * mobile. Styling mirrors CarrierClaimsListScreen.
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { HandAccent } from "../components/HandAccent";
@@ -158,9 +157,20 @@ export function RenewalsScreen({ navigation }: any) {
                   <YoyCell label="CLAIMS" value={String(result.yoy_context.claim_count)} />
                   <YoyCell label="EXPERIENCE ADJ." value={fmtMultiplier(result.yoy_context.loss_adjustment)} />
                 </View>
-                <Text style={styles.yoyNote}>
-                  Open the new submission on desktop (/submissions) to quote and bind.
-                </Text>
+                <Pressable
+                  style={styles.viewSubmissionBtn}
+                  onPress={() =>
+                    navigation.navigate('More', {
+                      screen: 'Submissions',
+                      params: {
+                        screen: 'SubmissionDetail',
+                        params: { sid: result.submission.id },
+                      },
+                    })
+                  }
+                >
+                  <Text style={styles.viewSubmissionText}>View submission →</Text>
+                </Pressable>
               </View>
             )}
           </View>
@@ -318,13 +328,16 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   yoyCellValue: { fontFamily: Fonts.monoBold, fontSize: 12, color: Colors.text },
-  yoyNote: {
-    color: Colors.textSecondary,
-    fontFamily: Fonts.sansRegular,
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 12,
+  viewSubmissionBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 14,
+    borderColor: Colors.accent,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
+  viewSubmissionText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium, fontSize: 13 },
 
   empty: { padding: 32, alignItems: 'center' },
   emptyText: {
