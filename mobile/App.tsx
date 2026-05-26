@@ -17,7 +17,7 @@ import {
   SpaceMono_400Regular,
   SpaceMono_700Bold,
 } from '@expo-google-fonts/space-mono';
-import { Caveat_600SemiBold } from '@expo-google-fonts/caveat';
+import { Caveat_600SemiBold, Caveat_700Bold } from '@expo-google-fonts/caveat';
 
 import { Colors } from './src/theme/colors';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
@@ -51,6 +51,7 @@ export default function App() {
     SpaceMono_400Regular,
     SpaceMono_700Bold,
     Caveat_600SemiBold,
+    Caveat_700Bold,
   });
 
   if (!fontsLoaded) {

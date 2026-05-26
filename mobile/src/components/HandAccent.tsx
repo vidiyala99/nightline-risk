@@ -13,8 +13,8 @@ export function HandAccent({ children }: { children: string }) {
 const styles = StyleSheet.create({
   accent: {
     color: Colors.accentInk,
-    fontFamily: 'Caveat_600SemiBold',
-    fontSize: 22,
+    fontFamily: 'Caveat_700Bold',
+    fontSize: 23,
     // No explicit lineHeight: let RN use Caveat's natural metrics so the
     // tall looped ascenders (d, l, h) aren't clipped by the line box.
     includeFontPadding: true,
