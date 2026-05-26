@@ -3938,7 +3938,7 @@ html, body { overflow-x: clip; }
   bottom: 0;
   z-index: 60;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 2px;
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
   background: var(--bg-surface-elevated);
@@ -3957,11 +3957,18 @@ html, body { overflow-x: clip; }
   color: var(--text-secondary);
   text-decoration: none;
   min-height: 48px;
-  font-size: 0.65rem;
-  letter-spacing: 0.04em;
+  font-size: 0.5625rem;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   font-family: var(--font-body);
   transition: color 0.15s ease, background 0.15s ease;
+  /* reset for the <button> "More" item so it matches the <Link> items */
+  border: none;
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .mobile-bottom-nav__item:hover,
 .mobile-bottom-nav__item:focus-visible {
@@ -3977,6 +3984,7 @@ html, body { overflow-x: clip; }
 }
 .mobile-bottom-nav__label {
   line-height: 1;
+  white-space: nowrap;
 }
 
 /* ============================================

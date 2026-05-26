@@ -24,6 +24,7 @@ export const Colors = {
   // Brand
   accent: '#c8f000',        // signature lime — fills, active states, dots
   accentInk: '#5a6e00',     // dark olive-lime — lime used as TEXT on paper
+  accentWash: 'rgba(200,240,0,0.18)', // lime @18% — active pill / icon chip background
 
   // State (contrast-safe on paper)
   success: '#1F8F4E',       // (was #00d97e)

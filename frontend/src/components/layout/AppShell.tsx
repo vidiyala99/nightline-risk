@@ -221,7 +221,7 @@ export function AppShell({ children }: AppShellProps) {
 
       {showBottomNav && (
         <Suspense fallback={null}>
-          <MobileBottomNav />
+          <MobileBottomNav onMore={() => setMobileOpen(true)} />
         </Suspense>
       )}
     </div>

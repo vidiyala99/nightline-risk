@@ -1,55 +1,72 @@
 import React from 'react';
-import { Colors } from "../theme/colors";
+import { Colors } from '../theme/colors';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  LayoutDashboard,
+  AlertTriangle,
+  CheckSquare,
+  Building2,
+  FileSpreadsheet,
+  Menu,
+} from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
 
 // Venue operator screens
 import { DashboardStack } from './DashboardStack';
 import { IncidentsStack } from './IncidentsStack';
-import { LiveStack } from './LiveStack';
 import { VenuesStack } from './VenuesStack';
 import { OperatorComplianceStack } from './OperatorComplianceStack';
 
 // Broker screens
 import { PortfolioStack } from './PortfolioStack';
-import { ReportsStack } from './ReportsStack';
-import { BrokerVenuesStack } from './BrokerVenuesStack';
 import { BrokerComplianceStack } from './BrokerComplianceStack';
-
-// Claim proposals — both roles
-import { ClaimProposalsStack } from './ClaimProposalsStack';
 
 // Carrier-side claims — broker-only (Phase 3)
 import { CarrierClaimsStack } from './CarrierClaimsStack';
 
+// More overflow — nested stacks (Live/Proposals/Reports/Venues live here)
+import { OperatorMoreStack, BrokerMoreStack } from './MoreStack';
+
+// Mobile bottom nav — role-aware primary set capped at 5 (4 destinations + More).
+// Keep in sync with the web bottom nav in
+// frontend/src/components/layout/MobileBottomNav.tsx (same order, icons, labels).
+
 const Tab = createBottomTabNavigator();
 
-const VENUE_ICONS: Record<string, { active: string; inactive: string }> = {
-  Dashboard:  { active: '◈', inactive: '◇' },
-  Venues:     { active: '⊟', inactive: '⊞' },
-  Incidents:  { active: '!', inactive: '!' },
-  Live:       { active: '◉', inactive: '○' },
-  Compliance: { active: '✓', inactive: '○' },
-  Proposals:  { active: '⊡', inactive: '⊡' },
-  Reports:    { active: '⊞', inactive: '⊟' },
-};
+type LucideIcon = typeof LayoutDashboard;
 
-const BROKER_ICONS: Record<string, { active: string; inactive: string }> = {
-  Portfolio:   { active: '◈', inactive: '◇' },
-  Reports:     { active: '⊞', inactive: '⊟' },
-  Venues:      { active: '⊟', inactive: '⊞' },
-  Incidents:   { active: '◉', inactive: '○' },
-  Compliance:  { active: '✓', inactive: '○' },
-  Proposals:   { active: '⊡', inactive: '⊡' },
-  Claims:      { active: '◆', inactive: '◇' },
+const ICONS: Record<string, LucideIcon> = {
+  Dashboard: LayoutDashboard,
+  Portfolio: LayoutDashboard,
+  Incidents: AlertTriangle,
+  Compliance: CheckSquare,
+  Venues: Building2,
+  Claims: FileSpreadsheet,
+  More: Menu,
 };
 
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons = { ...VENUE_ICONS, ...BROKER_ICONS };
+  const Icon = ICONS[name] ?? Menu;
   return (
-    <Text style={{ fontSize: 16, color: focused ? Colors.accentInk : Colors.textMuted }}>
-      {focused ? (icons[name]?.active ?? '◈') : (icons[name]?.inactive ?? '◇')}
+    <View style={[styles.iconPill, focused && styles.iconPillActive]}>
+      <Icon size={20} color={focused ? Colors.accentInk : Colors.textSecondary} />
+    </View>
+  );
+}
+
+// Auto-shrinks to fit the tab cell instead of truncating with an ellipsis,
+// so full words ("COMPLIANCE", "PORTFOLIO") render at any device font scale.
+function TabLabel({ name, color }: { name: string; color: string }) {
+  return (
+    <Text
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      allowFontScaling={false}
+      style={[styles.tabLabel, { color }]}
+    >
+      {name}
     </Text>
   );
 }
@@ -62,15 +79,6 @@ function SignOutButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-const tabBarStyle = {
-  backgroundColor: Colors.tabBar,
-  borderTopColor: Colors.borderSubtle,
-  borderTopWidth: StyleSheet.hairlineWidth,
-  height: 64,
-  paddingBottom: 10,
-  paddingTop: 8,
-};
-
 const headerStyle = {
   backgroundColor: Colors.bg,
   shadowOpacity: 0,
@@ -78,28 +86,42 @@ const headerStyle = {
   elevation: 0,
 };
 
+function useScreenOptions(signOut: () => void) {
+  const insets = useSafeAreaInsets();
+  // Content band sized to the icon pill + label; the gesture-area inset is the
+  // only thing reserved below it, so there is no extra dead space in the bar.
+  const tabBarStyle = {
+    backgroundColor: Colors.surfaceElevated,
+    borderTopColor: Colors.borderSubtle,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    height: 54 + insets.bottom,
+    paddingTop: 6,
+    paddingBottom: insets.bottom,
+  };
+  return ({ route }: { route: { name: string } }) => ({
+    headerShown: true,
+    headerTitle: '',
+    headerStyle,
+    headerShadowVisible: false,
+    headerRight: () => <SignOutButton onPress={signOut} />,
+    tabBarStyle,
+    tabBarItemStyle: { paddingHorizontal: 0 },
+    tabBarActiveTintColor: Colors.accentInk,
+    tabBarInactiveTintColor: Colors.textSecondary,
+    tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon name={route.name} focused={focused} />,
+    tabBarLabel: ({ color }: { color: string }) => <TabLabel name={route.name} color={color} />,
+  });
+}
+
 function VenueOperatorTabs() {
   const { signOut } = useAuth();
   return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      headerShown: true,
-      headerTitle: '',
-      headerStyle,
-      headerShadowVisible: false,
-      headerRight: () => <SignOutButton onPress={signOut} />,
-      tabBarStyle,
-      tabBarActiveTintColor: Colors.accentInk,
-      tabBarInactiveTintColor: Colors.textMuted,
-      tabBarLabelStyle: { fontSize: 10, fontWeight: '700' as const, letterSpacing: 0.5, marginTop: 2 },
-      tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
-    })}>
+    <Tab.Navigator screenOptions={useScreenOptions(signOut)}>
       <Tab.Screen name="Dashboard" component={DashboardStack} />
-      <Tab.Screen name="Reports" component={ReportsStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
-      <Tab.Screen name="Proposals" component={ClaimProposalsStack} />
-      <Tab.Screen name="Venues" component={VenuesStack} />
-      <Tab.Screen name="Live" component={LiveStack} />
       <Tab.Screen name="Compliance" component={OperatorComplianceStack} />
+      <Tab.Screen name="Venues" component={VenuesStack} />
+      <Tab.Screen name="More" component={OperatorMoreStack} />
     </Tab.Navigator>
   );
 }
@@ -107,25 +129,12 @@ function VenueOperatorTabs() {
 function BrokerTabs() {
   const { signOut } = useAuth();
   return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      headerShown: true,
-      headerTitle: '',
-      headerStyle,
-      headerShadowVisible: false,
-      headerRight: () => <SignOutButton onPress={signOut} />,
-      tabBarStyle,
-      tabBarActiveTintColor: Colors.accentInk,
-      tabBarInactiveTintColor: Colors.textMuted,
-      tabBarLabelStyle: { fontSize: 10, fontWeight: '700' as const, letterSpacing: 0.5, marginTop: 2 },
-      tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
-    })}>
+    <Tab.Navigator screenOptions={useScreenOptions(signOut)}>
       <Tab.Screen name="Portfolio" component={PortfolioStack} />
-      <Tab.Screen name="Reports" component={ReportsStack} />
-      <Tab.Screen name="Claims" component={CarrierClaimsStack} />
-      <Tab.Screen name="Proposals" component={ClaimProposalsStack} />
-      <Tab.Screen name="Venues" component={BrokerVenuesStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
+      <Tab.Screen name="Claims" component={CarrierClaimsStack} />
       <Tab.Screen name="Compliance" component={BrokerComplianceStack} />
+      <Tab.Screen name="More" component={BrokerMoreStack} />
     </Tab.Navigator>
   );
 }
@@ -136,3 +145,23 @@ export function TabNavigator() {
   return isBroker ? <BrokerTabs /> : <VenueOperatorTabs />;
 }
 
+const styles = StyleSheet.create({
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    width: '100%',
+    paddingHorizontal: 2,
+    marginTop: 3,
+  },
+  iconPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  iconPillActive: {
+    backgroundColor: Colors.accentWash,
+  },
+});
