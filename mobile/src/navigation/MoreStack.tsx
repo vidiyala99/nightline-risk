@@ -6,6 +6,7 @@ import { ClaimProposalsStack } from './ClaimProposalsStack';
 import { ReportsStack } from './ReportsStack';
 import { BrokerVenuesStack } from './BrokerVenuesStack';
 import { SubmissionsStack } from './SubmissionsStack';
+import { PoliciesStack } from './PoliciesStack';
 
 // Overflow destinations live under the "More" tab as a nested stack rather than
 // as hidden tabs — a hidden tab still reserves its flex slot and leaves dead
@@ -29,6 +30,7 @@ export function BrokerMoreStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreHome" component={MoreScreen} />
       <Stack.Screen name="Submissions" component={SubmissionsStack} />
+      <Stack.Screen name="Policies" component={PoliciesStack} />
       <Stack.Screen name="Venues" component={BrokerVenuesStack} />
       <Stack.Screen name="Proposals" component={ClaimProposalsStack} />
       <Stack.Screen name="Reports" component={ReportsStack} />

@@ -179,14 +179,9 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
               async () => {
                 // Backend requires a selected quote before binding.
                 if (!q.is_selected) await submissionsApi.selectQuote(q.id);
-                await policiesApi.bind(q.id);
+                const policy = await policiesApi.bind(q.id);
+                navigation.navigate('Policies', { screen: 'PolicyDetail', params: { pid: policy.id } });
               },
-              () =>
-                alert.show({
-                  title: 'Bound',
-                  message: 'Policy created. Find it under More › Policies to assign a number.',
-                  variant: 'success',
-                }),
             ),
         },
       ],
