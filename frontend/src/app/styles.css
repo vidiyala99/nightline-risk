@@ -356,22 +356,22 @@ a:hover { color: var(--text-primary); }
 }
 
 .badge-success {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(31, 143, 78, 0.14);
   color: var(--state-success);
 }
 
 .badge-warning {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(180, 83, 9, 0.14);
   color: var(--state-warning);
 }
 
 .badge-error {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(200, 52, 30, 0.14);
   color: var(--state-error);
 }
 
 .badge-info {
-  background: rgba(56, 189, 248, 0.14);
+  background: rgba(67, 56, 202, 0.12);
   color: var(--state-info);
 }
 
@@ -4139,11 +4139,11 @@ html, body { overflow-x: clip; }
   line-height: 1.4;
   text-transform: uppercase;
 }
-.status-pill--neutral { color: var(--text-secondary); background: var(--bg-surface); border-color: var(--border-default); }
-.status-pill--success { color: var(--tier-a); background: rgba(34,197,94,0.10); border-color: rgba(34,197,94,0.22); }
-.status-pill--warning { color: var(--tier-c); background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.22); }
-.status-pill--danger  { color: var(--tier-d); background: rgba(244,63,94,0.10); border-color: rgba(244,63,94,0.22); }
-.status-pill--info    { color: var(--tier-b); background: rgba(129,140,248,0.10); border-color: rgba(129,140,248,0.22); }
+.status-pill--neutral { color: var(--text-secondary); background: var(--bg-surface-hover); border-color: var(--border-default); }
+.status-pill--success { color: var(--state-success); background: rgba(31,143,78,0.10); border-color: rgba(31,143,78,0.30); }
+.status-pill--warning { color: var(--state-warning); background: rgba(180,83,9,0.10); border-color: rgba(180,83,9,0.30); }
+.status-pill--danger  { color: var(--state-error); background: rgba(200,52,30,0.10); border-color: rgba(200,52,30,0.30); }
+.status-pill--info    { color: var(--state-info); background: rgba(67,56,202,0.10); border-color: rgba(67,56,202,0.30); }
 
 /* ============================================
    TRIAGE ROW
@@ -4389,15 +4389,17 @@ html, body { overflow-x: clip; }
 
 /* Cards */
 .submission-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   padding: 12px;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .submission-card:hover {
-  border-color: var(--border-default);
+  box-shadow: var(--shadow-md);
+  transform: translate(-1px, -1px);
 }
 
 .submission-card__head {
@@ -5994,8 +5996,9 @@ html, body { overflow-x: clip; }
 }
 .coverage-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   padding: 18px 20px 20px;
   display: flex;
   flex-direction: column;
