@@ -44,6 +44,34 @@ router = APIRouter()
 # ─── Shared helpers ─────────────────────────────────────────────────────
 
 
+def _norm(s: str | None) -> str:
+    """Normalize for dedupe comparison: trim, collapse whitespace, casefold."""
+    return " ".join((s or "").strip().casefold().split())
+
+
+def _venue_dedupe_key(name: str | None, address: str | None) -> tuple[str, str]:
+    """A venue's identity for duplicate detection: (name, address) normalized.
+    Same name at a different address is a distinct venue (e.g. a chain)."""
+    return (_norm(name), _norm(address))
+
+
+def _existing_venue_keys(session: Session) -> dict[str, tuple[str, str]]:
+    """Map of venue id → dedupe key for every known venue (seed dict + DB).
+    Address is parsed out of the venue_data JSON for DB-only rows."""
+    keys: dict[str, tuple[str, str]] = {}
+    for vid, vdata in VENUES.items():
+        keys[vid] = _venue_dedupe_key(vdata.get("name"), vdata.get("address"))
+    for v in session.exec(select(Venue)).all():
+        if v.id in keys:
+            continue
+        try:
+            data = _json.loads(v.venue_data) if v.venue_data else {}
+        except (ValueError, TypeError):
+            data = {}
+        keys[v.id] = _venue_dedupe_key(v.name, data.get("address"))
+    return keys
+
+
 def _resolve_venue(venue_id: str, session: Session) -> dict:
     """Lookup order: VENUES seed dict → DB. Raises 404 on miss. Returns a
     mutable copy of the venue payload."""
@@ -113,14 +141,33 @@ def create_venue(
     if not name:
         raise error_response("venue_name_required", "Venue name is required", status_code=400)
     explicit_id = payload.get("id")
-    venue_id = explicit_id or re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
-    # Only block duplicates when the ID was auto-generated. When the
-    # operator passes their tenant_id as the explicit id, treat as
-    # upsert so retrying venue-setup after a partial first attempt
-    # doesn't 409 the caller.
-    is_upsert = bool(explicit_id) and (venue_id in VENUES or session.get(Venue, venue_id) is not None)
-    if not explicit_id and (venue_id in VENUES or session.get(Venue, venue_id)):
-        raise error_response("venue_name_taken", "A venue with this name already exists", status_code=409)
+    address = payload.get("address", "")
+
+    # Duplicate detection is keyed on (name, address), not id — closes the
+    # old gap where the explicit-id (first-venue) path skipped the check and
+    # every operator naming a venue "Bdubs" created a new row. Same name at a
+    # different address is allowed (distinct venue) and gets a suffixed id.
+    incoming_key = _venue_dedupe_key(name, address)
+    existing_keys = _existing_venue_keys(session)
+    for ex_id, ex_key in existing_keys.items():
+        if ex_key == incoming_key and ex_id != explicit_id:
+            raise error_response(
+                "venue_duplicate",
+                "A venue with this name and address already exists",
+                status_code=409,
+            )
+
+    if explicit_id:
+        venue_id = explicit_id
+        is_upsert = venue_id in VENUES or session.get(Venue, venue_id) is not None
+    else:
+        base = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "venue"
+        venue_id = base
+        suffix = 2
+        while venue_id in existing_keys:
+            venue_id = f"{base}-{suffix}"
+            suffix += 1
+        is_upsert = False
 
     venue_data = {
         "name": name,
