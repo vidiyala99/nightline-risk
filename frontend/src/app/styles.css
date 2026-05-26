@@ -2690,9 +2690,10 @@ a:hover { color: var(--text-primary); }
 .lc-eyebrow {
   font-family: var(--font-mono);
   font-size: clamp(0.62rem, 1.4vw, 0.7rem);
-  letter-spacing: 0.24em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  font-weight: 700;
+  color: var(--accent-ink);
   display: inline-flex;
   align-items: center;
   gap: 12px;
@@ -2705,23 +2706,21 @@ a:hover { color: var(--text-primary); }
 
 .lc-eyebrow::before {
   content: "";
-  width: 6px; height: 6px;
-  border-radius: 999px;
+  width: 7px; height: 7px;
   background: var(--brand-primary);
-  box-shadow: 0 0 14px var(--brand-primary);
-  animation: status-pulse 2s ease-in-out infinite;
+  border: 1px solid var(--border-strong);
 }
 
 .lc-eyebrow__sep {
   width: 1px;
   height: 12px;
-  background: var(--border-default);
+  background: var(--border-strong);
 }
 
 /* Editorial display headline */
 .lc-display {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 800;
   font-size: clamp(2rem, 6vw, 4.75rem);
   line-height: 1.02;
   letter-spacing: -0.022em;
@@ -2735,13 +2734,21 @@ a:hover { color: var(--text-primary); }
   .lc-display br { display: none; }
 }
 
+/* Emphasis word renders as the handwritten Caveat accent (matches the
+   PageHeader "accent" treatment on Submissions/Policies). */
 .lc-display em {
-  font-style: italic;
-  font-weight: 400;
-  background: linear-gradient(110deg, #c8f000 0%, #f4ce6c 45%, #f43f5e 100%);
-  -webkit-background-clip: text;
-          background-clip: text;
-  color: transparent;
+  font-family: var(--font-script);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.6em;
+  color: var(--accent-ink);
+  background: none;
+  -webkit-background-clip: initial;
+          background-clip: initial;
+  margin-left: 0.15em;
+  display: inline-block;
+  transform: rotate(-3.5deg);
+  vertical-align: 0.1em;
   padding-right: 4px;
 }
 
@@ -3497,7 +3504,8 @@ a:hover { color: var(--text-primary); }
   grid-template-columns: 1.4fr 1fr;
   gap: var(--space-2xl);
   align-items: end;
-  padding: var(--space-2xl) 0 0;
+  padding: var(--space-2xl) 0 var(--space-md);
+  border-bottom: 2px solid var(--border-strong);
 }
 @media (max-width: 900px) {
   .lc-hero { grid-template-columns: 1fr; gap: var(--space-lg); padding-top: var(--space-xl); }
