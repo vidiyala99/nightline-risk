@@ -114,8 +114,12 @@ def seed(session: Session) -> tuple[str, str] | None:
                 id=ev_id, incident_id=incident.id, filename=filename,
                 content_type=content_type, file_path=f"/seed-evidence/{filename}",
                 file_size=size, uploaded_by="Jordan Reyes (Shift Lead)",
-                content_hash=content_hash, captured_at="2026-05-02T23:14:00",
+                content_hash=content_hash, captured_at=f"{loss_date.isoformat()}T23:14:00",
             ))
+            # Column-level FK (no Relationship): flush the parent EvidenceFile
+            # before inserting its EvidenceAnalysis, or Postgres rejects the
+            # child insert (passes on SQLite, fails on PG — known gotcha).
+            session.flush()
             session.add(EvidenceAnalysis(
                 id=f"an-{ev_id}", evidence_id=ev_id, incident_id=incident.id,
                 analysis_type=atype, findings={"summary": desc},
