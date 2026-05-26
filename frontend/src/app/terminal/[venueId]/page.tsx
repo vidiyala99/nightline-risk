@@ -46,11 +46,11 @@ function SkeletonBlock({ width = "100%", height = "1rem", className = "" }: { wi
 function TerminalEmpty({ label, message }: { label: string; message: string }) {
   return (
     <div className="flex flex-col gap-sm p-sm" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-      <div className="text-xs" style={{ color: "var(--brand-primary)", opacity: 0.7 }}>
+      <div className="text-xs" style={{ color: "var(--accent-ink)", opacity: 0.7 }}>
         &gt; {label}
       </div>
       <div className="text-xs">{message}</div>
-      <div className="text-xs" style={{ color: "var(--brand-primary)", animation: "cursor-blink 1.2s step-end infinite" }}>█</div>
+      <div className="text-xs" style={{ color: "var(--accent-ink)", animation: "cursor-blink 1.2s step-end infinite" }}>█</div>
     </div>
   );
 }
@@ -260,7 +260,7 @@ export default function VenueTerminalPage() {
                 <span className="lc-stat-label">Coverage</span>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
                   <span className="live-dot" />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 600, letterSpacing: "0.18em", color: "var(--brand-primary)" }}>LIVE</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 600, letterSpacing: "0.18em", color: "var(--accent-ink)" }}>LIVE</span>
                 </div>
                 <span className="lc-stat-foot" style={{ display: "block", marginTop: 4 }}>{quote?.renewal_date ?? "—"}</span>
               </div>

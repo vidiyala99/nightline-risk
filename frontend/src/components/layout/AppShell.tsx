@@ -152,7 +152,7 @@ export function AppShell({ children }: AppShellProps) {
     <>
       <div className="sidebar-brand">
         <div className="sidebar-brand__mark">
-          <span className="sidebar-brand__logo"><Building2 size={16} /></span>
+          <span className="sidebar-brand__logo"><img src="/nightline-mark.svg" alt="Nightline" width={36} height={36} /></span>
           <div className="sidebar-brand__text">
             <h1>Nightline</h1>
             <p>Risk OS</p>

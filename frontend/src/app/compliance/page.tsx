@@ -225,7 +225,7 @@ function CompliancePageInner() {
               borderRadius: "14px",
               border: "1px solid var(--brand-primary)",
               background: "rgba(212,255,0,0.08)",
-              color: "var(--brand-primary)",
+              color: "var(--accent-ink)",
               fontSize: "0.75rem",
               fontWeight: 600,
               cursor: "pointer",

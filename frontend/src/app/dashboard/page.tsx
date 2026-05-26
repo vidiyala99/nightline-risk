@@ -800,7 +800,7 @@ function TriageRow({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const tierColor = TIER_COLOR[venue.tier] || "#8b8fa8";
+  const tierColor = TIER_COLOR[venue.tier] || "var(--text-tertiary)";
   const capPct = venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
   const capCritical = capPct >= 95;
   const incidentsHot = venue.open_incidents > 0;
@@ -857,7 +857,7 @@ function TriageRow({
 }
 
 function TriagePreview({ venue }: { venue: PortfolioVenue & { _bucket: Bucket; _daysToRenew: number | null } }) {
-  const tierColor = TIER_COLOR[venue.tier] || "#8b8fa8";
+  const tierColor = TIER_COLOR[venue.tier] || "var(--text-tertiary)";
   const capPct = venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
   const capColor = capPct >= 95 ? "var(--state-error)" : capPct >= 80 ? "var(--state-warning)" : "var(--tier-a)";
 

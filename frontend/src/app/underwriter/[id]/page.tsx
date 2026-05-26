@@ -294,7 +294,7 @@ export default function ReportDetailPage() {
                     <p className="text-sm font-semibold mb-xs">{action.title}</p>
                     <p className="text-xs text-secondary mb-xs">{action.rationale}</p>
                     {action.evidence_needed.length > 0 && (
-                      <p className="text-xs" style={{ color: "var(--brand-primary)" }}>{action.evidence_needed.join(" · ")}</p>
+                      <p className="text-xs" style={{ color: "var(--accent-ink)" }}>{action.evidence_needed.join(" · ")}</p>
                     )}
                   </div>
                 </div>
@@ -318,7 +318,7 @@ export default function ReportDetailPage() {
                 <p className="text-sm leading-relaxed">{packet.risk_signals?.explanation ?? "No explanation available."}</p>
               </div>
               <div className="text-center flex-shrink-0">
-                <div className="text-4xl font-bold font-display" style={{ color: "var(--brand-primary)" }}>{confidence}%</div>
+                <div className="text-4xl font-bold font-display" style={{ color: "var(--accent-ink)" }}>{confidence}%</div>
                 <div className="text-xs text-secondary">confidence</div>
               </div>
             </div>
@@ -455,13 +455,13 @@ export default function ReportDetailPage() {
                 <div key={i} className="flex flex-col gap-sm mb-md">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono uppercase text-secondary">{a.analysis_type} analysis</span>
-                    <span className="text-xs font-mono" style={{ color: "var(--brand-primary)" }}>+{Math.round(a.confidence_delta * 100)}% confidence</span>
+                    <span className="text-xs font-mono" style={{ color: "var(--accent-ink)" }}>+{Math.round(a.confidence_delta * 100)}% confidence</span>
                   </div>
                   <p className="text-sm leading-relaxed">{a.raw_description}</p>
                   {a.findings?.incident_indicators?.length > 0 && (
                     <div className="flex flex-wrap gap-xs mt-xs">
                       {a.findings.incident_indicators.map((ind: string, j: number) => (
-                        <span key={j} className="text-xs px-sm py-xs font-mono" style={{ background: "rgba(212,255,0,0.06)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--brand-primary)" }}>
+                        <span key={j} className="text-xs px-sm py-xs font-mono" style={{ background: "rgba(212,255,0,0.06)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--accent-ink)" }}>
                           {ind}
                         </span>
                       ))}
@@ -560,7 +560,7 @@ export default function ReportDetailPage() {
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-xs uppercase tracking-wide text-secondary">Median payout</span>
-                    <span className="text-sm font-mono font-bold" style={{ color: "var(--brand-primary)" }}>
+                    <span className="text-sm font-mono font-bold" style={{ color: "var(--accent-ink)" }}>
                       ${rec.expected_payout.median_usd.toLocaleString()}
                     </span>
                   </div>
@@ -755,7 +755,7 @@ export default function ReportDetailPage() {
                     <Link
                       href={`/claim-proposals/${packet.id}`}
                       className="text-xs flex items-center gap-xs"
-                      style={{ color: "var(--brand-primary)" }}
+                      style={{ color: "var(--accent-ink)" }}
                     >
                       View claim proposal
                       <ExternalLink size={12} />
@@ -779,7 +779,7 @@ export default function ReportDetailPage() {
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Review Decision</h2>
             {decision ? (
               <div className="flex items-center gap-md p-md" style={{ border: `1px solid ${decision.decision === "approved" ? "var(--brand-primary)" : "var(--state-error)"}`, borderRadius: "var(--radius-sm)" }}>
-                {decision.decision === "approved" ? <ShieldCheck size={20} style={{ color: "var(--brand-primary)" }} /> : <LockKeyhole size={20} style={{ color: "var(--state-error)" }} />}
+                {decision.decision === "approved" ? <ShieldCheck size={20} style={{ color: "var(--accent-ink)" }} /> : <LockKeyhole size={20} style={{ color: "var(--state-error)" }} />}
                 <div>
                   <p className="font-semibold capitalize">{decision.decision.replace(/_/g, " ")}</p>
                   <p className="text-xs text-secondary">{new Date(decision.decided_at).toLocaleString()}</p>
@@ -833,11 +833,11 @@ export default function ReportDetailPage() {
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Evidence Summary</h2>
             <div className="flex gap-md mb-md">
               <div className="flex-1 text-center p-md" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
-                <div className="text-2xl font-bold font-mono" style={{ color: "var(--brand-primary)" }}>{packet.citation_ids.length}</div>
+                <div className="text-2xl font-bold font-mono" style={{ color: "var(--accent-ink)" }}>{packet.citation_ids.length}</div>
                 <div className="text-xs text-secondary uppercase tracking-wide">Citations</div>
               </div>
               <div className="flex-1 text-center p-md" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
-                <div className="text-2xl font-bold font-mono" style={{ color: "var(--brand-primary)" }}>{packet.claims_timeline.length}</div>
+                <div className="text-2xl font-bold font-mono" style={{ color: "var(--accent-ink)" }}>{packet.claims_timeline.length}</div>
                 <div className="text-xs text-secondary uppercase tracking-wide">Events</div>
               </div>
             </div>

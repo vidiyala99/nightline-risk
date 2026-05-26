@@ -269,7 +269,7 @@ export default function IncidentsPage() {
               borderRadius: "14px",
               border: "1px solid var(--brand-primary)",
               background: "rgba(212,255,0,0.08)",
-              color: "var(--brand-primary)",
+              color: "var(--accent-ink)",
               fontSize: "0.75rem",
               fontWeight: 600,
               cursor: "pointer",
@@ -422,7 +422,7 @@ export default function IncidentsPage() {
               {evidenceFiles.length > 0 && (
                 <div className="flex flex-wrap gap-xs mt-md justify-center">
                   {evidenceFiles.map((f, i) => (
-                    <span key={i} className="flex items-center gap-xs text-xs font-mono px-sm py-xs" style={{ background: "rgba(212,255,0,0.08)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--brand-primary)" }}>
+                    <span key={i} className="flex items-center gap-xs text-xs font-mono px-sm py-xs" style={{ background: "rgba(212,255,0,0.08)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--accent-ink)" }}>
                       {f.name}
                       <button
                         type="button"

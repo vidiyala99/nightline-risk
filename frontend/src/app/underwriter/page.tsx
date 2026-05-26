@@ -61,7 +61,7 @@ const SEVERITY_COLOR: Record<string, string> = {
 
 const STATUS_CONFIG: Record<PacketStatus, { label: string; icon: React.ReactNode; color: string }> = {
   needs_review: { label: "Needs Review", icon: <Clock size={11} />, color: "var(--state-warning)" },
-  approved:     { label: "Approved",     icon: <CheckCircle2 size={11} />, color: "var(--brand-primary)" },
+  approved:     { label: "Approved",     icon: <CheckCircle2 size={11} />, color: "var(--accent-ink)" },
   blocked:      { label: "Blocked",      icon: <LockKeyhole size={11} />, color: "var(--state-error)" },
   draft:        { label: "Draft",        icon: <FileSearch size={11} />, color: "var(--text-tertiary)" },
   processing:   { label: "Processing",   icon: <RefreshCw size={11} />, color: "var(--text-secondary)" },

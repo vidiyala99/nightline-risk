@@ -68,7 +68,7 @@ export default function LoginPage() {
     <div className="lc-login">
       <div className="lc-login__stage">
         <Link href="/" className="lc-login__brand">
-          <span className="lc-login__logo"><Building2 size={20} /></span>
+          <span className="lc-login__logo"><img src="/nightline-mark.svg" alt="Nightline" width={44} height={44} /></span>
           <span>
             <strong>Nightline</strong>
             <em>Risk OS</em>

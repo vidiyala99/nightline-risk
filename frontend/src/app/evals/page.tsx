@@ -568,7 +568,7 @@ const scorerDetailStyle: React.CSSProperties = {
 };
 
 const linkStyle: React.CSSProperties = {
-  color: "var(--brand-primary)",
+  color: "var(--accent-ink)",
   textDecoration: "underline",
   textDecorationStyle: "dotted",
   textUnderlineOffset: 3,

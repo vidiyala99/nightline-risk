@@ -369,7 +369,7 @@ export default function RiskProfilePage() {
           <span
             className="text-xs font-mono"
             style={{
-              color: "var(--brand-primary)",
+              color: "var(--accent-ink)",
               textTransform: "uppercase",
               letterSpacing: "0.08em",
               fontSize: "0.65rem",
@@ -453,7 +453,7 @@ export default function RiskProfilePage() {
               e.target.value = "";
             }}
           />
-          <label htmlFor="rp-policy-file" className="text-xs font-mono" style={{ color: "var(--brand-primary)", cursor: "pointer", textDecoration: "underline", display: "inline-block", marginTop: 4 }}>
+          <label htmlFor="rp-policy-file" className="text-xs font-mono" style={{ color: "var(--accent-ink)", cursor: "pointer", textDecoration: "underline", display: "inline-block", marginTop: 4 }}>
             Browse files
           </label>
         </div>
@@ -678,7 +678,7 @@ export default function RiskProfilePage() {
                 <p className="text-xs font-mono text-secondary mt-xs">Tier {tier} · Evidence-First Underwriting</p>
                 {/* P3: surface savings to both personas with persona-appropriate framing */}
                 {savingsAnnual > 0 && (
-                  <p className="text-xs mt-xs" style={{ color: "var(--brand-primary)" }}>
+                  <p className="text-xs mt-xs" style={{ color: "var(--accent-ink)" }}>
                     {isBroker
                       ? `Customer saving $${savingsAnnual.toLocaleString()}/yr vs market`
                       : `Saving $${savingsAnnual.toLocaleString()}/yr vs market rate`}
@@ -766,7 +766,7 @@ export default function RiskProfilePage() {
               {(venueMeta?.savings_low || venueMeta?.savings_high) && (
                 <div>
                   <span className="text-xs uppercase tracking-wide text-secondary">Est. annual savings</span>
-                  <div className="lc-numeral" style={{ color: "var(--brand-primary)", fontSize: "1.5rem" }}>
+                  <div className="lc-numeral" style={{ color: "var(--accent-ink)", fontSize: "1.5rem" }}>
                     ${Math.round(Number(venueMeta.savings_low || 0)).toLocaleString()}–${Math.round(Number(venueMeta.savings_high || 0)).toLocaleString()}/yr
                   </div>
                 </div>
@@ -791,7 +791,7 @@ export default function RiskProfilePage() {
           {goodFactors.length > 0 && (
             <div className="card">
               <div className="flex items-center gap-sm mb-lg">
-                <CheckCircle2 size={16} style={{ color: "var(--brand-primary)" }} aria-hidden="true" />
+                <CheckCircle2 size={16} style={{ color: "var(--accent-ink)" }} aria-hidden="true" />
                 <h3 className="rp-section-title text-xs uppercase tracking-wide text-secondary">What's Working</h3>
               </div>
               <div className="flex flex-col gap-md">
@@ -834,7 +834,7 @@ export default function RiskProfilePage() {
                         <span className="text-xs font-mono" style={{ color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>
                           <span style={{ color }}>{s}</span>
                           {" → 100  ·  "}
-                          {delta > 0 ? <span style={{ color: "var(--brand-primary)" }}>+{delta} to total</span> : "no change"}
+                          {delta > 0 ? <span style={{ color: "var(--accent-ink)" }}>+{delta} to total</span> : "no change"}
                           {weightPct != null && <> · weighted {weightPct}%</>}
                         </span>
                       </div>
@@ -868,13 +868,13 @@ export default function RiskProfilePage() {
                 {savingsAnnual > 0 && (
                   <div className="flex justify-between items-center py-sm" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                     <span className="text-sm text-secondary">vs. Market Rate</span>
-                    <span className="text-sm font-bold font-mono" style={{ color: "var(--brand-primary)" }}>-${savingsAnnual.toLocaleString()}/yr saved</span>
+                    <span className="text-sm font-bold font-mono" style={{ color: "var(--accent-ink)" }}>-${savingsAnnual.toLocaleString()}/yr saved</span>
                   </div>
                 )}
                 {!isBroker && hasImprovementHeadroom && (
                   <div className="mt-sm p-md" style={{ background: "rgba(212,255,0,0.05)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)" }}>
                     <p className="text-xs text-secondary" style={{ lineHeight: 1.6 }}>
-                      <span style={{ color: "var(--brand-primary)", fontWeight: 600 }}>Improvement opportunity:</span> Moving up a tier typically reduces your annual premium. Address the factors flagged above and we'll provide a personalized estimate at renewal.
+                      <span style={{ color: "var(--accent-ink)", fontWeight: 600 }}>Improvement opportunity:</span> Moving up a tier typically reduces your annual premium. Address the factors flagged above and we'll provide a personalized estimate at renewal.
                     </p>
                   </div>
                 )}

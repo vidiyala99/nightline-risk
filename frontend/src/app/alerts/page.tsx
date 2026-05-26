@@ -483,7 +483,7 @@ function AlertsPageInner() {
                       borderRadius: "var(--radius-md)",
                       background: "rgba(200,240,0,0.08)",
                       border: "1px solid rgba(200,240,0,0.32)",
-                      color: "var(--brand-primary)",
+                      color: "var(--accent-ink)",
                       fontFamily: "var(--font-mono)",
                       fontSize: "0.78rem",
                       letterSpacing: "0.06em",

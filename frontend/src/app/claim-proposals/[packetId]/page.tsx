@@ -164,7 +164,7 @@ export default function ClaimDetailPage() {
             <h1 style={{ fontSize: "1.5rem" }}>Claim Detail</h1>
             <p className="page-subtitle">
               Packet{" "}
-              <Link href={`/underwriter/${packet.id}`} style={{ color: "var(--brand-primary)" }}>
+              <Link href={`/underwriter/${packet.id}`} style={{ color: "var(--accent-ink)" }}>
                 {packet.id.slice(0, 16)}…
               </Link>{" "}
               · {packet.venue_id}
@@ -344,7 +344,7 @@ export default function ClaimDetailPage() {
                   </div>
                   <div className="flex justify-between items-baseline mb-sm">
                     <span className="text-xs uppercase tracking-wide text-secondary">Median</span>
-                    <span className="text-sm font-mono font-bold" style={{ color: "var(--brand-primary)" }}>
+                    <span className="text-sm font-mono font-bold" style={{ color: "var(--accent-ink)" }}>
                       ${rec.expected_payout.median_usd.toLocaleString()}
                     </span>
                   </div>
@@ -432,7 +432,7 @@ export default function ClaimDetailPage() {
               </h2>
               <ol className="flex flex-col gap-md" style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 <li className="flex items-start gap-sm">
-                  <CheckCircle2 size={14} style={{ color: "var(--brand-primary)", marginTop: 2 }} />
+                  <CheckCircle2 size={14} style={{ color: "var(--accent-ink)", marginTop: 2 }} />
                   <div>
                     <p className="text-sm font-semibold" style={{ margin: 0 }}>Proposed</p>
                     <p className="text-xs text-secondary" style={{ margin: 0 }}>
@@ -443,7 +443,7 @@ export default function ClaimDetailPage() {
                 {proposal.broker_decided_at ? (
                   <li className="flex items-start gap-sm">
                     {proposal.state === "approved" || proposal.state === "filed_with_carrier" ? (
-                      <CheckCircle2 size={14} style={{ color: "var(--brand-primary)", marginTop: 2 }} />
+                      <CheckCircle2 size={14} style={{ color: "var(--accent-ink)", marginTop: 2 }} />
                     ) : (
                       <LockKeyhole size={14} style={{ color: "var(--state-error)", marginTop: 2 }} />
                     )}

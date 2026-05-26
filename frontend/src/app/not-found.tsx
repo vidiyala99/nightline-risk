@@ -44,7 +44,7 @@ const cardStyle: React.CSSProperties = {
 };
 
 const codeStyle: React.CSSProperties = {
-  color: "var(--brand-primary)",
+  color: "var(--accent-ink)",
   fontFamily: "var(--font-mono)",
   fontSize: "4rem",
   fontWeight: 700,

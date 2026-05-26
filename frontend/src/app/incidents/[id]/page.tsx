@@ -216,13 +216,13 @@ export default function IncidentDetailPage() {
                     <div key={i} className="flex flex-col gap-sm p-sm mb-sm" style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", borderLeft: `3px solid ${a.corroboration === "CONSISTENT" ? "var(--brand-primary)" : a.corroboration === "CONTRADICTED" ? "var(--state-error)" : "var(--state-warning)"}` }}>
                       <div className="flex items-center justify-between" style={{ flexWrap: "wrap", gap: "var(--space-xs)" }}>
                         <span className="text-xs font-mono uppercase text-secondary">{a.analysis_type} analysis</span>
-                        <span className="text-xs" style={{ color: "var(--brand-primary)" }}>+{Math.round(a.confidence_delta * 100)}% confidence</span>
+                        <span className="text-xs" style={{ color: "var(--accent-ink)" }}>+{Math.round(a.confidence_delta * 100)}% confidence</span>
                       </div>
                       <p className="text-sm" style={{ lineHeight: 1.6 }}>{a.raw_description}</p>
                       {a.findings?.incident_indicators?.length > 0 && (
                         <div className="flex flex-wrap gap-xs">
                           {a.findings.incident_indicators.map((ind: string, j: number) => (
-                            <span key={j} className="text-xs px-sm py-xs font-mono" style={{ background: "rgba(212,255,0,0.06)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--brand-primary)" }}>
+                            <span key={j} className="text-xs px-sm py-xs font-mono" style={{ background: "rgba(212,255,0,0.06)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--accent-ink)" }}>
                               {ind}
                             </span>
                           ))}
@@ -241,7 +241,7 @@ export default function IncidentDetailPage() {
                     Insurance Reports
                   </h2>
                   {packets.length > 0 && (
-                    <span className="text-xs" style={{ color: "var(--brand-primary)" }}>{packets.length}</span>
+                    <span className="text-xs" style={{ color: "var(--accent-ink)" }}>{packets.length}</span>
                   )}
                 </div>
 
