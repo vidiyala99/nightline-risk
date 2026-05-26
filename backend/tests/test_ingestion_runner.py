@@ -72,6 +72,34 @@ def test_run_objects_readable_after_session_closes():
         _ = (r.source_system, r.loaded, r.skipped, r.rejected, r.watermark, r.error)
 
 
+def test_runner_applies_quality_gate_by_default():
+    # An out-of-range value injected by a connector must be rejected by the
+    # runner's default quality gate, not loaded.
+    from app.ingestion.base import NormalizedEvent, OperationalConnector, LoadResult, load_operational_events
+
+    class _BadConnector(OperationalConnector):
+        source_system = "pos"
+
+        def extract(self):
+            return [None]
+
+        def transform(self, raw):
+            from datetime import datetime
+            return [
+                NormalizedEvent("v1", "pos", "x", "over_pour_rate", 0.4, datetime(2026, 5, 26, 2), external_ref="ok"),
+                NormalizedEvent("v1", "pos", "x", "over_pour_rate", 9.9, datetime(2026, 5, 26, 2), external_ref="bad"),
+            ]
+
+    s = _session()
+    s.add(Venue(id="v1", name="X", venue_data=json.dumps({"name": "X"})))
+    s.commit()
+
+    from app.ingestion.runner import run_one
+    r = run_one(_BadConnector(venues_index={"v1": {"name": "X"}}), s)
+    assert r.loaded == 1
+    assert r.rejected == 1
+
+
 def test_run_unknown_source_raises():
     s = _session()
     try:

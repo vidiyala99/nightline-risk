@@ -11,7 +11,8 @@ from typing import Optional
 
 from sqlmodel import Session, select
 
-from app.ingestion.base import run_connector
+from app.ingestion.base import Connector, run_connector
+from app.ingestion.quality import is_valid_event
 from app.ingestion.registry import SOURCES, build_connector
 from app.models import IngestionRun
 
@@ -24,6 +25,24 @@ def _latest_watermark(session: Session, source: str) -> Optional[datetime]:
         .order_by(IngestionRun.started_at.desc())  # type: ignore[attr-defined]
     ).first()
     return row.watermark if row else None
+
+
+def run_one(
+    connector: Connector,
+    session: Session,
+    *,
+    dry_run: bool = False,
+) -> IngestionRun:
+    """Run a single connector with the source's last watermark resolved and
+    the standard data-quality gate applied."""
+    watermark = _latest_watermark(session, connector.source_system)
+    return run_connector(
+        connector,
+        session,
+        watermark=watermark,
+        quality_filter=is_valid_event,
+        dry_run=dry_run,
+    )
 
 
 def run(
@@ -43,8 +62,5 @@ def run(
     runs: list[IngestionRun] = []
     for src in sources:
         connector = build_connector(src, venues=venues)  # raises KeyError if unknown
-        watermark = _latest_watermark(session, src)
-        runs.append(
-            run_connector(connector, session, watermark=watermark, dry_run=dry_run)
-        )
+        runs.append(run_one(connector, session, dry_run=dry_run))
     return runs

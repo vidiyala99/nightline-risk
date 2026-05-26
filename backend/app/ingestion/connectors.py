@@ -71,6 +71,90 @@ class PosConnector(OperationalConnector):
         ]
 
 
+class IdScanConnector(OperationalConnector):
+    """Simulated door ID-scanner feed → id_rejection_rate + occupancy_ratio."""
+
+    source_system = "id_scanner"
+
+    def __init__(
+        self,
+        venue_ids: list[str],
+        *,
+        as_of: Optional[datetime] = None,
+        venues_index: Optional[dict] = None,
+    ):
+        super().__init__(venues_index=venues_index)
+        self.venue_ids = venue_ids
+        self.as_of = as_of or now_utc()
+
+    def extract(self) -> Iterable[Any]:
+        for vid in self.venue_ids:
+            yield {"venue_id": vid, "as_of": self.as_of}
+
+    def transform(self, raw: Any) -> list[NormalizedEvent]:
+        vid = raw["venue_id"]
+        as_of: datetime = raw["as_of"]
+        rng = random.Random(f"id_scanner|{vid}|{as_of.isoformat()}")
+        rejection = round(rng.uniform(0.0, 1.0), 4)
+        occupancy = round(rng.uniform(0.5, 1.6), 4)  # within the gate's [0, 3] bound
+
+        def _event(metric: str, value: float, event_type: str) -> NormalizedEvent:
+            return NormalizedEvent(
+                venue_id=vid,
+                source_system=self.source_system,
+                event_type=event_type,
+                metric_name=metric,
+                value=value,
+                occurred_at=as_of,
+                external_ref=f"idscan-{vid}-{metric}-{as_of.isoformat()}",
+                metadata={"window": as_of.isoformat(), "simulated": True},
+            )
+
+        return [
+            _event("id_rejection_rate", rejection, "id_rejection"),
+            _event("occupancy_ratio", occupancy, "occupancy"),
+        ]
+
+
+class StaffingConnector(OperationalConnector):
+    """Simulated scheduling feed → staffing_ratio (actual ÷ required staff)."""
+
+    source_system = "staffing"
+
+    def __init__(
+        self,
+        venue_ids: list[str],
+        *,
+        as_of: Optional[datetime] = None,
+        venues_index: Optional[dict] = None,
+    ):
+        super().__init__(venues_index=venues_index)
+        self.venue_ids = venue_ids
+        self.as_of = as_of or now_utc()
+
+    def extract(self) -> Iterable[Any]:
+        for vid in self.venue_ids:
+            yield {"venue_id": vid, "as_of": self.as_of}
+
+    def transform(self, raw: Any) -> list[NormalizedEvent]:
+        vid = raw["venue_id"]
+        as_of: datetime = raw["as_of"]
+        rng = random.Random(f"staffing|{vid}|{as_of.isoformat()}")
+        ratio = round(rng.uniform(0.5, 1.4), 4)
+        return [
+            NormalizedEvent(
+                venue_id=vid,
+                source_system=self.source_system,
+                event_type="staffing_level",
+                metric_name="staffing_ratio",
+                value=ratio,
+                occurred_at=as_of,
+                external_ref=f"staffing-{vid}-{as_of.isoformat()}",
+                metadata={"window": as_of.isoformat(), "simulated": True},
+            )
+        ]
+
+
 class NycOpenDataConnector(Connector):
     """Master-data feed: NYC nightlife licensees → prospect `Venue` rows.
 

@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Inbox,
   ListChecks,
+  Database,
 } from "lucide-react";
 import { useAuth, useRole, useTenantId } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
@@ -83,6 +84,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
 
   const underwritingItems: Item[] = [
     { href: "/underwriter", label: "Reports", icon: FileSearch, roles: ["broker", "admin"] },
+    { href: "/ingestion", label: "Ingestion", icon: Database, roles: ["broker", "admin"] },
   ];
 
   const filterByRole = (items: Item[]) =>

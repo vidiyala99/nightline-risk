@@ -348,6 +348,9 @@ app.include_router(policy_requests_router, prefix="/api", tags=["policy-requests
 from app.api.v1.tasks import router as tasks_router  # noqa: E402
 app.include_router(tasks_router, prefix="/api", tags=["tasks"])
 
+from app.api.v1.ingestion_runs import router as ingestion_runs_router  # noqa: E402
+app.include_router(ingestion_runs_router, prefix="/api", tags=["ingestion-runs"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

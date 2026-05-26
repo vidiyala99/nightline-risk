@@ -5,7 +5,13 @@ from datetime import datetime
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.ingestion.base import run_connector
-from app.ingestion.connectors import NycOpenDataConnector, PosConnector
+from app.ingestion.connectors import (
+    IdScanConnector,
+    NycOpenDataConnector,
+    PosConnector,
+    StaffingConnector,
+)
+from app.ingestion.quality import is_valid_event
 from app.models import Venue, VenueOperationalEvent
 
 
@@ -51,6 +57,33 @@ def test_pos_run_loads_events_and_rolls_up_to_venue():
     # rollup wrote operational_data into both DB and the in-memory index
     assert "operational_data" in json.loads(s.get(Venue, "v1").venue_data)
     assert "over_pour_rate" in venues_index["v1"]["operational_data"]
+
+
+# ── IdScanConnector + StaffingConnector ──────────────────────────────────
+
+def test_id_scan_emits_rejection_and_occupancy_within_gate():
+    conn = IdScanConnector(venue_ids=["v1"], as_of=datetime(2026, 5, 26, 2, 0, 0))
+    events = [e for raw in conn.extract() for e in conn.transform(raw)]
+    metrics = {e.metric_name for e in events}
+    assert metrics == {"id_rejection_rate", "occupancy_ratio"}
+    # every emitted signal must pass the data-quality gate
+    assert all(is_valid_event(e) for e in events)
+
+
+def test_staffing_emits_ratio_within_gate():
+    conn = StaffingConnector(venue_ids=["v1", "v2"], as_of=datetime(2026, 5, 26, 2, 0, 0))
+    events = [e for raw in conn.extract() for e in conn.transform(raw)]
+    assert {e.venue_id for e in events} == {"v1", "v2"}
+    assert all(e.metric_name == "staffing_ratio" for e in events)
+    assert all(is_valid_event(e) for e in events)
+
+
+def test_new_connectors_are_deterministic():
+    a = IdScanConnector(venue_ids=["v1"], as_of=datetime(2026, 5, 26, 2, 0, 0))
+    b = IdScanConnector(venue_ids=["v1"], as_of=datetime(2026, 5, 26, 2, 0, 0))
+    va = sorted((e.metric_name, e.value) for raw in a.extract() for e in a.transform(raw))
+    vb = sorted((e.metric_name, e.value) for raw in b.extract() for e in b.transform(raw))
+    assert va == vb
 
 
 # ── NycOpenDataConnector (master-data upsert) ────────────────────────────
