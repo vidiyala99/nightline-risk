@@ -14,10 +14,10 @@ import type { MarketVenue } from "@/lib/market";
 // reads as part of the product, not a bolted-on widget. High contrast on
 // the dark basemap (WCAG data-contrast).
 const SAVINGS_BANDS = [
-  { min: 3000, color: "#c8f000", label: "Strong ($3k+)" },
-  { min: 1500, color: "#9bcf3c", label: "Moderate" },
-  { min: 1, color: "#f59e0b", label: "Light" },
-  { min: -Infinity, color: "#6b7280", label: "None modeled" },
+  { min: 3000, color: "#1F8F4E", label: "Strong ($3k+)" },
+  { min: 1500, color: "#6f8a00", label: "Moderate" },
+  { min: 1, color: "#B45309", label: "Light" },
+  { min: -Infinity, color: "#78716c", label: "None modeled" },
 ] as const;
 
 function savingsColor(savingsMid: string): string {
@@ -42,7 +42,7 @@ export default function MarketMap({ venues, selectedId, onSelect }: Props) {
       >
         <TileLayer
           attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> · &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           subdomains="abcd"
         />
         {venues.map((v) => {
@@ -54,10 +54,10 @@ export default function MarketMap({ venues, selectedId, onSelect }: Props) {
               center={[v.lat, v.lng]}
               radius={selected ? 10 : 6}
               pathOptions={{
-                color: c,
+                color: selected ? "#c8f000" : "#17150F",
                 fillColor: c,
-                fillOpacity: selected ? 0.95 : 0.7,
-                weight: selected ? 3 : 1,
+                fillOpacity: selected ? 0.95 : 0.85,
+                weight: selected ? 3 : 1.25,
               }}
               eventHandlers={{ click: () => onSelect(v) }}
             >

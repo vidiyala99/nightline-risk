@@ -5741,11 +5741,11 @@ html, body { overflow-x: clip; }
 .market-tooltip.leaflet-tooltip {
   background: var(--bg-surface-elevated);
   color: var(--text-primary);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-  font-family: var(--font-dm-sans);
-  font-size: 0.78rem;
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
 }
 .market-tooltip.leaflet-tooltip::before { display: none; } /* hide the white arrow */
 /* On-map legend for the savings color scale (chart legend-visible rule). */
@@ -5758,10 +5758,10 @@ html, body { overflow-x: clip; }
   flex-direction: column;
   gap: 5px;
   padding: 10px 12px;
-  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
-  backdrop-filter: blur(6px);
-  border: 1px solid var(--border-default);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   pointer-events: none;
 }
 .market-legend__title {
