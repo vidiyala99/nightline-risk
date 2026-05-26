@@ -1,3 +1,4 @@
+import { Colors } from "../theme/colors";
 /**
  * Mobile typed API client for operator→broker PolicyRequest endpoints.
  *
@@ -62,10 +63,10 @@ export const REQUEST_STATUS_LABEL: Record<PolicyRequestStatus, string> = {
 
 /** Glyph + color per status — same visual language as claim-tokens. */
 export const REQUEST_STATUS_COLOR: Record<PolicyRequestStatus, string> = {
-  pending: '#ff9500',
-  approved: '#00d97e',
-  declined: '#ff4557',
-  cancelled: '#8b90a8',
+  pending: Colors.warning,
+  approved: Colors.success,
+  declined: Colors.error,
+  cancelled: Colors.textMuted,
 };
 
 // ─── Request bodies ─────────────────────────────────────────────────────

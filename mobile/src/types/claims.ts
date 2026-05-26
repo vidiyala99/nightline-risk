@@ -1,3 +1,4 @@
+import { Colors } from "../theme/colors";
 export interface ClaimRecommendation {
   should_file: boolean;
   probability: number;
@@ -62,12 +63,12 @@ export const STATE_LABEL: Record<ClaimState, string> = {
 };
 
 export const STATE_COLOR: Record<ClaimState, string> = {
-  pending_broker_review: '#ff9500',
-  approved: '#c8f000',
-  rejected_by_broker: '#ff4557',
-  filed_with_carrier: '#c8f000',
-  paid: '#c8f000',
-  denied: '#ff4557',
+  pending_broker_review: Colors.warning,
+  approved: Colors.success,
+  rejected_by_broker: Colors.error,
+  filed_with_carrier: Colors.info,
+  paid: Colors.success,
+  denied: Colors.error,
 };
 
 export const OVERRIDE_REASON_LABELS: Record<OverrideReason, { title: string; hint: string }> = {
