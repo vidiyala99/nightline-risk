@@ -110,7 +110,7 @@ export function ClaimsListScreen({ navigation }: any) {
             return (
               <Pressable
                 style={[s.row, p.override_recommendation && s.rowOverride]}
-                onPress={() => navigation.navigate('ClaimDetail', { packetId: p.packet_id })}
+                onPress={() => navigation.navigate('ClaimProposalDetail', { packetId: p.packet_id })}
               >
                 <View style={s.rowLeft}>
                   <Text style={s.venueName}>{p.venue_id.replace(/-/g, ' ')}</Text>
