@@ -65,7 +65,7 @@ export function ClaimsListScreen({ navigation }: any) {
       {/* Header */}
       <View style={s.header}>
         <Text style={s.title}>{pageTitle}</Text>
-        <HandAccent>worth filing?</HandAccent>
+        <HandAccent>{isBroker ? 'file or pass?' : 'worth filing?'}</HandAccent>
         <Text style={s.subtitle}>{subtitle}</Text>
       </View>
 
