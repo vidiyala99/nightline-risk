@@ -634,3 +634,46 @@ class PolicyRequest(SQLModel, table=True):
 
     created_at: datetime = Field(default_factory=now_utc)
     updated_at: datetime = Field(default_factory=now_utc)
+
+
+class VenueOperationalEvent(SQLModel, table=True):
+    """A single normalized operational signal ingested for a venue.
+
+    The atomic unit of the ingestion spine: every connector (POS, ID scanner,
+    staffing, …) transforms its raw feed into rows of this shape. `value` is a
+    plain float because these are operational metrics (rates/ratios/counts),
+    not money. `content_hash` is the dedupe key — a re-run that re-extracts the
+    same logical event produces the same hash and is skipped, so ingestion is
+    idempotent. `external_ref` ties a row back to its source record for audit.
+    """
+    id: str = Field(primary_key=True)                   # "voe-<uuid12>"
+    venue_id: str = Field(index=True)
+    source_system: str = Field(index=True)              # pos | id_scanner | staffing | nyc_open_data
+    event_type: str
+    metric_name: str                                    # e.g. over_pour_rate, id_rejection_rate
+    value: float
+    occurred_at: datetime                               # when the event happened at the source
+    ingested_at: datetime = Field(default_factory=now_utc)
+    content_hash: str = Field(index=True)               # SHA-256 of canonical event identity; dedupe key
+    external_ref: Optional[str] = None                  # source-system record id, when available
+    event_metadata: dict = Field(default_factory=dict, sa_column=Column(JSON))
+
+
+class IngestionRun(SQLModel, table=True):
+    """One execution of a connector — both the incremental cursor and the log.
+
+    `watermark` records the max `occurred_at` seen for the source so the next
+    run only pulls newer events (incremental). The counters + status + error
+    make this the observability surface (`GET /api/ingestion/runs` in PR2).
+    """
+    id: str = Field(primary_key=True)                   # "ingest-<uuid12>"
+    source_system: str = Field(index=True)
+    status: str = Field(default="running")              # running | success | error
+    started_at: datetime = Field(default_factory=now_utc)
+    finished_at: Optional[datetime] = None
+    extracted: int = Field(default=0)
+    loaded: int = Field(default=0)
+    skipped: int = Field(default=0)                     # deduped (already ingested)
+    rejected: int = Field(default=0)                    # failed the data-quality filter
+    watermark: Optional[datetime] = None                # max occurred_at after this run
+    error: Optional[str] = None

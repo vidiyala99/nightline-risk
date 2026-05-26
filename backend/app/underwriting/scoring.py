@@ -54,7 +54,7 @@ class RiskScoringEngine:
         # Calculate individual factor scores (0-100)
         incident_score = self._score_incident_history(venue)
         compliance_score = self._score_compliance(venue)
-        operational_score = self._score_operational(venue)
+        operational_score, operational_adjustments = self._score_operational_detail(venue)
         business_score = self._score_business_profile(venue)
 
         # Weighted total
@@ -78,7 +78,7 @@ class RiskScoringEngine:
             factors={
                 "incident_history": {"score": incident_score, "weight": self.WEIGHTS["incident_history"]},
                 "compliance": {"score": compliance_score, "weight": self.WEIGHTS["compliance"]},
-                "operational": {"score": operational_score, "weight": self.WEIGHTS["operational"]},
+                "operational": self._operational_factor(operational_score, operational_adjustments),
                 "business_profile": {"score": business_score, "weight": self.WEIGHTS["business_profile"]},
             },
             updated_at=datetime.now().isoformat(),
@@ -126,22 +126,60 @@ class RiskScoringEngine:
         else:  # 4+
             return 0
 
+    # Bounded penalty weights for ingested operational metrics. Each maps a
+    # normalized rate/ratio to a max point deduction off the security base.
+    # Tuned so a venue maxing out every signal can fully erode the factor.
+    OPERATIONAL_PENALTIES = {
+        "over_pour_rate": 40,      # share of pours flagged as over-pours
+        "id_rejection_rate": 30,   # share of IDs rejected/flagged at the door
+        "staffing_ratio": 30,      # penalize the shortfall below 1.0 (understaffed)
+        "occupancy_ratio": 50,     # penalize the excess above 1.0 (over capacity)
+    }
+
     def _score_operational(self, venue: dict) -> int:
-        """
-        Score based on operational factors (0-100, higher is better).
-        
-        Factors:
-        - Security level (high=100, medium=70, low=40)
+        score, _ = self._score_operational_detail(venue)
+        return score
+
+    def _score_operational_detail(self, venue: dict) -> tuple[int, dict | None]:
+        """Operational factor score plus the per-signal adjustment breakdown.
+
+        Base is the static security level (high=100, medium=70, low=40).
+        When `operational_data` (written by the ingestion rollup) is present,
+        each signal applies a bounded, explained penalty so the score visibly
+        moves when data is ingested. No `operational_data` → base unchanged,
+        and no `adjustments` surfaced (backward compatible).
         """
         security = venue.get("security_level", "medium")
+        base = {"high": 100, "medium": 70, "low": 40}.get(security, 70)
 
-        security_scores = {
-            "high": 100,
-            "medium": 70,
-            "low": 40,
-        }
+        op = venue.get("operational_data")
+        if not op:
+            return base, None
 
-        return security_scores.get(security, 70)
+        adjustments: dict[str, int] = {}
+
+        def _apply(label: str, rate: float, weight: int) -> None:
+            penalty = round(max(0.0, rate) * weight)
+            if penalty:
+                adjustments[label] = -penalty
+
+        if (v := op.get("over_pour_rate")) is not None:
+            _apply("over_pour", float(v), self.OPERATIONAL_PENALTIES["over_pour_rate"])
+        if (v := op.get("id_rejection_rate")) is not None:
+            _apply("id_rejection", float(v), self.OPERATIONAL_PENALTIES["id_rejection_rate"])
+        if (v := op.get("staffing_ratio")) is not None:
+            _apply("staffing_shortfall", 1.0 - float(v), self.OPERATIONAL_PENALTIES["staffing_ratio"])
+        if (v := op.get("occupancy_ratio")) is not None:
+            _apply("over_capacity", float(v) - 1.0, self.OPERATIONAL_PENALTIES["occupancy_ratio"])
+
+        score = max(0, min(100, base + sum(adjustments.values())))
+        return score, {"base": base, **adjustments}
+
+    def _operational_factor(self, score: int, adjustments: dict | None) -> dict:
+        factor = {"score": score, "weight": self.WEIGHTS["operational"]}
+        if adjustments:
+            factor["adjustments"] = adjustments
+        return factor
 
     def _score_business_profile(self, venue: dict) -> int:
         """

@@ -2,6 +2,7 @@ from app.fastapi_compat import patch_starlette_router_for_fastapi
 
 patch_starlette_router_for_fastapi()
 
+import os  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 from pathlib import Path  # noqa: E402
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, UploadFile, File, Query, Header  # noqa: E402
@@ -268,7 +269,37 @@ async def lifespan(app: FastAPI):
         seed_prospects()
     except Exception as e:  # pragma: no cover - defensive startup guard
         print(f"[SEED] prospect seed skipped: {e}")
+
+    # Opt-in in-process ingestion tick for the live demo. Off in prod unless
+    # INGEST_TICK_SECONDS is set; prod-realistic scheduling uses the CLI
+    # (scripts.run_ingest) on a Railway cron instead.
+    ingest_task = None
+    _tick_seconds = os.getenv("INGEST_TICK_SECONDS")
+    if _tick_seconds:
+        import asyncio as _asyncio
+
+        async def _ingest_tick(interval: float):  # pragma: no cover - background loop
+            from app.database import engine as _engine
+            from app.ingestion.runner import run as _run
+            from sqlmodel import Session as _Session
+            while True:
+                await _asyncio.sleep(interval)
+                try:
+                    with _Session(_engine) as _s:
+                        await _asyncio.to_thread(_run, "pos", _s, VENUES)
+                except Exception as exc:
+                    print(f"[INGEST] tick failed: {exc}")
+
+        try:
+            ingest_task = _asyncio.create_task(_ingest_tick(float(_tick_seconds)))
+            print(f"[INGEST] in-process tick enabled every {_tick_seconds}s")
+        except ValueError:
+            print(f"[INGEST] ignoring invalid INGEST_TICK_SECONDS={_tick_seconds!r}")
+
     yield
+
+    if ingest_task is not None:  # pragma: no cover - shutdown path
+        ingest_task.cancel()
 
 app = FastAPI(title="Nightline Risk OS", lifespan=lifespan)
 
