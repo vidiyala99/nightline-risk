@@ -144,7 +144,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Text style={{ fontSize: 28 }}>{rec.should_file ? '↑' : '↓'}</Text>
               <View>
-                <Text style={{ color: accent, fontSize: 16, fontFamily: 'DMSans_700Bold' }}>
+                <Text style={{ color: accent, fontSize: 16, fontFamily: 'HankenGrotesk_700Bold' }}>
                   {rec.should_file ? 'File this claim' : "Don't file yet"}
                 </Text>
                 <Text style={styles.bodyText}>
@@ -155,25 +155,25 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
             <View style={{ backgroundColor: Colors.bg, borderRadius: 10, padding: 12, gap: 8 }}>
               <View style={styles.rowBetween}>
                 <Text style={styles.eyebrow}>EXPECTED PAYOUT</Text>
-                <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' }}>
+                <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'SpaceMono_400Regular' }}>
                   ${rec.expected_payout.low_usd.toLocaleString()} – ${rec.expected_payout.high_usd.toLocaleString()}
                 </Text>
               </View>
               <View style={styles.rowBetween}>
                 <Text style={styles.eyebrow}>MEDIAN</Text>
-                <Text style={{ color: Colors.accentInk, fontSize: 13, fontFamily: 'JetBrainsMono_700Bold' }}>
+                <Text style={{ color: Colors.accentInk, fontSize: 13, fontFamily: 'SpaceMono_700Bold' }}>
                   ${rec.expected_payout.median_usd.toLocaleString()}
                 </Text>
               </View>
               <View style={styles.rowBetween}>
                 <Text style={styles.eyebrow}>PREMIUM IMPACT</Text>
-                <Text style={{ color: Colors.warning, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' }}>
+                <Text style={{ color: Colors.warning, fontSize: 12, fontFamily: 'SpaceMono_400Regular' }}>
                   +${rec.expected_premium_impact.annual_delta_usd.toLocaleString()}/yr × {rec.expected_premium_impact.duration_years}yr
                 </Text>
               </View>
               <View style={[styles.rowBetween, { paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.borderSubtle }]}>
                 <Text style={styles.eyebrow}>NET EV</Text>
-                <Text style={{ color: netEv >= 0 ? Colors.accent : Colors.error, fontSize: 13, fontFamily: 'JetBrainsMono_700Bold' }}>
+                <Text style={{ color: netEv >= 0 ? Colors.accent : Colors.error, fontSize: 13, fontFamily: 'SpaceMono_700Bold' }}>
                   {netLabel}
                 </Text>
               </View>
@@ -206,13 +206,13 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
             <View style={styles.rowBetween}>
               <Text style={styles.eyebrow}>CLAIM DECISION</Text>
               {proposal.override_recommendation && (
-                <Text style={{ color: Colors.warning, fontSize: 9, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1 }}>
+                <Text style={{ color: Colors.warning, fontSize: 9, fontFamily: 'SpaceMono_700Bold', letterSpacing: 1 }}>
                   OVERRIDE
                 </Text>
               )}
             </View>
             <View style={styles.rowBetween}>
-              <Text style={{ color: stateColor, fontFamily: 'DMSans_700Bold', fontSize: 14 }}>
+              <Text style={{ color: stateColor, fontFamily: 'HankenGrotesk_700Bold', fontSize: 14 }}>
                 {STATE_LABEL[proposal.state]}
               </Text>
               <Text style={[styles.eyebrow, { color: Colors.border }]}>
@@ -258,7 +258,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
               </View>
             )}
             <Pressable onPress={() => navigation.navigate('ClaimDetail', { packetId: packet.id })}>
-              <Text style={{ color: Colors.accentInk, fontSize: 12, fontFamily: 'DMSans_600SemiBold', marginTop: 4 }}>
+              <Text style={{ color: Colors.accentInk, fontSize: 12, fontFamily: 'HankenGrotesk_600SemiBold', marginTop: 4 }}>
                 View claim detail →
               </Text>
             </Pressable>
@@ -447,73 +447,73 @@ function Flag({ label, color }: { label: string; color: string }) {
 
 const metaStyles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
-  label: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  value: { color: Colors.textSecondary, fontSize: 12, flex: 1, textAlign: 'right', fontFamily: 'DMSans_400Regular' },
+  label: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
+  value: { color: Colors.textSecondary, fontSize: 12, flex: 1, textAlign: 'right', fontFamily: 'HankenGrotesk_400Regular' },
 });
 
 const flagStyles = StyleSheet.create({
   pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, borderWidth: StyleSheet.hairlineWidth },
-  text: { fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  text: { fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
 });
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
-  notFound: { color: Colors.textMuted, fontSize: 15, fontFamily: 'DMSans_400Regular' },
+  notFound: { color: Colors.textMuted, fontSize: 15, fontFamily: 'HankenGrotesk_400Regular' },
 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   backArrow: { color: Colors.accentInk, fontSize: 18 },
-  backLabel: { color: Colors.accentInk, fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  backLabel: { color: Colors.accentInk, fontSize: 13, fontWeight: '600', fontFamily: 'HankenGrotesk_600SemiBold' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
 
-  venueName: { color: Colors.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
-  reportDate: { color: Colors.textMuted, fontSize: 12, marginTop: 4, marginBottom: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  venueName: { color: Colors.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'BricolageGrotesque_700Bold' },
+  reportDate: { color: Colors.textMuted, fontSize: 12, marginTop: 4, marginBottom: 12, fontFamily: 'SpaceMono_400Regular' },
   sevBanner: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16, alignSelf: 'flex-start' },
-  sevBannerText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold' },
+  sevBannerText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold' },
 
   card: { backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12, gap: 10 },
-  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  bodyText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
+  bodyText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'HankenGrotesk_400Regular' },
   metaGrid: { gap: 0 },
   flagRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
   signalRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   sevPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 5 },
-  sevPillText: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, fontFamily: 'JetBrainsMono_700Bold' },
-  confNum: { fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
+  sevPillText: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, fontFamily: 'SpaceMono_700Bold' },
+  confNum: { fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
 
   questionRow: { flexDirection: 'row', gap: 8 },
   questionDot: { color: Colors.accentInk, fontSize: 16, lineHeight: 20 },
-  questionText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, flex: 1, fontFamily: 'DMSans_400Regular' },
+  questionText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, flex: 1, fontFamily: 'HankenGrotesk_400Regular' },
 
   actionItem: { gap: 3, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
-  actionTitle: { color: Colors.text, fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  actionSub: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'DMSans_400Regular' },
-  actionEvidence: { color: Colors.accentInk, fontSize: 11, fontFamily: 'DMSans_400Regular' },
+  actionTitle: { color: Colors.text, fontSize: 13, fontWeight: '600', fontFamily: 'HankenGrotesk_600SemiBold' },
+  actionSub: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular' },
+  actionEvidence: { color: Colors.accentInk, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
 
-  corroBadge: { fontSize: 9, fontWeight: '700', letterSpacing: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3, fontFamily: 'JetBrainsMono_700Bold' },
+  corroBadge: { fontSize: 9, fontWeight: '700', letterSpacing: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3, fontFamily: 'SpaceMono_700Bold' },
   visionItem: { borderLeftWidth: 2, paddingLeft: 10, gap: 4, paddingVertical: 4 },
-  visionType: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  visionType: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
 
   timelineRow: { flexDirection: 'row', gap: 12, paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
-  timelineTime: { color: Colors.textMuted, fontSize: 11, fontWeight: '600', width: 40, fontFamily: 'JetBrainsMono_400Regular' },
+  timelineTime: { color: Colors.textMuted, fontSize: 11, fontWeight: '600', width: 40, fontFamily: 'SpaceMono_400Regular' },
   timelineContent: { flex: 1 },
-  timelineLabel: { color: Colors.text, fontSize: 13, fontFamily: 'DMSans_400Regular' },
-  timelineSource: { color: Colors.textMuted, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
+  timelineLabel: { color: Colors.text, fontSize: 13, fontFamily: 'HankenGrotesk_400Regular' },
+  timelineSource: { color: Colors.textMuted, fontSize: 11, fontFamily: 'SpaceMono_400Regular' },
 
   evidenceSummaryRow: { flexDirection: 'row', gap: 10 },
   evidenceSummaryCard: { flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 10 },
-  evidenceSummaryNum: { color: Colors.accentInk, fontSize: 24, fontWeight: '800', fontFamily: 'JetBrainsMono_700Bold' },
-  evidenceSummaryLabel: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, marginTop: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  reportId: { color: Colors.border, fontSize: 10, fontFamily: 'JetBrainsMono_400Regular' },
+  evidenceSummaryNum: { color: Colors.accentInk, fontSize: 24, fontWeight: '800', fontFamily: 'SpaceMono_700Bold' },
+  evidenceSummaryLabel: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, marginTop: 2, fontFamily: 'SpaceMono_700Bold' },
+  reportId: { color: Colors.border, fontSize: 10, fontFamily: 'SpaceMono_400Regular' },
 
   decisionButtons: { gap: 10 },
   notesInput: { backgroundColor: Colors.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, borderRadius: 10, padding: 12, color: Colors.text, fontSize: 14, minHeight: 72, textAlignVertical: 'top' },
   decBtn: { borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  decBtnText: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'DMSans_700Bold' },
+  decBtnText: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'HankenGrotesk_700Bold' },
   decisionResult: { borderWidth: 1, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
-  decisionResultText: { fontSize: 14, fontWeight: '800', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  decisionResultText: { fontSize: 14, fontWeight: '800', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
 });

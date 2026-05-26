@@ -151,13 +151,13 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 40, gap: 14 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
-  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold', marginBottom: 4 },
-  title: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'CormorantGaramond_700Bold', marginBottom: 8 },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold', marginBottom: 4 },
+  title: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'BricolageGrotesque_700Bold', marginBottom: 8 },
 
   clearCard: { alignItems: 'center', paddingTop: 60, gap: 10 },
   clearIcon: { fontSize: 40, color: Colors.accentInk },
-  clearTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  clearSub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  clearTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', fontFamily: 'HankenGrotesk_700Bold' },
+  clearSub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'HankenGrotesk_400Regular' },
 
   card: {
     backgroundColor: Colors.surface,
@@ -168,10 +168,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
   },
-  itemId: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  itemAction: { color: Colors.textSecondary, fontSize: 14, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
+  itemId: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
+  itemAction: { color: Colors.textSecondary, fontSize: 14, lineHeight: 20, fontFamily: 'HankenGrotesk_400Regular' },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  severity: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  severity: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
   uploadBtn: {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(200,240,0,0.35)',
@@ -179,5 +179,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  uploadBtnText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  uploadBtnText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
 });

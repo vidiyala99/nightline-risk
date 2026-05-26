@@ -155,13 +155,13 @@ const s = StyleSheet.create({
   title: {
     color: Colors.text,
     fontSize: 16,
-    fontFamily: 'DMSans_600SemiBold',
+    fontFamily: 'HankenGrotesk_600SemiBold',
     marginBottom: 6,
   },
   subtitle: {
     color: Colors.textSecondary,
     fontSize: 13,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
     marginBottom: 16,
     lineHeight: 18,
   },
@@ -194,19 +194,19 @@ const s = StyleSheet.create({
   optionTitle: {
     color: Colors.textSecondary,
     fontSize: 13,
-    fontFamily: 'DMSans_600SemiBold',
+    fontFamily: 'HankenGrotesk_600SemiBold',
   },
   optionTitleSelected: { color: Colors.text },
   optionHint: {
     color: Colors.textMuted,
     fontSize: 12,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
     marginTop: 2,
   },
   label: {
     color: Colors.textSecondary,
     fontSize: 11,
-    fontFamily: 'DMSans_600SemiBold',
+    fontFamily: 'HankenGrotesk_600SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 12,
@@ -218,7 +218,7 @@ const s = StyleSheet.create({
     borderColor: Colors.borderSubtle,
     borderRadius: 10,
     color: Colors.text,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
     fontSize: 13,
     padding: 12,
     minHeight: 72,
@@ -227,7 +227,7 @@ const s = StyleSheet.create({
   error: {
     color: Colors.error,
     fontSize: 12,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
     marginTop: 6,
   },
   row: { flexDirection: 'row', gap: 10, marginTop: 16 },
@@ -239,7 +239,7 @@ const s = StyleSheet.create({
   },
   btnPrimary: { backgroundColor: Colors.accent },
   btnDisabled: { opacity: 0.5 },
-  btnPrimaryText: { color: Colors.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  btnPrimaryText: { color: Colors.text, fontFamily: 'HankenGrotesk_700Bold', fontSize: 14 },
   btnGhost: {
     paddingVertical: 14,
     paddingHorizontal: 20,
@@ -248,5 +248,5 @@ const s = StyleSheet.create({
     borderColor: Colors.border,
     alignItems: 'center',
   },
-  btnGhostText: { color: Colors.textSecondary, fontFamily: 'DMSans_400Regular', fontSize: 14 },
+  btnGhostText: { color: Colors.textSecondary, fontFamily: 'HankenGrotesk_400Regular', fontSize: 14 },
 });

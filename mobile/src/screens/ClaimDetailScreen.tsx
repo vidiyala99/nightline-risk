@@ -100,7 +100,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
       {proposal?.override_recommendation && (
         <View style={[s.card, { borderColor: Colors.warning, borderWidth: 1 }]}>
           <Text style={s.eyebrow}>OPERATOR OVERRIDE</Text>
-          <Text style={{ color: Colors.warning, fontFamily: 'DMSans_700Bold', fontSize: 13 }}>
+          <Text style={{ color: Colors.warning, fontFamily: 'HankenGrotesk_700Bold', fontSize: 13 }}>
             {proposal.override_reason?.replace(/_/g, ' ')}
           </Text>
           {proposal.override_freetext && (
@@ -114,7 +114,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
         <>
           <View style={s.card}>
             <Text style={s.eyebrow}>RECOMMENDER VERDICT</Text>
-            <Text style={{ color: rec.should_file ? Colors.accent : Colors.textMuted, fontFamily: 'DMSans_700Bold', fontSize: 16 }}>
+            <Text style={{ color: rec.should_file ? Colors.accent : Colors.textMuted, fontFamily: 'HankenGrotesk_700Bold', fontSize: 16 }}>
               {rec.should_file ? 'File this claim' : "Don't file"}
             </Text>
             <Text style={s.bodyText}>{Math.round(rec.probability * 100)}% paid-out probability</Text>
@@ -155,7 +155,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
             ))}
             <View style={[s.evRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.borderSubtle, paddingTop: 8 }]}>
               <Text style={s.evRowLabel}>CUMULATIVE</Text>
-              <Text style={[s.evRowVal, { color: Colors.warning, fontFamily: 'JetBrainsMono_700Bold' }]}>+${rec.expected_premium_impact.cumulative_usd.toLocaleString()}</Text>
+              <Text style={[s.evRowVal, { color: Colors.warning, fontFamily: 'SpaceMono_700Bold' }]}>+${rec.expected_premium_impact.cumulative_usd.toLocaleString()}</Text>
             </View>
           </View>
         </>
@@ -235,30 +235,30 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 60 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg, gap: 12 },
-  notFound: { color: Colors.textMuted, fontSize: 15, fontFamily: 'DMSans_400Regular' },
+  notFound: { color: Colors.textMuted, fontSize: 15, fontFamily: 'HankenGrotesk_400Regular' },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 60, marginBottom: 16 },
   backArrow: { color: Colors.accentInk, fontSize: 18 },
-  backLabel: { color: Colors.accentInk, fontSize: 13, fontFamily: 'DMSans_600SemiBold' },
-  back: { color: Colors.accentInk, fontFamily: 'DMSans_600SemiBold' },
-  title: { color: Colors.text, fontSize: 26, fontFamily: 'CormorantGaramond_700Bold', letterSpacing: -0.5 },
-  subtitle: { color: Colors.textMuted, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', marginBottom: 12, textTransform: 'capitalize' },
+  backLabel: { color: Colors.accentInk, fontSize: 13, fontFamily: 'HankenGrotesk_600SemiBold' },
+  back: { color: Colors.accentInk, fontFamily: 'HankenGrotesk_600SemiBold' },
+  title: { color: Colors.text, fontSize: 26, fontFamily: 'BricolageGrotesque_700Bold', letterSpacing: -0.5 },
+  subtitle: { color: Colors.textMuted, fontSize: 12, fontFamily: 'SpaceMono_400Regular', marginBottom: 12, textTransform: 'capitalize' },
   stateBadge: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12 },
-  stateText: { fontSize: 10, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1 },
+  stateText: { fontSize: 10, fontFamily: 'SpaceMono_700Bold', letterSpacing: 1 },
   card: { backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12, gap: 8 },
-  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  bodyText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
+  bodyText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'HankenGrotesk_400Regular' },
   evBox: { flex: 1, borderWidth: 1, borderRadius: 10, padding: 12, gap: 4 },
-  evLabel: { color: Colors.textMuted, fontSize: 10, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1 },
-  evNum: { fontSize: 22, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: -1 },
-  evSub: { color: Colors.textMuted, fontSize: 10, fontFamily: 'DMSans_400Regular' },
+  evLabel: { color: Colors.textMuted, fontSize: 10, fontFamily: 'SpaceMono_700Bold', letterSpacing: 1 },
+  evNum: { fontSize: 22, fontFamily: 'SpaceMono_700Bold', letterSpacing: -1 },
+  evSub: { color: Colors.textMuted, fontSize: 10, fontFamily: 'HankenGrotesk_400Regular' },
   evRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  evRowLabel: { color: Colors.textMuted, fontSize: 10, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1 },
-  evRowVal: { color: Colors.textSecondary, fontSize: 13, fontFamily: 'JetBrainsMono_400Regular' },
+  evRowLabel: { color: Colors.textMuted, fontSize: 10, fontFamily: 'SpaceMono_700Bold', letterSpacing: 1 },
+  evRowVal: { color: Colors.textSecondary, fontSize: 13, fontFamily: 'SpaceMono_400Regular' },
   lifecycle: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.accent, marginTop: 4 },
-  lcTitle: { color: Colors.text, fontSize: 13, fontFamily: 'DMSans_600SemiBold' },
-  lcDate: { color: Colors.textMuted, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
+  lcTitle: { color: Colors.text, fontSize: 13, fontFamily: 'HankenGrotesk_600SemiBold' },
+  lcDate: { color: Colors.textMuted, fontSize: 11, fontFamily: 'SpaceMono_400Regular' },
   notesInput: { backgroundColor: Colors.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, borderRadius: 10, padding: 12, color: Colors.text, fontSize: 13, minHeight: 72, textAlignVertical: 'top' },
   btn: { borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  btnText: { fontSize: 13, fontFamily: 'DMSans_700Bold', letterSpacing: 0.5 },
+  btnText: { fontSize: 13, fontFamily: 'HankenGrotesk_700Bold', letterSpacing: 0.5 },
 });

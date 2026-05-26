@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.5,
     lineHeight: 42,
     marginBottom: 32,
-    fontFamily: 'CormorantGaramond_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
   },
 
   fieldGroup: { marginBottom: 20 },
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2,
     marginBottom: 8,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   input: {
     backgroundColor: Colors.surface,
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     color: Colors.text,
     fontSize: 15,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
 
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   dateTimeText: {
     color: Colors.text,
     fontSize: 15,
-    fontFamily: 'JetBrainsMono_400Regular',
+    fontFamily: 'SpaceMono_400Regular',
     letterSpacing: 0.5,
   },
   dateTimeChevron: {
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 
   toggleCard: {
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.borderSubtle,
   },
-  toggleLabel: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'DMSans_500Medium' },
+  toggleLabel: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium' },
 
   evidenceRow: { flexDirection: 'row', gap: 10 },
   evidenceBtn: {
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   evidenceBtnPressed: { backgroundColor: 'rgba(23,21,15,0.06)' },
-  evidenceBtnText: { color: Colors.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  evidenceBtnText: { color: Colors.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
   thumbScroll: { marginTop: 10 },
   thumb: { width: 72, height: 72, borderRadius: 10, marginRight: 8 },
 
@@ -490,11 +490,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   linkAddBtnPressed: { backgroundColor: 'rgba(200,240,0,0.08)' },
-  linkAddBtnText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  linkAddBtnText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
   linkHint: {
     color: Colors.textMuted,
     fontSize: 10,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
     marginTop: 6,
     lineHeight: 15,
   },
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Colors.textSecondary,
     fontSize: 11,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
   linkChipRemove: {
     color: Colors.textMuted,
@@ -531,5 +531,5 @@ const styles = StyleSheet.create({
   },
   submitPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   submitDisabled: { opacity: 0.5 },
-  submitText: { color: Colors.text, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  submitText: { color: Colors.text, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'HankenGrotesk_700Bold' },
 });

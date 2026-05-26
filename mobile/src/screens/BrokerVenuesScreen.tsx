@@ -182,8 +182,8 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   header: { paddingHorizontal: 20, paddingBottom: 16 },
-  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold', marginBottom: 4 },
-  title: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'CormorantGaramond_700Bold' },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold', marginBottom: 4 },
+  title: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'BricolageGrotesque_700Bold' },
 
   searchWrap: {
     marginHorizontal: 20,
@@ -203,11 +203,11 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Colors.text,
     fontSize: 14,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
     paddingVertical: 0,
   },
 
-  sectionEyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, paddingHorizontal: 20, marginBottom: 12, fontFamily: 'JetBrainsMono_700Bold' },
+  sectionEyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, paddingHorizontal: 20, marginBottom: 12, fontFamily: 'SpaceMono_700Bold' },
 
   list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
   card: {
@@ -218,14 +218,14 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 4,
   },
-  venueType: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  venueName: { color: Colors.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.3, fontFamily: 'DMSans_600SemiBold' },
-  venueAddress: { color: Colors.textMuted, fontSize: 11, fontFamily: 'DMSans_400Regular' },
+  venueType: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
+  venueName: { color: Colors.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.3, fontFamily: 'HankenGrotesk_600SemiBold' },
+  venueAddress: { color: Colors.textMuted, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
 
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  metaItem: { color: Colors.textSecondary, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
+  metaItem: { color: Colors.textSecondary, fontSize: 11, fontFamily: 'SpaceMono_400Regular' },
 
-  viewDetail: { color: Colors.accentInk, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold', marginTop: 6 },
+  viewDetail: { color: Colors.accentInk, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold', marginTop: 6 },
 
   filterBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 14, flexWrap: 'wrap' },
   chip: {
@@ -233,21 +233,21 @@ const styles = StyleSheet.create({
     borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
   },
   chipActive: { borderColor: Colors.accent },
-  chipText: { color: Colors.textSecondary, fontFamily: 'DMSans_500Medium', fontSize: 12 },
+  chipText: { color: Colors.textSecondary, fontFamily: 'HankenGrotesk_500Medium', fontSize: 12 },
   chipTextActive: { color: Colors.accentInk },
-  chipCount: { color: Colors.textSecondary, fontFamily: 'JetBrainsMono_700Bold', fontSize: 10, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(23,21,15,0.06)' },
+  chipCount: { color: Colors.textSecondary, fontFamily: 'SpaceMono_700Bold', fontSize: 10, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(23,21,15,0.06)' },
   chipCountActive: { color: Colors.accentInk },
 
   cardProspect: { borderStyle: 'dashed', borderColor: 'rgba(200,240,0,0.25)' },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   prospectBadge: {
-    color: Colors.accentInk, fontSize: 9, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1,
+    color: Colors.accentInk, fontSize: 9, fontFamily: 'SpaceMono_700Bold', letterSpacing: 1,
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.accent, borderRadius: 999,
     paddingHorizontal: 7, paddingVertical: 1, overflow: 'hidden',
   },
-  prospectSavings: { color: Colors.accentInk, fontSize: 12, fontFamily: 'JetBrainsMono_700Bold', marginTop: 4 },
+  prospectSavings: { color: Colors.accentInk, fontSize: 12, fontFamily: 'SpaceMono_700Bold', marginTop: 4 },
 
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
-  emptyTitle: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  emptySub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  emptyTitle: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'HankenGrotesk_700Bold' },
+  emptySub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'HankenGrotesk_400Regular' },
 });

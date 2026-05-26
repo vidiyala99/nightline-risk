@@ -52,6 +52,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1.2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 });

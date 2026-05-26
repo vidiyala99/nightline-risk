@@ -9,18 +9,18 @@
 
 export const Fonts = {
   // Display — editorial headings (wordmark, hero, venue names)
-  displayBold:    'CormorantGaramond_700Bold',
-  displayItalic:  'CormorantGaramond_600SemiBold_Italic',
+  displayBold:    'BricolageGrotesque_700Bold',
+  displayItalic:  'Caveat_600SemiBold',
 
   // Body — all UI text, labels, buttons
-  sansRegular:    'DMSans_400Regular',
-  sansMedium:     'DMSans_500Medium',
-  sansSemiBold:   'DMSans_600SemiBold',
-  sansBold:       'DMSans_700Bold',
+  sansRegular:    'HankenGrotesk_400Regular',
+  sansMedium:     'HankenGrotesk_500Medium',
+  sansSemiBold:   'HankenGrotesk_600SemiBold',
+  sansBold:       'HankenGrotesk_700Bold',
 
   // Mono — data values, IDs, timestamps, status badges, eyebrows
-  monoRegular:    'JetBrainsMono_400Regular',
-  monoBold:       'JetBrainsMono_700Bold',
+  monoRegular:    'SpaceMono_400Regular',
+  monoBold:       'SpaceMono_700Bold',
 };
 
 /** Shared text styles — import and spread in StyleSheet.create() */

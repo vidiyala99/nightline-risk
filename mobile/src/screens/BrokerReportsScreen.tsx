@@ -333,14 +333,14 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.5,
-    fontFamily: 'CormorantGaramond_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
   },
   signOut: {
     color: Colors.textSecondary,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.5,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 
   // ── Stats bar ────────────────────────────────────────────────────────────
@@ -363,14 +363,14 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
     letterSpacing: -0.3,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   statLabel: {
     color: Colors.textMuted,
     fontSize: 8,
     fontWeight: '700',
     letterSpacing: 1.2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   statDivider: {
     width: StyleSheet.hairlineWidth,
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontSize: 12,
     fontWeight: '600',
-    fontFamily: 'DMSans_500Medium',
+    fontFamily: 'HankenGrotesk_500Medium',
   },
   chipTextActive: {
     color: Colors.text,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.1,
-    fontFamily: 'DMSans_600SemiBold',
+    fontFamily: 'HankenGrotesk_600SemiBold',
   },
   statusBadge: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1.2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 
   // Risk type label
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     textTransform: 'lowercase',
-    fontFamily: 'DMSans_500Medium',
+    fontFamily: 'HankenGrotesk_500Medium',
   },
 
   // Severity + confidence row
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   confidenceWrap: {
     flex: 1,
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     width: 32,
     textAlign: 'right',
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 
   // Memo + date
@@ -510,12 +510,12 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
   date: {
     color: Colors.border,
     fontSize: 11,
-    fontFamily: 'JetBrainsMono_400Regular',
+    fontFamily: 'SpaceMono_400Regular',
   },
 
   // Empty state
@@ -534,13 +534,13 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 18,
     fontWeight: '700',
-    fontFamily: 'DMSans_700Bold',
+    fontFamily: 'HankenGrotesk_700Bold',
   },
   emptySub: {
     color: Colors.textMuted,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
 });

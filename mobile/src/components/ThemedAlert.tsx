@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
     marginBottom: 4,
   },
   title: {
@@ -163,13 +163,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: -0.3,
-    fontFamily: 'CormorantGaramond_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
   },
   message: {
     color: Colors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
     marginTop: 4,
   },
   buttonRow: {
@@ -191,6 +191,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 });

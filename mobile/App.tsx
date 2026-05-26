@@ -6,23 +6,20 @@ import { enableScreens } from 'react-native-screens';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 
+import { BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque';
 import {
-  CormorantGaramond_700Bold,
-  CormorantGaramond_600SemiBold_Italic,
-} from '@expo-google-fonts/cormorant-garamond';
-
+  HankenGrotesk_400Regular,
+  HankenGrotesk_500Medium,
+  HankenGrotesk_600SemiBold,
+  HankenGrotesk_700Bold,
+} from '@expo-google-fonts/hanken-grotesk';
 import {
-  DMSans_400Regular,
-  DMSans_500Medium,
-  DMSans_600SemiBold,
-  DMSans_700Bold,
-} from '@expo-google-fonts/dm-sans';
+  SpaceMono_400Regular,
+  SpaceMono_700Bold,
+} from '@expo-google-fonts/space-mono';
+import { Caveat_600SemiBold } from '@expo-google-fonts/caveat';
 
-import {
-  JetBrainsMono_400Regular,
-  JetBrainsMono_700Bold,
-} from '@expo-google-fonts/jetbrains-mono';
-
+import { Colors } from './src/theme/colors';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { TabNavigator } from './src/navigation/TabNavigator';
 import { AuthStack } from './src/navigation/AuthStack';
@@ -35,8 +32,8 @@ function RootNavigator() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' }}>
-        <ActivityIndicator color="#c8f000" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg }}>
+        <ActivityIndicator color={Colors.accentInk} />
       </View>
     );
   }
@@ -46,20 +43,20 @@ function RootNavigator() {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    CormorantGaramond_700Bold,
-    CormorantGaramond_600SemiBold_Italic,
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_600SemiBold,
-    DMSans_700Bold,
-    JetBrainsMono_400Regular,
-    JetBrainsMono_700Bold,
+    BricolageGrotesque_700Bold,
+    HankenGrotesk_400Regular,
+    HankenGrotesk_500Medium,
+    HankenGrotesk_600SemiBold,
+    HankenGrotesk_700Bold,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
+    Caveat_600SemiBold,
   });
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' }}>
-        <ActivityIndicator color="#c8f000" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg }}>
+        <ActivityIndicator color={Colors.accentInk} />
       </View>
     );
   }

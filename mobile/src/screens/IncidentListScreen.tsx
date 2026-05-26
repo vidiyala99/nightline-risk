@@ -152,17 +152,17 @@ const styles = StyleSheet.create({
 
   header: { paddingHorizontal: 20, paddingBottom: 16, gap: 16 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingVertical: 4, paddingLeft: 12, fontFamily: 'JetBrainsMono_700Bold' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingVertical: 4, paddingLeft: 12, fontFamily: 'SpaceMono_700Bold' },
   addBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center' },
   addBtnText: { color: Colors.text, fontSize: 20, fontWeight: '800', lineHeight: 24 },
-  title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'BricolageGrotesque_700Bold' },
   countBadge: {
     backgroundColor: 'rgba(200,240,0,0.12)',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  countText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', fontFamily: 'JetBrainsMono_700Bold' },
+  countText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
 
   filters: { flexDirection: 'row', gap: 8 },
   chip: {
@@ -174,8 +174,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   chipActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  chipText: { color: Colors.textMuted, fontSize: 12, fontWeight: '600', fontFamily: 'JetBrainsMono_400Regular' },
-  chipTextActive: { color: Colors.text, fontFamily: 'JetBrainsMono_400Regular' },
+  chipText: { color: Colors.textMuted, fontSize: 12, fontWeight: '600', fontFamily: 'SpaceMono_400Regular' },
+  chipTextActive: { color: Colors.text, fontFamily: 'SpaceMono_400Regular' },
 
   list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
   card: {
@@ -188,9 +188,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  location: { color: Colors.text, fontSize: 15, fontWeight: '700', flex: 1, fontFamily: 'DMSans_600SemiBold' },
-  date: { color: Colors.textMuted, fontSize: 11, fontWeight: '600', letterSpacing: 0.3, fontFamily: 'JetBrainsMono_400Regular' },
-  summary: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'DMSans_400Regular' },
+  location: { color: Colors.text, fontSize: 15, fontWeight: '700', flex: 1, fontFamily: 'HankenGrotesk_600SemiBold' },
+  date: { color: Colors.textMuted, fontSize: 11, fontWeight: '600', letterSpacing: 0.3, fontFamily: 'SpaceMono_400Regular' },
+  summary: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'HankenGrotesk_400Regular' },
   cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   flag: {
     paddingHorizontal: 7,
@@ -200,9 +200,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,69,87,0.3)',
   },
-  flagText: { color: Colors.error, fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  flagText: { color: Colors.error, fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
 
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
-  emptyTitle: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  emptySub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', fontFamily: 'DMSans_400Regular' },
+  emptyTitle: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'HankenGrotesk_700Bold' },
+  emptySub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', fontFamily: 'HankenGrotesk_400Regular' },
 });

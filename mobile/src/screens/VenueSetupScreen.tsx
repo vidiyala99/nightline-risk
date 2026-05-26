@@ -191,14 +191,14 @@ const styles = StyleSheet.create({
 
   header: { gap: 6 },
   backBtn: { marginBottom: 16 },
-  backText: { color: Colors.textMuted, fontSize: 13, fontFamily: 'DMSans_400Regular' },
+  backText: { color: Colors.textMuted, fontSize: 13, fontFamily: 'HankenGrotesk_400Regular' },
   eyebrow: {
     color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2.5,
     marginBottom: 4,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   title: {
     color: Colors.text,
@@ -206,14 +206,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -1.5,
     lineHeight: 42,
-    fontFamily: 'CormorantGaramond_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
   },
   subtitle: {
     color: Colors.textMuted,
     fontSize: 13,
     lineHeight: 20,
     marginTop: 8,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
 
   form: { gap: 16 },
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   input: {
     backgroundColor: Colors.surface,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     color: Colors.text,
     fontSize: 15,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
 
   typeScroll: { marginTop: 2 },
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   typeChipActive: { borderColor: Colors.accent, backgroundColor: 'rgba(200,240,0,0.06)' },
-  typeChipText: { color: Colors.textMuted, fontSize: 12, fontFamily: 'DMSans_400Regular' },
+  typeChipText: { color: Colors.textMuted, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular' },
   typeChipTextActive: { color: Colors.accentInk },
 
   btn: {
@@ -261,5 +261,5 @@ const styles = StyleSheet.create({
   },
   btnPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   btnDisabled: { opacity: 0.5 },
-  btnText: { color: Colors.text, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  btnText: { color: Colors.text, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'HankenGrotesk_700Bold' },
 });

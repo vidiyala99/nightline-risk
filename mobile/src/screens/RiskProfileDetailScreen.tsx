@@ -281,31 +281,31 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
         return (
           <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: rateColor }]}>
             <Text style={styles.eyebrow}>OVERRIDE CALIBRATION</Text>
-            <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'DMSans_400Regular', marginTop: -8 }}>
+            <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular', marginTop: -8 }}>
               How often operator overrides align with broker decisions
             </Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: `${rateColor}44`, borderRadius: 10 }}>
-                <Text style={{ color: rateColor, fontSize: 28, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: -1 }}>
+                <Text style={{ color: rateColor, fontSize: 28, fontFamily: 'SpaceMono_700Bold', letterSpacing: -1 }}>
                   {right == null ? '—' : `${Math.round(right * 100)}%`}
                 </Text>
                 <Text style={styles.eyebrow}>OVERRIDES</Text>
-                <Text style={{ color: Colors.textMuted, fontSize: 10, fontFamily: 'JetBrainsMono_400Regular', marginTop: 2 }}>
+                <Text style={{ color: Colors.textMuted, fontSize: 10, fontFamily: 'SpaceMono_400Regular', marginTop: 2 }}>
                   {decided} of {overrideStats.override_total} decided
                 </Text>
               </View>
               <View style={{ flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 10 }}>
-                <Text style={{ color: Colors.textSecondary, fontSize: 28, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: -1 }}>
+                <Text style={{ color: Colors.textSecondary, fontSize: 28, fontFamily: 'SpaceMono_700Bold', letterSpacing: -1 }}>
                   {base == null ? '—' : `${Math.round(base * 100)}%`}
                 </Text>
                 <Text style={styles.eyebrow}>BASELINE</Text>
-                <Text style={{ color: Colors.textMuted, fontSize: 10, fontFamily: 'JetBrainsMono_400Regular', marginTop: 2 }}>
+                <Text style={{ color: Colors.textMuted, fontSize: 10, fontFamily: 'SpaceMono_400Regular', marginTop: 2 }}>
                   Non-overrides
                 </Text>
               </View>
               {delta != null && (
                 <View style={{ flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 10 }}>
-                  <Text style={{ color: delta >= 0 ? Colors.accent : Colors.error, fontSize: 24, fontFamily: 'JetBrainsMono_700Bold' }}>
+                  <Text style={{ color: delta >= 0 ? Colors.accent : Colors.error, fontSize: 24, fontFamily: 'SpaceMono_700Bold' }}>
                     {delta >= 0 ? '+' : ''}{delta}
                   </Text>
                   <Text style={styles.eyebrow}>DELTA PP</Text>
@@ -317,10 +317,10 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
               const rr = d > 0 ? Math.round(counts.approved / d * 100) : null;
               return (
                 <View key={reason} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' }}>
-                  <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'DMSans_400Regular', textTransform: 'capitalize' }}>
+                  <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular', textTransform: 'capitalize' }}>
                     {reason.replace(/_/g, ' ')}
                   </Text>
-                  <Text style={{ color: rr == null ? Colors.textMuted : rr >= 70 ? Colors.accent : rr >= 40 ? Colors.warning : Colors.error, fontFamily: 'JetBrainsMono_700Bold', fontSize: 12 }}>
+                  <Text style={{ color: rr == null ? Colors.textMuted : rr >= 70 ? Colors.accent : rr >= 40 ? Colors.warning : Colors.error, fontFamily: 'SpaceMono_700Bold', fontSize: 12 }}>
                     {rr == null ? 'pending' : `${rr}%`}
                   </Text>
                 </View>
@@ -340,58 +340,58 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   backArrow: { color: Colors.accentInk, fontSize: 18 },
-  backLabel: { color: Colors.accentInk, fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  backLabel: { color: Colors.accentInk, fontSize: 13, fontWeight: '600', fontFamily: 'HankenGrotesk_600SemiBold' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
 
-  venueName: { color: Colors.textMuted, fontSize: 13, fontFamily: 'DMSans_400Regular', marginBottom: 2 },
-  screenTitle: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -0.5, marginBottom: 20, fontFamily: 'CormorantGaramond_700Bold' },
+  venueName: { color: Colors.textMuted, fontSize: 13, fontFamily: 'HankenGrotesk_400Regular', marginBottom: 2 },
+  screenTitle: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -0.5, marginBottom: 20, fontFamily: 'BricolageGrotesque_700Bold' },
 
   scoreCard: {
     backgroundColor: Colors.surface, borderWidth: 1, borderRadius: 16,
     padding: 20, marginBottom: 12,
   },
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  tierGlyph: { fontSize: 72, fontWeight: '800', letterSpacing: -2, lineHeight: 72, fontFamily: 'CormorantGaramond_700Bold' },
+  tierGlyph: { fontSize: 72, fontWeight: '800', letterSpacing: -2, lineHeight: 72, fontFamily: 'BricolageGrotesque_700Bold' },
   scoreDetail: { flex: 1, gap: 4 },
-  scoreNum: { fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  scoreMax: { fontSize: 16, color: Colors.textMuted, fontFamily: 'DMSans_400Regular' },
-  tierLabel: { color: Colors.textMuted, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
-  savingsNote: { color: Colors.accentInk, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
+  scoreNum: { fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
+  scoreMax: { fontSize: 16, color: Colors.textMuted, fontFamily: 'HankenGrotesk_400Regular' },
+  tierLabel: { color: Colors.textMuted, fontSize: 12, fontFamily: 'SpaceMono_400Regular' },
+  savingsNote: { color: Colors.accentInk, fontSize: 12, fontFamily: 'SpaceMono_400Regular', marginTop: 4 },
 
   framingCard: {
     backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12, gap: 8,
   },
-  framingTitle: { color: Colors.text, fontSize: 16, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  framingBody: { color: Colors.textSecondary, fontSize: 14, lineHeight: 22, fontFamily: 'DMSans_400Regular' },
+  framingTitle: { color: Colors.text, fontSize: 16, fontWeight: '700', fontFamily: 'HankenGrotesk_700Bold' },
+  framingBody: { color: Colors.textSecondary, fontSize: 14, lineHeight: 22, fontFamily: 'HankenGrotesk_400Regular' },
 
   card: {
     backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12, gap: 14,
   },
-  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
 
   factorList: { gap: 18 },
   factorItem: { gap: 6 },
-  factorExplain: { fontSize: 12, lineHeight: 17, fontFamily: 'DMSans_400Regular' },
+  factorExplain: { fontSize: 12, lineHeight: 17, fontFamily: 'HankenGrotesk_400Regular' },
 
   insightRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  insightIcon: { fontSize: 16, fontWeight: '700', color: Colors.accentInk, width: 16, fontFamily: 'JetBrainsMono_700Bold' },
+  insightIcon: { fontSize: 16, fontWeight: '700', color: Colors.accentInk, width: 16, fontFamily: 'SpaceMono_700Bold' },
   insightContent: { flex: 1, gap: 3 },
-  insightLabel: { color: Colors.text, fontSize: 14, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  insightText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'DMSans_400Regular' },
-  insightAction: { fontSize: 12, fontWeight: '700', marginTop: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  insightLabel: { color: Colors.text, fontSize: 14, fontWeight: '600', fontFamily: 'HankenGrotesk_600SemiBold' },
+  insightText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'HankenGrotesk_400Regular' },
+  insightAction: { fontSize: 12, fontWeight: '700', marginTop: 2, fontFamily: 'SpaceMono_700Bold' },
 
   premiumRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)',
   },
-  premiumLabel: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'DMSans_400Regular' },
-  premiumValue: { fontSize: 18, fontWeight: '800', fontFamily: 'JetBrainsMono_700Bold' },
-  premiumValueSub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'JetBrainsMono_400Regular' },
+  premiumLabel: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'HankenGrotesk_400Regular' },
+  premiumValue: { fontSize: 18, fontWeight: '800', fontFamily: 'SpaceMono_700Bold' },
+  premiumValueSub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'SpaceMono_400Regular' },
   upgradeCard: {
     borderWidth: 1, borderRadius: 10, padding: 12, marginTop: 4,
     backgroundColor: 'rgba(200,240,0,0.04)',
   },
-  upgradeText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'DMSans_400Regular' },
+  upgradeText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'HankenGrotesk_400Regular' },
 });

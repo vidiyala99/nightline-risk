@@ -164,15 +164,15 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   backBtn: { paddingVertical: 6 },
-  backText: { color: Colors.textSecondary, fontSize: 13, fontFamily: 'DMSans_500Medium' },
+  backText: { color: Colors.textSecondary, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium' },
 
   eyebrow: {
     color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2,
-    fontFamily: 'JetBrainsMono_700Bold', marginTop: 4,
+    fontFamily: 'SpaceMono_700Bold', marginTop: 4,
   },
   title: {
     color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5,
-    fontFamily: 'CormorantGaramond_700Bold', marginBottom: 4,
+    fontFamily: 'BricolageGrotesque_700Bold', marginBottom: 4,
   },
 
   card: {
@@ -184,13 +184,13 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
-  severity: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  description: { color: Colors.text, fontSize: 15, lineHeight: 22, fontFamily: 'DMSans_400Regular' },
+  severity: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
+  description: { color: Colors.text, fontSize: 15, lineHeight: 22, fontFamily: 'HankenGrotesk_400Regular' },
   itemIdLabel: {
     color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5,
-    fontFamily: 'JetBrainsMono_700Bold', marginTop: 6,
+    fontFamily: 'SpaceMono_700Bold', marginTop: 6,
   },
-  itemId: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  itemId: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'SpaceMono_400Regular' },
 
   uploadBtn: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -200,10 +200,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  uploadBtnText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  uploadBtnText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
 
   emptyWrap: { alignItems: 'center', paddingTop: 80, gap: 10 },
   emptyIcon: { fontSize: 48, color: Colors.accentInk },
-  emptyTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  emptySub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', paddingHorizontal: 30, fontFamily: 'DMSans_400Regular' },
+  emptyTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', fontFamily: 'HankenGrotesk_700Bold' },
+  emptySub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', paddingHorizontal: 30, fontFamily: 'HankenGrotesk_400Regular' },
 });

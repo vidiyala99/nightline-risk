@@ -203,10 +203,10 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   header: { paddingHorizontal: 20, paddingBottom: 16, gap: 6 },
-  title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
-  subtitle: { color: Colors.textMuted, fontSize: 13, fontFamily: 'DMSans_400Regular' },
+  title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'BricolageGrotesque_700Bold' },
+  subtitle: { color: Colors.textMuted, fontSize: 13, fontFamily: 'HankenGrotesk_400Regular' },
   backLink: { paddingTop: 4 },
-  backLinkText: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'DMSans_500Medium' },
+  backLinkText: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium' },
 
   list: { paddingHorizontal: 20, paddingBottom: 48, gap: 10, flexGrow: 1 },
 
@@ -220,13 +220,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   venueCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  venueName: { color: Colors.text, fontSize: 16, fontWeight: '700', fontFamily: 'DMSans_600SemiBold' },
-  venueType: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginTop: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  address: { color: Colors.textMuted, fontSize: 12, fontFamily: 'DMSans_400Regular' },
-  tapHint: { color: Colors.accentInk, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold' },
+  venueName: { color: Colors.text, fontSize: 16, fontWeight: '700', fontFamily: 'HankenGrotesk_600SemiBold' },
+  venueType: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginTop: 2, fontFamily: 'SpaceMono_700Bold' },
+  address: { color: Colors.textMuted, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular' },
+  tapHint: { color: Colors.accentInk, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold' },
   countBadge: { alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.1)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
-  countNum: { color: Colors.warning, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'JetBrainsMono_700Bold' },
-  countLabel: { color: Colors.warning, fontSize: 8, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  countNum: { color: Colors.warning, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'SpaceMono_700Bold' },
+  countLabel: { color: Colors.warning, fontSize: 8, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
 
   // Scoped mode — item rows
   itemRow: {
@@ -241,12 +241,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
-  itemTitle: { color: Colors.text, fontSize: 14, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  itemDesc: { color: Colors.textSecondary, fontSize: 12, lineHeight: 16, fontFamily: 'DMSans_400Regular' },
-  itemSev: { fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  itemTitle: { color: Colors.text, fontSize: 14, fontWeight: '600', fontFamily: 'HankenGrotesk_600SemiBold' },
+  itemDesc: { color: Colors.textSecondary, fontSize: 12, lineHeight: 16, fontFamily: 'HankenGrotesk_400Regular' },
+  itemSev: { fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
 
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 100, gap: 10 },
   emptyIcon: { fontSize: 48, color: Colors.accentInk },
-  emptyTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  emptySub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', paddingHorizontal: 40, fontFamily: 'DMSans_400Regular' },
+  emptyTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', fontFamily: 'HankenGrotesk_700Bold' },
+  emptySub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', paddingHorizontal: 40, fontFamily: 'HankenGrotesk_400Regular' },
 });

@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginBottom: 8,
     textAlign: 'center',
-    fontFamily: 'CormorantGaramond_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
   },
   brokerBody: {
     color: Colors.textMuted,
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
   signOut: {
     color: Colors.textSecondary,
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     paddingTop: 4,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 
   // Hero
@@ -468,10 +468,10 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 4,
   },
-  savingsEyebrow: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  savingsAmount: { color: Colors.accentInk, fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  savingsPerYear: { color: Colors.textSecondary, fontSize: 16, fontWeight: '400', fontFamily: 'DMSans_400Regular' },
-  savingsSub: { color: Colors.textSecondary, fontSize: 12, lineHeight: 18, fontFamily: 'JetBrainsMono_400Regular' },
+  savingsEyebrow: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
+  savingsAmount: { color: Colors.accentInk, fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
+  savingsPerYear: { color: Colors.textSecondary, fontSize: 16, fontWeight: '400', fontFamily: 'HankenGrotesk_400Regular' },
+  savingsSub: { color: Colors.textSecondary, fontSize: 12, lineHeight: 18, fontFamily: 'SpaceMono_400Regular' },
 
   heroSection: {
     marginBottom: 24,
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     lineHeight: 38,
     marginBottom: 8,
-    fontFamily: 'CormorantGaramond_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
   },
   heroAccent: {
     color: Colors.accentInk,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontSize: 13,
     lineHeight: 19,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
 
   // Venue switcher
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   chipRow: {
     gap: 8,
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 13,
     fontWeight: '600',
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
   chipTextActive: {
     color: Colors.accentInk,
@@ -556,14 +556,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     marginBottom: 6,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   statValue: {
     color: Colors.text,
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.5,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   statError: {
     color: Colors.error,
@@ -590,15 +590,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 12,
   },
-  coverageLinkLabel: { color: Colors.accentInk, fontSize: 11, letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  coverageLinkArrow: { color: Colors.accentInk, fontSize: 16, fontFamily: 'JetBrainsMono_700Bold' },
+  coverageLinkLabel: { color: Colors.accentInk, fontSize: 11, letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
+  coverageLinkArrow: { color: Colors.accentInk, fontSize: 16, fontFamily: 'SpaceMono_700Bold' },
   sectionEyebrow: {
     color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
     marginBottom: 14,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 
   // Error state
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: 14,
     fontWeight: '800',
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
     lineHeight: 16,
   },
   errorEyebrow: {
@@ -638,20 +638,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   errorHeading: {
     color: Colors.text,
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: -0.5,
-    fontFamily: 'CormorantGaramond_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
   },
   errorBody: {
     color: Colors.textSecondary,
     fontSize: 13,
     lineHeight: 20,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
   retryBtn: {
     alignSelf: 'flex-start',
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 
   // Empty state
@@ -685,26 +685,26 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   emptyHeading: {
     color: Colors.text,
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: -0.5,
-    fontFamily: 'CormorantGaramond_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
   },
   emptyBody: {
     color: Colors.textMuted,
     fontSize: 13,
     lineHeight: 20,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
   emptyAction: {
     color: Colors.accentInk,
     fontSize: 13,
     fontWeight: '700',
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
     marginTop: 4,
   },
 
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   scoreGroup: {
     flexDirection: 'row',
@@ -739,17 +739,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -2,
     lineHeight: 52,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   scoreMax: {
     color: Colors.textMuted,
     fontSize: 16,
     fontWeight: '500',
     paddingBottom: 6,
-    fontFamily: 'DMSans_500Medium',
+    fontFamily: 'HankenGrotesk_500Medium',
   },
   factorList: { gap: 16 },
-  tapHint: { color: Colors.textMuted, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
+  tapHint: { color: Colors.textMuted, fontSize: 11, fontFamily: 'SpaceMono_400Regular', marginTop: 4 },
 
   // Quote card
   quoteCard: {
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     marginBottom: 12,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   premiumAmount: {
     color: Colors.text,
@@ -775,25 +775,25 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -1.5,
     lineHeight: 44,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   premiumSub: {
     color: Colors.textMuted,
     fontSize: 12,
     marginBottom: 10,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
   premiumMonthly: {
     color: Colors.text,
     fontSize: 20,
     fontWeight: '600',
     letterSpacing: -0.5,
-    fontFamily: 'JetBrainsMono_400Regular',
+    fontFamily: 'SpaceMono_400Regular',
   },
   premiumMonthlySub: {
     color: Colors.textMuted,
     fontSize: 13,
     fontWeight: '400',
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
 });

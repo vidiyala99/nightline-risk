@@ -297,10 +297,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
-  empty: { color: Colors.textMuted, fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  empty: { color: Colors.textMuted, fontSize: 14, fontFamily: 'HankenGrotesk_400Regular' },
 
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'BricolageGrotesque_700Bold' },
   livePill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -313,8 +313,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,240,0,0.25)',
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
-  liveText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  liveText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
 
   savingsCard: {
     backgroundColor: 'rgba(200,240,0,0.05)',
@@ -324,10 +324,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 6,
   },
-  savingsEyebrow: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  savingsAmount: { color: Colors.accentInk, fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  savingsPerYear: { color: Colors.textSecondary, fontSize: 16, fontWeight: '400', fontFamily: 'DMSans_400Regular' },
-  savingsSub: { color: Colors.textSecondary, fontSize: 12, lineHeight: 18, fontFamily: 'JetBrainsMono_400Regular' },
+  savingsEyebrow: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
+  savingsAmount: { color: Colors.accentInk, fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
+  savingsPerYear: { color: Colors.textSecondary, fontSize: 16, fontWeight: '400', fontFamily: 'HankenGrotesk_400Regular' },
+  savingsSub: { color: Colors.textSecondary, fontSize: 12, lineHeight: 18, fontFamily: 'SpaceMono_400Regular' },
 
   degradedWarning: {
     backgroundColor: 'rgba(255,149,0,0.08)',
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
   },
-  degradedWarningText: { color: Colors.warning, fontSize: 12, lineHeight: 17, fontFamily: 'JetBrainsMono_400Regular' },
+  degradedWarningText: { color: Colors.warning, fontSize: 12, lineHeight: 17, fontFamily: 'SpaceMono_400Regular' },
   infraRowDegraded: { backgroundColor: 'rgba(255,149,0,0.04)', borderRadius: 6, paddingHorizontal: 6 },
 
   coverageRow: {
@@ -347,8 +347,8 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(23,21,15,0.06)',
   },
-  coverageName: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'DMSans_400Regular' },
-  coverageStatus: { fontSize: 11, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  coverageName: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'HankenGrotesk_400Regular' },
+  coverageStatus: { fontSize: 11, fontWeight: '700', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
 
   statsRow: { flexDirection: 'row', gap: 10 },
   statCard: {
@@ -360,9 +360,9 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 4,
   },
-  statEyebrow: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  statBig: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  statSub: { color: Colors.textMuted, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  statEyebrow: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
+  statBig: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
+  statSub: { color: Colors.textMuted, fontSize: 12, fontFamily: 'SpaceMono_400Regular' },
 
   card: {
     backgroundColor: Colors.surface,
@@ -381,12 +381,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
 
   capacityNumbers: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-  capacityBig: { fontSize: 48, fontWeight: '800', letterSpacing: -2, lineHeight: 48, fontFamily: 'JetBrainsMono_700Bold' },
-  capacityMax: { color: Colors.textMuted, fontSize: 16, paddingBottom: 4, fontFamily: 'DMSans_400Regular' },
+  capacityBig: { fontSize: 48, fontWeight: '800', letterSpacing: -2, lineHeight: 48, fontFamily: 'SpaceMono_700Bold' },
+  capacityMax: { color: Colors.textMuted, fontSize: 16, paddingBottom: 4, fontFamily: 'HankenGrotesk_400Regular' },
 
   infraRow: {
     flexDirection: 'row',
@@ -396,10 +396,10 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(23,21,15,0.06)',
   },
   infraDot: { width: 7, height: 7, borderRadius: 4, marginRight: 12 },
-  infraName: { color: Colors.textSecondary, fontSize: 13, flex: 1, textTransform: 'capitalize', fontFamily: 'DMSans_400Regular' },
-  infraStatus: { fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  infraName: { color: Colors.textSecondary, fontSize: 13, flex: 1, textTransform: 'capitalize', fontFamily: 'HankenGrotesk_400Regular' },
+  infraStatus: { fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
 
-  complianceClear: { color: Colors.textMuted, fontSize: 13, lineHeight: 20, fontFamily: 'JetBrainsMono_400Regular' },
+  complianceClear: { color: Colors.textMuted, fontSize: 13, lineHeight: 20, fontFamily: 'SpaceMono_400Regular' },
   queueRow: {
     borderLeftWidth: 2,
     paddingLeft: 12,
@@ -407,8 +407,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   queueContent: { gap: 2 },
-  queueAction: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18, fontFamily: 'DMSans_400Regular' },
-  queuePriority: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, fontFamily: 'JetBrainsMono_700Bold' },
+  queueAction: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18, fontFamily: 'HankenGrotesk_400Regular' },
+  queuePriority: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, fontFamily: 'SpaceMono_700Bold' },
   uploadBtn: {
     alignSelf: 'flex-start',
     borderWidth: 1,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   uploadBtnText: {
     color: Colors.accentInk,
     fontSize: 11,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
     letterSpacing: 0.8,
   },
 });

@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2.5,
     marginBottom: 8,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   wordmark: {
     color: Colors.text,
@@ -224,14 +224,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -2,
     lineHeight: 52,
-    fontFamily: 'CormorantGaramond_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
   },
   tagline: {
     color: Colors.accentInk,
     fontSize: 16,
     fontStyle: 'italic',
     marginTop: 8,
-    fontFamily: 'CormorantGaramond_600SemiBold_Italic',
+    fontFamily: 'Caveat_600SemiBold',
   },
 
   form: { gap: 16 },
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   input: {
     backgroundColor: Colors.surface,
@@ -252,12 +252,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     color: Colors.text,
     fontSize: 15,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
   passwordWrap: { position: 'relative' },
   passwordInput: { paddingRight: 64 },
   eyeBtn: { position: 'absolute', right: 16, top: 0, bottom: 0, justifyContent: 'center' },
-  eyeText: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  eyeText: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
 
   inputError: {
     borderColor: 'rgba(255,69,87,0.5)',
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   fieldError: {
     color: Colors.error,
     fontSize: 11,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
     marginTop: 2,
   },
 
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: 11,
     fontWeight: '800',
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
     lineHeight: 13,
   },
   errorText: {
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: 13,
     lineHeight: 19,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'HankenGrotesk_400Regular',
   },
 
   roleRow: { flexDirection: 'row', gap: 10 },
@@ -326,10 +326,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.5,
-    fontFamily: 'JetBrainsMono_700Bold',
+    fontFamily: 'SpaceMono_700Bold',
   },
   roleBtnLabelActive: { color: Colors.accentInk },
-  roleBtnSub: { color: Colors.textMuted, fontSize: 12, fontFamily: 'DMSans_400Regular' },
+  roleBtnSub: { color: Colors.textMuted, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular' },
 
   btn: {
     backgroundColor: Colors.accent,
@@ -345,9 +345,9 @@ const styles = StyleSheet.create({
   },
   btnPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   btnDisabled: { opacity: 0.5 },
-  btnText: { color: Colors.text, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  btnText: { color: Colors.text, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'HankenGrotesk_700Bold' },
   btnTextError: { color: Colors.error },
 
   backLink: { alignItems: 'center', paddingVertical: 8 },
-  backLinkText: { color: Colors.textMuted, fontSize: 13, fontFamily: 'DMSans_400Regular' },
+  backLinkText: { color: Colors.textMuted, fontSize: 13, fontFamily: 'HankenGrotesk_400Regular' },
 });
