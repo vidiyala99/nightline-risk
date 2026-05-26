@@ -6,6 +6,8 @@ pytest-cache-files-*/
 .venv/
 venv/
 
+# SQLite databases — never track DB files (local/runtime only)
+*.db
 # Backend runtime artifacts
 backend/database.db
 backend/*.log
