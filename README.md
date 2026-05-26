@@ -58,7 +58,7 @@ Live camera feed (Phase 3)
 
 | Role | Email | Password |
 |------|-------|----------|
-| Broker | broker@thirdspace.risk | demo123 |
+| Broker | broker@nightline.risk | demo123 |
 | Venue Operator | venue@elsewhere.com | demo123 |
 
 Or create a new account via **Sign Up / Create Account** on the login screen (web + mobile). New venue operators get a blank dashboard and walk through venue setup on first login.
@@ -89,13 +89,13 @@ Or create a new account via **Sign Up / Create Account** on the login screen (we
 - **Reports queue** — severity-sorted packet list with role-scoped views (broker "Reports Portfolio" / operator "My Reports") and full audit trail
 - **Risk Profile + Compliance pages** — factor breakdowns, premium impact, role-aware compliance views
 - **Self-serve registration + venue management** — sign up on web or mobile, add/edit multiple venues
-- **Mobile app** — full iOS/Android app with role-aware tabs (now including a Claims tab) and the same typography system as the web
+- **Mobile app** — full iOS/Android app at broker parity with the web: a unified 5-tab bottom nav + overflow, the complete placement flow (Submissions create → submit → quote → bind), Policies (assign #, cancel, endorsements/COI/claims read), Renewals, broker Tasks, venue Alerts, and FNOL — same Paper & Ink type system as the web
 - **Pluggable provider matrix** — `MemoProvider`, `RiskClassifierProvider`, `TranscriptionProvider`, `EmbeddingProvider` interfaces with deterministic stubs + Anthropic/Gemini/OpenAI implementations; swap providers without touching agent code
 - **Live camera monitoring + PWA alerts** — RTSP frame sampler per venue zone feeds Gemini 2.5 Flash; a 3-gate filter (confidence, temporal persistence, severity) suppresses false positives; qualifying events push mobile notifications via Web Push to subscribed operators; operators confirm or flag as false alarm to self-calibrate per-venue thresholds
-- **Broker platform — Placement, Policy lifecycle, Carrier-side claims** — Phases 1–3 of the broker workflow shipped end-to-end on the backend (frontend through Phase 2):
+- **Broker platform — Placement, Policy lifecycle, Carrier-side claims** — Phases 1–3 shipped end-to-end on **web and mobile**:
   - **Placement (Phase 1):** `Submission` → `CarrierQuote` lifecycle with appetite-checked carrier targeting, per-carrier multipliers on top of shared base rates, surplus-lines tax for E&S, and a kanban UI at `/submissions` with drag-to-transition gates pulled from the lifecycle matrix
   - **Policy lifecycle (Phase 2):** atomic `bind_quote` (6-effect savepoint), endorsements with Pydantic-validated `terms_diff` discriminated unions, pro-rata vs. short-rate cancellation refund math, and Certificates of Insurance with audit-preserving superseding to the same holder
-  - **Claims integration (Phase 3, backend only):** carrier-side `Claim` with FNOL → reserved → settling → closed lifecycle, `ClaimPayment` ledger across indemnity/expense/recovery, `ReserveChange` audit rows, `ON DELETE RESTRICT` FK from claim to its frozen defense packet — distinct from the `ClaimProposal` recommendation surface ([see ADR-0004](docs/adr/0004-broker-platform-and-claim-vocabulary-split.md))
+  - **Claims integration (Phase 3):** carrier-side `Claim` with FNOL → reserved → settling → closed lifecycle, `ClaimPayment` ledger across indemnity/expense/recovery, `ReserveChange` audit rows, `ON DELETE RESTRICT` FK from claim to its frozen defense packet — distinct from the `ClaimProposal` recommendation surface ([see ADR-0004](docs/adr/0004-broker-platform-and-claim-vocabulary-split.md))
   - All money is `Decimal`/`Numeric(12,2)`, all timestamps UTC via `app.time.now_utc`, all lifecycle transitions go through `app.lifecycles.assert_valid_transition`, all state changes emit `AuditEvent` rows, and `Policy`/`Claim` carry SHA-256 `snapshot_hash` columns so archived defense packages keep their referent
 - **Load-bearing eval harness** — 15 research-grounded scenarios across 7 exposure classes + adversarial gold set, 5 scorers (structural, severity_match, citation_coverage, review_status_match, factor_recognition) plus retrieval and safety scorers, signature-keyed `baseline.json` regression gate wired into CI, nightly LLM provider matrix; see [`/evals` dashboard](https://frontend-mu-ebon-n3x8uw2rpx.vercel.app/evals) and [`docs/evals/README.md`](docs/evals/README.md)
 
@@ -156,13 +156,20 @@ See `docs/superpowers/specs/2026-05-07-architecture-v2.md` for the full system d
 
 ## Seed Data
 
-5 venues across Brooklyn/NYC with 10 diverse incidents (brawls, medical emergencies, property damage, liquor liability, crowd management). Packets generated automatically on startup. Demo accounts pre-configured.
+5 demo venues across Brooklyn/NYC with diverse incidents (brawls, medical emergencies, property damage, liquor liability, crowd management). Packets generate automatically on startup. ~286 real NYC nightlife licensees are seeded as scored **prospects** from NY State open data. Demo accounts pre-configured.
 
-To populate the broker-platform surface (`/submissions`, `/policies`) with realistic rows across all lifecycle states, run the idempotent seed script:
+All seed scripts are idempotent. Run from `backend/`:
 
 ```powershell
-cd backend
-python -m scripts.seed_demo_placements
+python -m scripts.seed_demo_placements   # 4 submissions (open/in_market/quoting/bound) + 1 bound policy
+python -m scripts.seed_prospects         # ~286 NYC nightlife prospects (from the cleaned market snapshot)
+python -m scripts.seed_defense_demo      # one A&B incident → packet → claim, so the defense-package PDF is exportable in the UI
 ```
 
-This produces four submissions (`open`, `in_market`, `quoting`, `bound`) and one active policy. See [the broker-platform spec](docs/superpowers/specs/2026-05-21-broker-platform-phases-1-3.md#6-demo-data) for the venue/carrier choices and the case-sensitivity note on `check_appetite`.
+Maintenance:
+```powershell
+python -m scripts.dedupe_venues          # dry-run; merge duplicate venues (--apply to execute)
+python -m scripts.build_nyc_market       # rebuild the NYC market snapshot from NY State open data
+```
+
+See [the broker-platform spec](docs/superpowers/specs/2026-05-21-broker-platform-phases-1-3.md#6-demo-data) for the venue/carrier choices and the case-sensitivity note on `check_appetite`. Venue uniqueness is enforced on **normalized name + address** (same name at a different address is allowed).

@@ -71,14 +71,24 @@ These are enforced across `app/services/`, `app/api/v1/`, and any new schema in 
 
 ## Demo data
 
+All idempotent. Run from `backend/`:
+
 ```powershell
-cd backend
-python -m scripts.seed_demo_placements
+python -m scripts.seed_demo_placements   # 4 submissions (one per non-terminal state) + 1 bound policy
+python -m scripts.seed_prospects         # ~286 NYC nightlife prospects from the cleaned market snapshot
+python -m scripts.seed_defense_demo      # incident → hashed evidence → packet → claim w/ defense_package_id (PDF exportable)
+python -m scripts.dedupe_venues          # dry-run merge of duplicate venues; --apply to execute
 ```
 
-Idempotent. Seeds 4 submissions (one per non-terminal lifecycle state) and 1 bound policy via the real service layer.
+Run seed scripts against prod (Railway) with the Postgres **public** URL:
+`DATABASE_URL=<DATABASE_PUBLIC_URL> python -m scripts.<name>` (railway run injects the internal host, which won't resolve locally).
+
+## Conventions (data integrity)
+
+- **Venue uniqueness:** keyed on normalized **(name, address)** in `create_venue` (`app/api/v1/venues.py`) — same name at a different address is allowed and gets a suffixed slug. `tenant_id == venue_id` for operators, so merges must repoint operator links too (see `scripts/dedupe_venues.py`).
+- **JSON list columns on Postgres:** `Column(JSON)` list fields (e.g. `IncidentRecord.parties/witnesses`, `packet.claims_timeline`) round-trip as parsed lists on SQLite but as **JSON strings** on Postgres — coerce at the read boundary (`_as_list` in `app/defense_package.py`) before iterating, or `list(value)` silently iterates characters.
 
 ## Testing
 
-- Full backend: `cd backend && python -m pytest -q` (~552 tests as of 2026-05-21).
+- Full backend: `cd backend && python -m pytest -q` (666 tests as of 2026-05-26).
 - The 62 `test_phase_1.py` characterization tests pin every `(venue × tier × billing)` cell of `pricing.py`. New pricing work must keep them green.
