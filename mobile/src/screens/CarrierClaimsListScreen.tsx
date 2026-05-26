@@ -122,7 +122,7 @@ export function CarrierClaimsListScreen({ navigation }: any) {
       <View style={styles.headerWrap}>
         <Text style={styles.eyebrow}>BROKER · PORTFOLIO</Text>
         <Text style={styles.title}>Carrier claims</Text>
-        <HandAccent>losses, handled</HandAccent>
+        <HandAccent>every loss in view</HandAccent>
         <Text style={styles.subtitle}>Every reported loss across your book.</Text>
       </View>
 

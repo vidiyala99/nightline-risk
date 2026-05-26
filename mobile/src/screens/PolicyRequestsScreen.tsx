@@ -116,7 +116,7 @@ export function PolicyRequestsScreen({ navigation }: any) {
             <View style={styles.headerWrap}>
               <Text style={styles.eyebrow}>BROKER · REQUESTS</Text>
               <Text style={styles.title}>Policy requests</Text>
-              <HandAccent>your asks, queued</HandAccent>
+              <HandAccent>your asks, in line</HandAccent>
               <Text style={styles.subtitle}>What your venues have asked you to action.</Text>
             </View>
             {error && (

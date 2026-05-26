@@ -117,7 +117,7 @@ export default function CoveragePage() {
       <PageHeader
         eyebrow="VENUE · COVERAGE"
         title="My coverage"
-        accent="you're covered"
+        accent="your safety net"
         subtitle="Your active policy and anything you've asked your broker to action."
       />
 

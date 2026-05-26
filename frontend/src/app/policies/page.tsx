@@ -51,7 +51,7 @@ export default function PoliciesPage() {
       <PageHeader
         eyebrow="Placement"
         title="Policies"
-        accent="bound & live"
+        accent="on the books"
         subtitle="Bound coverage. Endorse, certify, renew, or cancel."
         actions={
           <label className="placement-page__toggle">
