@@ -167,6 +167,18 @@ export const QUOTE_STATUS_COLOR: Record<QuoteStatus, string> = {
 // ─── Endpoints ────────────────────────────────────────────────────────────
 
 export const submissionsApi = {
+  create: (body: {
+    venue_id: string;
+    effective_date: string;
+    coverage_lines: string[];
+    requested_limits?: Record<string, RequestedLimitsLine>;
+    notes?: string;
+  }) =>
+    api.request<Submission>('/api/submissions', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   list: (params: { status?: string; venue_id?: string } = {}) => {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {

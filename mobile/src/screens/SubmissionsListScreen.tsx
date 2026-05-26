@@ -90,8 +90,15 @@ export function SubmissionsListScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.headerWrap}>
-        <Text style={styles.eyebrow}>BROKER · PLACEMENT</Text>
-        <Text style={styles.title}>Submissions</Text>
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.eyebrow}>BROKER · PLACEMENT</Text>
+            <Text style={styles.title}>Submissions</Text>
+          </View>
+          <Pressable style={styles.newBtn} onPress={() => navigation.navigate('NewSubmission')}>
+            <Text style={styles.newBtnText}>+ New</Text>
+          </Pressable>
+        </View>
         <HandAccent>shop the risk</HandAccent>
         <Text style={styles.subtitle}>Venue risks out to market for quotes.</Text>
       </View>
@@ -130,7 +137,7 @@ export function SubmissionsListScreen({ navigation }: any) {
         <View style={styles.empty}>
           <Text style={styles.emptyText}>
             {rows!.length === 0
-              ? 'No submissions yet. Start one on desktop, or renew a policy.'
+              ? 'No submissions yet. Tap “+ New” to start one, or renew a policy.'
               : 'No submissions match this filter.'}
           </Text>
         </View>
@@ -177,6 +184,16 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg },
   headerWrap: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  newBtn: {
+    marginTop: 4,
+    borderColor: Colors.accent,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 6,
+  },
+  newBtnText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium, fontSize: 13 },
   eyebrow: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
