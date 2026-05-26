@@ -3,7 +3,7 @@
 Usage (from backend/):
     python scripts/upload_demo_policy.py
 
-Logs in as the demo broker (broker@thirdspace.risk / demo123), POSTs the
+Logs in as the demo broker (broker@nightline.risk / demo123), POSTs the
 markdown body to /api/venues/elsewhere-brooklyn/policy-docs, and prints the
 URLs to open for the citation-chip demo.
 """
@@ -32,7 +32,7 @@ def main() -> int:
     with httpx.Client(base_url=API_URL, timeout=30.0) as client:
         login = client.post(
             "/api/auth/login",
-            json={"email": "broker@thirdspace.risk", "password": "demo123"},
+            json={"email": "broker@nightline.risk", "password": "demo123"},
         )
         if login.status_code != 200:
             print(f"FAIL: login returned {login.status_code}: {login.text}", file=sys.stderr)

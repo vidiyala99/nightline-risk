@@ -35,7 +35,6 @@ export function BrokerMoreStack() {
       <Stack.Screen name="Tasks" component={TasksScreen} />
       <Stack.Screen name="Submissions" component={SubmissionsStack} />
       <Stack.Screen name="Policies" component={PoliciesStack} />
-      <Stack.Screen name="Alerts" component={AlertsScreen} />
       <Stack.Screen name="Venues" component={BrokerVenuesStack} />
       <Stack.Screen name="Proposals" component={ClaimProposalsStack} />
       <Stack.Screen name="Reports" component={ReportsStack} />

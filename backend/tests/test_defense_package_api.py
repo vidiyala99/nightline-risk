@@ -12,7 +12,7 @@ from app.schemas import IncidentCreate
 
 
 def _broker_headers():
-    return {"Authorization": f"Bearer {create_token('u-brk', 'broker@thirdspace.risk', 'broker', None)}"}
+    return {"Authorization": f"Bearer {create_token('u-brk', 'broker@nightline.risk', 'broker', None)}"}
 
 
 @pytest.fixture

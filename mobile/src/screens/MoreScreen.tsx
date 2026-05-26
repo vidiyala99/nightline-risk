@@ -19,7 +19,6 @@ const BROKER_OVERFLOW: Row[] = [
   { route: 'Tasks', label: 'Tasks', description: 'Renewals & requests needing attention', icon: ListChecks },
   { route: 'Submissions', label: 'Submissions', description: 'Place venue risk out to carriers', icon: Send },
   { route: 'Policies', label: 'Policies', description: 'Your in-force book', icon: FileSpreadsheet },
-  { route: 'Alerts', label: 'Alerts', description: 'Real-time liability detections', icon: Bell },
   { route: 'Venues', label: 'Venues', description: 'Book and prospect venues', icon: Building2 },
   { route: 'Proposals', label: 'Claim Proposals', description: 'Operator-filed proposals', icon: FileText },
   { route: 'Reports', label: 'Reports', description: 'Underwriting and loss reports', icon: FileSearch },

@@ -88,7 +88,7 @@ def build() -> dict:
     # MAX_VENUES cap yields a nightlife-weighted map, not 99% generic bars.
     priority = {"Cabaret": 0, "Bottle Club": 0, "Club": 1, "Food & Beverage Business": 2}
 
-    with httpx.Client(headers={"User-Agent": "thirdspace-market-map/1.0"}) as client:
+    with httpx.Client(headers={"User-Agent": "nightline-market-map/1.0"}) as client:
         rows = fetch_nightlife(client)
         rows.sort(key=lambda r: priority.get(str(r.get("description")), 3))
         for record in rows:

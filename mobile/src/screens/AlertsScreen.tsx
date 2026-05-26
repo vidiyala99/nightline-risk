@@ -50,7 +50,6 @@ const titleCase = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.
 
 export function AlertsScreen() {
   const { user } = useAuth();
-  const isBroker = user?.role === 'broker' || user?.role === 'admin';
 
   const [venues, setVenues] = useState<VenueLite[] | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
@@ -59,42 +58,32 @@ export function AlertsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  // Resolve which venues this user can view.
+  // Operator's own venue(s): tenant_id + any extra access. Enrich names from
+  // /api/venues when available, but don't depend on it (alerts work off the id).
   useEffect(() => {
     let cancelled = false;
+    const ownIds = [user?.tenant_id, ...(user?.extra_venue_ids ?? [])].filter(Boolean) as string[];
     (async () => {
-      try {
-        const all = await api.request<VenueLite[]>('/api/venues').catch(() => [] as VenueLite[]);
-        let list: VenueLite[];
-        if (isBroker) {
-          const book = all.filter((v) => (v.source ?? 'book') === 'book');
-          list = book.length ? book : all;
-        } else {
-          const own = new Set([user?.tenant_id, ...(user?.extra_venue_ids ?? [])].filter(Boolean));
-          list = all.filter((v) => own.has(v.id));
-          if (list.length === 0 && user?.tenant_id) {
-            list = [{ id: user.tenant_id, name: user.tenant_id }];
-          }
-        }
-        if (cancelled) return;
-        setVenues(list);
-        setSelectedVenueId((prev) => prev ?? list[0]?.id ?? null);
-      } catch {
-        if (!cancelled) setVenues([]);
-      }
+      const all = await api.request<VenueLite[]>('/api/venues').catch(() => [] as VenueLite[]);
+      const byId = new Map(all.map((v) => [v.id, v]));
+      const list: VenueLite[] = ownIds.map((id) => byId.get(id) ?? { id, name: id });
+      if (cancelled) return;
+      setVenues(list);
+      setSelectedVenueId((prev) => prev ?? list[0]?.id ?? null);
     })();
     return () => {
       cancelled = true;
     };
-  }, [isBroker, user]);
+  }, [user]);
 
   const loadAlerts = useCallback(async () => {
     if (!selectedVenueId) return;
     setError(null);
     try {
       setAlerts(await alertsApi.listForVenue(selectedVenueId));
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to load alerts');
+    } catch {
+      // Mirror web: a venue with no alert feed degrades to an empty list
+      // rather than surfacing a raw backend error.
       setAlerts([]);
     }
   }, [selectedVenueId]);
@@ -174,7 +163,11 @@ export function AlertsScreen() {
         </View>
       )}
 
-      {alerts === null ? (
+      {venues.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>No venue assigned to your account.</Text>
+        </View>
+      ) : alerts === null ? (
         <View style={styles.center}><ActivityIndicator color={Colors.accentInk} /></View>
       ) : error ? (
         <View style={styles.errorBox}>
