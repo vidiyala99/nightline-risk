@@ -66,6 +66,70 @@ _NIGHTLIFE_GUARD = (
 )
 
 
+# Legal-entity tokens stripped from licensee names so a venue reads as a
+# trade name, not an LLC. Compared case-insensitively, punctuation-stripped.
+_LEGAL_TOKENS = {
+    "inc", "incorporated", "llc", "llp", "lp", "corp", "corporation",
+    "ltd", "limited", "co", "company",
+}
+# Acronyms kept uppercase through title-casing (most names have none).
+_ACRONYMS = {"NYC", "NY", "USA", "DJ", "LIC", "BK", "LES", "II", "III", "IV"}
+_SMALL_WORDS = {"of", "and", "a", "an", "at", "in", "on", "for", "to", "the", "&"}
+
+
+def clean_venue_name(raw: str | None) -> str:
+    """Turn a raw SLA licensee name into a presentable venue name.
+
+    - Prefer the trade name after a 'DBA:' marker (drops the licensee/legal
+      prefix, e.g. 'ARTISTS AS WAITRESSES INC AS MGR DBA: WOLLMAN RINK').
+    - Strip trailing/standalone legal tokens (INC/LLC/CORP/LTD/CO…).
+    - Smart title-case (preserve known acronyms, lowercase small connectors).
+    """
+    s = (raw or "").strip()
+    if not s:
+        return "Unnamed venue"
+    m = re.search(r"\bD\.?\s*B\.?\s*A\.?[:.\s]+(.+)$", s, re.IGNORECASE)
+    if m:
+        s = m.group(1).strip()
+    s = re.sub(r"[,/]+", " ", s)
+    tokens = [t for t in s.split() if t.strip(".,&").lower() not in _LEGAL_TOKENS]
+    cleaned = " ".join(tokens).strip()
+    if not cleaned:
+        cleaned = s  # all tokens were legal noise — fall back to the raw string
+    return _smart_title(cleaned)
+
+
+def _smart_title(s: str) -> str:
+    words = s.split()
+    out: list[str] = []
+    for i, w in enumerate(words):
+        bare = w.strip(".,")
+        if bare.upper() in _ACRONYMS:
+            out.append(bare.upper())
+        elif i != 0 and w.lower() in _SMALL_WORDS:
+            out.append(w.lower())
+        else:
+            out.append(w[:1].upper() + w[1:].lower())
+    return " ".join(out)
+
+
+def _norm(s: str | None) -> str:
+    return " ".join((s or "").strip().casefold().split())
+
+
+def dedupe_rows(rows: list[dict]) -> list[dict]:
+    """Collapse rows that share a normalized (name, address); first wins."""
+    seen: set[tuple[str, str]] = set()
+    out: list[dict] = []
+    for r in rows:
+        key = (_norm(r.get("name")), _norm(r.get("address")))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+    return out
+
+
 def is_nightlife_name(name: str) -> bool:
     """True unless the venue name unambiguously reads as non-nightlife.
 
@@ -184,7 +248,7 @@ def transform_record(record: dict, *, lat: float | None, lng: float | None) -> d
 
     row = {
         "id": license_serial,
-        "name": name,
+        "name": clean_venue_name(name),
         "address": ", ".join(p for p in (address, city) if p),
         "borough": COUNTY_TO_BOROUGH.get(county, county.title()),
         "lat": lat,

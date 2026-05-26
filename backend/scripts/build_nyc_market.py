@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import httpx  # noqa: E402
 
-from scripts.nyc_market_lib import COUNTY_TO_BOROUGH, aggregate, transform_record  # noqa: E402
+from scripts.nyc_market_lib import COUNTY_TO_BOROUGH, aggregate, dedupe_rows, transform_record  # noqa: E402
 
 SODA_URL = "https://data.ny.gov/resource/9s3h-dpkz.json"
 
@@ -104,6 +104,7 @@ def build() -> dict:
             seen_ids.add(row["id"])
             venues.append(row)
 
+    venues = dedupe_rows(venues)
     print(f"[build] {len(venues)} venues kept, {skipped_no_geo} skipped (no coords)")
     return {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

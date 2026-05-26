@@ -9,11 +9,35 @@ from app.underwriting.pricing import PremiumCalculator
 from scripts.nyc_market_lib import (
     aggregate,
     classify_venue_type,
+    clean_venue_name,
+    dedupe_rows,
     estimate_for_venue,
     is_nightlife_name,
     likely_carriers,
     transform_record,
 )
+
+
+def test_clean_venue_name_prefers_dba_and_strips_legal():
+    assert clean_venue_name("ARTISTS AS WAITRESSES INC AS MGR DBA: WOLLMAN RINK") == "Wollman Rink"
+    assert clean_venue_name("EDISON BALLROOM LLC") == "Edison Ballroom"
+    assert clean_venue_name("AMERICAN LEGION INC") == "American Legion"
+
+
+def test_clean_venue_name_title_cases_and_keeps_acronyms_and_the():
+    assert clean_venue_name("MELROSE BALLROOM") == "Melrose Ballroom"
+    assert clean_venue_name("LE POISSON ROUGE GROUP NYC, LLC") == "Le Poisson Rouge Group NYC"
+    assert clean_venue_name("THE UNIVERSITY CLUB") == "The University Club"
+
+
+def test_dedupe_rows_collapses_same_name_and_address():
+    rows = [
+        {"id": "1", "name": "Nexus Club", "address": "1 A St"},
+        {"id": "2", "name": "nexus club ", "address": " 1 a st"},  # same after norm
+        {"id": "3", "name": "Nexus Club", "address": "2 B Ave"},  # different address
+    ]
+    out = dedupe_rows(rows)
+    assert [r["id"] for r in out] == ["1", "3"]
 
 
 def test_is_nightlife_name_drops_clearly_non_nightlife():

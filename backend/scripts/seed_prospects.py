@@ -25,6 +25,7 @@ from app.database import engine
 from app.models import Venue
 from app.prospects import market_venue_to_venue_data
 from app.seed_data import VENUES
+from scripts.nyc_market_lib import dedupe_rows
 
 # Prefer the copy that ships with the backend (so it's present on Railway,
 # which deploys only backend/); fall back to the frontend source in dev.
@@ -48,7 +49,7 @@ def seed_prospects() -> int:
         return 0
 
     data = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
-    market_venues = data.get("venues", [])
+    market_venues = dedupe_rows(data.get("venues", []))
 
     with Session(engine) as session:
         if _has_prospects(session):
@@ -56,7 +57,17 @@ def seed_prospects() -> int:
             return 0
 
         created = 0
+        seen: set[tuple[str, str]] = set()
         for mv in market_venues:
+            # Defensive dedupe by (name, address) so a snapshot with stray
+            # duplicate rows can't produce duplicate prospect venues.
+            key = (
+                " ".join((mv.get("name") or "").strip().casefold().split()),
+                " ".join((mv.get("address") or "").strip().casefold().split()),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
             vid = f"prospect-{mv['id']}"
             vd = market_venue_to_venue_data(mv)
             session.add(Venue(id=vid, name=vd["name"], venue_data=json.dumps(vd)))

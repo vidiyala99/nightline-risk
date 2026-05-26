@@ -1,11 +1,11 @@
 {
   "generated_at": "2026-05-24T21:26:41Z",
-  "methodology_note": "Estimates only. Venues are real NYC on-premises nightlife licensees (NY State Liquor Authority open data). Current premium is a class-based market benchmark; Third Space figures are modeled (best-tier to market-neutral), not quotes. 'Likely carriers' is an appetite-based inference over carriers active in this space \u2014 not a statement of any venue's actual insurer. Actual pricing depends on a full underwriting review.",
+  "methodology_note": "Estimates only. Venues are real NYC on-premises nightlife licensees (NY State Liquor Authority open data). Current premium is a class-based market benchmark; Third Space figures are modeled (best-tier to market-neutral), not quotes. 'Likely carriers' is an appetite-based inference over carriers active in this space — not a statement of any venue's actual insurer. Actual pricing depends on a full underwriting review.",
   "aggregate": {
-    "venue_count": 288,
-    "total_market_premium": "3831000.00",
+    "venue_count": 286,
+    "total_market_premium": "3801000.00",
     "total_savings_low": "0.00",
-    "total_savings_high": "1149300.00",
+    "total_savings_high": "1140300.00",
     "by_borough": [
       {
         "borough": "Brooklyn",
@@ -13,7 +13,7 @@
       },
       {
         "borough": "Manhattan",
-        "count": 142
+        "count": 140
       },
       {
         "borough": "Queens",
@@ -31,7 +31,7 @@
     "by_type": [
       {
         "venue_type": "club",
-        "count": 197
+        "count": 195
       },
       {
         "venue_type": "dive_bar",
@@ -46,7 +46,7 @@
   "venues": [
     {
       "id": "0417-23-142087",
-      "name": "SILVANA",
+      "name": "Silvana",
       "address": "300 W 116TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.80453,
@@ -79,7 +79,7 @@
     },
     {
       "id": "0417-22-101421",
-      "name": "MUSICA",
+      "name": "Musica",
       "address": "637 W 50TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76657,
@@ -145,7 +145,7 @@
     },
     {
       "id": "0417-23-141527",
-      "name": "SUBMURSIVE",
+      "name": "Submursive",
       "address": "18 WILLIAM ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.70546,
@@ -178,7 +178,7 @@
     },
     {
       "id": "0417-21-122338",
-      "name": "MELROSE BALLROOM",
+      "name": "Melrose Ballroom",
       "address": "3608 33RD ST, LONG ISLAND CITY",
       "borough": "Queens",
       "lat": 40.75549,
@@ -211,7 +211,7 @@
     },
     {
       "id": "0417-22-102546",
-      "name": "SAPPHIRE",
+      "name": "Sapphire",
       "address": "333 E 60TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76067,
@@ -244,7 +244,7 @@
     },
     {
       "id": "0417-22-102022",
-      "name": "THE MONARCH",
+      "name": "The Monarch",
       "address": "23 MEADOW ST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.71073,
@@ -277,7 +277,7 @@
     },
     {
       "id": "0417-23-142186",
-      "name": "KISS ENTERTAINMENT",
+      "name": "Kiss Entertainment",
       "address": "130-35 91ST AVE, RICHMOND HILL",
       "borough": "Queens",
       "lat": 40.69857,
@@ -310,7 +310,7 @@
     },
     {
       "id": "0415-26-141066",
-      "name": "Boots & Beer LLC",
+      "name": "Boots & Beer",
       "address": "105 Wooster St, New York",
       "borough": "Manhattan",
       "lat": 40.72481,
@@ -343,7 +343,7 @@
     },
     {
       "id": "0417-23-141912",
-      "name": "Cedric's at The Shed",
+      "name": "Cedric's at the Shed",
       "address": "545 W 30TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75298,
@@ -376,7 +376,7 @@
     },
     {
       "id": "0417-23-140062",
-      "name": "Avant Gardner; The Great Hall; The Kings Hall; The Brooklyn Mirage; The Ruin Lounge",
+      "name": "Avant Gardner; the Great Hall; the Kings Hall; the Brooklyn Mirage; the Ruin Lounge",
       "address": "111 GARDNER AVE & 140 STEWART, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.71107,
@@ -409,7 +409,7 @@
     },
     {
       "id": "0417-24-112684",
-      "name": "BROOKLYN PARAMOUNT THEATER",
+      "name": "Brooklyn Paramount Theater",
       "address": "385 FLATBUSH AVE EXT, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.69017,
@@ -442,7 +442,7 @@
     },
     {
       "id": "0417-22-100395",
-      "name": "BILLY'S AT THE STADIUM",
+      "name": "Billy's at the Stadium",
       "address": "58 E 161ST ST, BRONX",
       "borough": "The Bronx",
       "lat": 40.82752,
@@ -475,7 +475,7 @@
     },
     {
       "id": "0417-22-102473",
-      "name": "NYS EVENT SPACE",
+      "name": "Nys Event Space",
       "address": "9112 144TH PL, JAMAICA",
       "borough": "Queens",
       "lat": 40.70029,
@@ -508,7 +508,7 @@
     },
     {
       "id": "0417-22-101983",
-      "name": "EDISON BALLROOM LLC",
+      "name": "Edison Ballroom",
       "address": "228 W 47TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75892,
@@ -541,7 +541,7 @@
     },
     {
       "id": "0417-23-140023",
-      "name": "ARTISTS AS WAITRESSES INC AS MGR DBA: WOLLMAN RINK",
+      "name": "Wollman Rink",
       "address": "830 5TH AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76739,
@@ -574,7 +574,7 @@
     },
     {
       "id": "0415-24-111663",
-      "name": "WATCHES OF SWITZERLAND",
+      "name": "Watches of Switzerland",
       "address": "58 60 GREENE ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72291,
@@ -607,7 +607,7 @@
     },
     {
       "id": "0417-23-142567",
-      "name": "PERFORMING ARTS CENTER AT THE WORLD TRADE CENTER",
+      "name": "Performing Arts Center at the World Trade Center",
       "address": "251 FULTON STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.71235,
@@ -640,7 +640,7 @@
     },
     {
       "id": "0417-22-101207",
-      "name": "THE BAR",
+      "name": "The Bar",
       "address": "383 W 33RD ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.7525,
@@ -673,7 +673,7 @@
     },
     {
       "id": "0417-22-102062",
-      "name": "LE POISSON ROUGE GROUP NYC, LLC",
+      "name": "Le Poisson Rouge Group NYC",
       "address": "158 BLEECKER ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72849,
@@ -706,7 +706,7 @@
     },
     {
       "id": "0417-23-140165",
-      "name": "NEBULA",
+      "name": "Nebula",
       "address": "135 W 41ST ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75471,
@@ -739,7 +739,7 @@
     },
     {
       "id": "0415-23-161671",
-      "name": "FP JOURNE",
+      "name": "Fp Journe",
       "address": "53 MERCER ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72179,
@@ -772,7 +772,7 @@
     },
     {
       "id": "0417-23-139920",
-      "name": "BROOKLYN BOWL LLC",
+      "name": "Brooklyn Bowl",
       "address": "61 77 WYTHE AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.72153,
@@ -805,7 +805,7 @@
     },
     {
       "id": "0417-24-105710",
-      "name": "Dramma, Tacos La Broadway, Palma Verde",
+      "name": "Dramma Tacos La Broadway Palma Verde",
       "address": "1604 BROADWAY, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76067,
@@ -871,7 +871,7 @@
     },
     {
       "id": "0415-22-115893",
-      "name": "WATCHES OF SWITZERLAND",
+      "name": "Watches of Switzerland",
       "address": "500 W 33RD ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75404,
@@ -904,7 +904,7 @@
     },
     {
       "id": "0415-24-110578",
-      "name": "520 GALLERY LLC",
+      "name": "520 Gallery",
       "address": "500 5TH AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75372,
@@ -937,7 +937,7 @@
     },
     {
       "id": "0417-24-137336",
-      "name": "PALACE THEATRE",
+      "name": "Palace Theatre",
       "address": "1564 Broadway, New York",
       "borough": "Manhattan",
       "lat": 40.75896,
@@ -970,7 +970,7 @@
     },
     {
       "id": "0417-22-102452",
-      "name": "KNOCKDOWN CENTER",
+      "name": "Knockdown Center",
       "address": "52-19 FLUSHING AVE, MASPETH",
       "borough": "Queens",
       "lat": 40.71501,
@@ -1036,7 +1036,7 @@
     },
     {
       "id": "0415-25-118124",
-      "name": "THUMA",
+      "name": "Thuma",
       "address": "99 Wooster Street, New York",
       "borough": "Manhattan",
       "lat": 40.72449,
@@ -1069,7 +1069,7 @@
     },
     {
       "id": "0417-25-126657",
-      "name": "Brooklyn Roots Collective Inc & EPDJR Management, LLC",
+      "name": "Brooklyn Roots Collective & Epdjr Management",
       "address": "255 Randolph St, Brooklyn",
       "borough": "Manhattan",
       "lat": 40.71051,
@@ -1102,7 +1102,7 @@
     },
     {
       "id": "0417-21-123318",
-      "name": "DOUGLASTON MANOR",
+      "name": "Douglaston Manor",
       "address": "63 20 COMMONWEALTH BLVD AKA MA, DOUGLASTON",
       "borough": "Queens",
       "lat": 40.75482,
@@ -1168,7 +1168,7 @@
     },
     {
       "id": "0417-23-141549",
-      "name": "PIG BEACH",
+      "name": "Pig Beach",
       "address": "35-33 36TH ST, ASTORIA",
       "borough": "Queens",
       "lat": 40.75542,
@@ -1201,7 +1201,7 @@
     },
     {
       "id": "0417-22-102638",
-      "name": "SALSA CON FUEGO",
+      "name": "Salsa Con Fuego",
       "address": "2297 CEDAR AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.86213,
@@ -1267,7 +1267,7 @@
     },
     {
       "id": "0417-23-142094",
-      "name": "74 WYTHE AVE TENANT LLC",
+      "name": "74 Wythe Ave Tenant",
       "address": "74 WYTHE AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.72215,
@@ -1300,7 +1300,7 @@
     },
     {
       "id": "0417-22-100927",
-      "name": "CLUB AMADEUS",
+      "name": "Club Amadeus",
       "address": "79-51 ALBION AVE, ELMHURST",
       "borough": "Queens",
       "lat": 40.73949,
@@ -1333,7 +1333,7 @@
     },
     {
       "id": "0349-23-125533",
-      "name": "D A BEACH CLUB INC",
+      "name": "D a Beach Club",
       "address": "665 SHORE DR, BRONX",
       "borough": "The Bronx",
       "lat": 40.83344,
@@ -1399,7 +1399,7 @@
     },
     {
       "id": "0249-23-134689",
-      "name": "KNIGHTS OF CARDINAL STRICHT COUNCIL INC",
+      "name": "Knights of Cardinal Stricht Council",
       "address": "349 QUENTIN RD, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.60663,
@@ -1432,7 +1432,7 @@
     },
     {
       "id": "0249-22-107617",
-      "name": "NOVA SOCCER CLUB INC",
+      "name": "Nova Soccer Club",
       "address": "775 WOODWARD AVE, RIDGEWOOD",
       "borough": "Queens",
       "lat": 40.70398,
@@ -1465,7 +1465,7 @@
     },
     {
       "id": "0249-25-102506",
-      "name": "Tropicalfete Inc",
+      "name": "Tropicalfete",
       "address": "850 New York Ave, Brooklyn",
       "borough": "Brooklyn",
       "lat": 40.66254,
@@ -1498,7 +1498,7 @@
     },
     {
       "id": "0249-22-104394",
-      "name": "BANATUL FOLKLORE AND SOCCER CLUB INC",
+      "name": "Banatul Folklore and Soccer Club",
       "address": "18-80 MENAHAN ST, RIDGEWOOD",
       "borough": "Queens",
       "lat": 40.71121,
@@ -1531,7 +1531,7 @@
     },
     {
       "id": "0249-22-113879",
-      "name": "KOREA SOCIETY INC",
+      "name": "Korea Society",
       "address": "350 MADISON AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75454,
@@ -1564,7 +1564,7 @@
     },
     {
       "id": "0249-24-124458",
-      "name": "POLISH AND SLAVIC CENTER INC",
+      "name": "Polish and Slavic Center",
       "address": "177 KENT ST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.73097,
@@ -1597,7 +1597,7 @@
     },
     {
       "id": "0249-23-132712",
-      "name": "VFW POST 5195",
+      "name": "Vfw Post 5195",
       "address": "325 VAN BRUNT STREET, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.67804,
@@ -1630,7 +1630,7 @@
     },
     {
       "id": "0249-23-131202",
-      "name": "THE SQUASH CENTER",
+      "name": "The Squash Center",
       "address": "25 W 39TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.7523,
@@ -1663,7 +1663,7 @@
     },
     {
       "id": "0249-22-112938",
-      "name": "RED DOOR I INC",
+      "name": "Red Door I",
       "address": "4557 WHITE PLAINS RD, BRONX",
       "borough": "The Bronx",
       "lat": 40.90145,
@@ -1696,7 +1696,7 @@
     },
     {
       "id": "0349-23-124915",
-      "name": "MONTAUK CLUB",
+      "name": "Montauk Club",
       "address": "25 8TH AVENUE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.67297,
@@ -1729,7 +1729,7 @@
     },
     {
       "id": "0349-22-117583",
-      "name": "RICHMOND COUNTY COUNTRY CLUB",
+      "name": "Richmond County Country Club",
       "address": "1122 TODT HILL ROAD, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.5827,
@@ -1762,7 +1762,7 @@
     },
     {
       "id": "0349-22-116211",
-      "name": "SPANISH BENEVOLENT SOCIETY INC",
+      "name": "Spanish Benevolent Society",
       "address": "239 W 14TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.73924,
@@ -1795,7 +1795,7 @@
     },
     {
       "id": "0349-23-126715",
-      "name": "THE PLAYERS",
+      "name": "The Players",
       "address": "16 GRAMERCY PARK, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.73781,
@@ -1828,7 +1828,7 @@
     },
     {
       "id": "0349-23-125683",
-      "name": "UNION RINCOENA INC",
+      "name": "Union Rincoena",
       "address": "586 E 161ST STREET, BRONX",
       "borough": "The Bronx",
       "lat": 40.82233,
@@ -1861,7 +1861,7 @@
     },
     {
       "id": "0349-23-124871",
-      "name": "OF AMERICA INC",
+      "name": "Of America",
       "address": "83 20 QUEENS BLVD, ELMHURST",
       "borough": "Queens",
       "lat": 40.7371,
@@ -1894,7 +1894,7 @@
     },
     {
       "id": "0349-24-126930",
-      "name": "Fly FIsh Club",
+      "name": "Fly Fish Club",
       "address": "141 E HOUSTON ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72322,
@@ -1927,7 +1927,7 @@
     },
     {
       "id": "0349-23-126277",
-      "name": "SOUTH SHORE SWIMMING CLUB INC, THE",
+      "name": "South Shore Swimming Club the",
       "address": "6736 HYLAN BLVD, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.50819,
@@ -1960,7 +1960,7 @@
     },
     {
       "id": "0349-23-125534",
-      "name": "LOCUST POINT YACHT CLUB INC",
+      "name": "Locust Point Yacht Club",
       "address": "21 LONGSTREET AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.81287,
@@ -1993,7 +1993,7 @@
     },
     {
       "id": "0349-22-117600",
-      "name": "MAYOR'S COMMITTEE OF ROXBURY",
+      "name": "Mayor's Committee of Roxbury",
       "address": "181-16 ROCKAWAY POINT BLVD, ROCKAWAY POINT",
       "borough": "Queens",
       "lat": 40.56563,
@@ -2026,7 +2026,7 @@
     },
     {
       "id": "0349-23-125985",
-      "name": "NEW YORK ATHLETIC CLUB",
+      "name": "New York Athletic Club",
       "address": "180 CENTRAL PARK SOUTH, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76676,
@@ -2059,7 +2059,7 @@
     },
     {
       "id": "0349-25-121424",
-      "name": "CFA Society New York",
+      "name": "Cfa Society New York",
       "address": "1540 Broadway, New York",
       "borough": "Manhattan",
       "lat": 40.75802,
@@ -2092,7 +2092,7 @@
     },
     {
       "id": "0349-21-116037",
-      "name": "FIFTEEN CENTRAL PARK WEST CLUB INC",
+      "name": "Fifteen Central Park West Club",
       "address": "15 CENTRAL PARK WEST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76963,
@@ -2125,7 +2125,7 @@
     },
     {
       "id": "0349-23-125495",
-      "name": "AMERICAN TURNERS NEW YORK INC",
+      "name": "American Turners New York",
       "address": "748 CLARENCE AVENUE, BRONX",
       "borough": "The Bronx",
       "lat": 40.83046,
@@ -2158,7 +2158,7 @@
     },
     {
       "id": "0349-22-115708",
-      "name": "CENTRO RECREATIVO PORTUGUES DE JAMAICA NY INC",
+      "name": "Centro Recreativo Portugues De Jamaica NY",
       "address": "147-25 LIBERTY AVE, JAMAICA",
       "borough": "Queens",
       "lat": 40.6966,
@@ -2191,7 +2191,7 @@
     },
     {
       "id": "0349-24-101460",
-      "name": "THROGGS NECK MEMORIAL POST 1456 INC",
+      "name": "Throggs Neck Memorial Post 1456",
       "address": "1456 SHORE DR, BRONX",
       "borough": "The Bronx",
       "lat": 40.83452,
@@ -2224,7 +2224,7 @@
     },
     {
       "id": "0349-23-125212",
-      "name": "JAMAICA BAY INC",
+      "name": "Jamaica Bay",
       "address": "1 SEAVIEW AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.63104,
@@ -2257,7 +2257,7 @@
     },
     {
       "id": "0349-25-101516",
-      "name": "San Vincente, West Village",
+      "name": "San Vincente West Village",
       "address": "115 JANE ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.73815,
@@ -2290,7 +2290,7 @@
     },
     {
       "id": "0349-23-126996",
-      "name": "SOHO HOUSE",
+      "name": "Soho House",
       "address": "29 35 9TH AVE 6TH FLOOR, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.74074,
@@ -2323,7 +2323,7 @@
     },
     {
       "id": "0349-21-113675",
-      "name": "220 CPS TOWER CLUB CORP & JG-CPS LLC",
+      "name": "220 Cps Tower Club & Jg-cps",
       "address": "220 CENTRAL PARK SOUTH, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76733,
@@ -2356,7 +2356,7 @@
     },
     {
       "id": "0349-23-124822",
-      "name": "WEST SIDE TENNIS CLUB",
+      "name": "West Side Tennis Club",
       "address": "1 TENNIS PLACE & BURNS STREET, FOREST HILLS",
       "borough": "Queens",
       "lat": 40.71965,
@@ -2389,7 +2389,7 @@
     },
     {
       "id": "0349-22-117649",
-      "name": "MEMORIAL ASSN INC",
+      "name": "Memorial Assn",
       "address": "2414 GERRITSEN AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.59816,
@@ -2422,7 +2422,7 @@
     },
     {
       "id": "0349-21-114129",
-      "name": "BROWN BERRY CLUB ONE INC",
+      "name": "Brown Berry Club One",
       "address": "76-52 264TH ST, GLEN OAKS",
       "borough": "Queens",
       "lat": 40.74942,
@@ -2455,7 +2455,7 @@
     },
     {
       "id": "0349-23-125989",
-      "name": "THE COSMOPOLITAN CLUB",
+      "name": "The Cosmopolitan Club",
       "address": "122 E 66TH ST & 129 E 65TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76683,
@@ -2488,7 +2488,7 @@
     },
     {
       "id": "0349-23-125035",
-      "name": "SERBIAN ASSOCIATION OF NEW YORK INC.",
+      "name": "Serbian Association of New York",
       "address": "7254 65th Pl, Glendale",
       "borough": "Queens",
       "lat": 40.69976,
@@ -2521,7 +2521,7 @@
     },
     {
       "id": "0349-23-125830",
-      "name": "NEW YORK INC",
+      "name": "New York",
       "address": "701 707 PARK AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76937,
@@ -2554,7 +2554,7 @@
     },
     {
       "id": "0349-23-127016",
-      "name": "IMPERIAL BIKERS M C INC",
+      "name": "Imperial Bikers M C",
       "address": "652 FRANKLIN AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.67607,
@@ -2587,7 +2587,7 @@
     },
     {
       "id": "0349-22-117531",
-      "name": "TOWN TENNIS MEMBER CLUB INC",
+      "name": "Town Tennis Member Club",
       "address": "430 E 56TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75721,
@@ -2620,7 +2620,7 @@
     },
     {
       "id": "0349-23-125310",
-      "name": "SHEEPSHEAD BAY YACHT CLUB INC",
+      "name": "Sheepshead Bay Yacht Club",
       "address": "3076 EMMONS AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.58392,
@@ -2653,7 +2653,7 @@
     },
     {
       "id": "0349-23-124799",
-      "name": "POST 1636 AMERICAN LEGION",
+      "name": "Post 1636 American Legion",
       "address": "193 9TH STREET, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.67126,
@@ -2686,7 +2686,7 @@
     },
     {
       "id": "0349-23-125997",
-      "name": "NEW YORK YACHT CLUB,THE",
+      "name": "New York Yacht Club the",
       "address": "37 41 W 44TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75559,
@@ -2719,7 +2719,7 @@
     },
     {
       "id": "0349-22-117579",
-      "name": "DOUBLES INTERNATIONAL CLUB ENTERPRISES INC",
+      "name": "Doubles International Club Enterprises",
       "address": "783 5TH AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76465,
@@ -2752,7 +2752,7 @@
     },
     {
       "id": "0349-23-125769",
-      "name": "BROOK INC,THE",
+      "name": "Brook the",
       "address": "111 E 54TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75945,
@@ -2785,7 +2785,7 @@
     },
     {
       "id": "0349-23-123679",
-      "name": "NEXUS CLUB NEW YORK",
+      "name": "Nexus Club New York",
       "address": "100 CHURCH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.713,
@@ -2818,7 +2818,7 @@
     },
     {
       "id": "0349-23-126278",
-      "name": "B P O ELKS",
+      "name": "B P O Elks",
       "address": "3250 RICHMOND AVENUE, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.55969,
@@ -2851,7 +2851,7 @@
     },
     {
       "id": "0349-23-124442",
-      "name": "WHITE CROSS FISHING CLUB INC",
+      "name": "White Cross Fishing Club",
       "address": "750 CLARENCE AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.83084,
@@ -2884,7 +2884,7 @@
     },
     {
       "id": "0349-22-118197",
-      "name": "R P & B P C C INC",
+      "name": "R P & B P C C",
       "address": "204 10 ROCKAWAY POINT BLVD, ROCKAWAY POINT",
       "borough": "Queens",
       "lat": 40.56621,
@@ -2917,7 +2917,7 @@
     },
     {
       "id": "0349-23-124958",
-      "name": "ASSOCIATION INC",
+      "name": "Association",
       "address": "110 02 MERRICK ROAD, JAMAICA",
       "borough": "Queens",
       "lat": 40.69584,
@@ -2950,7 +2950,7 @@
     },
     {
       "id": "0349-23-124750",
-      "name": "THOMAS DONGAN COUNCIL 125 C K",
+      "name": "Thomas Dongan Council 125 C K",
       "address": "8122 5TH AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.62458,
@@ -2983,7 +2983,7 @@
     },
     {
       "id": "0349-23-125760",
-      "name": "CORNELL CENTER OF NEW YORK INC",
+      "name": "Cornell Center of New York",
       "address": "6 E 44TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75446,
@@ -3016,7 +3016,7 @@
     },
     {
       "id": "0349-23-124904",
-      "name": "SALMAGUNDI CLUB INC",
+      "name": "Salmagundi Club",
       "address": "47 5TH AVENUE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.73439,
@@ -3049,7 +3049,7 @@
     },
     {
       "id": "0349-23-126332",
-      "name": "HILLSIDE SWIMMING CLUB INC,THE",
+      "name": "Hillside Swimming Club the",
       "address": "151 SIGNS ROAD, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.60275,
@@ -3082,7 +3082,7 @@
     },
     {
       "id": "0349-23-126268",
-      "name": "COLLEGE POINT YACHT CLUB INC",
+      "name": "College Point Yacht Club",
       "address": "3 04 126TH STREET, COLLEGE POINT",
       "borough": "Queens",
       "lat": 40.79449,
@@ -3115,7 +3115,7 @@
     },
     {
       "id": "0349-23-125211",
-      "name": "VARUNA BOAT CLUB INC",
+      "name": "Varuna Boat Club",
       "address": "2806 EMMONS AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.58375,
@@ -3148,7 +3148,7 @@
     },
     {
       "id": "0349-23-126276",
-      "name": "RICHMOND COUNTY YACHT CLUB INC",
+      "name": "Richmond County Yacht Club",
       "address": "142 MANSION AVE, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.54429,
@@ -3181,7 +3181,7 @@
     },
     {
       "id": "0349-24-133217",
-      "name": "SCOTT AVENUE ASSOCIATES INC",
+      "name": "Scott Avenue Associates",
       "address": "154 Scott Ave Fl 5, Brooklyn",
       "borough": "Brooklyn",
       "lat": 40.71193,
@@ -3214,7 +3214,7 @@
     },
     {
       "id": "0349-24-111841",
-      "name": "1301 AND FRIENDS CLUB, INC",
+      "name": "1301 and Friends Club",
       "address": "1301 AVE OF THE AMERICAS, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76163,
@@ -3247,7 +3247,7 @@
     },
     {
       "id": "0349-22-117718",
-      "name": "POST 774 AMERICAN LEGION INC",
+      "name": "Post 774 American Legion",
       "address": "3035 37 CORLEAR AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.87986,
@@ -3280,7 +3280,7 @@
     },
     {
       "id": "0349-21-115628",
-      "name": "ANGLERS CLUB OF NEW YORK, THE",
+      "name": "Anglers Club of New York the",
       "address": "101 BROAD ST FL 2, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.70325,
@@ -3313,7 +3313,7 @@
     },
     {
       "id": "0349-22-118162",
-      "name": "SPORTING CLUB INC",
+      "name": "Sporting Club",
       "address": "95 23 SUTPHIN BLVD, JAMAICA",
       "borough": "Queens",
       "lat": 40.68453,
@@ -3346,7 +3346,7 @@
     },
     {
       "id": "0349-23-124914",
-      "name": "AMERICAN LEGION",
+      "name": "American Legion",
       "address": "290 PROSPECT PARK WEST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.6578,
@@ -3379,7 +3379,7 @@
     },
     {
       "id": "0349-23-124868",
-      "name": "HOWARD BEACH MOTOR BOAT CLUB",
+      "name": "Howard Beach Motor Boat Club",
       "address": "59 RUSSELL ST, HOWARD BEACH",
       "borough": "Queens",
       "lat": 40.65621,
@@ -3412,7 +3412,7 @@
     },
     {
       "id": "0349-22-117584",
-      "name": "SEAVER AVENUE MENS CLUB INC",
+      "name": "Seaver Avenue Mens Club",
       "address": "225 SEAVER AVE, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.58375,
@@ -3445,7 +3445,7 @@
     },
     {
       "id": "0349-23-125634",
-      "name": "KNIGHTS OF COLUMBUS",
+      "name": "Knights of Columbus",
       "address": "1305 86TH STREET, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.61396,
@@ -3478,7 +3478,7 @@
     },
     {
       "id": "0349-23-124685",
-      "name": "DOWN TOWN ASSOCIATION",
+      "name": "Down Town Association",
       "address": "60 62 64 PINE ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.70635,
@@ -3511,7 +3511,7 @@
     },
     {
       "id": "0349-25-130165",
-      "name": "Cpl. Walter J. Fufidio - Post #38 of Amvets Inc",
+      "name": "Cpl. Walter J. Fufidio - Post #38 of Amvets",
       "address": "1440 Shore Dr, Bronx",
       "borough": "The Bronx",
       "lat": 40.83424,
@@ -3544,7 +3544,7 @@
     },
     {
       "id": "0349-23-125755",
-      "name": "THE LINKS",
+      "name": "The Links",
       "address": "36 E 62ND ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76524,
@@ -3577,7 +3577,7 @@
     },
     {
       "id": "0349-22-117638",
-      "name": "AMPERE FISHING & YACHT CLUB INC",
+      "name": "Ampere Fishing & Yacht Club",
       "address": "1610 BAYSHORE AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.84605,
@@ -3610,7 +3610,7 @@
     },
     {
       "id": "0349-23-124097",
-      "name": "LEGEND SOFTBALL CORP",
+      "name": "Legend Softball",
       "address": "580 E 161ST ST, BRONX",
       "borough": "The Bronx",
       "lat": 40.82234,
@@ -3643,7 +3643,7 @@
     },
     {
       "id": "0349-23-126320",
-      "name": "UNITED MINERS SOCCER CLUB",
+      "name": "United Miners Soccer Club",
       "address": "34 01 45TH STREET, LONG ISLAND CITY",
       "borough": "Queens",
       "lat": 40.75469,
@@ -3676,7 +3676,7 @@
     },
     {
       "id": "0349-23-125986",
-      "name": "THE NIPPON CLUB, INC.",
+      "name": "The Nippon Club",
       "address": "604 5th Ave, New York",
       "borough": "Manhattan",
       "lat": 40.75764,
@@ -3709,7 +3709,7 @@
     },
     {
       "id": "0349-23-125552",
-      "name": "MORRIS YACHT & BEACH CLUB INC",
+      "name": "Morris Yacht & Beach Club",
       "address": "25 CITY ISLAND AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.83766,
@@ -3742,7 +3742,7 @@
     },
     {
       "id": "0349-21-113858",
-      "name": "CAFE 21",
+      "name": "Cafe 21",
       "address": "21 WEST END AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.77247,
@@ -3775,7 +3775,7 @@
     },
     {
       "id": "0349-22-115736",
-      "name": "CENTRAL PARK CLUB INC",
+      "name": "Central Park Club",
       "address": "217 W 57TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76592,
@@ -3808,7 +3808,7 @@
     },
     {
       "id": "0349-23-126321",
-      "name": "ARROW YACHT CLUB INC",
+      "name": "Arrow Yacht Club",
       "address": "22 04 119TH ST, COLLEGE POINT",
       "borough": "Queens",
       "lat": 40.78002,
@@ -3841,7 +3841,7 @@
     },
     {
       "id": "0349-24-127413",
-      "name": "CASA TUA NEW YORK CLUB",
+      "name": "Casa Tua New York Club",
       "address": "20 E 76TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.77451,
@@ -3874,7 +3874,7 @@
     },
     {
       "id": "0349-23-124684",
-      "name": "THE NATIONAL ARTS CLUB",
+      "name": "The National Arts Club",
       "address": "15 GRAMERCY PARK S, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.73785,
@@ -3907,7 +3907,7 @@
     },
     {
       "id": "0349-23-124217",
-      "name": "BARETTO NY",
+      "name": "Baretto NY",
       "address": "815 5TH AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76655,
@@ -3973,7 +3973,7 @@
     },
     {
       "id": "0349-23-125990",
-      "name": "CITY OF NEW YORK INC, THE",
+      "name": "City of New York the",
       "address": "128 130 E 80TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.77586,
@@ -4006,7 +4006,7 @@
     },
     {
       "id": "0349-23-125831",
-      "name": "RACQUET & TENNIS CLUB",
+      "name": "Racquet & Tennis Club",
       "address": "370 PARK AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75878,
@@ -4039,7 +4039,7 @@
     },
     {
       "id": "0349-23-124911",
-      "name": "HEIGHTS CASINO INC,THE",
+      "name": "Heights Casino the",
       "address": "75 MONTAGUE ST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.69536,
@@ -4072,7 +4072,7 @@
     },
     {
       "id": "0349-23-125785",
-      "name": "YALE CLUB OF NEW YORK CITY,THE",
+      "name": "Yale Club of New York City the",
       "address": "50 VANDERBILT AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.7539,
@@ -4105,7 +4105,7 @@
     },
     {
       "id": "0349-23-159830",
-      "name": "BOULUD PRIVE",
+      "name": "Boulud Prive",
       "address": "2 E 54TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76097,
@@ -4138,7 +4138,7 @@
     },
     {
       "id": "0349-23-126300",
-      "name": "UNITED STATES INC",
+      "name": "United States",
       "address": "37 09 31ST AVENUE, ASTORIA",
       "borough": "Queens",
       "lat": 40.76217,
@@ -4171,7 +4171,7 @@
     },
     {
       "id": "0349-22-117538",
-      "name": "THE PENN CLUB",
+      "name": "The Penn Club",
       "address": "30 W 44TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75549,
@@ -4237,7 +4237,7 @@
     },
     {
       "id": "0349-23-125346",
-      "name": "KNIGHTS OF BARON DE KALB INC",
+      "name": "Knights of Baron De Kalb",
       "address": "3000 EMMONS AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.58371,
@@ -4270,7 +4270,7 @@
     },
     {
       "id": "0349-23-126171",
-      "name": "590 LEX AVE CLUB INC",
+      "name": "590 Lex Ave Club",
       "address": "590 LEXINGTON AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75751,
@@ -4303,7 +4303,7 @@
     },
     {
       "id": "0349-23-126267",
-      "name": "COLLEGE POINT POST 885 VFW OF US INC",
+      "name": "College Point Post 885 Vfw of Us",
       "address": "120 19 14TH ROAD, COLLEGE POINT",
       "borough": "Queens",
       "lat": 40.78481,
@@ -4336,7 +4336,7 @@
     },
     {
       "id": "0349-22-117767",
-      "name": "THE TRANSCRIPT",
+      "name": "The Transcript",
       "address": "63 WALL ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.70595,
@@ -4369,7 +4369,7 @@
     },
     {
       "id": "0349-21-115660",
-      "name": "EDWARD M MCKEE POST NO 131 DEPT OF NY AM LEGION IN",
+      "name": "Edward M Mckee Post No 131 Dept of NY Am Legion in",
       "address": "1020 CLINTONVILLE STREET, WHITESTONE",
       "borough": "Queens",
       "lat": 40.79245,
@@ -4402,7 +4402,7 @@
     },
     {
       "id": "0349-23-125759",
-      "name": "FACULTY & STUDENTS CLUB INC",
+      "name": "Faculty & Students Club",
       "address": "1230 52 YORK AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76297,
@@ -4435,7 +4435,7 @@
     },
     {
       "id": "0349-23-124957",
-      "name": "BROOKLYN NY INC",
+      "name": "Brooklyn NY",
       "address": "7709 18TH AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.61198,
@@ -4468,7 +4468,7 @@
     },
     {
       "id": "0349-23-125633",
-      "name": "CITIZEN CLUB INC",
+      "name": "Citizen Club",
       "address": "619 MANHATTAN AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.72356,
@@ -4501,7 +4501,7 @@
     },
     {
       "id": "0349-23-125996",
-      "name": "CENTURY ASSOCIATION,THE",
+      "name": "Century Association the",
       "address": "7 W 43RD STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75445,
@@ -4534,7 +4534,7 @@
     },
     {
       "id": "0349-22-118163",
-      "name": "KNIGHTS OF COLUMBUS",
+      "name": "Knights of Columbus",
       "address": "7903 MYRTLE AVE, GLENDALE",
       "borough": "Queens",
       "lat": 40.70277,
@@ -4567,7 +4567,7 @@
     },
     {
       "id": "0349-23-125684",
-      "name": "CLUB OF THE BRONX INC",
+      "name": "Club of the Bronx",
       "address": "2222 HAVILAND AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.83061,
@@ -4600,7 +4600,7 @@
     },
     {
       "id": "0349-23-124821",
-      "name": "BELLE HARBOR YACHT CLUB",
+      "name": "Belle Harbor Yacht Club",
       "address": "533 BEACH 126TH STREET, BELLE HARBOR",
       "borough": "Queens",
       "lat": 40.58149,
@@ -4633,7 +4633,7 @@
     },
     {
       "id": "0349-23-125842",
-      "name": "RICHMOND COUNTY COUNTRY CLUB",
+      "name": "Richmond County Country Club",
       "address": "135 FLAGG PLACE, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.58807,
@@ -4666,7 +4666,7 @@
     },
     {
       "id": "0349-22-117580",
-      "name": "GRIFFIS FACULTY CLUB INC",
+      "name": "Griffis Faculty Club",
       "address": "521 E 68TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76419,
@@ -4699,7 +4699,7 @@
     },
     {
       "id": "0349-23-125036",
-      "name": "POLISH LEGN OF AMER VETRNS INC",
+      "name": "Polish Legn of Amer Vetrns",
       "address": "61 57 MASPETH AVENUE, MASPETH",
       "borough": "Queens",
       "lat": 40.72299,
@@ -4732,7 +4732,7 @@
     },
     {
       "id": "0349-23-124751",
-      "name": "SPORTING CLUB GJOA INC",
+      "name": "Sporting Club Gjoa",
       "address": "850 62ND STREET, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.63354,
@@ -4765,7 +4765,7 @@
     },
     {
       "id": "0349-23-125767",
-      "name": "UNION LEAGUE CLUB,THE",
+      "name": "Union League Club the",
       "address": "38 E 37TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.74917,
@@ -4798,7 +4798,7 @@
     },
     {
       "id": "0349-22-117977",
-      "name": "ZERO BOND",
+      "name": "Zero Bond",
       "address": "0 BOND ST A/K/A 670 BROADWAY, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72732,
@@ -4831,7 +4831,7 @@
     },
     {
       "id": "0349-23-125817",
-      "name": "HARMONIE CLUB",
+      "name": "Harmonie Club",
       "address": "4 E 60TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76461,
@@ -4864,7 +4864,7 @@
     },
     {
       "id": "0349-22-118135",
-      "name": "KOLPING SOCIETY OF NEW YORK",
+      "name": "Kolping Society of New York",
       "address": "165 E 88TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.78039,
@@ -4896,41 +4896,8 @@
       ]
     },
     {
-      "id": "0349-22-115850",
-      "name": "CENTRAL PARK CLUB INC",
-      "address": "217 W 57TH ST, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.76592,
-      "lng": -73.98095,
-      "license_class": "Club",
-      "venue_type": "club",
-      "market_premium": "15000.00",
-      "ts_low": "10500.00",
-      "ts_high": "15000.00",
-      "savings_low": "0.00",
-      "savings_high": "4500.00",
-      "savings_mid": "2250.00",
-      "likely_carriers": [
-        {
-          "id": "atrium-syndicate",
-          "name": "Atrium Syndicate 609 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "brit-syndicate",
-          "name": "Brit Syndicate 2987 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
       "id": "0349-22-117577",
-      "name": "COLUMBUS CITIZENS FND",
+      "name": "Columbus Citizens Fnd",
       "address": "8 E 69TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.77021,
@@ -4963,7 +4930,7 @@
     },
     {
       "id": "0349-23-125833",
-      "name": "REGENCY WHIST CLUB INC",
+      "name": "Regency Whist Club",
       "address": "15 E 67TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76883,
@@ -4996,7 +4963,7 @@
     },
     {
       "id": "0349-23-125532",
-      "name": "AMERICAN LEGION INC",
+      "name": "American Legion",
       "address": "1530 HUTCHINSON RIVER PKWY, BRONX",
       "borough": "The Bronx",
       "lat": 40.84369,
@@ -5029,7 +4996,7 @@
     },
     {
       "id": "0349-23-124824",
-      "name": "4918 CLUB INC",
+      "name": "4918 Club",
       "address": "49 18 QUEENS BLVD, WOODSIDE",
       "borough": "Queens",
       "lat": 40.74305,
@@ -5062,7 +5029,7 @@
     },
     {
       "id": "0349-23-125999",
-      "name": "GREAT KILLS YACHT CLUB INC",
+      "name": "Great Kills Yacht Club",
       "address": "37 MANSION AVE, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.54646,
@@ -5095,7 +5062,7 @@
     },
     {
       "id": "0349-21-114471",
-      "name": "THE TORCH CLUB",
+      "name": "The Torch Club",
       "address": "18 WAVERLY PLACE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.73022,
@@ -5128,7 +5095,7 @@
     },
     {
       "id": "0349-23-125771",
-      "name": "OF THE CITY OF NEW YORK",
+      "name": "Of the City of New York",
       "address": "42 W 44TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75569,
@@ -5161,7 +5128,7 @@
     },
     {
       "id": "0349-22-116135",
-      "name": "56TH STREET DINING CLUB INC",
+      "name": "56th Street Dining Club",
       "address": "432 PARK AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76108,
@@ -5194,7 +5161,7 @@
     },
     {
       "id": "0349-23-125761",
-      "name": "CLUB METROPOLITAN INC",
+      "name": "Club Metropolitan",
       "address": "146 W 57TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.7651,
@@ -5227,7 +5194,7 @@
     },
     {
       "id": "0349-22-117215",
-      "name": "THE PHILLIPS CLUB",
+      "name": "The Phillips Club",
       "address": "155 W 66TH ST-1ST FLOOR, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.7743,
@@ -5260,7 +5227,7 @@
     },
     {
       "id": "0349-23-125987",
-      "name": "THE UNIVERSITY CLUB",
+      "name": "The University Club",
       "address": "1  W 54TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76114,
@@ -5293,7 +5260,7 @@
     },
     {
       "id": "0349-24-133009",
-      "name": "THE STRAND",
+      "name": "The Strand",
       "address": "658 Clarence Ave, Bronx",
       "borough": "The Bronx",
       "lat": 40.82903,
@@ -5326,7 +5293,7 @@
     },
     {
       "id": "0349-23-124956",
-      "name": "EXCELSIOR YACHT CLUB",
+      "name": "Excelsior Yacht Club",
       "address": "1902 SHORE PKWY, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.58945,
@@ -5392,7 +5359,7 @@
     },
     {
       "id": "0349-23-124128",
-      "name": "FOREIGN WARS OF THE UNITED STATES INC",
+      "name": "Foreign Wars of the United States",
       "address": "143 17 SPRINGFIELD BLVD, SPRINGFIELD GARDENS",
       "borough": "Queens",
       "lat": 40.68405,
@@ -5425,7 +5392,7 @@
     },
     {
       "id": "0349-22-117535",
-      "name": "AMERICAN LEGION CONTINENTAL POST 1424",
+      "name": "American Legion Continental Post 1424",
       "address": "107-15 METROPOLITAN AVE, FOREST HILLS",
       "borough": "Queens",
       "lat": 40.70961,
@@ -5458,7 +5425,7 @@
     },
     {
       "id": "0349-23-125551",
-      "name": "AMERICAN LEGION",
+      "name": "American Legion",
       "address": "550 CITY ISLAND AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.85331,
@@ -5491,7 +5458,7 @@
     },
     {
       "id": "0349-21-114009",
-      "name": "SGT MICHAEL LABETTI POST 2159 VFW INC",
+      "name": "Sgt Michael Labetti Post 2159 Vfw",
       "address": "390 HYLAN BLVD, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.60968,
@@ -5524,7 +5491,7 @@
     },
     {
       "id": "0349-22-118350",
-      "name": "VFW POST 7173",
+      "name": "Vfw Post 7173",
       "address": "7010 FORT HAMILTON PKWY, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.62801,
@@ -5557,7 +5524,7 @@
     },
     {
       "id": "0349-22-117631",
-      "name": "DUMBO HOUSE",
+      "name": "Dumbo House",
       "address": "55 WATER ST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.70329,
@@ -5590,7 +5557,7 @@
     },
     {
       "id": "0349-23-125648",
-      "name": "SAINT ANDREW'S SOCIETY OF THE STATE OF NEW YORK",
+      "name": "Saint Andrew's Society of the State of New York",
       "address": "150 E 55TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.7593,
@@ -5623,7 +5590,7 @@
     },
     {
       "id": "0349-23-125754",
-      "name": "KNICKERBOCKER CLUB",
+      "name": "Knickerbocker Club",
       "address": "807 5TH AVENUE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76605,
@@ -5656,7 +5623,7 @@
     },
     {
       "id": "0349-23-124752",
-      "name": "SWEDISH FOOTBALL CLUB INC",
+      "name": "Swedish Football Club",
       "address": "725 65TH ST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.63352,
@@ -5722,7 +5689,7 @@
     },
     {
       "id": "0349-23-125283",
-      "name": "ZZ'S CLUB NEW YORK",
+      "name": "Zz's Club New York",
       "address": "560 W 33RD ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75463,
@@ -5755,7 +5722,7 @@
     },
     {
       "id": "0349-23-124913",
-      "name": "POLONIA DEMOCRATIC CLUB INC",
+      "name": "Polonia Democratic Club",
       "address": "140 GRAND ST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.71491,
@@ -5788,7 +5755,7 @@
     },
     {
       "id": "0349-23-125365",
-      "name": "1700 BROADWAY CLUB",
+      "name": "1700 Broadway Club",
       "address": "1700 BROADWAY, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76377,
@@ -5821,7 +5788,7 @@
     },
     {
       "id": "0349-24-130363",
-      "name": "CHEZ MARGAUX",
+      "name": "Chez Margaux",
       "address": "403 W 13TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.74041,
@@ -5854,7 +5821,7 @@
     },
     {
       "id": "0349-22-117800",
-      "name": "CATHOLIC CLUB INC",
+      "name": "Catholic Club",
       "address": "2882 GERRITTSEN AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.59011,
@@ -5920,7 +5887,7 @@
     },
     {
       "id": "0349-23-124530",
-      "name": "REDWOOD PLEASURE CLUB INC",
+      "name": "Redwood Pleasure Club",
       "address": "2680 SCHURZ AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.8132,
@@ -5953,7 +5920,7 @@
     },
     {
       "id": "0349-23-126301",
-      "name": "ORSOGNA MUTUAL AID SOCIETY INC",
+      "name": "Orsogna Mutual Aid Society",
       "address": "26 23 18TH ST, LONG ISLAND CITY",
       "borough": "Queens",
       "lat": 40.77409,
@@ -5985,41 +5952,8 @@
       ]
     },
     {
-      "id": "0349-23-124069",
-      "name": "NEXUS CLUB NEW YORK",
-      "address": "100 CHURCH ST, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.713,
-      "lng": -74.00949,
-      "license_class": "Club",
-      "venue_type": "club",
-      "market_premium": "15000.00",
-      "ts_low": "10500.00",
-      "ts_high": "15000.00",
-      "savings_low": "0.00",
-      "savings_high": "4500.00",
-      "savings_mid": "2250.00",
-      "likely_carriers": [
-        {
-          "id": "atrium-syndicate",
-          "name": "Atrium Syndicate 609 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "brit-syndicate",
-          "name": "Brit Syndicate 2987 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
       "id": "0349-25-111176",
-      "name": "HUNTING CLUB INC, THE",
+      "name": "Hunting Club the",
       "address": "2503 Williamsbridge Rd, Bronx",
       "borough": "The Bronx",
       "lat": 40.86337,
@@ -6052,7 +5986,7 @@
     },
     {
       "id": "0349-22-118195",
-      "name": "WILLIAMSBURGH YACHT CLUB INC",
+      "name": "Williamsburgh Yacht Club",
       "address": "118 08 29TH AVE, FLUSHING",
       "borough": "Queens",
       "lat": 40.77203,
@@ -6085,7 +6019,7 @@
     },
     {
       "id": "0349-23-125832",
-      "name": "LOTOS CLUB INC",
+      "name": "Lotos Club",
       "address": "5 E 66TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76833,
@@ -6118,7 +6052,7 @@
     },
     {
       "id": "0349-22-115695",
-      "name": "PROSPECTUS INC",
+      "name": "Prospectus",
       "address": "1511 10TH AVENUE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.65953,
@@ -6151,7 +6085,7 @@
     },
     {
       "id": "0349-23-125993",
-      "name": "RIVER CLUB OF NEW YORK INC,THE",
+      "name": "River Club of New York the",
       "address": "447 E 52ND STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75433,
@@ -6217,7 +6151,7 @@
     },
     {
       "id": "0349-23-124820",
-      "name": "2672 CLUB INC",
+      "name": "2672 Club",
       "address": "333 BEACH 90TH STREET, ROCKAWAY BEACH",
       "borough": "Queens",
       "lat": 40.58855,
@@ -6250,7 +6184,7 @@
     },
     {
       "id": "0349-23-125834",
-      "name": "COLONY CLUB",
+      "name": "Colony Club",
       "address": "564 PARK AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76502,
@@ -6283,7 +6217,7 @@
     },
     {
       "id": "0349-23-125762",
-      "name": "WOMENS NATIONAL REPUBLICAN CLUB INC",
+      "name": "Womens National Republican Club",
       "address": "3 W 51ST STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75944,
@@ -6349,7 +6283,7 @@
     },
     {
       "id": "0349-23-123819",
-      "name": "SET CLUB INC, THE",
+      "name": "Set Club the",
       "address": "455 10TH AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75554,
@@ -6382,7 +6316,7 @@
     },
     {
       "id": "0349-22-116254",
-      "name": "SONS OF FLATBUSH 497 INC",
+      "name": "Sons of Flatbush 497",
       "address": "3409 AVENUE S, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.60899,
@@ -6415,7 +6349,7 @@
     },
     {
       "id": "0349-22-117022",
-      "name": "LUDLOW HOUSE/LIVING ROOM",
+      "name": "Ludlow House Living Room",
       "address": "139 LUDLOW ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72047,
@@ -6448,7 +6382,7 @@
     },
     {
       "id": "0349-23-125991",
-      "name": "MEMBERSHIP CLUB",
+      "name": "Membership Club",
       "address": "41 E 63RD STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76571,
@@ -6481,7 +6415,7 @@
     },
     {
       "id": "0349-23-124706",
-      "name": "LIEDERKRANZ OF THE CITY OF,THE NEW YORK INC",
+      "name": "Liederkranz of the City of the New York",
       "address": "6 EAST 87TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.78192,
@@ -6514,7 +6448,7 @@
     },
     {
       "id": "0349-23-125550",
-      "name": "CITY ISLAND YACHT CLUB INC",
+      "name": "City Island Yacht Club",
       "address": "63 PILOT ST CITY ISLAND, BRONX",
       "borough": "The Bronx",
       "lat": 40.84092,
@@ -6547,7 +6481,7 @@
     },
     {
       "id": "0349-23-125988",
-      "name": "SOCIETY OF ILLUSTRATORS INC",
+      "name": "Society of Illustrators",
       "address": "128 E 63RD STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.7649,
@@ -6580,7 +6514,7 @@
     },
     {
       "id": "0349-23-125682",
-      "name": "HARLEM YACHT CLUB INC,THE",
+      "name": "Harlem Yacht Club the",
       "address": "417 HUNTER AVENUE, BRONX",
       "borough": "The Bronx",
       "lat": 40.84998,
@@ -6613,7 +6547,7 @@
     },
     {
       "id": "0349-23-125894",
-      "name": "MAXWELL TRIBECA",
+      "name": "Maxwell Tribeca",
       "address": "451 WASHINGTON ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72399,
@@ -6646,7 +6580,7 @@
     },
     {
       "id": "0349-23-124870",
-      "name": "DOUGLASTON CLUB INC",
+      "name": "Douglaston Club",
       "address": "600 WEST DRIVE, DOUGLASTON",
       "borough": "Queens",
       "lat": 40.77638,
@@ -6679,7 +6613,7 @@
     },
     {
       "id": "0349-23-125770",
-      "name": "HARVARD CLUB OF NEW YORK CITY",
+      "name": "Harvard Club of New York City",
       "address": "27 W 44TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75535,
@@ -6712,7 +6646,7 @@
     },
     {
       "id": "0349-23-126677",
-      "name": "THE EXPLORERS CLUB",
+      "name": "The Explorers Club",
       "address": "46 E 70TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.77009,
@@ -6745,7 +6679,7 @@
     },
     {
       "id": "0349-23-126888",
-      "name": "ONE CLUB AT ONE WALL STREET INC, THE",
+      "name": "One Club at One Wall Street the",
       "address": "1 WALL ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.70758,
@@ -6778,7 +6712,7 @@
     },
     {
       "id": "0349-21-114431",
-      "name": "CAPRI SOCIAL CLUB",
+      "name": "Capri Social Club",
       "address": "156 CALYER ST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.7278,
@@ -6811,7 +6745,7 @@
     },
     {
       "id": "0349-23-125496",
-      "name": "BRONXONIA YACHT CLUB INC",
+      "name": "Bronxonia Yacht Club",
       "address": "518 ELLSWORTH AVENUE, BRONX",
       "borough": "The Bronx",
       "lat": 40.82493,
@@ -6844,7 +6778,7 @@
     },
     {
       "id": "0349-23-124823",
-      "name": "CATHOLIC WAR VETS US AME INC",
+      "name": "Catholic War Vets Us Ame",
       "address": "39 48 61ST STREET, WOODSIDE",
       "borough": "Queens",
       "lat": 40.73776,
@@ -6877,7 +6811,7 @@
     },
     {
       "id": "0349-22-118341",
-      "name": "PRIMROSE CRICKET CLUB INC",
+      "name": "Primrose Cricket Club",
       "address": "3836 WHITE PLAINS ROAD, BRONX",
       "borough": "The Bronx",
       "lat": 40.88467,
@@ -6910,7 +6844,7 @@
     },
     {
       "id": "0349-23-125829",
-      "name": "ESTONIAN EDUCATIONAL SOCIETY INC",
+      "name": "Estonian Educational Society",
       "address": "243 E 34TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.74497,
@@ -6943,7 +6877,7 @@
     },
     {
       "id": "0349-22-117859",
-      "name": "FRIENDS OF COLUMBUS COUNCL INC",
+      "name": "Friends of Columbus Councl",
       "address": "3051 NOSTRAND AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.60998,
@@ -6976,7 +6910,7 @@
     },
     {
       "id": "0349-22-117532",
-      "name": "IN THE CITY OF NY- FACULTY HOUSE",
+      "name": "In the City of Ny- Faculty House",
       "address": "400 W 117TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.80673,
@@ -7009,7 +6943,7 @@
     },
     {
       "id": "0349-23-124170",
-      "name": "HAMILTON LOUNGE",
+      "name": "Hamilton Lounge",
       "address": "107 GREENWICH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.70852,
@@ -7042,7 +6976,7 @@
     },
     {
       "id": "0349-23-124928",
-      "name": "CLUB DEPORTIVO DOMINICANO OF NEW YORK INC",
+      "name": "Club Deportivo Dominicano of New York",
       "address": "2088 AMSTERDAM AVENUE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.83678,
@@ -7075,7 +7009,7 @@
     },
     {
       "id": "0349-22-117316",
-      "name": "BROOKLYN YACHTS CLUB INC",
+      "name": "Brooklyn Yachts Club",
       "address": "3147 VOORHIES AVENUE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.58825,
@@ -7108,7 +7042,7 @@
     },
     {
       "id": "0349-22-116578",
-      "name": "BPO ELKS LODGE #878",
+      "name": "Bpo Elks Lodge #878",
       "address": "82 20 QUEENS BLVD, ELMHURST",
       "borough": "Queens",
       "lat": 40.73763,
@@ -7141,7 +7075,7 @@
     },
     {
       "id": "0349-23-124819",
-      "name": "OLD MILL YACHT CLUB INC",
+      "name": "Old Mill Yacht Club",
       "address": "163 15 CROSS BAY BLVD, HOWARD BEACH",
       "borough": "Queens",
       "lat": 40.65228,
@@ -7174,7 +7108,7 @@
     },
     {
       "id": "0349-23-123966",
-      "name": "THE ITALIAN CULTURAL FOUNDATION AT CASA BELVEDERE",
+      "name": "The Italian Cultural Foundation at Casa Belvedere",
       "address": "79 HOWARD AVE, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.62859,
@@ -7207,7 +7141,7 @@
     },
     {
       "id": "0349-23-125998",
-      "name": "MANRESA COLUMBIAN CLUB INC",
+      "name": "Manresa Columbian Club",
       "address": "185 CEDAR GROVE AVE, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.56005,
@@ -7240,7 +7174,7 @@
     },
     {
       "id": "0349-22-117808",
-      "name": "AUTHENTIC PONTIAN HOUSE INC",
+      "name": "Authentic Pontian House",
       "address": "31-27 23RD AVE, ASTORIA",
       "borough": "Queens",
       "lat": 40.77239,
@@ -7273,7 +7207,7 @@
     },
     {
       "id": "0349-26-140154",
-      "name": "La Fuerza Del Pueblo Community Center Inc",
+      "name": "La Fuerza Del Pueblo Community Center",
       "address": "555 W 157th St, New York",
       "borough": "Manhattan",
       "lat": 40.83383,
@@ -7306,7 +7240,7 @@
     },
     {
       "id": "0349-23-126304",
-      "name": "CASA CIPRIANI CLUB SOUTH STREET",
+      "name": "Casa Cipriani Club South Street",
       "address": "10 SOUTH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.70141,
@@ -7372,7 +7306,7 @@
     },
     {
       "id": "0349-23-125309",
-      "name": "HUDSON RIVER YACHT CLUB INC",
+      "name": "Hudson River Yacht Club",
       "address": "2101 BERGEN AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.6234,
@@ -7405,7 +7339,7 @@
     },
     {
       "id": "0349-23-124969",
-      "name": "STATEN ISLAND YACHT CLUB INC",
+      "name": "Staten Island Yacht Club",
       "address": "147 MANSION AVE, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.54442,
@@ -7438,7 +7372,7 @@
     },
     {
       "id": "0349-23-123762",
-      "name": "RIDGEWOOD LODGE 1642 LOYAL ORDER OF MOOSE INC",
+      "name": "Ridgewood Lodge 1642 Loyal Order of Moose",
       "address": "72-15 GRAND AVE, MASPETH",
       "borough": "Queens",
       "lat": 40.72849,
@@ -7471,7 +7405,7 @@
     },
     {
       "id": "0349-23-125992",
-      "name": "METROPOLITAN CLUB INC,THE",
+      "name": "Metropolitan Club the",
       "address": "1 E 60TH STREET, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76473,
@@ -7504,7 +7438,7 @@
     },
     {
       "id": "0349-22-118196",
-      "name": "NORTH CHANNEL YACHT CLUB INC",
+      "name": "North Channel Yacht Club",
       "address": "1622 CHURCH ROAD, BROAD CHANNEL",
       "borough": "Queens",
       "lat": 40.60067,
@@ -7537,7 +7471,7 @@
     },
     {
       "id": "0349-23-125203",
-      "name": "TIRO A SEGNO OF N Y INC",
+      "name": "Tiro a Segno of N Y",
       "address": "73 75 77 MAC DOUGAL ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72867,
@@ -7570,7 +7504,7 @@
     },
     {
       "id": "0349-24-122654",
-      "name": "XGDF ASSOCIATION OF NEW YORK 1986 INC",
+      "name": "Xgdf Association of New York 1986",
       "address": "132-16 Rockaway Blvd, South Ozone Park",
       "borough": "Queens",
       "lat": 40.67473,
@@ -7603,7 +7537,7 @@
     },
     {
       "id": "0349-23-126165",
-      "name": "CORE",
+      "name": "Core",
       "address": "711 5TH AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.76188,
@@ -7636,7 +7570,7 @@
     },
     {
       "id": "0267-23-132887",
-      "name": "SIMPLE CAFE",
+      "name": "Simple Cafe",
       "address": "124 S 3RD ST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.7126,
@@ -7659,7 +7593,7 @@
     },
     {
       "id": "0267-23-133353",
-      "name": "BRBK 228 LLC",
+      "name": "Brbk 228",
       "address": "228 7TH AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.67009,
@@ -7682,7 +7616,7 @@
     },
     {
       "id": "0267-23-138791",
-      "name": "WETZEL'S PRETZELS",
+      "name": "Wetzel's Pretzels",
       "address": "55B RICHMOND TERR, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.64428,
@@ -7705,7 +7639,7 @@
     },
     {
       "id": "0267-24-133550",
-      "name": "Amsterdam Craft Cellar Inc",
+      "name": "Amsterdam Craft Cellar",
       "address": "1739 Amsterdam Ave Unit 2, New York",
       "borough": "Manhattan",
       "lat": 40.82603,
@@ -7728,7 +7662,7 @@
     },
     {
       "id": "0267-24-104114",
-      "name": "124 OLD RABBIT CLUB",
+      "name": "124 Old Rabbit Club",
       "address": "124 MACDOUGAL ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.73002,
@@ -7751,7 +7685,7 @@
     },
     {
       "id": "0138-20-100347",
-      "name": "LA VILLITA MEXICAN REST INC",
+      "name": "La Villita Mexican Rest",
       "address": "1249 AVENUE U, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.59861,
@@ -7774,7 +7708,7 @@
     },
     {
       "id": "0267-22-114508",
-      "name": "KUCHUPLUM CORP",
+      "name": "Kuchuplum",
       "address": "1915 Washington Ave, Bronx",
       "borough": "The Bronx",
       "lat": 40.84727,
@@ -7797,7 +7731,7 @@
     },
     {
       "id": "0267-23-127173",
-      "name": "GAGOPA MUSIC STUDIO",
+      "name": "Gagopa Music Studio",
       "address": "28 W 32ND ST 3RD FLR, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.74777,
@@ -7820,7 +7754,7 @@
     },
     {
       "id": "0267-22-114964",
-      "name": "ABC BEER CO",
+      "name": "Abc Beer",
       "address": "96 AVENUE C, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72376,
@@ -7843,7 +7777,7 @@
     },
     {
       "id": "0138-23-140648",
-      "name": "DOS TOROS",
+      "name": "Dos Toros",
       "address": "225 LIBERTY ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.71141,
@@ -7866,7 +7800,7 @@
     },
     {
       "id": "0267-21-120395",
-      "name": "TABLE 87 IC LLC",
+      "name": "Table 87 Ic",
       "address": "220 36TH ST UNIT 4, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.65669,
@@ -7889,7 +7823,7 @@
     },
     {
       "id": "0267-22-112302",
-      "name": "ABSOLUTE COFFEE",
+      "name": "Absolute Coffee",
       "address": "327 ATLANTIC AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.68805,
@@ -7912,7 +7846,7 @@
     },
     {
       "id": "0138-21-122038",
-      "name": "NIFOROS COFFEE SHOP",
+      "name": "Niforos Coffee Shop",
       "address": "43-57 11TH ST, LONG ISLAND CITY",
       "borough": "Queens",
       "lat": 40.75034,
@@ -7958,7 +7892,7 @@
     },
     {
       "id": "0138-25-106748",
-      "name": "CUMANDA CORP",
+      "name": "Cumanda",
       "address": "98-18 Northern Blvd, Corona",
       "borough": "Queens",
       "lat": 40.7572,
@@ -7981,7 +7915,7 @@
     },
     {
       "id": "0138-22-100884",
-      "name": "DOS TOROS",
+      "name": "Dos Toros",
       "address": "189 BEDFORD AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.71761,
@@ -8004,7 +7938,7 @@
     },
     {
       "id": "0267-22-105493",
-      "name": "NEMOS BEER SHOP",
+      "name": "Nemos Beer Shop",
       "address": "110-64 QUEENS BLVD, FOREST HILLS",
       "borough": "Queens",
       "lat": 40.71907,
@@ -8027,7 +7961,7 @@
     },
     {
       "id": "0267-21-116642",
-      "name": "GROUND CENTRAL COFFEE COMPANY",
+      "name": "Ground Central Coffee",
       "address": "888 8TH AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.7639,
@@ -8050,7 +7984,7 @@
     },
     {
       "id": "0267-23-139047",
-      "name": "BKLYN CLAY LLC",
+      "name": "Bklyn Clay",
       "address": "288 WEST ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72477,
@@ -8096,7 +8030,7 @@
     },
     {
       "id": "0138-23-140838",
-      "name": "MIGHTY QUINNS BARBEQUE",
+      "name": "Mighty Quinns Barbeque",
       "address": "100 WEST ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.77462,
@@ -8119,7 +8053,7 @@
     },
     {
       "id": "0267-22-108126",
-      "name": "COFFEE AVE CORP",
+      "name": "Coffee Ave",
       "address": "3456 33RD ST, ASTORIA",
       "borough": "Queens",
       "lat": 40.75758,
@@ -8142,7 +8076,7 @@
     },
     {
       "id": "0267-22-111213",
-      "name": "BURGER JOINT",
+      "name": "Burger Joint",
       "address": "383 W 31ST ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75119,
@@ -8165,7 +8099,7 @@
     },
     {
       "id": "0267-23-132454",
-      "name": "ELAINE KAUFMAN CULTURALCENTER/LUCY MOSES SCHOOL",
+      "name": "Elaine Kaufman Culturalcenter Lucy Moses School",
       "address": "129 W 67TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.77505,
@@ -8188,7 +8122,7 @@
     },
     {
       "id": "0267-22-108039",
-      "name": "LA PANINERIA",
+      "name": "La Panineria",
       "address": "9 E 8TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.73201,
@@ -8211,7 +8145,7 @@
     },
     {
       "id": "0138-21-123965",
-      "name": "INTERNATIONAL COFFEE SHOP",
+      "name": "International Coffee Shop",
       "address": "556 WORTMAN AVENUE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.66185,
@@ -8234,7 +8168,7 @@
     },
     {
       "id": "0267-22-115339",
-      "name": "RUFFIAN VENTURES LLC",
+      "name": "Ruffian Ventures",
       "address": "125 E 7TH ST SOUTH STOREFRONT, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72632,
@@ -8257,7 +8191,7 @@
     },
     {
       "id": "0267-22-104342",
-      "name": "CARMINE STREET BEERS INC",
+      "name": "Carmine Street Beers",
       "address": "52A CARMINE ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72993,
@@ -8303,7 +8237,7 @@
     },
     {
       "id": "0138-22-102428",
-      "name": "EAE EATERY ETC INC",
+      "name": "Eae Eatery Etc",
       "address": "55 02 48TH STREET, MASPETH",
       "borough": "Queens",
       "lat": 40.73069,
@@ -8372,7 +8306,7 @@
     },
     {
       "id": "0267-25-109642",
-      "name": "All'Antico Vinaio",
+      "name": "All'antico Vinaio",
       "address": "1450 Broadway, New York",
       "borough": "Manhattan",
       "lat": 40.75481,
@@ -8395,7 +8329,7 @@
     },
     {
       "id": "0138-23-141452",
-      "name": "ZARO PENN PLAZA INC",
+      "name": "Zaro Penn Plaza",
       "address": "2 PENN PLAZA CONC LEVEL IV, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.74969,
@@ -8418,7 +8352,7 @@
     },
     {
       "id": "0267-24-139765",
-      "name": "Sip and Co. East Village",
+      "name": "Sip and East Village",
       "address": "433 E 9th St, New York",
       "borough": "Manhattan",
       "lat": 40.72758,
@@ -8441,7 +8375,7 @@
     },
     {
       "id": "0267-24-111001",
-      "name": "POCKET BAR 57",
+      "name": "Pocket Bar 57",
       "address": "469 W 57th St, New York",
       "borough": "Manhattan",
       "lat": 40.76891,
@@ -8464,7 +8398,7 @@
     },
     {
       "id": "0138-22-101425",
-      "name": "BAYAHIBE FUSION CORP",
+      "name": "Bayahibe Fusion",
       "address": "3791 E TREMONT AVE, BRONX",
       "borough": "The Bronx",
       "lat": 40.82521,
@@ -8487,7 +8421,7 @@
     },
     {
       "id": "0138-21-122865",
-      "name": "SUNSET PIZZERIA CORPORATION",
+      "name": "Sunset Pizzeria",
       "address": "645 ROSSVILLE AVENUE, STATEN ISLAND",
       "borough": "Staten Island",
       "lat": 40.54258,
@@ -8510,7 +8444,7 @@
     },
     {
       "id": "0267-21-121403",
-      "name": "CIAO BELLA COFFEE LLC",
+      "name": "Ciao Bella Coffee",
       "address": "284 CLARKSON AVE, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.6554,
@@ -8556,7 +8490,7 @@
     },
     {
       "id": "0267-21-120989",
-      "name": "HANDCRAFT BURGER & BREW",
+      "name": "Handcraft Burger & Brew",
       "address": "110 W 40TH ST STORE #3, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.75389,
@@ -8579,7 +8513,7 @@
     },
     {
       "id": "0267-22-112997",
-      "name": "BAKED CRAVINGS",
+      "name": "Baked Cravings",
       "address": "1673 LEXINGTON AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.79148,
@@ -8602,7 +8536,7 @@
     },
     {
       "id": "0267-25-125942",
-      "name": "Puppysphere LLC",
+      "name": "Puppysphere",
       "address": "114 W 27th Street, New York",
       "borough": "Manhattan",
       "lat": 40.74579,
@@ -8625,7 +8559,7 @@
     },
     {
       "id": "0267-25-120792",
-      "name": "LITTLE WAYLA",
+      "name": "Little Wayla",
       "address": "100 Forsyth Street, New York",
       "borough": "Manhattan",
       "lat": 40.71832,
@@ -8717,7 +8651,7 @@
     },
     {
       "id": "0267-24-124453",
-      "name": "Million Goods, LLC",
+      "name": "Million Goods",
       "address": "88 Franklin St, Brooklyn",
       "borough": "Brooklyn",
       "lat": 40.72751,
@@ -8763,7 +8697,7 @@
     },
     {
       "id": "0267-24-108998",
-      "name": "LITTLE HONEY",
+      "name": "Little Honey",
       "address": "487 7th Ave, Brooklyn",
       "borough": "Brooklyn",
       "lat": 40.66182,
@@ -8786,7 +8720,7 @@
     },
     {
       "id": "0267-24-106133",
-      "name": "TATSUDA OMAKASE INC",
+      "name": "Tatsuda Omakase",
       "address": "354 W 44th St, New York",
       "borough": "Manhattan",
       "lat": 40.75948,
@@ -8809,7 +8743,7 @@
     },
     {
       "id": "0267-24-104883",
-      "name": "AMC ORPHEUM 7",
+      "name": "Amc Orpheum 7",
       "address": "1538 3RD AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.77923,
@@ -8855,7 +8789,7 @@
     },
     {
       "id": "0267-23-139364",
-      "name": "TIKAL CAFE CORP",
+      "name": "Tikal Cafe",
       "address": "1312 DECATUR ST, BROOKLYN",
       "borough": "Brooklyn",
       "lat": 40.69117,
@@ -8878,7 +8812,7 @@
     },
     {
       "id": "0138-21-123359",
-      "name": "JOE JUNIOR RESTAURANT",
+      "name": "Joe Junior Restaurant",
       "address": "167 3RD AVE, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.73475,
@@ -8901,7 +8835,7 @@
     },
     {
       "id": "0267-25-102524",
-      "name": "SOURAJI",
+      "name": "Souraji",
       "address": "23 Avenue B, New York",
       "borough": "Manhattan",
       "lat": 40.72222,
@@ -8924,7 +8858,7 @@
     },
     {
       "id": "0267-24-106867",
-      "name": "PURPLE WAVES",
+      "name": "Purple Waves",
       "address": "285 W 110TH ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.80046,
@@ -8947,7 +8881,7 @@
     },
     {
       "id": "0267-23-135287",
-      "name": "NO 142",
+      "name": "No 142",
       "address": "142 SULLIVAN ST, NEW YORK",
       "borough": "Manhattan",
       "lat": 40.72699,
