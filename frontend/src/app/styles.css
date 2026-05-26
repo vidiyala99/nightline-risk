@@ -636,13 +636,8 @@ a:hover { color: var(--text-primary); }
   .page-header h1 { line-height: 1.08; }
 }
 
-.page-header h1::first-letter {
-  font-style: italic;
-  background: linear-gradient(110deg, #c8f000, #f4ce6c 60%, #f43f5e);
-  -webkit-background-clip: text;
-          background-clip: text;
-  color: transparent;
-}
+/* (Removed the italic gradient drop-cap — it clashed with the bold grotesque
+   title and read as a broken first letter. Titles are now uniform.) */
 
 .page-loading {
   display: flex;
@@ -4050,28 +4045,52 @@ html, body { overflow-x: clip; }
   justify-content: space-between;
   align-items: flex-end;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-md);
+  border-bottom: 2px solid var(--border-strong);   /* diagram rule */
 }
 .page-header__eyebrow {
-  color: var(--text-secondary);
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  margin-bottom: 4px;
-  font-weight: 500;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+.page-header__eyebrow::before {
+  content: "";
+  width: 7px; height: 7px;
+  background: var(--brand-primary);
+  border: 1px solid var(--border-strong);
 }
 .page-header__title {
   font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.0;
   margin: 0;
+}
+.page-header__accent {
+  font-family: var(--font-script);
+  font-weight: 600;
+  font-size: 0.62em;
+  color: var(--accent-ink);
+  margin-left: 0.4em;
+  display: inline-block;
+  transform: rotate(-3.5deg);
+  vertical-align: 0.12em;
 }
 .page-header__subtitle {
   color: var(--text-secondary);
-  font-size: 0.85rem;
-  margin-top: 6px;
-  max-width: 60ch;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  margin-top: 12px;
+  max-width: 66ch;
 }
 .page-header__actions {
   display: flex;
@@ -4701,9 +4720,10 @@ html, body { overflow-x: clip; }
 }
 
 .policies-table-wrap {
-  background: var(--bg-base);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   overflow-x: auto;
 }
 
@@ -4715,14 +4735,15 @@ html, body { overflow-x: clip; }
 
 .policies-table thead th {
   text-align: left;
-  font-size: 9px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--text-secondary);
-  font-weight: 600;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-base);
+  color: var(--text-primary);
+  font-weight: 700;
+  padding: 11px 12px;
+  border-bottom: 2px solid var(--border-strong);
+  background: var(--bg-surface-hover);
 }
 
 .policies-table tbody td {

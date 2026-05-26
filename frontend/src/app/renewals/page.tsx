@@ -103,6 +103,7 @@ export default function RenewalsPage() {
       <PageHeader
         eyebrow="BROKER · RENEWALS"
         title="Renewals due"
+        accent="don't let it lapse"
         subtitle="Policies expiring within 60 days. Click Renew to open a renewal submission."
       />
 

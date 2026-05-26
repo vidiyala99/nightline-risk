@@ -102,6 +102,7 @@ export default function CarrierClaimsListPage() {
       <PageHeader
         eyebrow="BROKER · PORTFOLIO"
         title="Carrier claims"
+        accent="every loss, traced"
         subtitle="Every reported loss across your book of bound policies."
       />
 

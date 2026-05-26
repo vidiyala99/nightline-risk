@@ -189,6 +189,7 @@ export default function SubmissionsPage() {
       <PageHeader
         eyebrow="Placement"
         title="Submissions"
+        accent="the book, in motion"
         subtitle="Active broker book. Open ↦ In Market ↦ Quoting ↦ Bound."
         actions={
           <>
