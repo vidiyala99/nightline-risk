@@ -147,14 +147,14 @@ export function PoliciesListScreen({ navigation }: any) {
             >
               <View style={styles.rowTop}>
                 <Text style={styles.rowId} numberOfLines={1}>
-                  {item.policy_number ?? 'pending number'}
+                  {item.policy_number ?? item.venue_id}
                 </Text>
                 <Text style={[styles.statusPill, { color: POLICY_STATUS_COLOR[item.status] }]}>
                   {POLICY_STATUS_LABEL[item.status]}
                 </Text>
               </View>
               <Text style={styles.metaText} numberOfLines={1}>
-                {item.venue_id} · {item.carrier_id}
+                {item.policy_number ? `${item.venue_id} · ${item.carrier_id}` : item.carrier_id}
               </Text>
               <View style={styles.rowMoney}>
                 <View style={styles.moneyCol}>

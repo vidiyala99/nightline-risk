@@ -135,7 +135,7 @@ export function PolicyDetailScreen({ route, navigation }: any) {
           <>
             <View style={styles.headerWrap}>
               <Text style={styles.eyebrow}>BROKER · POLICY</Text>
-              <Text style={styles.title}>{detail.policy_number ?? 'Pending number'}</Text>
+              <Text style={styles.title}>{detail.policy_number ?? detail.venue_id}</Text>
               <Text style={[styles.statusPill, { color: POLICY_STATUS_COLOR[detail.status] }]}>
                 {POLICY_STATUS_LABEL[detail.status]}
               </Text>
