@@ -14,9 +14,12 @@ const styles = StyleSheet.create({
   accent: {
     color: Colors.accentInk,
     fontFamily: 'Caveat_600SemiBold',
-    fontSize: 21,
-    lineHeight: 30,
-    marginTop: 2,
+    fontSize: 22,
+    // No explicit lineHeight: let RN use Caveat's natural metrics so the
+    // tall looped ascenders (d, l, h) aren't clipped by the line box.
+    includeFontPadding: true,
+    marginTop: 4,
+    paddingTop: 2,
     paddingRight: 8,
     alignSelf: 'flex-start',
   },
