@@ -12,6 +12,7 @@ per-file content hashes, cited sources, and the audit-event trail.
 """
 from __future__ import annotations
 
+import json
 from io import BytesIO
 
 from sqlmodel import Session, select
@@ -30,6 +31,24 @@ from app.models import (
 
 class DefensePackageError(Exception):
     """Raised when a defense package can't be assembled (e.g. unknown packet)."""
+
+
+def _as_list(value) -> list:
+    """Coerce a JSON list column to a real list. SQLite round-trips these as
+    parsed lists, but on Postgres they can come back as a JSON-encoded string —
+    in which case `list(value)` would iterate characters. Defensive at the read
+    boundary so the renderer never sees a str where it expects list[dict]."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else []
+        except (ValueError, TypeError):
+            return []
+    return []
 
 
 def build_defense_sections(session: Session, packet_id: str) -> dict:
@@ -87,10 +106,10 @@ def build_defense_sections(session: Session, packet_id: str) -> dict:
             "claim_status": claim.status if claim else None,
         },
         "incident": _incident_section(incident),
-        "timeline": list(packet.claims_timeline or []),
+        "timeline": _as_list(packet.claims_timeline),
         "corroboration": {
             "status": packet.corroboration_status,
-            "flags": list(packet.corroboration_flags or []),
+            "flags": _as_list(packet.corroboration_flags),
         },
         "evidence": [
             {
@@ -148,9 +167,9 @@ def _incident_section(incident: IncidentRecord | None) -> dict:
         "police_called": incident.police_called,
         "ems_called": incident.ems_called,
         "incident_category": incident.incident_category,
-        "parties": list(incident.parties or []),
-        "witnesses": list(incident.witnesses or []),
-        "security_response": list(incident.security_response or []),
+        "parties": _as_list(incident.parties),
+        "witnesses": _as_list(incident.witnesses),
+        "security_response": _as_list(incident.security_response),
         "weapon_involved": incident.weapon_involved,
         "refused_service_or_overserved": incident.refused_service_or_overserved,
         "injury_detail": incident.injury_detail,
