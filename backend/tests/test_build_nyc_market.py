@@ -10,9 +10,46 @@ from scripts.nyc_market_lib import (
     aggregate,
     classify_venue_type,
     estimate_for_venue,
+    is_nightlife_name,
     likely_carriers,
     transform_record,
 )
+
+
+def test_is_nightlife_name_drops_clearly_non_nightlife():
+    # Real names that slipped through the SLA license-class filter.
+    for name in [
+        "JPMORGAN CHASE BANK NATIONAL ASSOCIATION",
+        "HARI DELI",
+        "TOP NEWS & GROCERY",
+        "LOWER EAST SIDE TENEMENT MUSEUM",
+        "Syracuse University",
+        "SPECTRUM CATERING AND CONCESSIONS",
+        "ZARAGOZA MEXICAN DELI & GROCERY, INC.",
+    ]:
+        assert not is_nightlife_name(name), name
+
+
+def test_is_nightlife_name_keeps_social_venues_with_denylist_words():
+    # A denylist word must not drop a genuine bar/club/music venue.
+    for name in [
+        "THE UNIVERSITY CLUB",   # CLUB overrides UNIVERSITY
+        "BROOKLYN BOWL LLC",     # music venue
+        "COLLEGE POINT YACHT CLUB INC",
+        "House of Yes",
+        "Output",
+    ]:
+        assert is_nightlife_name(name), name
+
+
+def test_transform_record_skips_non_nightlife_name():
+    record = {
+        "dba": "JPMORGAN CHASE BANK NATIONAL ASSOCIATION",
+        "premisescounty": "New York",
+        "description": "Food & Beverage Business",
+        "licensepermitid": "999",
+    }
+    assert transform_record(record, lat=40.75, lng=-73.98) is None
 
 
 def test_classify_always_maps_to_a_real_base_rate_key():

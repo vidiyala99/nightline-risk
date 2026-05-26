@@ -1,4 +1,4 @@
-"""Seed the 300 real NYC nightlife venues as scored *prospects* so the broker
+"""Seed the real NYC nightlife venues as scored *prospects* so the broker
 profile shows a real, populated market (not just the 18 demo book venues).
 
 Reads the committed snapshot at frontend/public/nyc_market.json (produced by

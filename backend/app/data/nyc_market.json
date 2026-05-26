@@ -2,26 +2,26 @@
   "generated_at": "2026-05-24T21:26:41Z",
   "methodology_note": "Estimates only. Venues are real NYC on-premises nightlife licensees (NY State Liquor Authority open data). Current premium is a class-based market benchmark; Third Space figures are modeled (best-tier to market-neutral), not quotes. 'Likely carriers' is an appetite-based inference over carriers active in this space \u2014 not a statement of any venue's actual insurer. Actual pricing depends on a full underwriting review.",
   "aggregate": {
-    "venue_count": 300,
-    "total_market_premium": "3941000.00",
+    "venue_count": 288,
+    "total_market_premium": "3831000.00",
     "total_savings_low": "0.00",
-    "total_savings_high": "1182300.00",
+    "total_savings_high": "1149300.00",
     "by_borough": [
       {
         "borough": "Brooklyn",
-        "count": 59
+        "count": 58
       },
       {
         "borough": "Manhattan",
-        "count": 151
+        "count": 142
       },
       {
         "borough": "Queens",
-        "count": 49
+        "count": 48
       },
       {
         "borough": "Staten Island",
-        "count": 15
+        "count": 14
       },
       {
         "borough": "The Bronx",
@@ -31,15 +31,15 @@
     "by_type": [
       {
         "venue_type": "club",
-        "count": 199
+        "count": 197
       },
       {
         "venue_type": "dive_bar",
-        "count": 66
+        "count": 58
       },
       {
         "venue_type": "nightclub and performance space",
-        "count": 35
+        "count": 33
       }
     ]
   },
@@ -224,39 +224,6 @@
       "savings_low": "0.00",
       "savings_high": "4800.00",
       "savings_mid": "2400.00",
-      "likely_carriers": [
-        {
-          "id": "atrium-syndicate",
-          "name": "Atrium Syndicate 609 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "brit-syndicate",
-          "name": "Brit Syndicate 2987 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
-      "id": "0415-24-121325",
-      "name": "JPMORGAN CHASE BANK NATIONAL ASSOCIATION",
-      "address": "383 Madison Ave, New York",
-      "borough": "Manhattan",
-      "lat": 40.7559,
-      "lng": -73.97702,
-      "license_class": "Bottle Club",
-      "venue_type": "club",
-      "market_premium": "15000.00",
-      "ts_low": "10500.00",
-      "ts_high": "15000.00",
-      "savings_low": "0.00",
-      "savings_high": "4500.00",
-      "savings_mid": "2250.00",
       "likely_carriers": [
         {
           "id": "atrium-syndicate",
@@ -480,39 +447,6 @@
       "borough": "The Bronx",
       "lat": 40.82752,
       "lng": -73.92556,
-      "license_class": "Cabaret",
-      "venue_type": "nightclub and performance space",
-      "market_premium": "16000.00",
-      "ts_low": "11200.00",
-      "ts_high": "16000.00",
-      "savings_low": "0.00",
-      "savings_high": "4800.00",
-      "savings_mid": "2400.00",
-      "likely_carriers": [
-        {
-          "id": "atrium-syndicate",
-          "name": "Atrium Syndicate 609 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "brit-syndicate",
-          "name": "Brit Syndicate 2987 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
-      "id": "0417-23-140305",
-      "name": "SPECTRUM CATERING AND CONCESSIONS",
-      "address": "119 125 E 11TH ST, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.73147,
-      "lng": -73.98897,
       "license_class": "Cabaret",
       "venue_type": "nightclub and performance space",
       "market_premium": "16000.00",
@@ -983,39 +917,6 @@
       "savings_low": "0.00",
       "savings_high": "4500.00",
       "savings_mid": "2250.00",
-      "likely_carriers": [
-        {
-          "id": "atrium-syndicate",
-          "name": "Atrium Syndicate 609 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "brit-syndicate",
-          "name": "Brit Syndicate 2987 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
-      "id": "0417-22-101316",
-      "name": "SPECTRUM CATERING AND CONCESSIONS",
-      "address": "431 W 16TH ST - 2ND FLOOR, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.74284,
-      "lng": -74.00575,
-      "license_class": "Cabaret",
-      "venue_type": "nightclub and performance space",
-      "market_premium": "16000.00",
-      "ts_low": "11200.00",
-      "ts_high": "16000.00",
-      "savings_low": "0.00",
-      "savings_high": "4800.00",
-      "savings_mid": "2400.00",
       "likely_carriers": [
         {
           "id": "atrium-syndicate",
@@ -3714,39 +3615,6 @@
       "borough": "The Bronx",
       "lat": 40.82234,
       "lng": -73.90905,
-      "license_class": "Club",
-      "venue_type": "club",
-      "market_premium": "15000.00",
-      "ts_low": "10500.00",
-      "ts_high": "15000.00",
-      "savings_low": "0.00",
-      "savings_high": "4500.00",
-      "savings_mid": "2250.00",
-      "likely_carriers": [
-        {
-          "id": "atrium-syndicate",
-          "name": "Atrium Syndicate 609 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "brit-syndicate",
-          "name": "Brit Syndicate 2987 (Lloyd's)",
-          "market_type": "e&s"
-        },
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
-      "id": "0349-23-126512",
-      "name": "Syracuse University",
-      "address": "11 E 61ST ST, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.7651,
-      "lng": -73.97112,
       "license_class": "Club",
       "venue_type": "club",
       "market_premium": "15000.00",
@@ -7859,29 +7727,6 @@
       ]
     },
     {
-      "id": "0138-23-140655",
-      "name": "PANADERIA LA MIXTECA POBLANA & DELI",
-      "address": "104 VICTORY BLVD, STATEN ISLAND",
-      "borough": "Staten Island",
-      "lat": 40.63769,
-      "lng": -74.07997,
-      "license_class": "Food & Beverage Business",
-      "venue_type": "dive_bar",
-      "market_premium": "6000.00",
-      "ts_low": "4200.00",
-      "ts_high": "6000.00",
-      "savings_low": "0.00",
-      "savings_high": "1800.00",
-      "savings_mid": "900.00",
-      "likely_carriers": [
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
       "id": "0267-24-104114",
       "name": "124 OLD RABBIT CLUB",
       "address": "124 MACDOUGAL ST, NEW YORK",
@@ -8181,29 +8026,6 @@
       ]
     },
     {
-      "id": "0267-23-127983",
-      "name": "GOURMET BAGEL DELI",
-      "address": "88-40 SUTPHIN BLVD, JAMAICA",
-      "borough": "Queens",
-      "lat": 40.704,
-      "lng": -73.80886,
-      "license_class": "Food & Beverage Business",
-      "venue_type": "dive_bar",
-      "market_premium": "6000.00",
-      "ts_low": "4200.00",
-      "ts_high": "6000.00",
-      "savings_low": "0.00",
-      "savings_high": "1800.00",
-      "savings_mid": "900.00",
-      "likely_carriers": [
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
       "id": "0267-21-116642",
       "name": "GROUND CENTRAL COFFEE COMPANY",
       "address": "888 8TH AVE, NEW YORK",
@@ -8388,29 +8210,6 @@
       ]
     },
     {
-      "id": "0267-23-128194",
-      "name": "39K-FOOD ORGANIC DELI & KIMCHI",
-      "address": "720 2ND AVE, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.74772,
-      "lng": -73.97376,
-      "license_class": "Food & Beverage Business",
-      "venue_type": "dive_bar",
-      "market_premium": "6000.00",
-      "ts_low": "4200.00",
-      "ts_high": "6000.00",
-      "savings_low": "0.00",
-      "savings_high": "1800.00",
-      "savings_mid": "900.00",
-      "likely_carriers": [
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
       "id": "0138-21-123965",
       "name": "INTERNATIONAL COFFEE SHOP",
       "address": "556 WORTMAN AVENUE, BROOKLYN",
@@ -8486,29 +8285,6 @@
       "borough": "Manhattan",
       "lat": 40.73324,
       "lng": -74.00415,
-      "license_class": "Food & Beverage Business",
-      "venue_type": "dive_bar",
-      "market_premium": "6000.00",
-      "ts_low": "4200.00",
-      "ts_high": "6000.00",
-      "savings_low": "0.00",
-      "savings_high": "1800.00",
-      "savings_mid": "900.00",
-      "likely_carriers": [
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
-      "id": "0138-23-139496",
-      "name": "ZARAGOZA MEXICAN DELI & GROCERY, INC.",
-      "address": "215 AVENUE A, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.72996,
-      "lng": -73.98069,
       "license_class": "Food & Beverage Business",
       "venue_type": "dive_bar",
       "market_premium": "6000.00",
@@ -8624,29 +8400,6 @@
       "borough": "Manhattan",
       "lat": 40.74969,
       "lng": -73.99154,
-      "license_class": "Food & Beverage Business",
-      "venue_type": "dive_bar",
-      "market_premium": "6000.00",
-      "ts_low": "4200.00",
-      "ts_high": "6000.00",
-      "savings_low": "0.00",
-      "savings_high": "1800.00",
-      "savings_mid": "900.00",
-      "likely_carriers": [
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
-      "id": "0138-21-121774",
-      "name": "HARI DELI",
-      "address": "255 W 36TH ST, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.7531,
-      "lng": -73.99162,
       "license_class": "Food & Beverage Business",
       "venue_type": "dive_bar",
       "market_premium": "6000.00",
@@ -8808,29 +8561,6 @@
       "borough": "Manhattan",
       "lat": 40.75389,
       "lng": -73.98585,
-      "license_class": "Food & Beverage Business",
-      "venue_type": "dive_bar",
-      "market_premium": "6000.00",
-      "ts_low": "4200.00",
-      "ts_high": "6000.00",
-      "savings_low": "0.00",
-      "savings_high": "1800.00",
-      "savings_mid": "900.00",
-      "likely_carriers": [
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
-      "id": "0138-22-102030",
-      "name": "HUNTER DELI",
-      "address": "966 LEXINGTON AVE, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.76934,
-      "lng": -73.96299,
       "license_class": "Food & Beverage Business",
       "venue_type": "dive_bar",
       "market_premium": "6000.00",
@@ -9032,29 +8762,6 @@
       ]
     },
     {
-      "id": "0267-23-138213",
-      "name": "LOWER EAST SIDE TENEMENT MUSEUM",
-      "address": "103 ORCHARD ST, NEW YORK",
-      "borough": "Manhattan",
-      "lat": 40.7188,
-      "lng": -73.98989,
-      "license_class": "Food & Beverage Business",
-      "venue_type": "dive_bar",
-      "market_premium": "6000.00",
-      "ts_low": "4200.00",
-      "ts_high": "6000.00",
-      "savings_low": "0.00",
-      "savings_high": "1800.00",
-      "savings_mid": "900.00",
-      "likely_carriers": [
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
       "id": "0267-24-108998",
       "name": "LITTLE HONEY",
       "address": "487 7th Ave, Brooklyn",
@@ -9084,29 +8791,6 @@
       "borough": "Manhattan",
       "lat": 40.75948,
       "lng": -73.9911,
-      "license_class": "Food & Beverage Business",
-      "venue_type": "dive_bar",
-      "market_premium": "6000.00",
-      "ts_low": "4200.00",
-      "ts_high": "6000.00",
-      "savings_low": "0.00",
-      "savings_high": "1800.00",
-      "savings_mid": "900.00",
-      "likely_carriers": [
-        {
-          "id": "burns-wilcox",
-          "name": "Burns & Wilcox (wholesaler)",
-          "market_type": "e&s"
-        }
-      ]
-    },
-    {
-      "id": "0138-21-122741",
-      "name": "TOP NEWS & GROCERY",
-      "address": "6422 14TH AVENUE, BROOKLYN",
-      "borough": "Brooklyn",
-      "lat": 40.62484,
-      "lng": -73.99916,
       "license_class": "Food & Beverage Business",
       "venue_type": "dive_bar",
       "market_premium": "6000.00",

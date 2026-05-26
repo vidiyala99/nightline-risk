@@ -25,6 +25,7 @@ All money is emitted as cent-quantized strings via app.money.usd_to_json.
 """
 from __future__ import annotations
 
+import re
 from decimal import Decimal
 
 from app.models import Carrier
@@ -48,6 +49,34 @@ COUNTY_TO_BOROUGH: dict[str, str] = {
     "BRONX": "The Bronx",
     "RICHMOND": "Staten Island",
 }
+
+
+# Names that unambiguously indicate a non-nightlife premises. The SLA
+# "Food & Beverage Business" license class is broad enough to admit banks,
+# delis, grocers, museums, and universities that happen to serve alcohol;
+# their *names* are the only signal we have to drop them from a nightlife map.
+_NON_NIGHTLIFE_TERMS = (
+    "BANK", "DELI", "GROCERY", "SUPERMARKET", "BAGEL", "BAKERY", "PANADERIA",
+    "PHARMACY", "MUSEUM", "UNIVERSITY", "CATERING", "CONCESSION",
+)
+# Social-venue words that keep a row even when a denylist word is also present
+# (e.g. "THE UNIVERSITY CLUB", "BROOKLYN BOWL"). Genuine nightlife wins ties.
+_NIGHTLIFE_GUARD = (
+    "CLUB", "BOWL", "LOUNGE", "BAR", "TAVERN", "PUB", "CABARET", "NIGHTCLUB",
+)
+
+
+def is_nightlife_name(name: str) -> bool:
+    """True unless the venue name unambiguously reads as non-nightlife.
+
+    Conservative: only drops a row when a denylist term appears *and* no
+    social-venue guard word is present, so real bars/clubs/music venues
+    survive even if their name contains a denylist substring.
+    """
+    upper = (name or "").upper()
+    if any(re.search(rf"\b{term}", upper) for term in _NIGHTLIFE_GUARD):
+        return True
+    return not any(re.search(rf"\b{term}", upper) for term in _NON_NIGHTLIFE_TERMS)
 
 
 def classify_venue_type(license_class: str, *, places_category: str | None = None) -> str:
@@ -142,6 +171,8 @@ def transform_record(record: dict, *, lat: float | None, lng: float | None) -> d
 
     # Column names match the NY Open Data dataset 9s3h-dpkz.
     name = _first(record, "dba", "legalname", default="Unnamed venue")
+    if not is_nightlife_name(name):
+        return None
     address = _first(record, "actualaddressofpremises")
     city = _first(record, "city")
     county = _first(record, "premisescounty").upper()
