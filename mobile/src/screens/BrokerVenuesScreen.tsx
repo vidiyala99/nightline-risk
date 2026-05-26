@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -80,6 +81,7 @@ export function BrokerVenuesScreen({ navigation }: any) {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.eyebrow}>INSURED PORTFOLIO</Text>
         <Text style={styles.title}>Venues</Text>
+        <HandAccent>your book</HandAccent>
       </View>
 
       <View style={styles.searchWrap}>

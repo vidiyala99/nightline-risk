@@ -8,6 +8,7 @@
  * call.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -121,6 +122,7 @@ export function CarrierClaimsListScreen({ navigation }: any) {
       <View style={styles.headerWrap}>
         <Text style={styles.eyebrow}>BROKER · PORTFOLIO</Text>
         <Text style={styles.title}>Carrier claims</Text>
+        <HandAccent>losses, handled</HandAccent>
         <Text style={styles.subtitle}>Every reported loss across your book.</Text>
       </View>
 

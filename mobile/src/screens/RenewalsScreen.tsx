@@ -12,6 +12,7 @@
  * link. Styling mirrors CarrierClaimsListScreen.
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -124,6 +125,7 @@ export function RenewalsScreen({ navigation }: any) {
             <View style={styles.headerWrap}>
               <Text style={styles.eyebrow}>BROKER · RENEWALS</Text>
               <Text style={styles.title}>Renewals due</Text>
+              <HandAccent>don't let it lapse</HandAccent>
               <Text style={styles.subtitle}>
                 Policies expiring within 60 days. Tap Renew to open a renewal submission.
               </Text>

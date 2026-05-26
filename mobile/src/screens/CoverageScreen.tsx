@@ -8,6 +8,7 @@
  * DashboardStack.
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -134,6 +135,7 @@ export function CoverageScreen({ navigation }: any) {
         <View style={styles.headerWrap}>
           <Text style={styles.eyebrow}>VENUE · COVERAGE</Text>
           <Text style={styles.title}>My coverage</Text>
+          <HandAccent>you're covered</HandAccent>
           <Text style={styles.subtitle}>Your policy and anything you've asked your broker to action.</Text>
         </View>
 

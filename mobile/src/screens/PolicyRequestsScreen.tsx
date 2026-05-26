@@ -7,6 +7,7 @@
  * CarrierClaimsListScreen (filter chips) + RenewalsScreen.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
@@ -115,6 +116,7 @@ export function PolicyRequestsScreen({ navigation }: any) {
             <View style={styles.headerWrap}>
               <Text style={styles.eyebrow}>BROKER · REQUESTS</Text>
               <Text style={styles.title}>Policy requests</Text>
+              <HandAccent>your asks, queued</HandAccent>
               <Text style={styles.subtitle}>What your venues have asked you to action.</Text>
             </View>
             {error && (
