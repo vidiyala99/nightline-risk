@@ -69,7 +69,7 @@ export function LoginScreen({ navigation }: Props) {
       <View style={styles.inner}>
         <View style={styles.brandBlock}>
           <Text style={styles.eyebrow}>RISK OS</Text>
-          <Text style={styles.wordmark}>Third{'\n'}Space</Text>
+          <Text style={styles.wordmark}>Night{'\n'}line</Text>
           <Text style={styles.tagline}>Keep venues alive.</Text>
         </View>
 
