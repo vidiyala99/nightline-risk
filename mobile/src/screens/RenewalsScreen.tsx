@@ -12,6 +12,7 @@
  * link. Styling mirrors CarrierClaimsListScreen.
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   FlatList,
@@ -97,7 +98,7 @@ export function RenewalsScreen({ navigation }: any) {
   if (rows === null && !error) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#c8f000" />
+        <ActivityIndicator color={Colors.accentInk} />
       </View>
     );
   }
@@ -112,7 +113,7 @@ export function RenewalsScreen({ navigation }: any) {
           isTablet && { maxWidth: 720, alignSelf: 'center', width: '100%' },
         ]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
         }
         ListHeaderComponent={
           <View>
@@ -226,47 +227,47 @@ function YoyCell({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#07080f' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#07080f' },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg },
   backRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 4 },
-  backArrow: { color: '#c8f000', fontSize: 18, marginRight: 8, fontFamily: Fonts.monoBold },
-  backLabel: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  backArrow: { color: Colors.accentInk, fontSize: 18, marginRight: 8, fontFamily: Fonts.monoBold },
+  backLabel: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 13 },
   headerWrap: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
   eyebrow: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
     letterSpacing: 1.4,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     marginBottom: 6,
   },
   title: {
     fontFamily: Fonts.displayBold,
     fontSize: 32,
     lineHeight: 36,
-    color: '#eeeef5',
+    color: Colors.text,
     letterSpacing: -0.5,
   },
-  subtitle: { color: '#8b90a8', fontSize: 13, marginTop: 4, fontFamily: Fonts.sansRegular },
+  subtitle: { color: Colors.textSecondary, fontSize: 13, marginTop: 4, fontFamily: Fonts.sansRegular },
 
   row: {
     marginHorizontal: 16,
     marginBottom: 10,
     padding: 14,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: Colors.borderSubtle,
   },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  rowId: { fontFamily: Fonts.monoBold, fontSize: 13, color: '#eeeef5', flex: 1, marginRight: 8 },
-  rowExpires: { fontFamily: Fonts.monoRegular, fontSize: 11, color: '#8b90a8' },
-  metaText: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 12, marginBottom: 10 },
+  rowId: { fontFamily: Fonts.monoBold, fontSize: 13, color: Colors.text, flex: 1, marginRight: 8 },
+  rowExpires: { fontFamily: Fonts.monoRegular, fontSize: 11, color: Colors.textSecondary },
+  metaText: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 12, marginBottom: 10 },
 
   rowMoney: {
     flexDirection: 'row',
     gap: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.06)',
+    borderTopColor: Colors.borderSubtle,
     paddingTop: 10,
     marginBottom: 12,
   },
@@ -275,48 +276,48 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.monoBold,
     fontSize: 9,
     letterSpacing: 1.2,
-    color: '#4a4f65',
+    color: Colors.textMuted,
     marginBottom: 2,
   },
-  moneyValue: { fontFamily: Fonts.monoBold, fontSize: 13, color: '#eeeef5' },
+  moneyValue: { fontFamily: Fonts.monoBold, fontSize: 13, color: Colors.text },
 
   renewBtn: {
     alignSelf: 'flex-end',
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     borderWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 6,
   },
   renewBtnBusy: { opacity: 0.5 },
-  renewText: { color: '#c8f000', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  renewText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium, fontSize: 13 },
 
   yoyPanel: {
     marginHorizontal: 16,
     marginTop: 4,
     marginBottom: 16,
     padding: 14,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
   },
   yoyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  yoyBadge: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: '#c8f000' },
-  yoyDismiss: { fontFamily: Fonts.sansMedium, fontSize: 12, color: '#8b90a8' },
-  yoySub: { color: '#8b90a8', fontFamily: Fonts.monoRegular, fontSize: 11, marginTop: 8 },
+  yoyBadge: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: Colors.accentInk },
+  yoyDismiss: { fontFamily: Fonts.sansMedium, fontSize: 12, color: Colors.textSecondary },
+  yoySub: { color: Colors.textSecondary, fontFamily: Fonts.monoRegular, fontSize: 11, marginTop: 8 },
   yoyGrid: { flexDirection: 'row', gap: 12, marginTop: 12 },
   yoyCell: { flex: 1 },
   yoyCellLabel: {
     fontFamily: Fonts.monoBold,
     fontSize: 9,
     letterSpacing: 1.2,
-    color: '#4a4f65',
+    color: Colors.textMuted,
     marginBottom: 2,
   },
-  yoyCellValue: { fontFamily: Fonts.monoBold, fontSize: 12, color: '#eeeef5' },
+  yoyCellValue: { fontFamily: Fonts.monoBold, fontSize: 12, color: Colors.text },
   yoyNote: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     fontFamily: Fonts.sansRegular,
     fontSize: 11,
     lineHeight: 16,
@@ -325,21 +326,21 @@ const styles = StyleSheet.create({
 
   empty: { padding: 32, alignItems: 'center' },
   emptyText: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     textAlign: 'center',
     fontFamily: Fonts.sansRegular,
     fontSize: 13,
     lineHeight: 18,
   },
   errorBox: { paddingHorizontal: 20, paddingVertical: 16 },
-  errorText: { color: '#ff4557', marginBottom: 12, fontFamily: Fonts.sansMedium },
+  errorText: { color: Colors.error, marginBottom: 12, fontFamily: Fonts.sansMedium },
   retryBtn: {
     alignSelf: 'flex-start',
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 6,
   },
-  retryText: { color: '#c8f000', fontFamily: Fonts.sansMedium },
+  retryText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium },
 });

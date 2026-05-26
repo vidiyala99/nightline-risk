@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   FlatList,
@@ -12,10 +13,10 @@ import { api } from '../api/client';
 import { useResponsive } from '../hooks/useResponsive';
 
 const SEVERITY_COLOR: Record<string, string> = {
-  urgent: '#ff4557',
-  high: '#ff4557',
-  medium: '#ff9500',
-  low: '#4a4f65',
+  urgent: Colors.error,
+  high: Colors.error,
+  medium: Colors.warning,
+  low: Colors.textMuted,
 };
 
 interface PortfolioVenue {
@@ -77,7 +78,7 @@ export function BrokerComplianceScreen({ navigation, route }: any) {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator color="#c8f000" /></View>;
+    return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
   }
 
   const subtitle = filterVenueId
@@ -105,7 +106,7 @@ export function BrokerComplianceScreen({ navigation, route }: any) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); fetchData(); }}
-              tintColor="#c8f000"
+              tintColor={Colors.accent}
             />
           }
           ListEmptyComponent={
@@ -119,7 +120,7 @@ export function BrokerComplianceScreen({ navigation, route }: any) {
           }
           renderItem={({ item }) => {
             const sev = (item.severity ?? item.priority ?? 'low').toLowerCase();
-            const sevColor = SEVERITY_COLOR[sev] ?? '#4a4f65';
+            const sevColor = SEVERITY_COLOR[sev] ?? Colors.textMuted;
             const label = item.title ?? item.description ?? item.action ?? item.id ?? '';
             return (
               <Pressable
@@ -156,7 +157,7 @@ export function BrokerComplianceScreen({ navigation, route }: any) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); fetchData(); }}
-              tintColor="#c8f000"
+              tintColor={Colors.accent}
             />
           }
           ListEmptyComponent={
@@ -198,54 +199,54 @@ export function BrokerComplianceScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   header: { paddingHorizontal: 20, paddingBottom: 16, gap: 6 },
-  title: { color: '#eeeef5', fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
-  subtitle: { color: '#4a4f65', fontSize: 13, fontFamily: 'DMSans_400Regular' },
+  title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  subtitle: { color: Colors.textMuted, fontSize: 13, fontFamily: 'DMSans_400Regular' },
   backLink: { paddingTop: 4 },
-  backLinkText: { color: '#8b90a8', fontSize: 12, fontFamily: 'DMSans_500Medium' },
+  backLinkText: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'DMSans_500Medium' },
 
   list: { paddingHorizontal: 20, paddingBottom: 48, gap: 10, flexGrow: 1 },
 
   // Portfolio mode — venue cards
   venueCard: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderRadius: 14,
     padding: 16,
     gap: 8,
   },
   venueCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  venueName: { color: '#eeeef5', fontSize: 16, fontWeight: '700', fontFamily: 'DMSans_600SemiBold' },
-  venueType: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginTop: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  address: { color: '#4a4f65', fontSize: 12, fontFamily: 'DMSans_400Regular' },
-  tapHint: { color: '#c8f000', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold' },
+  venueName: { color: Colors.text, fontSize: 16, fontWeight: '700', fontFamily: 'DMSans_600SemiBold' },
+  venueType: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginTop: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  address: { color: Colors.textMuted, fontSize: 12, fontFamily: 'DMSans_400Regular' },
+  tapHint: { color: Colors.accentInk, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold' },
   countBadge: { alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.1)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
-  countNum: { color: '#ff9500', fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'JetBrainsMono_700Bold' },
-  countLabel: { color: '#ff9500', fontSize: 8, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  countNum: { color: Colors.warning, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'JetBrainsMono_700Bold' },
+  countLabel: { color: Colors.warning, fontSize: 8, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
 
   // Scoped mode — item rows
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderLeftWidth: 3,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
-  itemTitle: { color: '#eeeef5', fontSize: 14, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  itemDesc: { color: '#8b90a8', fontSize: 12, lineHeight: 16, fontFamily: 'DMSans_400Regular' },
+  itemTitle: { color: Colors.text, fontSize: 14, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
+  itemDesc: { color: Colors.textSecondary, fontSize: 12, lineHeight: 16, fontFamily: 'DMSans_400Regular' },
   itemSev: { fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
 
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 100, gap: 10 },
-  emptyIcon: { fontSize: 48, color: '#c8f000' },
-  emptyTitle: { color: '#eeeef5', fontSize: 20, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  emptySub: { color: '#4a4f65', fontSize: 14, textAlign: 'center', paddingHorizontal: 40, fontFamily: 'DMSans_400Regular' },
+  emptyIcon: { fontSize: 48, color: Colors.accentInk },
+  emptyTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
+  emptySub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', paddingHorizontal: 40, fontFamily: 'DMSans_400Regular' },
 });

@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ScrollView,
   ScrollViewProps,
@@ -76,7 +77,7 @@ export function ScreenContainer({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#07080f',
+    backgroundColor: Colors.bg,
   },
   inner: {
     flexGrow: 1,

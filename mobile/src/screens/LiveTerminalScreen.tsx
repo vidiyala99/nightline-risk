@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Pressable,
@@ -34,23 +35,23 @@ interface LiveData {
 }
 
 const TIER_COLOR: Record<string, string> = {
-  A: '#c8f000',
-  B: '#00d97e',
-  C: '#ff9500',
-  D: '#ff4557',
+  A: Colors.accent,
+  B: Colors.success,
+  C: Colors.warning,
+  D: Colors.error,
 };
 
 const STATUS_DOT: Record<string, string> = {
-  operational: '#c8f000',
-  active: '#c8f000',
-  degraded: '#ff9500',
-  down: '#ff4557',
+  operational: Colors.accent,
+  active: Colors.accent,
+  degraded: Colors.warning,
+  down: Colors.error,
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
-  high: '#ff4557',
-  medium: '#ff9500',
-  low: '#4a4f65',
+  high: Colors.error,
+  medium: Colors.warning,
+  low: Colors.textMuted,
 };
 
 export function LiveTerminalScreen({ navigation }: any) {
@@ -146,7 +147,7 @@ export function LiveTerminalScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color="#c8f000" />
+        <ActivityIndicator color={Colors.accentInk} />
       </View>
     );
   }
@@ -175,7 +176,7 @@ export function LiveTerminalScreen({ navigation }: any) {
       {riskData && (
         <View style={styles.statsRow}>
           <Pressable
-            style={({ pressed }) => [styles.statCard, { borderColor: `${TIER_COLOR[riskData.tier] ?? '#4a4f65'}33` }, pressed && { opacity: 0.75 }]}
+            style={({ pressed }) => [styles.statCard, { borderColor: `${TIER_COLOR[riskData.tier] ?? Colors.textMuted}33` }, pressed && { opacity: 0.75 }]}
             onPress={() => navigation.navigate('RiskProfileDetail', {
               riskData,
               quoteData,
@@ -184,10 +185,10 @@ export function LiveTerminalScreen({ navigation }: any) {
             })}
           >
             <Text style={styles.statEyebrow}>RISK TIER</Text>
-            <Text style={[styles.statBig, { color: TIER_COLOR[riskData.tier] ?? '#eeeef5' }]}>
+            <Text style={[styles.statBig, { color: TIER_COLOR[riskData.tier] ?? Colors.text }]}>
               {riskData.tier ?? '—'}
             </Text>
-            <Text style={[styles.statSub, { color: TIER_COLOR[riskData.tier] ?? '#4a4f65' }]}>
+            <Text style={[styles.statSub, { color: TIER_COLOR[riskData.tier] ?? Colors.textMuted }]}>
               {riskData.total_score ?? 0} / 100
             </Text>
           </Pressable>
@@ -204,7 +205,7 @@ export function LiveTerminalScreen({ navigation }: any) {
       <View style={[styles.card, capacityPct > 0.85 && styles.cardDanger]}>
         <Text style={styles.sectionEyebrow}>CAPACITY</Text>
         <View style={styles.capacityNumbers}>
-          <Text style={[styles.capacityBig, { color: capacityPct > 0.85 ? '#ff4557' : '#eeeef5' }]}>
+          <Text style={[styles.capacityBig, { color: capacityPct > 0.85 ? Colors.error : Colors.text }]}>
             {data.current_capacity}
           </Text>
           <Text style={styles.capacityMax}>/ {data.max_capacity} pax</Text>
@@ -226,7 +227,7 @@ export function LiveTerminalScreen({ navigation }: any) {
           )}
           {data.infrastructure.map((item, i) => {
             const statusLower = item.status.toLowerCase();
-            const dotColor = item.is_degraded ? '#ff9500' : (STATUS_DOT[statusLower] ?? '#4a4f65');
+            const dotColor = item.is_degraded ? Colors.warning : (STATUS_DOT[statusLower] ?? Colors.textMuted);
             return (
               <View key={i} style={[styles.infraRow, item.is_degraded && styles.infraRowDegraded]}>
                 <View style={[styles.infraDot, { backgroundColor: dotColor }]} />
@@ -246,10 +247,10 @@ export function LiveTerminalScreen({ navigation }: any) {
           <Text style={styles.complianceClear}>{'>'} All clear{'\n'}No pending compliance actions.</Text>
         ) : (
           data.compliance_queue.map((item, i) => (
-            <View key={item.id || i} style={[styles.queueRow, { borderLeftColor: PRIORITY_COLOR[item.priority] ?? '#4a4f65' }]}>
+            <View key={item.id || i} style={[styles.queueRow, { borderLeftColor: PRIORITY_COLOR[item.priority] ?? Colors.textMuted }]}>
               <View style={styles.queueContent}>
                 <Text style={styles.queueAction}>{item.action}</Text>
-                <Text style={[styles.queuePriority, { color: PRIORITY_COLOR[item.priority] ?? '#4a4f65' }]}>
+                <Text style={[styles.queuePriority, { color: PRIORITY_COLOR[item.priority] ?? Colors.textMuted }]}>
                   {item.priority.toUpperCase()}
                 </Text>
               </View>
@@ -259,7 +260,7 @@ export function LiveTerminalScreen({ navigation }: any) {
                 disabled={uploadingId === item.id}
               >
                 {uploadingId === item.id ? (
-                  <ActivityIndicator size="small" color="#c8f000" />
+                  <ActivityIndicator size="small" color={Colors.accentInk} />
                 ) : (
                   <Text style={styles.uploadBtnText}>UPLOAD EVIDENCE</Text>
                 )}
@@ -278,7 +279,7 @@ export function LiveTerminalScreen({ navigation }: any) {
             const isOptional = val.optional === true;
             const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
             const statusText = isIncluded ? 'INCLUDED' : isOptional ? 'OPTIONAL' : '—';
-            const statusColor = isIncluded ? '#c8f000' : '#4a4f65';
+            const statusColor = isIncluded ? Colors.accent : Colors.textMuted;
             return (
               <View key={key} style={styles.coverageRow}>
                 <Text style={styles.coverageName}>{label}</Text>
@@ -293,13 +294,13 @@ export function LiveTerminalScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
-  empty: { color: '#4a4f65', fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
+  empty: { color: Colors.textMuted, fontSize: 14, fontFamily: 'DMSans_400Regular' },
 
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  title: { color: '#eeeef5', fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
   livePill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -311,9 +312,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(200,240,0,0.25)',
   },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#c8f000' },
-  liveText: { color: '#c8f000', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  signOut: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
+  liveText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
 
   savingsCard: {
     backgroundColor: 'rgba(200,240,0,0.05)',
@@ -323,10 +324,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 6,
   },
-  savingsEyebrow: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  savingsAmount: { color: '#c8f000', fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  savingsPerYear: { color: '#8b90a8', fontSize: 16, fontWeight: '400', fontFamily: 'DMSans_400Regular' },
-  savingsSub: { color: '#8b90a8', fontSize: 12, lineHeight: 18, fontFamily: 'JetBrainsMono_400Regular' },
+  savingsEyebrow: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  savingsAmount: { color: Colors.accentInk, fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
+  savingsPerYear: { color: Colors.textSecondary, fontSize: 16, fontWeight: '400', fontFamily: 'DMSans_400Regular' },
+  savingsSub: { color: Colors.textSecondary, fontSize: 12, lineHeight: 18, fontFamily: 'JetBrainsMono_400Regular' },
 
   degradedWarning: {
     backgroundColor: 'rgba(255,149,0,0.08)',
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
   },
-  degradedWarningText: { color: '#ff9500', fontSize: 12, lineHeight: 17, fontFamily: 'JetBrainsMono_400Regular' },
+  degradedWarningText: { color: Colors.warning, fontSize: 12, lineHeight: 17, fontFamily: 'JetBrainsMono_400Regular' },
   infraRowDegraded: { backgroundColor: 'rgba(255,149,0,0.04)', borderRadius: 6, paddingHorizontal: 6 },
 
   coverageRow: {
@@ -344,29 +345,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.05)',
+    borderTopColor: 'rgba(23,21,15,0.06)',
   },
-  coverageName: { color: '#8b90a8', fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  coverageName: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'DMSans_400Regular' },
   coverageStatus: { fontSize: 11, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
 
   statsRow: { flexDirection: 'row', gap: 10 },
   statCard: {
     flex: 1,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderRadius: 14,
     padding: 14,
     gap: 4,
   },
-  statEyebrow: { color: '#4a4f65', fontSize: 9, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  statBig: { color: '#eeeef5', fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  statSub: { color: '#4a4f65', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  statEyebrow: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  statBig: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
+  statSub: { color: Colors.textMuted, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
 
   card: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderRadius: 16,
     padding: 18,
     gap: 14,
@@ -376,7 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,69,87,0.04)',
   },
   sectionEyebrow: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
@@ -385,20 +386,20 @@ const styles = StyleSheet.create({
 
   capacityNumbers: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
   capacityBig: { fontSize: 48, fontWeight: '800', letterSpacing: -2, lineHeight: 48, fontFamily: 'JetBrainsMono_700Bold' },
-  capacityMax: { color: '#4a4f65', fontSize: 16, paddingBottom: 4, fontFamily: 'DMSans_400Regular' },
+  capacityMax: { color: Colors.textMuted, fontSize: 16, paddingBottom: 4, fontFamily: 'DMSans_400Regular' },
 
   infraRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.04)',
+    borderBottomColor: 'rgba(23,21,15,0.06)',
   },
   infraDot: { width: 7, height: 7, borderRadius: 4, marginRight: 12 },
-  infraName: { color: '#8b90a8', fontSize: 13, flex: 1, textTransform: 'capitalize', fontFamily: 'DMSans_400Regular' },
+  infraName: { color: Colors.textSecondary, fontSize: 13, flex: 1, textTransform: 'capitalize', fontFamily: 'DMSans_400Regular' },
   infraStatus: { fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
 
-  complianceClear: { color: '#4a4f65', fontSize: 13, lineHeight: 20, fontFamily: 'JetBrainsMono_400Regular' },
+  complianceClear: { color: Colors.textMuted, fontSize: 13, lineHeight: 20, fontFamily: 'JetBrainsMono_400Regular' },
   queueRow: {
     borderLeftWidth: 2,
     paddingLeft: 12,
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   queueContent: { gap: 2 },
-  queueAction: { color: '#8b90a8', fontSize: 13, lineHeight: 18, fontFamily: 'DMSans_400Regular' },
+  queueAction: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18, fontFamily: 'DMSans_400Regular' },
   queuePriority: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, fontFamily: 'JetBrainsMono_700Bold' },
   uploadBtn: {
     alignSelf: 'flex-start',
@@ -420,7 +421,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   uploadBtnText: {
-    color: '#c8f000',
+    color: Colors.accentInk,
     fontSize: 11,
     fontFamily: 'JetBrainsMono_700Bold',
     letterSpacing: 0.8,

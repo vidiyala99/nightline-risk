@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Pressable,
@@ -115,20 +116,20 @@ function VenueCard({
         <View style={styles.editForm}>
           <View style={styles.inputWrap}>
             <Text style={styles.label}>VENUE NAME</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor="#2e3247" />
+            <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={Colors.border} />
           </View>
           <View style={styles.inputWrap}>
             <Text style={styles.label}>ADDRESS</Text>
-            <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholderTextColor="#2e3247" />
+            <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholderTextColor={Colors.border} />
           </View>
           <View style={styles.editRow}>
             <View style={[styles.inputWrap, { flex: 1 }]}>
               <Text style={styles.label}>CAPACITY</Text>
-              <TextInput style={styles.input} value={capacity} onChangeText={setCapacity} keyboardType="numeric" placeholderTextColor="#2e3247" />
+              <TextInput style={styles.input} value={capacity} onChangeText={setCapacity} keyboardType="numeric" placeholderTextColor={Colors.border} />
             </View>
             <View style={[styles.inputWrap, { flex: 1 }]}>
               <Text style={styles.label}>YEARS OPEN</Text>
-              <TextInput style={styles.input} value={yearsInOp} onChangeText={setYearsInOp} keyboardType="numeric" placeholderTextColor="#2e3247" />
+              <TextInput style={styles.input} value={yearsInOp} onChangeText={setYearsInOp} keyboardType="numeric" placeholderTextColor={Colors.border} />
             </View>
           </View>
           <View style={styles.inputWrap}>
@@ -156,7 +157,7 @@ function VenueCard({
               disabled={saving}
               style={[styles.saveBtn, saving && { opacity: 0.5 }]}
             >
-              {saving ? <ActivityIndicator color="#07080f" size="small" /> : <Text style={styles.saveBtnText}>SAVE</Text>}
+              {saving ? <ActivityIndicator color={Colors.bg} size="small" /> : <Text style={styles.saveBtnText}>SAVE</Text>}
             </Pressable>
           </View>
           {!isPrimary && (
@@ -237,14 +238,14 @@ export function VenuesScreen({ navigation }: any) {
   }
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator color="#c8f000" /></View>;
+    return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
   }
 
   return (
     <ScrollView
       style={styles.root}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
     >
       <View style={styles.headerRow}>
         <View>
@@ -284,62 +285,62 @@ export function VenuesScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 32, gap: 16 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 },
-  eyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold', marginBottom: 4 },
-  title: { color: '#eeeef5', fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'CormorantGaramond_700Bold' },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold', marginBottom: 4 },
+  title: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'CormorantGaramond_700Bold' },
   addBtn: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(200,240,0,0.4)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  addBtnText: { color: '#c8f000', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  addBtnText: { color: Colors.accentInk, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
 
   card: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(23,21,15,0.10)',
     borderRadius: 16,
     padding: 20,
     gap: 16,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   cardHeaderLeft: { flex: 1, gap: 4 },
-  primaryBadge: { color: '#c8f000', fontSize: 9, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  venueName: { color: '#eeeef5', fontSize: 20, fontWeight: '700', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
-  venueId: { color: '#2e3247', fontSize: 10, fontFamily: 'JetBrainsMono_400Regular' },
-  editBtn: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
-  editBtnText: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  primaryBadge: { color: Colors.accentInk, fontSize: 9, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  venueName: { color: Colors.text, fontSize: 20, fontWeight: '700', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  venueId: { color: Colors.border, fontSize: 10, fontFamily: 'JetBrainsMono_400Regular' },
+  editBtn: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(23,21,15,0.14)', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
+  editBtnText: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
 
   detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   detailItem: { flex: 1, minWidth: '40%', gap: 2 },
-  detailLabel: { color: '#4a4f65', fontSize: 9, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  detailValue: { color: '#eeeef5', fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  detailLabel: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  detailValue: { color: Colors.text, fontSize: 14, fontFamily: 'DMSans_400Regular' },
 
   editForm: { gap: 14 },
   editRow: { flexDirection: 'row', gap: 12 },
   inputWrap: { gap: 6 },
-  label: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  label: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
   input: {
-    backgroundColor: '#07080f',
+    backgroundColor: Colors.bg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(23,21,15,0.10)',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 13,
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 14,
     fontFamily: 'DMSans_400Regular',
   },
   typeRow: { flexDirection: 'row', gap: 8 },
-  typeChip: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#07080f' },
-  typeChipActive: { borderColor: '#c8f000', backgroundColor: 'rgba(200,240,0,0.06)' },
-  typeChipText: { color: '#4a4f65', fontSize: 12, fontFamily: 'DMSans_400Regular' },
-  typeChipTextActive: { color: '#c8f000' },
+  typeChip: { borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: Colors.bg },
+  typeChipActive: { borderColor: Colors.accent, backgroundColor: 'rgba(200,240,0,0.06)' },
+  typeChipText: { color: Colors.textMuted, fontSize: 12, fontFamily: 'DMSans_400Regular' },
+  typeChipTextActive: { color: Colors.accentInk },
   editActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  cancelBtn: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  cancelBtnText: { color: '#4a4f65', fontSize: 12, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
-  saveBtn: { flex: 2, backgroundColor: '#c8f000', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  saveBtnText: { color: '#07080f', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  cancelBtn: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  cancelBtnText: { color: Colors.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  saveBtn: { flex: 2, backgroundColor: Colors.accent, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  saveBtnText: { color: Colors.bg, fontSize: 12, fontWeight: '800', letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
 
   deleteBtn: {
     marginTop: 4,
@@ -350,21 +351,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteBtnText: {
-    color: '#ff5050',
+    color: Colors.error,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
     fontFamily: 'JetBrainsMono_700Bold',
   },
   viewLive: {
-    color: '#c8f000',
+    color: Colors.accentInk,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
     fontFamily: 'JetBrainsMono_700Bold',
     marginTop: 4,
   },
-  emptyCard: { backgroundColor: '#0d0f1c', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.07)', borderRadius: 16, padding: 24, gap: 8 },
-  emptyHeading: { color: '#eeeef5', fontSize: 18, fontWeight: '700', fontFamily: 'CormorantGaramond_700Bold' },
-  emptyBody: { color: '#4a4f65', fontSize: 13, fontFamily: 'DMSans_400Regular' },
+  emptyCard: { backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 16, padding: 24, gap: 8 },
+  emptyHeading: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'CormorantGaramond_700Bold' },
+  emptyBody: { color: Colors.textMuted, fontSize: 13, fontFamily: 'DMSans_400Regular' },
 });

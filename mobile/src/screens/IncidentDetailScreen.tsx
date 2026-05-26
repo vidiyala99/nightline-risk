@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Pressable,
@@ -16,27 +17,27 @@ import { ClaimProposeBottomSheet } from '../components/ClaimProposeBottomSheet';
 import { STATE_LABEL, STATE_COLOR, type ClaimProposal, type OverrideReason } from '../types/claims';
 
 const SEVERITY_COLOR: Record<string, string> = {
-  critical: '#ff4557',
-  high: '#ff4557',
-  medium: '#ff9500',
-  low: '#c8f000',
-  unknown: '#4a4f65',
+  critical: Colors.error,
+  high: Colors.error,
+  medium: Colors.warning,
+  low: Colors.accent,
+  unknown: Colors.textMuted,
 };
 
 const CORROBORATION_COLOR: Record<string, string> = {
-  CONSISTENT: '#c8f000',
-  PARTIAL: '#ff9500',
-  CONTRADICTED: '#ff4557',
-  INCONCLUSIVE: '#4a4f65',
+  CONSISTENT: Colors.accent,
+  PARTIAL: Colors.warning,
+  CONTRADICTED: Colors.error,
+  INCONCLUSIVE: Colors.textMuted,
 };
 
 const STATUS_TRANSITIONS: Record<string, { label: string; next: string; color: string }[]> = {
-  open: [{ label: 'Move to Review', next: 'under_review', color: '#5b8af5' }],
+  open: [{ label: 'Move to Review', next: 'under_review', color: Colors.info }],
   under_review: [
-    { label: 'Close Incident', next: 'closed', color: '#00d97e' },
-    { label: 'Reopen', next: 'open', color: '#ff9500' },
+    { label: 'Close Incident', next: 'closed', color: Colors.success },
+    { label: 'Reopen', next: 'open', color: Colors.warning },
   ],
-  closed: [{ label: 'Reopen', next: 'open', color: '#ff9500' }],
+  closed: [{ label: 'Reopen', next: 'open', color: Colors.warning }],
 };
 
 export function IncidentDetailScreen({ route, navigation }: any) {
@@ -114,7 +115,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
   }
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator color="#c8f000" /></View>;
+    return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
   }
 
   if (!incident) {
@@ -124,7 +125,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
   const packet = packets[0];
   const riskSignals = packet?.risk_signals ?? {};
   const severity = riskSignals.severity ?? 'unknown';
-  const severityColor = SEVERITY_COLOR[severity] ?? '#4a4f65';
+  const severityColor = SEVERITY_COLOR[severity] ?? Colors.textMuted;
   const confidence = riskSignals.confidence ?? 0;
   const memo = packet?.memo ?? {};
   const citations: any[] = riskSignals.citations ?? [];
@@ -152,9 +153,9 @@ export function IncidentDetailScreen({ route, navigation }: any) {
         </Text>
         <View style={styles.statusRow}>
           <StatusBadge status={incident.status} />
-          {incident.injury_observed && <FlagPill label="INJURY" color="#ff4557" />}
-          {incident.police_called && <FlagPill label="POLICE" color="#ff9500" />}
-          {incident.ems_called && <FlagPill label="EMS" color="#5b8af5" />}
+          {incident.injury_observed && <FlagPill label="INJURY" color={Colors.error} />}
+          {incident.police_called && <FlagPill label="POLICE" color={Colors.warning} />}
+          {incident.ems_called && <FlagPill label="EMS" color={Colors.info} />}
         </View>
       </View>
 
@@ -181,7 +182,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
       {!isBroker && packet && (() => {
         const rec = packet.claim_recommendation;
         if (!rec) return null;
-        const stateColor = proposal ? (STATE_COLOR[proposal.state] ?? '#4a4f65') : undefined;
+        const stateColor = proposal ? (STATE_COLOR[proposal.state] ?? Colors.textMuted) : undefined;
         return (
           <View style={styles.card}>
             <Text style={styles.eyebrow}>CLAIM DECISION</Text>
@@ -192,7 +193,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
                     {STATE_LABEL[proposal.state]}
                   </Text>
                   {proposal.override_recommendation && (
-                    <Text style={{ color: '#ff9500', fontSize: 9, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1 }}>OVERRIDE</Text>
+                    <Text style={{ color: Colors.warning, fontSize: 9, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1 }}>OVERRIDE</Text>
                   )}
                 </View>
                 {proposal.broker_notes && (
@@ -201,7 +202,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
                   </Text>
                 )}
                 <Pressable onPress={() => navigation.navigate('ClaimDetail', { packetId: packet.id })}>
-                  <Text style={{ color: '#c8f000', fontSize: 12, fontFamily: 'DMSans_600SemiBold' }}>
+                  <Text style={{ color: Colors.accentInk, fontSize: 12, fontFamily: 'DMSans_600SemiBold' }}>
                     View claim detail →
                   </Text>
                 </Pressable>
@@ -214,11 +215,11 @@ export function IncidentDetailScreen({ route, navigation }: any) {
                     : `Recommender suggests not filing. Override only with additional context.`}
                 </Text>
                 <Pressable
-                  style={[styles.actionBtn, { borderColor: rec.should_file ? '#c8f000' : '#ff9500', backgroundColor: rec.should_file ? '#c8f00014' : 'transparent' }]}
+                  style={[styles.actionBtn, { borderColor: rec.should_file ? Colors.accent : Colors.warning, backgroundColor: rec.should_file ? '#c8f00014' : 'transparent' }]}
                   onPress={() => setProposeSheetVisible(true)}
                   disabled={submittingProposal}
                 >
-                  <Text style={[styles.actionBtnText, { color: rec.should_file ? '#c8f000' : '#ff9500' }]}>
+                  <Text style={[styles.actionBtnText, { color: rec.should_file ? Colors.accent : Colors.warning }]}>
                     {rec.should_file ? 'Propose Claim' : 'Override & Propose'}
                   </Text>
                 </Pressable>
@@ -306,11 +307,11 @@ export function IncidentDetailScreen({ route, navigation }: any) {
           <View style={styles.cardTitleRow}>
             <Text style={styles.eyebrow}>AI EVIDENCE ANALYSIS</Text>
             {visionAnalysis.status === 'processing' ? (
-              <Text style={[styles.corroborationBadge, { color: '#ff9500', borderColor: '#ff950044' }]}>PROCESSING</Text>
+              <Text style={[styles.corroborationBadge, { color: Colors.warning, borderColor: '#ff950044' }]}>PROCESSING</Text>
             ) : visionAnalysis.analyses?.[0]?.corroboration ? (
               <Text style={[styles.corroborationBadge, {
-                color: CORROBORATION_COLOR[visionAnalysis.analyses[0].corroboration] ?? '#4a4f65',
-                borderColor: `${CORROBORATION_COLOR[visionAnalysis.analyses[0].corroboration] ?? '#4a4f65'}44`,
+                color: CORROBORATION_COLOR[visionAnalysis.analyses[0].corroboration] ?? Colors.textMuted,
+                borderColor: `${CORROBORATION_COLOR[visionAnalysis.analyses[0].corroboration] ?? Colors.textMuted}44`,
               }]}>
                 {visionAnalysis.analyses[0].corroboration}
               </Text>
@@ -318,7 +319,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
           </View>
 
           {(visionAnalysis.analyses ?? []).map((a: any, i: number) => {
-            const corrColor = CORROBORATION_COLOR[a.corroboration] ?? '#4a4f65';
+            const corrColor = CORROBORATION_COLOR[a.corroboration] ?? Colors.textMuted;
             return (
               <View key={i} style={[styles.visionItem, { borderLeftColor: corrColor }]}>
                 <View style={styles.visionHeader}>
@@ -405,26 +406,26 @@ const flagStyles = StyleSheet.create({
 });
 
 const metaStyles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.05)' },
-  label: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  value: { color: '#8b90a8', fontSize: 12, fontFamily: 'DMSans_400Regular' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
+  label: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  value: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'DMSans_400Regular' },
 });
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
-  notFound: { color: '#4a4f65', fontSize: 15, fontFamily: 'DMSans_400Regular' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
+  notFound: { color: Colors.textMuted, fontSize: 15, fontFamily: 'DMSans_400Regular' },
 
   backRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  signOut: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingVertical: 4, fontFamily: 'JetBrainsMono_700Bold' },
-  backArrow: { color: '#c8f000', fontSize: 18, fontFamily: 'JetBrainsMono_400Regular' },
-  backLabel: { color: '#c8f000', fontSize: 13, fontWeight: '600', fontFamily: 'JetBrainsMono_400Regular' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingVertical: 4, fontFamily: 'JetBrainsMono_700Bold' },
+  backArrow: { color: Colors.accentInk, fontSize: 18, fontFamily: 'JetBrainsMono_400Regular' },
+  backLabel: { color: Colors.accentInk, fontSize: 13, fontWeight: '600', fontFamily: 'JetBrainsMono_400Regular' },
 
   header: { gap: 10, marginBottom: 16 },
-  location: { color: '#eeeef5', fontSize: 24, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
-  date: { color: '#4a4f65', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  location: { color: Colors.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  date: { color: Colors.textMuted, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
   statusRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
 
   actionsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
@@ -435,55 +436,55 @@ const styles = StyleSheet.create({
   actionBtnText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'DMSans_700Bold' },
 
   card: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
     gap: 10,
   },
   cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  eyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
   packetStatusBadge: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3 },
   packetStatusText: { fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
 
-  summary: { color: '#8b90a8', fontSize: 14, lineHeight: 22, fontFamily: 'DMSans_400Regular' },
-  bodyText: { color: '#8b90a8', fontSize: 13, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
+  summary: { color: Colors.textSecondary, fontSize: 14, lineHeight: 22, fontFamily: 'DMSans_400Regular' },
+  bodyText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
   metaGrid: { gap: 0 },
 
   signalRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   severityPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 5 },
   severityText: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, fontFamily: 'JetBrainsMono_700Bold' },
   confidenceWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  confidenceTrack: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' },
+  confidenceTrack: { flex: 1, height: 3, backgroundColor: Colors.borderSubtle, borderRadius: 2, overflow: 'hidden' },
   confidenceFill: { height: '100%', borderRadius: 2 },
   confidenceNum: { fontSize: 11, fontWeight: '700', width: 32, textAlign: 'right', fontFamily: 'JetBrainsMono_700Bold' },
 
-  explanation: { color: '#8b90a8', fontSize: 13, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
+  explanation: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
 
   questionRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  questionDot: { color: '#c8f000', fontSize: 16, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
-  questionText: { color: '#8b90a8', fontSize: 13, lineHeight: 20, flex: 1, fontFamily: 'DMSans_400Regular' },
+  questionDot: { color: Colors.accentInk, fontSize: 16, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
+  questionText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, flex: 1, fontFamily: 'DMSans_400Regular' },
 
-  citationRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.04)' },
+  citationRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
   citationSource: { backgroundColor: 'rgba(200,240,0,0.08)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 3, alignSelf: 'flex-start' },
-  citationSourceType: { color: '#c8f000', fontSize: 8, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
-  citationExcerpt: { color: '#4a4f65', fontSize: 12, lineHeight: 17, flex: 1, fontFamily: 'DMSans_400Regular' },
+  citationSourceType: { color: Colors.accentInk, fontSize: 8, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  citationExcerpt: { color: Colors.textMuted, fontSize: 12, lineHeight: 17, flex: 1, fontFamily: 'DMSans_400Regular' },
 
   corroborationBadge: { fontSize: 9, fontWeight: '700', letterSpacing: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3, fontFamily: 'JetBrainsMono_700Bold' },
   visionItem: { borderLeftWidth: 2, paddingLeft: 12, gap: 6, paddingVertical: 4 },
   visionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  visionType: { color: '#4a4f65', fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  visionType: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
   visionDelta: { fontSize: 11, fontWeight: '700', fontFamily: 'JetBrainsMono_700Bold' },
   indicatorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   indicatorPill: { backgroundColor: 'rgba(200,240,0,0.06)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(200,240,0,0.2)', borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3 },
-  indicatorText: { color: '#c8f000', fontSize: 9, fontWeight: '600', fontFamily: 'JetBrainsMono_400Regular' },
+  indicatorText: { color: Colors.accentInk, fontSize: 9, fontWeight: '600', fontFamily: 'JetBrainsMono_400Regular' },
 
-  evidenceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.05)' },
-  evidenceIcon: { width: 44, height: 44, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  evidenceIconText: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  evidenceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
+  evidenceIcon: { width: 44, height: 44, backgroundColor: 'rgba(23,21,15,0.06)', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  evidenceIconText: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
   evidenceMeta: { flex: 1 },
-  evidenceFilename: { color: '#eeeef5', fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  evidenceSize: { color: '#4a4f65', fontSize: 11, marginTop: 2, fontFamily: 'JetBrainsMono_400Regular' },
+  evidenceFilename: { color: Colors.text, fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
+  evidenceSize: { color: Colors.textMuted, fontSize: 11, marginTop: 2, fontFamily: 'JetBrainsMono_400Regular' },
 });

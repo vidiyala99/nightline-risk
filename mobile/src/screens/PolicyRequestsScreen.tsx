@@ -7,6 +7,7 @@
  * CarrierClaimsListScreen (filter chips) + RenewalsScreen.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Alert,
@@ -92,7 +93,7 @@ export function PolicyRequestsScreen({ navigation }: any) {
   }
 
   if (rows === null && !error) {
-    return <View style={styles.center}><ActivityIndicator color="#c8f000" /></View>;
+    return <View style={styles.center}><ActivityIndicator color={Colors.accentInk} /></View>;
   }
 
   return (
@@ -104,7 +105,7 @@ export function PolicyRequestsScreen({ navigation }: any) {
           { paddingBottom: 32, paddingTop: insets.top + 12 },
           isTablet && { maxWidth: 720, alignSelf: 'center', width: '100%' },
         ]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
         ListHeaderComponent={
           <View>
             <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
@@ -191,49 +192,49 @@ export function PolicyRequestsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#07080f' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#07080f' },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg },
   backRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 4 },
-  backArrow: { color: '#c8f000', fontSize: 18, marginRight: 8, fontFamily: Fonts.monoBold },
-  backLabel: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  backArrow: { color: Colors.accentInk, fontSize: 18, marginRight: 8, fontFamily: Fonts.monoBold },
+  backLabel: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 13 },
   headerWrap: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
-  eyebrow: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: '#8b90a8', marginBottom: 6 },
-  title: { fontFamily: Fonts.displayBold, fontSize: 32, lineHeight: 36, color: '#eeeef5', letterSpacing: -0.5 },
-  subtitle: { color: '#8b90a8', fontSize: 13, marginTop: 4, fontFamily: Fonts.sansRegular },
+  eyebrow: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: Colors.textSecondary, marginBottom: 6 },
+  title: { fontFamily: Fonts.displayBold, fontSize: 32, lineHeight: 36, color: Colors.text, letterSpacing: -0.5 },
+  subtitle: { color: Colors.textSecondary, fontSize: 13, marginTop: 4, fontFamily: Fonts.sansRegular },
 
   filterBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginTop: 16, marginBottom: 12, flexWrap: 'wrap' },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
   },
-  chipActive: { borderColor: '#c8f000' },
-  chipText: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 12 },
-  chipTextActive: { color: '#c8f000' },
-  chipCount: { color: '#8b90a8', fontFamily: Fonts.monoBold, fontSize: 10, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.04)' },
-  chipCountActive: { color: '#c8f000' },
+  chipActive: { borderColor: Colors.accent },
+  chipText: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 12 },
+  chipTextActive: { color: Colors.accentInk },
+  chipCount: { color: Colors.textSecondary, fontFamily: Fonts.monoBold, fontSize: 10, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(23,21,15,0.06)' },
+  chipCountActive: { color: Colors.accentInk },
 
   row: {
-    marginHorizontal: 16, marginBottom: 10, padding: 14, backgroundColor: '#0d0f1c',
-    borderRadius: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.06)',
+    marginHorizontal: 16, marginBottom: 10, padding: 14, backgroundColor: Colors.surface,
+    borderRadius: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle,
   },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  rowVenue: { fontFamily: Fonts.sansMedium, fontSize: 13, color: '#eeeef5', flex: 1, marginRight: 8 },
+  rowVenue: { fontFamily: Fonts.sansMedium, fontSize: 13, color: Colors.text, flex: 1, marginRight: 8 },
   rowStatus: { fontFamily: Fonts.monoBold, fontSize: 11 },
-  rowType: { fontFamily: Fonts.monoBold, fontSize: 12, color: '#c8f000', marginBottom: 4 },
-  rowNote: { color: '#8b90a8', fontFamily: Fonts.sansRegular, fontSize: 12, lineHeight: 17, marginBottom: 10 },
+  rowType: { fontFamily: Fonts.monoBold, fontSize: 12, color: Colors.accentInk, marginBottom: 4 },
+  rowNote: { color: Colors.textSecondary, fontFamily: Fonts.sansRegular, fontSize: 12, lineHeight: 17, marginBottom: 10 },
   actions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
   actionBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 },
-  declineBtn: { borderWidth: 1, borderColor: '#ff4557' },
-  declineText: { color: '#ff4557', fontFamily: Fonts.sansMedium, fontSize: 13 },
-  approveBtn: { backgroundColor: '#c8f000' },
-  approveText: { color: '#07080f', fontFamily: Fonts.sansBold, fontSize: 13 },
+  declineBtn: { borderWidth: 1, borderColor: Colors.error },
+  declineText: { color: Colors.error, fontFamily: Fonts.sansMedium, fontSize: 13 },
+  approveBtn: { backgroundColor: Colors.accent },
+  approveText: { color: Colors.bg, fontFamily: Fonts.sansBold, fontSize: 13 },
   btnBusy: { opacity: 0.5 },
-  decidedBy: { color: '#4a4f65', fontFamily: Fonts.monoRegular, fontSize: 11, textAlign: 'right' },
+  decidedBy: { color: Colors.textMuted, fontFamily: Fonts.monoRegular, fontSize: 11, textAlign: 'right' },
 
   empty: { padding: 32, alignItems: 'center' },
-  emptyText: { color: '#8b90a8', textAlign: 'center', fontFamily: Fonts.sansRegular, fontSize: 13, lineHeight: 18 },
+  emptyText: { color: Colors.textSecondary, textAlign: 'center', fontFamily: Fonts.sansRegular, fontSize: 13, lineHeight: 18 },
   errorBox: { paddingHorizontal: 20, paddingVertical: 16 },
-  errorText: { color: '#ff4557', marginBottom: 12, fontFamily: Fonts.sansMedium },
-  retryBtn: { alignSelf: 'flex-start', borderColor: '#c8f000', borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 6 },
-  retryText: { color: '#c8f000', fontFamily: Fonts.sansMedium },
+  errorText: { color: Colors.error, marginBottom: 12, fontFamily: Fonts.sansMedium },
+  retryBtn: { alignSelf: 'flex-start', borderColor: Colors.accent, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 6 },
+  retryText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium },
 });

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   Modal,
   Pressable,
@@ -86,7 +87,7 @@ export function PolicyRequestSheet({ visible, policy, submitting, onClose, onSub
               <TextInput
                 style={s.inputLine}
                 placeholder={type === 'cancellation' ? 'YYYY-MM-DD' : 'e.g. 123 Property LLC'}
-                placeholderTextColor="#4a4f65"
+                placeholderTextColor={Colors.textMuted}
                 value={extra}
                 onChangeText={setExtra}
                 editable={!submitting}
@@ -99,7 +100,7 @@ export function PolicyRequestSheet({ visible, policy, submitting, onClose, onSub
           <TextInput
             style={s.input}
             placeholder="Anything your broker should know…"
-            placeholderTextColor="#4a4f65"
+            placeholderTextColor={Colors.textMuted}
             multiline
             numberOfLines={3}
             value={note}
@@ -128,51 +129,51 @@ export function PolicyRequestSheet({ visible, policy, submitting, onClose, onSub
 const s = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#0e1018',
+    backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     paddingBottom: 36,
     borderTopWidth: 1,
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     width: '100%',
     maxWidth: 560,
     alignSelf: 'center',
   },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#2a2f45', alignSelf: 'center', marginBottom: 16 },
-  title: { color: '#fff', fontSize: 16, fontFamily: 'DMSans_600SemiBold', marginBottom: 4 },
-  subtitle: { color: '#8891aa', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', marginBottom: 14 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 16 },
+  title: { color: Colors.text, fontSize: 16, fontFamily: 'DMSans_600SemiBold', marginBottom: 4 },
+  subtitle: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', marginBottom: 14 },
   option: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 12,
-    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', marginBottom: 8,
+    borderRadius: 10, borderWidth: 1, borderColor: Colors.borderSubtle, marginBottom: 8,
   },
-  optionSelected: { borderColor: '#c8f000', backgroundColor: 'rgba(200,240,0,0.05)' },
-  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#4a4f65', marginTop: 2 },
-  radioSelected: { borderColor: '#c8f000', backgroundColor: '#c8f000' },
-  optionTitle: { color: '#c8cfe0', fontSize: 13, fontFamily: 'DMSans_600SemiBold' },
-  optionTitleSelected: { color: '#fff' },
-  optionHint: { color: '#4a4f65', fontSize: 12, fontFamily: 'DMSans_400Regular', marginTop: 2 },
+  optionSelected: { borderColor: Colors.accent, backgroundColor: 'rgba(200,240,0,0.05)' },
+  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: Colors.textMuted, marginTop: 2 },
+  radioSelected: { borderColor: Colors.accent, backgroundColor: Colors.accent },
+  optionTitle: { color: Colors.textSecondary, fontSize: 13, fontFamily: 'DMSans_600SemiBold' },
+  optionTitleSelected: { color: Colors.text },
+  optionHint: { color: Colors.textMuted, fontSize: 12, fontFamily: 'DMSans_400Regular', marginTop: 2 },
   label: {
-    color: '#8891aa', fontSize: 11, fontFamily: 'DMSans_600SemiBold',
+    color: Colors.textSecondary, fontSize: 11, fontFamily: 'DMSans_600SemiBold',
     textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 12, marginBottom: 6,
   },
   inputLine: {
-    backgroundColor: '#07080f', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 10, color: '#fff', fontFamily: 'DMSans_400Regular', fontSize: 13, padding: 12,
+    backgroundColor: Colors.bg, borderWidth: 1, borderColor: Colors.borderSubtle,
+    borderRadius: 10, color: Colors.text, fontFamily: 'DMSans_400Regular', fontSize: 13, padding: 12,
   },
   input: {
-    backgroundColor: '#07080f', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 10, color: '#fff', fontFamily: 'DMSans_400Regular', fontSize: 13,
+    backgroundColor: Colors.bg, borderWidth: 1, borderColor: Colors.borderSubtle,
+    borderRadius: 10, color: Colors.text, fontFamily: 'DMSans_400Regular', fontSize: 13,
     padding: 12, minHeight: 72, textAlignVertical: 'top',
   },
   row: { flexDirection: 'row', gap: 10, marginTop: 16 },
   btn: { flex: 1, paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
-  btnPrimary: { backgroundColor: '#c8f000' },
+  btnPrimary: { backgroundColor: Colors.accent },
   btnDisabled: { opacity: 0.5 },
-  btnPrimaryText: { color: '#07080f', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  btnPrimaryText: { color: Colors.bg, fontFamily: 'DMSans_700Bold', fontSize: 14 },
   btnGhost: {
     paddingVertical: 14, paddingHorizontal: 20, borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.border, alignItems: 'center',
   },
-  btnGhostText: { color: '#8891aa', fontFamily: 'DMSans_400Regular', fontSize: 14 },
+  btnGhostText: { color: Colors.textSecondary, fontFamily: 'DMSans_400Regular', fontSize: 14 },
 });

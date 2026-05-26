@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Pressable,
@@ -14,11 +15,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
 
 const SEVERITY_COLOR: Record<string, string> = {
-  urgent: '#ff4557',
-  action_required: '#ff4557',
-  high: '#ff4557',
-  medium: '#ff9500',
-  low: '#4a4f65',
+  urgent: Colors.error,
+  action_required: Colors.error,
+  high: Colors.error,
+  medium: Colors.warning,
+  low: Colors.textMuted,
 };
 
 interface ComplianceItem {
@@ -101,11 +102,11 @@ export function ComplianceItemDetailScreen({ navigation, route }: any) {
   };
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator color="#c8f000" /></View>;
+    return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
   }
 
   const sev = (item?.severity ?? item?.priority ?? 'low').toLowerCase();
-  const sevColor = SEVERITY_COLOR[sev] ?? '#4a4f65';
+  const sevColor = SEVERITY_COLOR[sev] ?? Colors.textMuted;
   const title = item?.title ?? (item ? humanize(item.id) : 'Compliance Item');
   const description = item?.description ?? item?.action ?? '';
 
@@ -158,38 +159,38 @@ export function ComplianceItemDetailScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 40, gap: 12 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   backBtn: { paddingVertical: 6 },
-  backText: { color: '#8b90a8', fontSize: 13, fontFamily: 'DMSans_500Medium' },
+  backText: { color: Colors.textSecondary, fontSize: 13, fontFamily: 'DMSans_500Medium' },
 
   eyebrow: {
-    color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2,
+    color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2,
     fontFamily: 'JetBrainsMono_700Bold', marginTop: 4,
   },
   title: {
-    color: '#eeeef5', fontSize: 28, fontWeight: '800', letterSpacing: -0.5,
+    color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5,
     fontFamily: 'CormorantGaramond_700Bold', marginBottom: 4,
   },
 
   card: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderLeftWidth: 3,
     borderRadius: 14,
     padding: 16,
     gap: 10,
   },
   severity: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  description: { color: '#eeeef5', fontSize: 15, lineHeight: 22, fontFamily: 'DMSans_400Regular' },
+  description: { color: Colors.text, fontSize: 15, lineHeight: 22, fontFamily: 'DMSans_400Regular' },
   itemIdLabel: {
-    color: '#4a4f65', fontSize: 9, fontWeight: '700', letterSpacing: 1.5,
+    color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5,
     fontFamily: 'JetBrainsMono_700Bold', marginTop: 6,
   },
-  itemId: { color: '#8b90a8', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  itemId: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
 
   uploadBtn: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -199,10 +200,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  uploadBtnText: { color: '#c8f000', fontSize: 12, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  uploadBtnText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
 
   emptyWrap: { alignItems: 'center', paddingTop: 80, gap: 10 },
-  emptyIcon: { fontSize: 48, color: '#c8f000' },
-  emptyTitle: { color: '#eeeef5', fontSize: 20, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  emptySub: { color: '#4a4f65', fontSize: 14, textAlign: 'center', paddingHorizontal: 30, fontFamily: 'DMSans_400Regular' },
+  emptyIcon: { fontSize: 48, color: Colors.accentInk },
+  emptyTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
+  emptySub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', paddingHorizontal: 30, fontFamily: 'DMSans_400Regular' },
 });

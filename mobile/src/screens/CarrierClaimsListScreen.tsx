@@ -8,6 +8,7 @@
  * call.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   FlatList,
@@ -110,7 +111,7 @@ export function CarrierClaimsListScreen({ navigation }: any) {
   if (rows === null && !error) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#c8f000" />
+        <ActivityIndicator color={Colors.accentInk} />
       </View>
     );
   }
@@ -164,7 +165,7 @@ export function CarrierClaimsListScreen({ navigation }: any) {
           keyExtractor={(r) => r.id}
           contentContainerStyle={{ paddingBottom: 32 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
           }
           renderItem={({ item }) => (
             <Pressable
@@ -217,24 +218,24 @@ export function CarrierClaimsListScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#07080f' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#07080f' },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg },
   headerWrap: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
   eyebrow: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
     letterSpacing: 1.4,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     marginBottom: 6,
   },
   title: {
     fontFamily: Fonts.displayBold,
     fontSize: 32,
     lineHeight: 36,
-    color: '#eeeef5',
+    color: Colors.text,
     letterSpacing: -0.5,
   },
-  subtitle: { color: '#8b90a8', fontSize: 13, marginTop: 4, fontFamily: Fonts.sansRegular },
+  subtitle: { color: Colors.textSecondary, fontSize: 13, marginTop: 4, fontFamily: Fonts.sansRegular },
 
   filterBar: {
     flexDirection: 'row',
@@ -251,44 +252,44 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.border,
   },
-  filterChipActive: { borderColor: '#c8f000' },
-  filterText: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 12 },
-  filterTextActive: { color: '#c8f000' },
+  filterChipActive: { borderColor: Colors.accent },
+  filterText: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 12 },
+  filterTextActive: { color: Colors.accentInk },
   filterCount: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     fontFamily: Fonts.monoBold,
     fontSize: 10,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(23,21,15,0.06)',
   },
-  filterCountActive: { color: '#c8f000' },
+  filterCountActive: { color: Colors.accentInk },
 
   row: {
     marginHorizontal: 16,
     marginBottom: 10,
     padding: 14,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: Colors.borderSubtle,
   },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   rowId: {
     fontFamily: Fonts.monoBold,
     fontSize: 13,
-    color: '#eeeef5',
+    color: Colors.text,
     flex: 1,
   },
-  glyph: { color: '#c8f000' },
+  glyph: { color: Colors.accentInk },
   reopenBadge: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
-    color: '#ff4557',
-    borderColor: '#ff4557',
+    color: Colors.error,
+    borderColor: Colors.error,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 999,
     paddingHorizontal: 6,
@@ -301,13 +302,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  metaText: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 12, flex: 1, marginRight: 8 },
+  metaText: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 12, flex: 1, marginRight: 8 },
 
   rowMoney: {
     flexDirection: 'row',
     gap: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.06)',
+    borderTopColor: Colors.borderSubtle,
     paddingTop: 10,
   },
   moneyCol: { flex: 1 },
@@ -315,29 +316,29 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.monoBold,
     fontSize: 9,
     letterSpacing: 1.2,
-    color: '#4a4f65',
+    color: Colors.textMuted,
     marginBottom: 2,
   },
-  moneyValue: { fontFamily: Fonts.monoBold, fontSize: 13, color: '#eeeef5' },
-  moneyValueText: { fontFamily: Fonts.sansMedium, fontSize: 12, color: '#eeeef5' },
+  moneyValue: { fontFamily: Fonts.monoBold, fontSize: 13, color: Colors.text },
+  moneyValueText: { fontFamily: Fonts.sansMedium, fontSize: 12, color: Colors.text },
 
   empty: { padding: 32, alignItems: 'center' },
   emptyText: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     textAlign: 'center',
     fontFamily: Fonts.sansRegular,
     fontSize: 13,
     lineHeight: 18,
   },
   errorBox: { padding: 24 },
-  errorText: { color: '#ff4557', marginBottom: 12, fontFamily: Fonts.sansMedium },
+  errorText: { color: Colors.error, marginBottom: 12, fontFamily: Fonts.sansMedium },
   retryBtn: {
     alignSelf: 'flex-start',
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 6,
   },
-  retryText: { color: '#c8f000', fontFamily: Fonts.sansMedium },
+  retryText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium },
 });

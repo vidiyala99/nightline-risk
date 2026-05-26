@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
@@ -14,10 +15,10 @@ import { api } from '../api/client';
 import { CapacityBar } from '../components/CapacityBar';
 
 const TIER_COLOR: Record<string, string> = {
-  A: '#c8f000',
-  B: '#00d97e',
-  C: '#ff9500',
-  D: '#ff4557',
+  A: Colors.accent,
+  B: Colors.success,
+  C: Colors.warning,
+  D: Colors.error,
 };
 
 interface RiskScore {
@@ -170,7 +171,7 @@ export function DashboardScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color="#c8f000" />
+        <ActivityIndicator color={Colors.accentInk} />
       </View>
     );
   }
@@ -178,7 +179,7 @@ export function DashboardScreen({ navigation }: any) {
   const tier = riskData?.tier ?? '—';
   const score = riskData?.total_score ?? 0;
   const factors: Record<string, number> = riskData?.factors ?? {};
-  const tierColor = TIER_COLOR[tier] ?? '#4a4f65';
+  const tierColor = TIER_COLOR[tier] ?? Colors.textMuted;
 
   return (
     <ScrollView
@@ -188,7 +189,7 @@ export function DashboardScreen({ navigation }: any) {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor="#c8f000"
+          tintColor={Colors.accent}
         />
       }
     >
@@ -383,13 +384,13 @@ export function DashboardScreen({ navigation }: any) {
             <View
               style={[
                 styles.tierBadge,
-                { borderColor: TIER_COLOR[quoteData.tier] ?? '#4a4f65' },
+                { borderColor: TIER_COLOR[quoteData.tier] ?? Colors.textMuted },
               ]}
             >
               <Text
                 style={[
                   styles.tierBadgeText,
-                  { color: TIER_COLOR[quoteData.tier] ?? '#4a4f65' },
+                  { color: TIER_COLOR[quoteData.tier] ?? Colors.textMuted },
                 ]}
               >
                 {quoteData.tier} Tier
@@ -419,19 +420,19 @@ export function DashboardScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 32 },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#07080f',
+    backgroundColor: Colors.bg,
     paddingHorizontal: 24,
   },
 
   // Broker fallback
   brokerHeading: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 22,
     fontWeight: '700',
     letterSpacing: -0.5,
@@ -440,7 +441,7 @@ const styles = StyleSheet.create({
     fontFamily: 'CormorantGaramond_700Bold',
   },
   brokerBody: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 20,
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
   },
   signOut: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.5,
@@ -467,16 +468,16 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 4,
   },
-  savingsEyebrow: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  savingsAmount: { color: '#c8f000', fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  savingsPerYear: { color: '#8b90a8', fontSize: 16, fontWeight: '400', fontFamily: 'DMSans_400Regular' },
-  savingsSub: { color: '#8b90a8', fontSize: 12, lineHeight: 18, fontFamily: 'JetBrainsMono_400Regular' },
+  savingsEyebrow: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  savingsAmount: { color: Colors.accentInk, fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
+  savingsPerYear: { color: Colors.textSecondary, fontSize: 16, fontWeight: '400', fontFamily: 'DMSans_400Regular' },
+  savingsSub: { color: Colors.textSecondary, fontSize: 12, lineHeight: 18, fontFamily: 'JetBrainsMono_400Regular' },
 
   heroSection: {
     marginBottom: 24,
   },
   heroHeading: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 32,
     fontWeight: '800',
     letterSpacing: -1,
@@ -485,10 +486,10 @@ const styles = StyleSheet.create({
     fontFamily: 'CormorantGaramond_700Bold',
   },
   heroAccent: {
-    color: '#c8f000',
+    color: Colors.accentInk,
   },
   heroSubtitle: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 13,
     lineHeight: 19,
     fontFamily: 'DMSans_400Regular',
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   venueSwitcherLabel: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 2,
@@ -515,22 +516,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: '#0d0f1c',
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
     maxWidth: 220,
   },
   chipActive: {
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     backgroundColor: 'rgba(200,240,0,0.08)',
   },
   chipText: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     fontSize: 13,
     fontWeight: '600',
     fontFamily: 'DMSans_400Regular',
   },
   chipTextActive: {
-    color: '#c8f000',
+    color: Colors.accentInk,
     fontWeight: '700',
   },
 
@@ -542,15 +543,15 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderRadius: 14,
     padding: 14,
     alignItems: 'flex-start',
   },
   statEyebrow: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 8,
     fontWeight: '700',
     letterSpacing: 1.5,
@@ -558,21 +559,21 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_700Bold',
   },
   statValue: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.5,
     fontFamily: 'JetBrainsMono_700Bold',
   },
   statError: {
-    color: '#ff4557',
+    color: Colors.error,
   },
 
   // Shared card
   card: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderRadius: 16,
     padding: 20,
     marginBottom: 12,
@@ -581,7 +582,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(200,240,0,0.25)',
@@ -589,10 +590,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 12,
   },
-  coverageLinkLabel: { color: '#c8f000', fontSize: 11, letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  coverageLinkArrow: { color: '#c8f000', fontSize: 16, fontFamily: 'JetBrainsMono_700Bold' },
+  coverageLinkLabel: { color: Colors.accentInk, fontSize: 11, letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  coverageLinkArrow: { color: Colors.accentInk, fontSize: 16, fontFamily: 'JetBrainsMono_700Bold' },
   sectionEyebrow: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
@@ -626,28 +627,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   errorIconText: {
-    color: '#ff4557',
+    color: Colors.error,
     fontSize: 14,
     fontWeight: '800',
     fontFamily: 'JetBrainsMono_700Bold',
     lineHeight: 16,
   },
   errorEyebrow: {
-    color: '#ff4557',
+    color: Colors.error,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
     fontFamily: 'JetBrainsMono_700Bold',
   },
   errorHeading: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: -0.5,
     fontFamily: 'CormorantGaramond_700Bold',
   },
   errorBody: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     fontSize: 13,
     lineHeight: 20,
     fontFamily: 'DMSans_400Regular',
@@ -662,7 +663,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   retryBtnText: {
-    color: '#ff4557',
+    color: Colors.error,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
@@ -671,36 +672,36 @@ const styles = StyleSheet.create({
 
   // Empty state
   emptyCard: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderRadius: 16,
     padding: 24,
     marginBottom: 12,
     gap: 8,
   },
   emptyEyebrow: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
     fontFamily: 'JetBrainsMono_700Bold',
   },
   emptyHeading: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: -0.5,
     fontFamily: 'CormorantGaramond_700Bold',
   },
   emptyBody: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 13,
     lineHeight: 20,
     fontFamily: 'DMSans_400Regular',
   },
   emptyAction: {
-    color: '#c8f000',
+    color: Colors.accentInk,
     fontSize: 13,
     fontWeight: '700',
     fontFamily: 'JetBrainsMono_700Bold',
@@ -715,7 +716,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     marginBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.07)',
+    borderBottomColor: Colors.borderSubtle,
   },
   tierBadge: {
     borderWidth: 1,
@@ -741,14 +742,14 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_700Bold',
   },
   scoreMax: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 16,
     fontWeight: '500',
     paddingBottom: 6,
     fontFamily: 'DMSans_500Medium',
   },
   factorList: { gap: 16 },
-  tapHint: { color: '#4a4f65', fontSize: 11, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
+  tapHint: { color: Colors.textMuted, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
 
   // Quote card
   quoteCard: {
@@ -761,7 +762,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   venueTypeLabel: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
@@ -769,7 +770,7 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_700Bold',
   },
   premiumAmount: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 40,
     fontWeight: '800',
     letterSpacing: -1.5,
@@ -777,20 +778,20 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_700Bold',
   },
   premiumSub: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 12,
     marginBottom: 10,
     fontFamily: 'DMSans_400Regular',
   },
   premiumMonthly: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 20,
     fontWeight: '600',
     letterSpacing: -0.5,
     fontFamily: 'JetBrainsMono_400Regular',
   },
   premiumMonthlySub: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 13,
     fontWeight: '400',
     fontFamily: 'DMSans_400Regular',

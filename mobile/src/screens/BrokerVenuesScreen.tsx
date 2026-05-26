@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   FlatList,
@@ -71,7 +72,7 @@ export function BrokerVenuesScreen({ navigation }: any) {
   useFocusEffect(useCallback(() => { fetchVenues(); }, [fetchVenues]));
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator color="#c8f000" /></View>;
+    return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
   }
 
   return (
@@ -86,7 +87,7 @@ export function BrokerVenuesScreen({ navigation }: any) {
         <TextInput
           style={styles.searchInput}
           placeholder="Search venues..."
-          placeholderTextColor="#4a4f65"
+          placeholderTextColor={Colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoCorrect={false}
@@ -122,7 +123,7 @@ export function BrokerVenuesScreen({ navigation }: any) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); fetchVenues(); }}
-            tintColor="#c8f000"
+            tintColor={Colors.accent}
           />
         }
         renderItem={({ item }) => {
@@ -177,19 +178,19 @@ export function BrokerVenuesScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   header: { paddingHorizontal: 20, paddingBottom: 16 },
-  eyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold', marginBottom: 4 },
-  title: { color: '#eeeef5', fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'CormorantGaramond_700Bold' },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold', marginBottom: 4 },
+  title: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'CormorantGaramond_700Bold' },
 
   searchWrap: {
     marginHorizontal: 20,
     marginBottom: 16,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -197,56 +198,56 @@ const styles = StyleSheet.create({
     height: 44,
     gap: 10,
   },
-  searchIcon: { color: '#4a4f65', fontSize: 18 },
+  searchIcon: { color: Colors.textMuted, fontSize: 18 },
   searchInput: {
     flex: 1,
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 14,
     fontFamily: 'DMSans_400Regular',
     paddingVertical: 0,
   },
 
-  sectionEyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, paddingHorizontal: 20, marginBottom: 12, fontFamily: 'JetBrainsMono_700Bold' },
+  sectionEyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, paddingHorizontal: 20, marginBottom: 12, fontFamily: 'JetBrainsMono_700Bold' },
 
   list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
   card: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     padding: 16,
     gap: 4,
   },
-  venueType: { color: '#4a4f65', fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  venueName: { color: '#eeeef5', fontSize: 18, fontWeight: '700', letterSpacing: -0.3, fontFamily: 'DMSans_600SemiBold' },
-  venueAddress: { color: '#4a4f65', fontSize: 11, fontFamily: 'DMSans_400Regular' },
+  venueType: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  venueName: { color: Colors.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.3, fontFamily: 'DMSans_600SemiBold' },
+  venueAddress: { color: Colors.textMuted, fontSize: 11, fontFamily: 'DMSans_400Regular' },
 
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  metaItem: { color: '#8b90a8', fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
+  metaItem: { color: Colors.textSecondary, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
 
-  viewDetail: { color: '#c8f000', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold', marginTop: 6 },
+  viewDetail: { color: Colors.accentInk, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold', marginTop: 6 },
 
   filterBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 14, flexWrap: 'wrap' },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
   },
-  chipActive: { borderColor: '#c8f000' },
-  chipText: { color: '#8b90a8', fontFamily: 'DMSans_500Medium', fontSize: 12 },
-  chipTextActive: { color: '#c8f000' },
-  chipCount: { color: '#8b90a8', fontFamily: 'JetBrainsMono_700Bold', fontSize: 10, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.04)' },
-  chipCountActive: { color: '#c8f000' },
+  chipActive: { borderColor: Colors.accent },
+  chipText: { color: Colors.textSecondary, fontFamily: 'DMSans_500Medium', fontSize: 12 },
+  chipTextActive: { color: Colors.accentInk },
+  chipCount: { color: Colors.textSecondary, fontFamily: 'JetBrainsMono_700Bold', fontSize: 10, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(23,21,15,0.06)' },
+  chipCountActive: { color: Colors.accentInk },
 
   cardProspect: { borderStyle: 'dashed', borderColor: 'rgba(200,240,0,0.25)' },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   prospectBadge: {
-    color: '#c8f000', fontSize: 9, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: '#c8f000', borderRadius: 999,
+    color: Colors.accentInk, fontSize: 9, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.accent, borderRadius: 999,
     paddingHorizontal: 7, paddingVertical: 1, overflow: 'hidden',
   },
-  prospectSavings: { color: '#c8f000', fontSize: 12, fontFamily: 'JetBrainsMono_700Bold', marginTop: 4 },
+  prospectSavings: { color: Colors.accentInk, fontSize: 12, fontFamily: 'JetBrainsMono_700Bold', marginTop: 4 },
 
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
-  emptyTitle: { color: '#eeeef5', fontSize: 18, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  emptySub: { color: '#4a4f65', fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  emptyTitle: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
+  emptySub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'DMSans_400Regular' },
 });

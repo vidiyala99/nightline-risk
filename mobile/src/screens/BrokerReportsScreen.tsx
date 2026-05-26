@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   FlatList,
@@ -32,19 +33,19 @@ interface Packet {
 }
 
 const SEVERITY_COLOR: Record<string, string> = {
-  critical: '#ff4557',
-  high:     '#ff4557',
-  medium:   '#ff9500',
-  low:      '#c8f000',
-  unknown:  '#4a4f65',
+  critical: Colors.error,
+  high:     Colors.error,
+  medium:   Colors.warning,
+  low:      Colors.accent,
+  unknown:  Colors.textMuted,
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  needs_review: '#ff9500',
-  approved:     '#00d97e',
-  blocked:      '#ff4557',
-  draft:        '#4a4f65',
-  processing:   '#5b8af5',
+  needs_review: Colors.warning,
+  approved:     Colors.success,
+  blocked:      Colors.error,
+  draft:        Colors.textMuted,
+  processing:   Colors.info,
 };
 
 const FILTER_LABELS: Record<Filter, string> = {
@@ -131,7 +132,7 @@ export function BrokerReportsScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color="#c8f000" size="large" />
+        <ActivityIndicator color={Colors.accentInk} size="large" />
       </View>
     );
   }
@@ -148,27 +149,27 @@ export function BrokerReportsScreen({ navigation }: any) {
         {/* Stats bar: TOTAL | PENDING | HIGH/CRIT | APPROVED | BLOCKED */}
         <View style={styles.statsRow}>
           <View style={styles.statPill}>
-            <Text style={[styles.statNum, { color: '#eeeef5' }]}>{counts.total}</Text>
+            <Text style={[styles.statNum, { color: Colors.text }]}>{counts.total}</Text>
             <Text style={styles.statLabel}>TOTAL</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statPill}>
-            <Text style={[styles.statNum, { color: '#ff9500' }]}>{counts.needs_review}</Text>
+            <Text style={[styles.statNum, { color: Colors.warning }]}>{counts.needs_review}</Text>
             <Text style={styles.statLabel}>PENDING</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statPill}>
-            <Text style={[styles.statNum, { color: '#ff4557' }]}>{counts.high_crit}</Text>
+            <Text style={[styles.statNum, { color: Colors.error }]}>{counts.high_crit}</Text>
             <Text style={styles.statLabel}>HIGH/CRIT</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statPill}>
-            <Text style={[styles.statNum, { color: '#00d97e' }]}>{counts.approved}</Text>
+            <Text style={[styles.statNum, { color: Colors.success }]}>{counts.approved}</Text>
             <Text style={styles.statLabel}>APPROVED</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statPill}>
-            <Text style={[styles.statNum, { color: '#ff4557' }]}>{counts.blocked}</Text>
+            <Text style={[styles.statNum, { color: Colors.error }]}>{counts.blocked}</Text>
             <Text style={styles.statLabel}>BLOCKED</Text>
           </View>
         </View>
@@ -198,13 +199,13 @@ export function BrokerReportsScreen({ navigation }: any) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#c8f000"
+            tintColor={Colors.accent}
           />
         }
         renderItem={({ item }) => {
           const severity      = item.risk_signals?.severity ?? 'unknown';
-          const severityColor = SEVERITY_COLOR[severity] ?? '#4a4f65';
-          const statusColor   = STATUS_COLOR[item.status] ?? '#4a4f65';
+          const severityColor = SEVERITY_COLOR[severity] ?? Colors.textMuted;
+          const statusColor   = STATUS_COLOR[item.status] ?? Colors.textMuted;
           const confidence    = item.risk_signals?.confidence ?? 0;
           const confidencePct = Math.round(confidence * 100);
           const riskType      = item.risk_signals?.type ?? '';
@@ -308,12 +309,12 @@ export function BrokerReportsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  root:    { flex: 1, backgroundColor: '#07080f' },
+  root:    { flex: 1, backgroundColor: Colors.bg },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#07080f',
+    backgroundColor: Colors.bg,
   },
 
   // ── Header ──────────────────────────────────────────────────────────────
@@ -328,14 +329,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.5,
     fontFamily: 'CormorantGaramond_700Bold',
   },
   signOut: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.5,
@@ -346,10 +347,10 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     paddingVertical: 10,
     paddingHorizontal: 4,
   },
@@ -365,7 +366,7 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_700Bold',
   },
   statLabel: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 8,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -374,7 +375,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: StyleSheet.hairlineWidth,
     height: 28,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: Colors.borderSubtle,
   },
 
   // ── Filter chips ─────────────────────────────────────────────────────────
@@ -387,21 +388,21 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: '#0d0f1c',
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
   chipActive: {
-    backgroundColor: '#c8f000',
-    borderColor: '#c8f000',
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
   chipText: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 12,
     fontWeight: '600',
     fontFamily: 'DMSans_500Medium',
   },
   chipTextActive: {
-    color: '#07080f',
+    color: Colors.bg,
   },
 
   // ── List ─────────────────────────────────────────────────────────────────
@@ -414,10 +415,10 @@ const styles = StyleSheet.create({
 
   // ── Card ─────────────────────────────────────────────────────────────────
   card: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderLeftWidth: 3,
     padding: 16,
     gap: 9,
@@ -432,7 +433,7 @@ const styles = StyleSheet.create({
   },
   venueId: {
     flex: 1,
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.1,
@@ -454,7 +455,7 @@ const styles = StyleSheet.create({
 
   // Risk type label
   riskType: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
@@ -488,7 +489,7 @@ const styles = StyleSheet.create({
   confidenceTrack: {
     flex: 1,
     height: 3,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: Colors.borderSubtle,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -506,13 +507,13 @@ const styles = StyleSheet.create({
 
   // Memo + date
   memo: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     fontSize: 13,
     lineHeight: 18,
     fontFamily: 'DMSans_400Regular',
   },
   date: {
-    color: '#2e3247',
+    color: Colors.border,
     fontSize: 11,
     fontFamily: 'JetBrainsMono_400Regular',
   },
@@ -525,18 +526,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyIcon: {
-    color: '#2e3247',
+    color: Colors.border,
     fontSize: 36,
     marginBottom: 4,
   },
   emptyTitle: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 18,
     fontWeight: '700',
     fontFamily: 'DMSans_700Bold',
   },
   emptySub: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,

@@ -12,6 +12,7 @@
  *   expirationDate, onSuccess: () => void
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -330,66 +331,66 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   scroll: { padding: 20, paddingBottom: 80 },
   header: { marginBottom: 18 },
-  back: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 13, marginBottom: 8 },
+  back: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 13, marginBottom: 8 },
   eyebrow: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
     letterSpacing: 1.6,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     marginBottom: 4,
   },
   title: {
     fontFamily: Fonts.displayBold,
     fontSize: 32,
-    color: '#eeeef5',
+    color: Colors.text,
     letterSpacing: -0.5,
     marginBottom: 6,
   },
-  subtitle: { color: '#8b90a8', fontFamily: Fonts.sansRegular, fontSize: 13, lineHeight: 18 },
+  subtitle: { color: Colors.textSecondary, fontFamily: Fonts.sansRegular, fontSize: 13, lineHeight: 18 },
 
   draftBanner: {
     backgroundColor: 'rgba(200,240,0,0.06)',
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
     padding: 12,
     marginBottom: 18,
   },
-  draftText: { color: '#eeeef5', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  draftText: { color: Colors.text, fontFamily: Fonts.sansMedium, fontSize: 13 },
   draftBtnPrimary: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: '#c8f000',
+    backgroundColor: Colors.accent,
   },
-  draftBtnPrimaryText: { color: '#07080f', fontFamily: Fonts.sansSemiBold, fontSize: 12 },
+  draftBtnPrimaryText: { color: Colors.bg, fontFamily: Fonts.sansSemiBold, fontSize: 12 },
   draftBtnGhost: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(23,21,15,0.14)',
   },
-  draftBtnGhostText: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 12 },
+  draftBtnGhostText: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 12 },
 
   section: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
     letterSpacing: 1.6,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     marginTop: 8,
     marginBottom: 10,
     paddingBottom: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: 'rgba(23,21,15,0.10)',
   },
 
   field: { marginBottom: 14 },
-  fieldLabel: { color: '#eeeef5', fontFamily: Fonts.sansSemiBold, fontSize: 13, marginBottom: 6 },
-  required: { color: '#c8f000' },
+  fieldLabel: { color: Colors.text, fontFamily: Fonts.sansSemiBold, fontSize: 13, marginBottom: 6 },
+  required: { color: Colors.accentInk },
 
   chipsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   chip: {
@@ -397,15 +398,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(23,21,15,0.14)',
   },
-  chipActive: { borderColor: '#c8f000', backgroundColor: 'rgba(200,240,0,0.06)' },
-  chipText: { color: '#8b90a8', fontFamily: Fonts.monoBold, fontSize: 11 },
-  chipTextActive: { color: '#c8f000' },
+  chipActive: { borderColor: Colors.accent, backgroundColor: 'rgba(200,240,0,0.06)' },
+  chipText: { color: Colors.textSecondary, fontFamily: Fonts.monoBold, fontSize: 11 },
+  chipTextActive: { color: Colors.accentInk },
 
   disclosure: { paddingVertical: 12 },
   disclosureText: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontFamily: Fonts.monoBold,
     fontSize: 10,
     letterSpacing: 1.6,
@@ -413,14 +414,14 @@ const styles = StyleSheet.create({
 
   errorBox: {
     backgroundColor: 'rgba(255,69,87,0.08)',
-    borderColor: '#ff4557',
+    borderColor: Colors.error,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
     marginBottom: 12,
   },
-  errorText: { color: '#ff4557', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  errorText: { color: Colors.error, fontFamily: Fonts.sansMedium, fontSize: 13 },
 
   actions: { flexDirection: 'row', gap: 8, marginTop: 12, justifyContent: 'flex-end' },
   btnGhost: {
@@ -428,14 +429,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(23,21,15,0.16)',
   },
-  btnGhostText: { color: '#eeeef5', fontFamily: Fonts.sansMedium },
+  btnGhostText: { color: Colors.text, fontFamily: Fonts.sansMedium },
   btnPrimary: {
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#c8f000',
+    backgroundColor: Colors.accent,
   },
-  btnPrimaryText: { color: '#07080f', fontFamily: Fonts.sansBold },
+  btnPrimaryText: { color: Colors.bg, fontFamily: Fonts.sansBold },
 });

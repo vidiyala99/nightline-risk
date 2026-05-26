@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   FlatList,
@@ -86,7 +87,7 @@ export function ClaimsListScreen({ navigation }: any) {
       />
 
       {loading ? (
-        <View style={s.centered}><ActivityIndicator color="#c8f000" /></View>
+        <View style={s.centered}><ActivityIndicator color={Colors.accentInk} /></View>
       ) : visible.length === 0 ? (
         <View style={s.centered}>
           <Text style={s.emptyIcon}>📋</Text>
@@ -104,7 +105,7 @@ export function ClaimsListScreen({ navigation }: any) {
           keyExtractor={p => p.id}
           contentContainerStyle={s.list}
           renderItem={({ item: p }) => {
-            const col = STATE_COLOR[p.state] ?? '#4a4f65';
+            const col = STATE_COLOR[p.state] ?? Colors.textMuted;
             return (
               <Pressable
                 style={[s.row, p.override_recommendation && s.rowOverride]}
@@ -137,34 +138,34 @@ export function ClaimsListScreen({ navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16 },
-  title: { color: '#eeeef5', fontSize: 26, fontFamily: 'CormorantGaramond_700Bold', letterSpacing: -0.5 },
-  subtitle: { color: '#4a4f65', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
+  title: { color: Colors.text, fontSize: 26, fontFamily: 'CormorantGaramond_700Bold', letterSpacing: -0.5 },
+  subtitle: { color: Colors.textMuted, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
   filterRow: { paddingHorizontal: 20, paddingBottom: 12, gap: 8 },
   chip: {
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 100,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1, borderColor: Colors.borderSubtle,
   },
-  chipActive: { borderColor: '#c8f000', backgroundColor: 'rgba(200,240,0,0.08)' },
-  chipText: { color: '#4a4f65', fontSize: 12, fontFamily: 'DMSans_600SemiBold' },
-  chipTextActive: { color: '#c8f000' },
+  chipActive: { borderColor: Colors.accent, backgroundColor: 'rgba(200,240,0,0.08)' },
+  chipText: { color: Colors.textMuted, fontSize: 12, fontFamily: 'DMSans_600SemiBold' },
+  chipTextActive: { color: Colors.accentInk },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyIcon: { fontSize: 36 },
-  emptyText: { color: '#4a4f65', fontSize: 14, fontFamily: 'DMSans_400Regular', textAlign: 'center', paddingHorizontal: 40 },
+  emptyText: { color: Colors.textMuted, fontSize: 14, fontFamily: 'DMSans_400Regular', textAlign: 'center', paddingHorizontal: 40 },
   list: { paddingHorizontal: 20, paddingBottom: 40 },
   row: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.05)',
+    paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(23,21,15,0.06)',
     gap: 12,
   },
   rowOverride: { backgroundColor: 'rgba(255,149,0,0.04)' },
   rowLeft: { flex: 1, gap: 3 },
-  venueName: { color: '#eeeef5', fontSize: 14, fontFamily: 'DMSans_600SemiBold', textTransform: 'capitalize' },
-  date: { color: '#4a4f65', fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
-  overrideTag: { color: '#ff9500', fontSize: 10, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 0.5 },
+  venueName: { color: Colors.text, fontSize: 14, fontFamily: 'DMSans_600SemiBold', textTransform: 'capitalize' },
+  date: { color: Colors.textMuted, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
+  overrideTag: { color: Colors.warning, fontSize: 10, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 0.5 },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stateBadge: { borderWidth: 1, borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
   stateText: { fontSize: 9, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1, textTransform: 'uppercase' },
-  arrow: { color: '#4a4f65', fontSize: 20 },
+  arrow: { color: Colors.textMuted, fontSize: 20 },
 });

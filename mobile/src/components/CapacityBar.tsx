@@ -1,4 +1,5 @@
 import React from 'react';
+import { Colors } from "../theme/colors";
 import { StyleSheet, Text, View } from 'react-native';
 
 interface Props {
@@ -12,14 +13,14 @@ interface Props {
 function barColor(pct: number, invertScale = false) {
   if (invertScale) {
     // High value = good (risk scores, compliance)
-    if (pct >= 0.85) return '#c8f000';
-    if (pct >= 0.6) return '#ff9500';
-    return '#ff4557';
+    if (pct >= 0.85) return Colors.accent;
+    if (pct >= 0.6) return Colors.warning;
+    return Colors.error;
   }
   // High value = bad (capacity)
-  if (pct < 0.6) return '#c8f000';
-  if (pct < 0.85) return '#ff9500';
-  return '#ff4557';
+  if (pct < 0.6) return Colors.accent;
+  if (pct < 0.85) return Colors.warning;
+  return Colors.error;
 }
 
 export function CapacityBar({ label, value, max = 100, unit = '', invertScale = false }: Props) {
@@ -44,11 +45,11 @@ export function CapacityBar({ label, value, max = 100, unit = '', invertScale = 
 const styles = StyleSheet.create({
   container: { gap: 8 },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label: { color: '#4a4f65', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold' },
+  label: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold' },
   value: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3, fontFamily: 'JetBrainsMono_700Bold' },
   track: {
     height: 3,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: Colors.borderSubtle,
     borderRadius: 2,
     overflow: 'hidden',
   },

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Image,
@@ -171,7 +172,7 @@ export function ReportIncidentScreen({ navigation }: { navigation: any }) {
             style={({ pressed }) => [styles.input, styles.dateTimeField, pressed && styles.dateTimeFieldPressed]}
             onPress={onPressDateTimeField}
           >
-            <Text style={[styles.dateTimeText, !occurredAt && { color: '#2e3247' }]}>
+            <Text style={[styles.dateTimeText, !occurredAt && { color: Colors.border }]}>
               {occurredAt ? formatDateTime(occurredAt) : 'mm/dd/yy hh:mm:ss'}
             </Text>
             <Text style={styles.dateTimeChevron}>›</Text>
@@ -187,7 +188,7 @@ export function ReportIncidentScreen({ navigation }: { navigation: any }) {
                 onChange={(event, selected) => {
                   if (selected) setOccurredAt(selected);
                 }}
-                textColor="#eeeef5"
+                textColor={Colors.text}
                 style={{ flex: 1 }}
               />
               <Pressable style={styles.iosPickerDone} onPress={() => setShowDatePicker(false)}>
@@ -224,7 +225,7 @@ export function ReportIncidentScreen({ navigation }: { navigation: any }) {
           <TextInput
             style={[styles.input, styles.multiline]}
             placeholder="Describe the incident…"
-            placeholderTextColor="#2e3247"
+            placeholderTextColor={Colors.border}
             multiline
             numberOfLines={4}
             value={form.summary}
@@ -238,7 +239,7 @@ export function ReportIncidentScreen({ navigation }: { navigation: any }) {
           <TextInput
             style={styles.input}
             placeholder="e.g. Rear Bar, Stairwell B"
-            placeholderTextColor="#2e3247"
+            placeholderTextColor={Colors.border}
             value={form.location}
             onChangeText={v => set('location', v)}
           />
@@ -250,7 +251,7 @@ export function ReportIncidentScreen({ navigation }: { navigation: any }) {
           <TextInput
             style={styles.input}
             placeholder="Your name"
-            placeholderTextColor="#2e3247"
+            placeholderTextColor={Colors.border}
             value={form.reported_by}
             onChangeText={v => set('reported_by', v)}
           />
@@ -298,7 +299,7 @@ export function ReportIncidentScreen({ navigation }: { navigation: any }) {
               <TextInput
                 style={[styles.input, styles.linkInput]}
                 placeholder="https://dropbox.com/… or NVR portal URL"
-                placeholderTextColor="#2e3247"
+                placeholderTextColor={Colors.border}
                 value={footageLink}
                 onChangeText={setFootageLink}
                 onSubmitEditing={addFootageLink}
@@ -339,7 +340,7 @@ export function ReportIncidentScreen({ navigation }: { navigation: any }) {
           disabled={submitting}
         >
           {submitting
-            ? <ActivityIndicator color="#07080f" />
+            ? <ActivityIndicator color={Colors.bg} />
             : <Text style={styles.submitText}>FILE REPORT</Text>
           }
         </Pressable>
@@ -355,19 +356,19 @@ function ToggleRow({ label, value, onChange, last }: { label: string; value: boo
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ false: 'rgba(255,255,255,0.06)', true: 'rgba(200,240,0,0.35)' }}
-        thumbColor={value ? '#c8f000' : '#2e3247'}
+        trackColor={{ false: Colors.borderSubtle, true: 'rgba(200,240,0,0.35)' }}
+        thumbColor={value ? Colors.accent : Colors.border}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 24 },
 
   heading: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 40,
     fontWeight: '800',
     letterSpacing: -1.5,
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
 
   fieldGroup: { marginBottom: 20 },
   fieldLabel: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
@@ -386,13 +387,13 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_700Bold',
   },
   input: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(23,21,15,0.10)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 15,
     fontFamily: 'DMSans_400Regular',
   },
@@ -404,24 +405,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dateTimeFieldPressed: { backgroundColor: 'rgba(255,255,255,0.04)' },
+  dateTimeFieldPressed: { backgroundColor: 'rgba(23,21,15,0.06)' },
   dateTimeText: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 15,
     fontFamily: 'JetBrainsMono_400Regular',
     letterSpacing: 0.5,
   },
   dateTimeChevron: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 22,
     lineHeight: 24,
   },
 
   // iOS spinner card
   iosPickerCard: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(23,21,15,0.10)',
     borderRadius: 12,
     marginTop: 8,
     overflow: 'hidden',
@@ -430,10 +431,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: 'rgba(23,21,15,0.10)',
   },
   iosPickerDoneText: {
-    color: '#c8f000',
+    color: Colors.accentInk,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
@@ -441,9 +442,9 @@ const styles = StyleSheet.create({
   },
 
   toggleCard: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(23,21,15,0.10)',
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -456,22 +457,22 @@ const styles = StyleSheet.create({
   },
   toggleRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: Colors.borderSubtle,
   },
-  toggleLabel: { color: '#8b90a8', fontSize: 14, fontFamily: 'DMSans_500Medium' },
+  toggleLabel: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'DMSans_500Medium' },
 
   evidenceRow: { flexDirection: 'row', gap: 10 },
   evidenceBtn: {
     flex: 1,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.border,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  evidenceBtnPressed: { backgroundColor: 'rgba(255,255,255,0.04)' },
-  evidenceBtnText: { color: '#8b90a8', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  evidenceBtnPressed: { backgroundColor: 'rgba(23,21,15,0.06)' },
+  evidenceBtnText: { color: Colors.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
   thumbScroll: { marginTop: 10 },
   thumb: { width: 72, height: 72, borderRadius: 10, marginRight: 8 },
 
@@ -479,7 +480,7 @@ const styles = StyleSheet.create({
   linkInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   linkInput: { flex: 1, paddingVertical: 12 },
   linkAddBtn: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(200,240,0,0.3)',
     borderRadius: 12,
@@ -489,9 +490,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   linkAddBtnPressed: { backgroundColor: 'rgba(200,240,0,0.08)' },
-  linkAddBtnText: { color: '#c8f000', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  linkAddBtnText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
   linkHint: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontFamily: 'DMSans_400Regular',
     marginTop: 6,
@@ -500,9 +501,9 @@ const styles = StyleSheet.create({
   linkChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(23,21,15,0.10)',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -511,18 +512,18 @@ const styles = StyleSheet.create({
   },
   linkChipText: {
     flex: 1,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     fontSize: 11,
     fontFamily: 'DMSans_400Regular',
   },
   linkChipRemove: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 18,
     lineHeight: 20,
   },
 
   submitBtn: {
-    backgroundColor: '#c8f000',
+    backgroundColor: Colors.accent,
     borderRadius: 12,
     paddingVertical: 17,
     alignItems: 'center',
@@ -530,5 +531,5 @@ const styles = StyleSheet.create({
   },
   submitPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   submitDisabled: { opacity: 0.5 },
-  submitText: { color: '#07080f', fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  submitText: { color: Colors.bg, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
 });

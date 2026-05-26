@@ -8,6 +8,7 @@
  * DashboardStack.
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Alert,
@@ -36,12 +37,12 @@ import { Fonts } from '../theme/typography';
 import { PolicyRequestSheet } from '../components/PolicyRequestSheet';
 
 const POLICY_STATUS_COLOR: Record<string, string> = {
-  active: '#00d97e',
-  bound_pending_number: '#7aa2ff',
-  cancelled: '#ff4557',
-  non_renewed: '#ff9500',
-  lapsed: '#ff9500',
-  expired: '#8b90a8',
+  active: Colors.success,
+  bound_pending_number: Colors.info,
+  cancelled: Colors.error,
+  non_renewed: Colors.warning,
+  lapsed: Colors.warning,
+  expired: Colors.textSecondary,
 };
 
 export function CoverageScreen({ navigation }: any) {
@@ -114,7 +115,7 @@ export function CoverageScreen({ navigation }: any) {
   }
 
   if (policies === null && !error) {
-    return <View style={styles.center}><ActivityIndicator color="#c8f000" /></View>;
+    return <View style={styles.center}><ActivityIndicator color={Colors.accentInk} /></View>;
   }
 
   return (
@@ -124,7 +125,7 @@ export function CoverageScreen({ navigation }: any) {
           { paddingBottom: 32, paddingTop: insets.top + 12 },
           isTablet && { maxWidth: 720, alignSelf: 'center', width: '100%' },
         ]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
       >
         <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
           <Text style={styles.backArrow}>←</Text>
@@ -157,7 +158,7 @@ export function CoverageScreen({ navigation }: any) {
                   <Text style={styles.cardEyebrow}>{p.carrier_id.toUpperCase()}</Text>
                   <Text style={styles.cardNumber}>{p.policy_number ?? p.id}</Text>
                 </View>
-                <View style={[styles.statusDot, { backgroundColor: POLICY_STATUS_COLOR[p.status] ?? '#8b90a8' }]} />
+                <View style={[styles.statusDot, { backgroundColor: POLICY_STATUS_COLOR[p.status] ?? Colors.textSecondary }]} />
                 <Text style={styles.statusText}>{p.status.replace(/_/g, ' ')}</Text>
               </View>
               <View style={styles.cardFacts}>
@@ -218,48 +219,48 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#07080f' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#07080f' },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg },
   backRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 4 },
-  backArrow: { color: '#c8f000', fontSize: 18, marginRight: 8, fontFamily: Fonts.monoBold },
-  backLabel: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  backArrow: { color: Colors.accentInk, fontSize: 18, marginRight: 8, fontFamily: Fonts.monoBold },
+  backLabel: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 13 },
   headerWrap: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
-  eyebrow: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: '#8b90a8', marginBottom: 6 },
-  title: { fontFamily: Fonts.displayBold, fontSize: 32, lineHeight: 36, color: '#eeeef5', letterSpacing: -0.5 },
-  subtitle: { color: '#8b90a8', fontSize: 13, marginTop: 4, fontFamily: Fonts.sansRegular },
+  eyebrow: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: Colors.textSecondary, marginBottom: 6 },
+  title: { fontFamily: Fonts.displayBold, fontSize: 32, lineHeight: 36, color: Colors.text, letterSpacing: -0.5 },
+  subtitle: { color: Colors.textSecondary, fontSize: 13, marginTop: 4, fontFamily: Fonts.sansRegular },
 
   card: {
-    marginHorizontal: 16, marginTop: 12, padding: 16, backgroundColor: '#0d0f1c',
-    borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.06)',
+    marginHorizontal: 16, marginTop: 12, padding: 16, backgroundColor: Colors.surface,
+    borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  cardEyebrow: { fontFamily: Fonts.monoBold, fontSize: 9, letterSpacing: 1.2, color: '#4a4f65', marginBottom: 3 },
-  cardNumber: { fontFamily: Fonts.monoBold, fontSize: 14, color: '#eeeef5' },
+  cardEyebrow: { fontFamily: Fonts.monoBold, fontSize: 9, letterSpacing: 1.2, color: Colors.textMuted, marginBottom: 3 },
+  cardNumber: { fontFamily: Fonts.monoBold, fontSize: 14, color: Colors.text },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  statusText: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 11, textTransform: 'capitalize' },
-  cardFacts: { flexDirection: 'row', gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 12, marginBottom: 14 },
+  statusText: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 11, textTransform: 'capitalize' },
+  cardFacts: { flexDirection: 'row', gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.borderSubtle, paddingTop: 12, marginBottom: 14 },
   fact: { flex: 1 },
-  factLabel: { fontFamily: Fonts.monoBold, fontSize: 9, letterSpacing: 1.2, color: '#4a4f65', marginBottom: 2 },
-  factValue: { fontFamily: Fonts.monoBold, fontSize: 12, color: '#eeeef5' },
-  cta: { alignSelf: 'flex-start', borderColor: '#c8f000', borderWidth: 1, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 8 },
-  ctaText: { color: '#c8f000', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  factLabel: { fontFamily: Fonts.monoBold, fontSize: 9, letterSpacing: 1.2, color: Colors.textMuted, marginBottom: 2 },
+  factValue: { fontFamily: Fonts.monoBold, fontSize: 12, color: Colors.text },
+  cta: { alignSelf: 'flex-start', borderColor: Colors.accent, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 8 },
+  ctaText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium, fontSize: 13 },
 
   section: { marginTop: 28, paddingHorizontal: 16 },
-  sectionTitle: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: '#8b90a8', marginBottom: 10 },
+  sectionTitle: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: Colors.textSecondary, marginBottom: 10 },
   reqRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.borderSubtle,
   },
-  reqType: { color: '#eeeef5', fontFamily: Fonts.sansMedium, fontSize: 13 },
-  reqNote: { color: '#8b90a8', fontFamily: Fonts.sansRegular, fontSize: 12, marginTop: 2 },
+  reqType: { color: Colors.text, fontFamily: Fonts.sansMedium, fontSize: 13 },
+  reqNote: { color: Colors.textSecondary, fontFamily: Fonts.sansRegular, fontSize: 12, marginTop: 2 },
   reqRight: { alignItems: 'flex-end' },
   reqStatus: { fontFamily: Fonts.monoBold, fontSize: 11 },
-  withdraw: { color: '#ff4557', fontFamily: Fonts.sansMedium, fontSize: 12, marginTop: 4 },
+  withdraw: { color: Colors.error, fontFamily: Fonts.sansMedium, fontSize: 12, marginTop: 4 },
 
   empty: { padding: 32, alignItems: 'center' },
-  emptyText: { color: '#8b90a8', textAlign: 'center', fontFamily: Fonts.sansRegular, fontSize: 13, lineHeight: 18 },
+  emptyText: { color: Colors.textSecondary, textAlign: 'center', fontFamily: Fonts.sansRegular, fontSize: 13, lineHeight: 18 },
   errorBox: { paddingHorizontal: 20, paddingVertical: 16 },
-  errorText: { color: '#ff4557', marginBottom: 12, fontFamily: Fonts.sansMedium },
-  retryBtn: { alignSelf: 'flex-start', borderColor: '#c8f000', borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 6 },
-  retryText: { color: '#c8f000', fontFamily: Fonts.sansMedium },
+  errorText: { color: Colors.error, marginBottom: 12, fontFamily: Fonts.sansMedium },
+  retryBtn: { alignSelf: 'flex-start', borderColor: Colors.accent, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 6 },
+  retryText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium },
 });

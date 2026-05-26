@@ -1,13 +1,14 @@
 import React from 'react';
+import { Colors } from "../theme/colors";
 import { StyleSheet, Text, View } from 'react-native';
 
 // Tone palette — keep in sync with the web's status-pill tones.
 const TONES = {
-  info:    { color: '#5b8af5', bg: 'rgba(91,138,245,0.1)',  border: 'rgba(91,138,245,0.3)' },
-  warning: { color: '#ff9500', bg: 'rgba(255,149,0,0.1)',   border: 'rgba(255,149,0,0.3)'  },
-  success: { color: '#00d97e', bg: 'rgba(0,217,126,0.08)',  border: 'rgba(0,217,126,0.25)' },
-  danger:  { color: '#ff4557', bg: 'rgba(255,69,87,0.08)',  border: 'rgba(255,69,87,0.25)' },
-  neutral: { color: '#8b90a8', bg: 'rgba(139,144,168,0.1)', border: 'rgba(139,144,168,0.2)' },
+  info:    { color: Colors.info, bg: 'rgba(91,138,245,0.1)',  border: 'rgba(91,138,245,0.3)' },
+  warning: { color: Colors.warning, bg: 'rgba(255,149,0,0.1)',   border: 'rgba(255,149,0,0.3)'  },
+  success: { color: Colors.success, bg: 'rgba(0,217,126,0.08)',  border: 'rgba(0,217,126,0.25)' },
+  danger:  { color: Colors.error, bg: 'rgba(255,69,87,0.08)',  border: 'rgba(255,69,87,0.25)' },
+  neutral: { color: Colors.textSecondary, bg: 'rgba(139,144,168,0.1)', border: 'rgba(139,144,168,0.2)' },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; tone: keyof typeof TONES }> = {

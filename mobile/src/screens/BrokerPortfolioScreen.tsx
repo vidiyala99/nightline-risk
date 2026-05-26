@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,10 +15,10 @@ import { api } from '../api/client';
 import { useResponsive } from '../hooks/useResponsive';
 
 const TIER_COLOR: Record<string, string> = {
-  A: '#c8f000',
-  B: '#00d97e',
-  C: '#ff9500',
-  D: '#ff4557',
+  A: Colors.accent,
+  B: Colors.success,
+  C: Colors.warning,
+  D: Colors.error,
 };
 
 interface PortfolioVenue {
@@ -63,7 +64,7 @@ export function BrokerPortfolioScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color="#c8f000" />
+        <ActivityIndicator color={Colors.accentInk} />
       </View>
     );
   }
@@ -105,7 +106,7 @@ export function BrokerPortfolioScreen({ navigation }: any) {
           <Text style={styles.statLabel}>OPEN INCIDENTS</Text>
         </Pressable>
         <Pressable style={styles.statCard} onPress={() => navigation.getParent()?.navigate('Compliance')}>
-          <Text style={[styles.statNum, complianceActions > 0 && { color: '#ff9500' }]}>{complianceActions}</Text>
+          <Text style={[styles.statNum, complianceActions > 0 && { color: Colors.warning }]}>{complianceActions}</Text>
           <Text style={styles.statLabel}>COMPLIANCE</Text>
         </Pressable>
       </View>
@@ -128,7 +129,7 @@ export function BrokerPortfolioScreen({ navigation }: any) {
         <TextInput
           style={styles.searchInput}
           placeholder="Search venues..."
-          placeholderTextColor="#4a4f65"
+          placeholderTextColor={Colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoCorrect={false}
@@ -155,18 +156,18 @@ export function BrokerPortfolioScreen({ navigation }: any) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); fetchPortfolio(); }}
-            tintColor="#c8f000"
+            tintColor={Colors.accent}
           />
         }
         renderItem={({ item }) => {
           const tier = item.tier ?? '—';
           const score = item.total_score ?? 0;
-          const tierColor = TIER_COLOR[tier] ?? '#4a4f65';
+          const tierColor = TIER_COLOR[tier] ?? Colors.textMuted;
           const capacity = item.current_capacity ?? 0;
           const maxCapacity = item.capacity ?? 0;
           const capacityPct = maxCapacity > 0 ? Math.min(capacity / maxCapacity, 1) : 0;
           const capacityBarColor =
-            capacityPct > 0.85 ? '#ff4557' : capacityPct > 0.6 ? '#ff9500' : '#c8f000';
+            capacityPct > 0.85 ? Colors.error : capacityPct > 0.6 ? Colors.warning : Colors.accent;
 
           const venueTypeLabel = (item.venue_type ?? '').replace(/_/g, ' ').toUpperCase();
 
@@ -202,7 +203,7 @@ export function BrokerPortfolioScreen({ navigation }: any) {
               {/* Score row */}
               <View style={styles.scoreRow}>
                 <Text style={styles.scoreLarge}>
-                  <Text style={{ color: '#eeeef5' }}>{score}</Text>
+                  <Text style={{ color: Colors.text }}>{score}</Text>
                   <Text style={styles.scoreOf}>/100</Text>
                 </Text>
                 <View style={[styles.tierPill, { borderColor: tierColor }]}>
@@ -271,8 +272,8 @@ export function BrokerPortfolioScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   // Header
   header: {
@@ -283,25 +284,25 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 20,
   },
-  name: { color: '#eeeef5', fontSize: 22, fontWeight: '700', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
-  role: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, marginTop: 4, fontFamily: 'JetBrainsMono_700Bold' },
-  signOut: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingTop: 6, fontFamily: 'JetBrainsMono_700Bold' },
+  name: { color: Colors.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  role: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, marginTop: 4, fontFamily: 'JetBrainsMono_700Bold' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingTop: 6, fontFamily: 'JetBrainsMono_700Bold' },
 
   // Stats bar
   statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 16 },
   statCard: {
     flex: 1,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     padding: 14,
     alignItems: 'center',
     gap: 4,
   },
-  statNum: { color: '#eeeef5', fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  statNumRed: { color: '#ff4557' },
-  statLabel: { color: '#4a4f65', fontSize: 9, fontWeight: '700', letterSpacing: 1.5, textAlign: 'center', fontFamily: 'JetBrainsMono_700Bold' },
+  statNum: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
+  statNumRed: { color: Colors.error },
+  statLabel: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, textAlign: 'center', fontFamily: 'JetBrainsMono_700Bold' },
 
   // Renewals entry link
   renewalsLink: {
@@ -312,18 +313,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(200,240,0,0.25)',
   },
   renewalsLinkLabel: {
-    color: '#c8f000',
+    color: Colors.accentInk,
     fontSize: 11,
     letterSpacing: 1.5,
     fontFamily: 'JetBrainsMono_700Bold',
   },
-  renewalsLinkArrow: { color: '#c8f000', fontSize: 16, fontFamily: 'JetBrainsMono_700Bold' },
+  renewalsLinkArrow: { color: Colors.accentInk, fontSize: 16, fontFamily: 'JetBrainsMono_700Bold' },
 
   // Search bar
   searchWrap: {
@@ -331,21 +332,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 20,
     marginBottom: 14,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.border,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 11,
     gap: 8,
   },
   searchIcon: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 16,
   },
   searchInput: {
     flex: 1,
-    color: '#eeeef5',
+    color: Colors.text,
     fontFamily: 'DMSans_400Regular',
     fontSize: 14,
     padding: 0,
@@ -354,7 +355,7 @@ const styles = StyleSheet.create({
 
   // Section eyebrow
   sectionEyebrow: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
@@ -368,10 +369,10 @@ const styles = StyleSheet.create({
 
   // Venue card
   venueCard: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderLeftWidth: 3,
     padding: 16,
     gap: 6,
@@ -385,14 +386,14 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_700Bold',
   },
   venueName: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: -0.3,
     fontFamily: 'DMSans_600SemiBold',
   },
   venueAddress: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 11,
     marginTop: -2,
     fontFamily: 'DMSans_600SemiBold',
@@ -409,13 +410,13 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '800',
     letterSpacing: -1,
-    color: '#eeeef5',
+    color: Colors.text,
     fontFamily: 'JetBrainsMono_700Bold',
   },
   scoreOf: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontFamily: 'DMSans_500Medium',
   },
   tierPill: {
@@ -439,21 +440,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   capacityHeading: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1.5,
     fontFamily: 'JetBrainsMono_700Bold',
   },
   capacityNumbers: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 12,
     fontWeight: '600',
     fontFamily: 'JetBrainsMono_400Regular',
   },
   capacityTrack: {
     height: 4,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: Colors.borderSubtle,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
   },
   bottomMeta: {
     flex: 1,
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 11,
     fontFamily: 'JetBrainsMono_400Regular',
   },
@@ -479,7 +480,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   degradedTag: {
-    color: '#ff9500',
+    color: Colors.warning,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1,
@@ -494,7 +495,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   incidentPillText: {
-    color: '#ff4557',
+    color: Colors.error,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -503,6 +504,6 @@ const styles = StyleSheet.create({
 
   // Empty state
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
-  emptyTitle: { color: '#eeeef5', fontSize: 18, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  emptySub: { color: '#4a4f65', fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  emptyTitle: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
+  emptySub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'DMSans_400Regular' },
 });

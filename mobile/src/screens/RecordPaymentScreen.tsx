@@ -2,6 +2,7 @@
  * Record payment — bottom-sheet form. Supports indemnity / expense / recovery.
  */
 import React, { useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -144,53 +145,53 @@ export function RecordPaymentScreen({ route, navigation }: any) {
 
 const typeStyles = StyleSheet.create({
   wrap: { marginBottom: 14 },
-  label: { color: '#eeeef5', fontFamily: Fonts.sansSemiBold, fontSize: 13, marginBottom: 6 },
-  required: { color: '#c8f000' },
+  label: { color: Colors.text, fontFamily: Fonts.sansSemiBold, fontSize: 13, marginBottom: 6 },
+  required: { color: Colors.accentInk },
   row: { flexDirection: 'row', gap: 8 },
   chip: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(23,21,15,0.14)',
     alignItems: 'center',
   },
-  chipActive: { borderColor: '#c8f000', backgroundColor: 'rgba(200,240,0,0.06)' },
-  chipText: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 13 },
-  chipTextActive: { color: '#c8f000' },
-  hint: { color: '#4a4f65', fontFamily: Fonts.sansRegular, fontSize: 11, marginTop: 6, lineHeight: 15 },
+  chipActive: { borderColor: Colors.accent, backgroundColor: 'rgba(200,240,0,0.06)' },
+  chipText: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 13 },
+  chipTextActive: { color: Colors.accentInk },
+  hint: { color: Colors.textMuted, fontFamily: Fonts.sansRegular, fontSize: 11, marginTop: 6, lineHeight: 15 },
 });
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   scroll: { padding: 20, paddingBottom: 60 },
   header: { marginBottom: 18 },
   eyebrow: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
     letterSpacing: 1.6,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     marginBottom: 6,
   },
   title: {
     fontFamily: Fonts.displayBold,
     fontSize: 28,
-    color: '#eeeef5',
+    color: Colors.text,
     letterSpacing: -0.5,
     marginBottom: 6,
   },
-  subtitle: { color: '#8b90a8', fontFamily: Fonts.sansRegular, fontSize: 13, lineHeight: 18 },
+  subtitle: { color: Colors.textSecondary, fontFamily: Fonts.sansRegular, fontSize: 13, lineHeight: 18 },
 
   errorBox: {
     backgroundColor: 'rgba(255,69,87,0.08)',
-    borderColor: '#ff4557',
+    borderColor: Colors.error,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
     padding: 12,
     marginTop: 6,
     marginBottom: 12,
   },
-  errorText: { color: '#ff4557', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  errorText: { color: Colors.error, fontFamily: Fonts.sansMedium, fontSize: 13 },
 
   actions: { flexDirection: 'row', gap: 8, marginTop: 12, justifyContent: 'flex-end' },
   btnGhost: {
@@ -198,14 +199,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(23,21,15,0.16)',
   },
-  btnGhostText: { color: '#eeeef5', fontFamily: Fonts.sansMedium },
+  btnGhostText: { color: Colors.text, fontFamily: Fonts.sansMedium },
   btnPrimary: {
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#c8f000',
+    backgroundColor: Colors.accent,
   },
-  btnPrimaryText: { color: '#07080f', fontFamily: Fonts.sansBold },
+  btnPrimaryText: { color: Colors.bg, fontFamily: Fonts.sansBold },
 });

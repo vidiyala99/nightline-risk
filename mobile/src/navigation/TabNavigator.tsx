@@ -1,4 +1,5 @@
 import React from 'react';
+import { Colors } from "../theme/colors";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,7 +48,7 @@ const BROKER_ICONS: Record<string, { active: string; inactive: string }> = {
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons = { ...VENUE_ICONS, ...BROKER_ICONS };
   return (
-    <Text style={{ fontSize: 16, color: focused ? '#c8f000' : '#ffffff' }}>
+    <Text style={{ fontSize: 16, color: focused ? Colors.accentInk : Colors.textMuted }}>
       {focused ? (icons[name]?.active ?? '◈') : (icons[name]?.inactive ?? '◇')}
     </Text>
   );
@@ -56,14 +57,14 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 function SignOutButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={{ paddingRight: 20 }}>
-      <Text style={{ color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 1.5 }}>SIGN OUT</Text>
+      <Text style={{ color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 }}>SIGN OUT</Text>
     </Pressable>
   );
 }
 
 const tabBarStyle = {
-  backgroundColor: '#0a0b14',
-  borderTopColor: 'rgba(255,255,255,0.06)',
+  backgroundColor: Colors.tabBar,
+  borderTopColor: Colors.borderSubtle,
   borderTopWidth: StyleSheet.hairlineWidth,
   height: 64,
   paddingBottom: 10,
@@ -71,7 +72,7 @@ const tabBarStyle = {
 };
 
 const headerStyle = {
-  backgroundColor: '#07080f',
+  backgroundColor: Colors.bg,
   shadowOpacity: 0,
   borderBottomWidth: 0,
   elevation: 0,
@@ -87,8 +88,8 @@ function VenueOperatorTabs() {
       headerShadowVisible: false,
       headerRight: () => <SignOutButton onPress={signOut} />,
       tabBarStyle,
-      tabBarActiveTintColor: '#c8f000',
-      tabBarInactiveTintColor: '#ffffff',
+      tabBarActiveTintColor: Colors.accentInk,
+      tabBarInactiveTintColor: Colors.textMuted,
       tabBarLabelStyle: { fontSize: 10, fontWeight: '700' as const, letterSpacing: 0.5, marginTop: 2 },
       tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
     })}>
@@ -113,8 +114,8 @@ function BrokerTabs() {
       headerShadowVisible: false,
       headerRight: () => <SignOutButton onPress={signOut} />,
       tabBarStyle,
-      tabBarActiveTintColor: '#c8f000',
-      tabBarInactiveTintColor: '#ffffff',
+      tabBarActiveTintColor: Colors.accentInk,
+      tabBarInactiveTintColor: Colors.textMuted,
       tabBarLabelStyle: { fontSize: 10, fontWeight: '700' as const, letterSpacing: 0.5, marginTop: 2 },
       tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
     })}>

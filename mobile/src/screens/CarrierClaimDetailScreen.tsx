@@ -14,6 +14,7 @@
  * Pull-to-refresh + haptics on action success.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -132,7 +133,7 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#c8f000" />
+        <ActivityIndicator color={Colors.accentInk} />
       </View>
     );
   }
@@ -161,7 +162,7 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 140 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8f000" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
         }
       >
         <View style={styles.headerWrap}>
@@ -354,15 +355,15 @@ function LifecycleStrip({
           const finalLit = i === LIFECYCLE_ORDER.length - 1 && isClosedStatus(status);
           const litFinalPaid = finalLit && status === 'closed_paid';
           const dotColor = active || lit || litFinalPaid
-            ? '#c8f000'
+            ? Colors.accent
             : finalLit
-              ? '#8b90a8'
-              : 'rgba(255,255,255,0.12)';
+              ? Colors.textSecondary
+              : 'rgba(23,21,15,0.14)';
           const labelColor = active
-            ? '#c8f000'
+            ? Colors.accent
             : lit || finalLit
-              ? '#eeeef5'
-              : '#4a4f65';
+              ? Colors.text
+              : Colors.textMuted;
           return (
             <View key={node} style={styles.lifeCol}>
               <View style={[styles.lifeDot, { backgroundColor: dotColor }]} />
@@ -530,49 +531,49 @@ function promptAmount(title: string, message: string): Promise<string | null> {
 
 function deltaStyle(tone: 'success' | 'danger' | 'neutral') {
   return {
-    color: tone === 'success' ? '#c8f000' : tone === 'danger' ? '#ff4557' : '#8b90a8',
+    color: tone === 'success' ? Colors.accent : tone === 'danger' ? Colors.error : Colors.textSecondary,
   } as const;
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#07080f' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#07080f' },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg },
 
   headerWrap: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 },
   backRow: { marginBottom: 12 },
-  backText: { color: '#8b90a8', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  backText: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 13 },
   eyebrow: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
     letterSpacing: 1.4,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     marginBottom: 6,
   },
-  glyph: { color: '#c8f000' },
+  glyph: { color: Colors.accentInk },
   masthead: {
     fontFamily: Fonts.monoBold,
     fontSize: 16,
-    color: '#eeeef5',
+    color: Colors.text,
     marginBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: Colors.border,
     paddingBottom: 8,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   reopenBadge: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
-    color: '#ff4557',
-    borderColor: '#ff4557',
+    color: Colors.error,
+    borderColor: Colors.error,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 999,
     paddingHorizontal: 6,
     paddingVertical: 1,
     overflow: 'hidden',
   },
-  headerSub: { color: '#8b90a8', fontSize: 12, fontFamily: Fonts.monoRegular },
+  headerSub: { color: Colors.textSecondary, fontSize: 12, fontFamily: Fonts.monoRegular },
 
   headline: {
     paddingHorizontal: 20,
@@ -583,16 +584,16 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.monoBold,
     fontSize: 9,
     letterSpacing: 1.6,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     marginBottom: 4,
   },
   headlineValueRow: { flexDirection: 'row', alignItems: 'baseline' },
-  headlineUnit: { fontFamily: Fonts.displayBold, fontSize: 26, color: '#4a4f65' },
+  headlineUnit: { fontFamily: Fonts.displayBold, fontSize: 26, color: Colors.textMuted },
   headlineDigits: {
     fontFamily: Fonts.displayBold,
     fontSize: 56,
     lineHeight: 60,
-    color: '#eeeef5',
+    color: Colors.text,
     letterSpacing: -1.5,
     fontVariant: ['tabular-nums'],
   },
@@ -603,7 +604,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     fontFamily: Fonts.monoBold,
     fontSize: 10,
-    color: '#ff4557',
+    color: Colors.error,
     marginBottom: 6,
   },
   lifeNodes: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -621,26 +622,26 @@ const styles = StyleSheet.create({
   tile: {
     flexBasis: '47%',
     flexGrow: 1,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     padding: 12,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: Colors.borderSubtle,
   },
   tileLabel: {
     fontFamily: Fonts.monoBold,
     fontSize: 9,
     letterSpacing: 1.4,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     marginBottom: 4,
   },
-  tileValue: { fontFamily: Fonts.monoBold, fontSize: 16, color: '#eeeef5' },
+  tileValue: { fontFamily: Fonts.monoBold, fontSize: 16, color: Colors.text },
 
   sectionTitle: {
     fontFamily: Fonts.monoBold,
     fontSize: 10,
     letterSpacing: 1.6,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     paddingHorizontal: 20,
     marginTop: 12,
     marginBottom: 8,
@@ -652,20 +653,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.06)',
+    borderTopColor: Colors.borderSubtle,
   },
-  ledgerType: { fontFamily: Fonts.sansSemiBold, fontSize: 13, color: '#eeeef5' },
+  ledgerType: { fontFamily: Fonts.sansSemiBold, fontSize: 13, color: Colors.text },
   ledgerDesc: {
     fontFamily: Fonts.monoRegular,
     fontSize: 12,
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
-  ledgerSub: { fontFamily: Fonts.monoRegular, fontSize: 10, color: '#4a4f65', marginTop: 4 },
-  ledgerAmount: { fontFamily: Fonts.monoBold, fontSize: 14, color: '#eeeef5' },
+  ledgerSub: { fontFamily: Fonts.monoRegular, fontSize: 10, color: Colors.textMuted, marginTop: 4 },
+  ledgerAmount: { fontFamily: Fonts.monoBold, fontSize: 14, color: Colors.text },
 
   empty: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontStyle: 'italic',
     fontFamily: Fonts.sansRegular,
     fontSize: 12,
@@ -678,30 +679,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.05)',
+    borderTopColor: 'rgba(23,21,15,0.06)',
   },
   metaLabel: {
     fontFamily: Fonts.monoBold,
     fontSize: 9,
     letterSpacing: 1.4,
-    color: '#4a4f65',
+    color: Colors.textMuted,
     marginBottom: 2,
   },
-  metaValue: { color: '#eeeef5', fontFamily: Fonts.sansRegular, fontSize: 13 },
+  metaValue: { color: Colors.text, fontFamily: Fonts.sansRegular, fontSize: 13 },
 
   toolbar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#0a0b14',
+    backgroundColor: Colors.tabBar,
     paddingHorizontal: 12,
     paddingTop: 10,
     paddingBottom: 28,
     flexDirection: 'row',
     gap: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: 'rgba(23,21,15,0.10)',
   },
   toolbarBtn: {
     flex: 1,
@@ -712,45 +713,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 44,
   },
-  toolbarBtnPrimary: { backgroundColor: '#c8f000' },
+  toolbarBtnPrimary: { backgroundColor: Colors.accent },
   toolbarBtnSecondary: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: 'rgba(23,21,15,0.20)',
     backgroundColor: 'transparent',
   },
-  toolbarBtnTertiary: { borderStyle: 'dashed' as const, borderColor: 'rgba(255,255,255,0.12)' },
+  toolbarBtnTertiary: { borderStyle: 'dashed' as const, borderColor: 'rgba(23,21,15,0.14)' },
   toolbarBtnDestructive: { borderColor: 'rgba(255,69,87,0.4)' },
   toolbarBtnText: {
     fontFamily: Fonts.sansSemiBold,
     fontSize: 12,
-    color: '#eeeef5',
+    color: Colors.text,
     textAlign: 'center',
   },
-  toolbarBtnTextPrimary: { color: '#07080f' },
-  toolbarBtnTextDestructive: { color: '#ff4557' },
+  toolbarBtnTextPrimary: { color: Colors.bg },
+  toolbarBtnTextDestructive: { color: Colors.error },
 
-  errorBox: { flex: 1, padding: 24, justifyContent: 'center', backgroundColor: '#07080f' },
-  errorText: { color: '#ff4557', marginBottom: 12, fontFamily: Fonts.sansMedium, fontSize: 14 },
+  errorBox: { flex: 1, padding: 24, justifyContent: 'center', backgroundColor: Colors.bg },
+  errorText: { color: Colors.error, marginBottom: 12, fontFamily: Fonts.sansMedium, fontSize: 14 },
   retryBtn: {
     alignSelf: 'flex-start',
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 6,
   },
-  retryText: { color: '#c8f000', fontFamily: Fonts.sansMedium },
+  retryText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium },
 
   pdfBtn: {
     alignSelf: 'flex-start',
     marginTop: 8,
     marginBottom: 4,
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 6,
   },
   pdfBtnBusy: { opacity: 0.5 },
-  pdfBtnText: { color: '#c8f000', fontFamily: Fonts.sansMedium, fontSize: 13 },
+  pdfBtnText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium, fontSize: 13 },
 });

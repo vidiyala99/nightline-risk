@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Pressable,
@@ -12,11 +13,11 @@ import { api } from '../api/client';
 import { CapacityBar } from '../components/CapacityBar';
 
 const TIER_COLOR: Record<string, string> = {
-  A: '#c8f000', B: '#00d97e', C: '#ff9500', D: '#ff4557',
+  A: Colors.accent, B: Colors.success, C: Colors.warning, D: Colors.error,
 };
 
 const STATUS_DOT: Record<string, string> = {
-  operational: '#c8f000', active: '#c8f000', degraded: '#ff9500', down: '#ff4557',
+  operational: Colors.accent, active: Colors.accent, degraded: Colors.warning, down: Colors.error,
 };
 
 export function BrokerVenueDetailScreen({ route, navigation }: any) {
@@ -75,10 +76,10 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  if (loading) return <View style={styles.centered}><ActivityIndicator color="#c8f000" /></View>;
+  if (loading) return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
 
   const tier = risk?.tier ?? '—';
-  const tierColor = TIER_COLOR[tier] ?? '#4a4f65';
+  const tierColor = TIER_COLOR[tier] ?? Colors.textMuted;
   const capacityPct = live ? live.current_capacity / live.max_capacity : 0;
   const factors: Record<string, number> = risk?.factors ?? {};
   const savingsAnnual = quote?.savings_annual ?? 0;
@@ -112,7 +113,7 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
         <View style={[styles.card, capacityPct > 0.85 && styles.cardDanger]}>
           <View style={styles.occupancyHeader}>
             <Text style={styles.eyebrow}>LIVE OCCUPANCY</Text>
-            <Text style={[styles.occupancyNumbers, { color: capacityPct > 0.85 ? '#ff4557' : '#ff9500' }]}>
+            <Text style={[styles.occupancyNumbers, { color: capacityPct > 0.85 ? Colors.error : Colors.warning }]}>
               {live.current_capacity} / {live.max_capacity}
             </Text>
           </View>
@@ -161,8 +162,8 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
                 <Text style={styles.savingsValue}>${(quote.market_rate_annual ?? 0).toLocaleString()}/yr</Text>
               </View>
               <View style={styles.savingsRow}>
-                <Text style={[styles.savingsLabel, { color: '#c8f000' }]}>CLIENT SAVES</Text>
-                <Text style={[styles.savingsValue, { color: '#c8f000', fontWeight: '700' }]}>
+                <Text style={[styles.savingsLabel, { color: Colors.accentInk }]}>CLIENT SAVES</Text>
+                <Text style={[styles.savingsValue, { color: Colors.accentInk, fontWeight: '700' }]}>
                   ${savingsAnnual.toLocaleString()}/yr ({quote.savings_pct}%)
                 </Text>
               </View>
@@ -186,7 +187,7 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
             </View>
           )}
           {live.infrastructure.map((item: any, i: number) => {
-            const dotColor = item.is_degraded ? '#ff9500' : (STATUS_DOT[item.status.toLowerCase()] ?? '#4a4f65');
+            const dotColor = item.is_degraded ? Colors.warning : (STATUS_DOT[item.status.toLowerCase()] ?? Colors.textMuted);
             return (
               <View key={i} style={styles.infraRow}>
                 <View style={[styles.infraDot, { backgroundColor: dotColor }]} />
@@ -206,7 +207,7 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
         {(!live?.compliance_queue || live.compliance_queue.length === 0) ? (
           <Text style={styles.complianceClear}>{'>'} No pending actions. All clear.</Text>
         ) : live.compliance_queue.map((item: any, i: number) => {
-          const pColor = item.priority === 'high' || item.priority === 'urgent' ? '#ff4557' : item.priority === 'medium' ? '#ff9500' : '#4a4f65';
+          const pColor = item.priority === 'high' || item.priority === 'urgent' ? Colors.error : item.priority === 'medium' ? Colors.warning : Colors.textMuted;
           return (
             <View key={i} style={[styles.queueRow, { borderLeftColor: pColor }]}>
               <Text style={styles.queueAction}>{item.action}</Text>
@@ -227,7 +228,7 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
             return (
               <View key={key} style={styles.coverageRow}>
                 <Text style={styles.coverageName}>{label}</Text>
-                <Text style={[styles.coverageStatus, { color: isIncluded ? '#c8f000' : '#4a4f65' }]}>{statusText}</Text>
+                <Text style={[styles.coverageStatus, { color: isIncluded ? Colors.accent : Colors.textMuted }]}>{statusText}</Text>
               </View>
             );
           })}
@@ -238,35 +239,35 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
-  backArrow: { color: '#c8f000', fontSize: 18 },
-  backLabel: { color: '#c8f000', fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
+  backArrow: { color: Colors.accentInk, fontSize: 18 },
+  backLabel: { color: Colors.accentInk, fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
 
   header: { marginBottom: 20 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   headerLeft: { flex: 1, gap: 4 },
-  headerEyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  venueName: { color: '#eeeef5', fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  headerEyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  venueName: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
   liveBadge: {
     alignItems: 'center', gap: 4,
     borderWidth: 1, borderColor: 'rgba(200,240,0,0.3)', borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 8, backgroundColor: 'rgba(200,240,0,0.06)',
   },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#c8f000' },
-  liveBadgeText: { color: '#c8f000', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  renewalDate: { color: '#4a4f65', fontSize: 9, fontFamily: 'JetBrainsMono_400Regular' },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
+  liveBadgeText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  renewalDate: { color: Colors.textMuted, fontSize: 9, fontFamily: 'JetBrainsMono_400Regular' },
 
   card: {
-    backgroundColor: '#0d0f1c', borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)', borderRadius: 14,
+    backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle, borderRadius: 14,
     padding: 16, marginBottom: 12, gap: 12,
   },
   cardDanger: { borderColor: 'rgba(255,69,87,0.25)', backgroundColor: 'rgba(255,69,87,0.04)' },
-  eyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
 
   occupancyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   occupancyNumbers: { fontSize: 18, fontWeight: '800', fontFamily: 'JetBrainsMono_700Bold' },
@@ -276,43 +277,43 @@ const styles = StyleSheet.create({
   tierBadgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
   scoreRow: { flexDirection: 'row', alignItems: 'baseline' },
   scoreBig: { fontSize: 48, fontWeight: '800', letterSpacing: -2, fontFamily: 'JetBrainsMono_700Bold' },
-  scoreMax: { color: '#4a4f65', fontSize: 18, fontFamily: 'DMSans_400Regular' },
+  scoreMax: { color: Colors.textMuted, fontSize: 18, fontFamily: 'DMSans_400Regular' },
   factorList: { gap: 14 },
-  tapHint: { color: '#4a4f65', fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
+  tapHint: { color: Colors.textMuted, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
 
-  premiumAmount: { color: '#eeeef5', fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  premiumPer: { color: '#4a4f65', fontSize: 16, fontWeight: '400', fontFamily: 'DMSans_400Regular' },
-  premiumMonthly: { color: '#4a4f65', fontSize: 14, fontFamily: 'JetBrainsMono_400Regular' },
+  premiumAmount: { color: Colors.text, fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
+  premiumPer: { color: Colors.textMuted, fontSize: 16, fontWeight: '400', fontFamily: 'DMSans_400Regular' },
+  premiumMonthly: { color: Colors.textMuted, fontSize: 14, fontFamily: 'JetBrainsMono_400Regular' },
   savingsBox: {
     backgroundColor: 'rgba(200,240,0,0.04)', borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(200,240,0,0.15)', borderRadius: 8, padding: 12, gap: 8,
   },
   savingsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  savingsLabel: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  savingsValue: { color: '#8b90a8', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  savingsLabel: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  savingsValue: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
   premiumMeta: { flexDirection: 'row', gap: 16 },
-  premiumMetaText: { color: '#4a4f65', fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
+  premiumMetaText: { color: Colors.textMuted, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
 
   degradedWarning: {
     backgroundColor: 'rgba(255,149,0,0.08)', borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,149,0,0.3)', borderRadius: 8, padding: 10,
   },
-  degradedText: { color: '#ff9500', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  degradedText: { color: Colors.warning, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
 
-  infraRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.04)' },
+  infraRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(23,21,15,0.06)' },
   infraDot: { width: 7, height: 7, borderRadius: 4, marginRight: 12 },
-  infraName: { color: '#8b90a8', fontSize: 13, flex: 1, textTransform: 'capitalize', fontFamily: 'DMSans_400Regular' },
+  infraName: { color: Colors.textSecondary, fontSize: 13, flex: 1, textTransform: 'capitalize', fontFamily: 'DMSans_400Regular' },
   infraStatus: { fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
 
-  complianceClear: { color: '#4a4f65', fontSize: 13, fontFamily: 'JetBrainsMono_400Regular' },
+  complianceClear: { color: Colors.textMuted, fontSize: 13, fontFamily: 'JetBrainsMono_400Regular' },
   queueRow: { borderLeftWidth: 2, paddingLeft: 12, paddingVertical: 4, gap: 2 },
-  queueAction: { color: '#8b90a8', fontSize: 13, lineHeight: 18, fontFamily: 'DMSans_400Regular' },
+  queueAction: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18, fontFamily: 'DMSans_400Regular' },
   queuePriority: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, fontFamily: 'JetBrainsMono_700Bold' },
 
   coverageRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.05)',
+    paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)',
   },
-  coverageName: { color: '#8b90a8', fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  coverageName: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'DMSans_400Regular' },
   coverageStatus: { fontSize: 11, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
 });

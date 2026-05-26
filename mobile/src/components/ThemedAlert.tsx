@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { Colors } from "../theme/colors";
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type AlertButtonStyle = 'default' | 'primary' | 'destructive' | 'cancel';
@@ -93,10 +94,10 @@ export function useAlert(): AlertContextValue {
 }
 
 const VARIANT_ACCENT: Record<NonNullable<AlertOptions['variant']>, string> = {
-  info: '#c8f000',
-  warning: '#ff9500',
-  error: '#ff4557',
-  success: '#00d97e',
+  info: Colors.accent,
+  warning: Colors.warning,
+  error: Colors.error,
+  success: Colors.success,
 };
 
 const VARIANT_EYEBROW: Record<NonNullable<AlertOptions['variant']>, string> = {
@@ -111,24 +112,24 @@ function buttonVariantStyle(style: AlertButtonStyle | undefined, accent: string)
     case 'primary':
       return { backgroundColor: accent, borderColor: accent };
     case 'destructive':
-      return { backgroundColor: 'transparent', borderColor: '#ff4557' };
+      return { backgroundColor: 'transparent', borderColor: Colors.error };
     case 'cancel':
-      return { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.12)' };
+      return { backgroundColor: 'transparent', borderColor: 'rgba(23,21,15,0.14)' };
     default:
-      return { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.12)' };
+      return { backgroundColor: 'transparent', borderColor: 'rgba(23,21,15,0.14)' };
   }
 }
 
 function buttonLabelStyle(style: AlertButtonStyle | undefined, accent: string) {
   switch (style) {
     case 'primary':
-      return { color: '#07080f' };
+      return { color: Colors.bg };
     case 'destructive':
-      return { color: '#ff4557' };
+      return { color: Colors.error };
     case 'cancel':
-      return { color: '#8b90a8' };
+      return { color: Colors.textSecondary };
     default:
-      return { color: '#eeeef5' };
+      return { color: Colors.text };
   }
 }
 
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderRadius: 16,
     paddingHorizontal: 22,
@@ -158,14 +159,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: -0.3,
     fontFamily: 'CormorantGaramond_700Bold',
   },
   message: {
-    color: '#8b90a8',
+    color: Colors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
     fontFamily: 'DMSans_400Regular',

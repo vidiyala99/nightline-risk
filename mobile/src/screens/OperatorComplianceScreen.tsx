@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Pressable,
@@ -15,11 +16,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
 
 const PRIORITY_COLOR: Record<string, string> = {
-  urgent: '#ff4557',
-  action_required: '#ff4557',
-  high: '#ff4557',
-  medium: '#ff9500',
-  low: '#4a4f65',
+  urgent: Colors.error,
+  action_required: Colors.error,
+  high: Colors.error,
+  medium: Colors.warning,
+  low: Colors.textMuted,
 };
 
 interface ComplianceItem {
@@ -88,7 +89,7 @@ export function OperatorComplianceScreen({ navigation, route }: any) {
   }, [venueId]);
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator color="#c8f000" /></View>;
+    return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
   }
 
   return (
@@ -107,7 +108,7 @@ export function OperatorComplianceScreen({ navigation, route }: any) {
         </View>
       ) : (
         queue.map(item => {
-          const color = PRIORITY_COLOR[item.priority] ?? '#4a4f65';
+          const color = PRIORITY_COLOR[item.priority] ?? Colors.textMuted;
           return (
             <Pressable
               key={item.id}
@@ -146,29 +147,29 @@ export function OperatorComplianceScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 40, gap: 14 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
-  eyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold', marginBottom: 4 },
-  title: { color: '#eeeef5', fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'CormorantGaramond_700Bold', marginBottom: 8 },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold', marginBottom: 4 },
+  title: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -1, fontFamily: 'CormorantGaramond_700Bold', marginBottom: 8 },
 
   clearCard: { alignItems: 'center', paddingTop: 60, gap: 10 },
-  clearIcon: { fontSize: 40, color: '#c8f000' },
-  clearTitle: { color: '#eeeef5', fontSize: 20, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  clearSub: { color: '#4a4f65', fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  clearIcon: { fontSize: 40, color: Colors.accentInk },
+  clearTitle: { color: Colors.text, fontSize: 20, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
+  clearSub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'DMSans_400Regular' },
 
   card: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderLeftWidth: 3,
     borderRadius: 14,
     padding: 16,
     gap: 8,
   },
   itemId: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  itemAction: { color: '#8b90a8', fontSize: 14, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
+  itemAction: { color: Colors.textSecondary, fontSize: 14, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   severity: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
   uploadBtn: {
@@ -178,5 +179,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  uploadBtnText: { color: '#c8f000', fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  uploadBtnText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
 });

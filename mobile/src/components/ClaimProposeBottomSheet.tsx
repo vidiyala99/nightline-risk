@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   Modal,
   Pressable,
@@ -97,7 +98,7 @@ export function ClaimProposeBottomSheet({
                 ? 'Why are you filing against the recommendation?'
                 : 'Anything else for the broker? (optional)'
             }
-            placeholderTextColor="#4a4f65"
+            placeholderTextColor={Colors.textMuted}
             multiline
             numberOfLines={3}
             value={freetext}
@@ -132,13 +133,13 @@ const s = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#0e1018',
+    backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     paddingBottom: 36,
     borderTopWidth: 1,
-    borderColor: '#ff9500',
+    borderColor: Colors.warning,
     width: '100%',
     maxWidth: 560,
     alignSelf: 'center',
@@ -147,18 +148,18 @@ const s = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#2a2f45',
+    backgroundColor: Colors.border,
     alignSelf: 'center',
     marginBottom: 16,
   },
   title: {
-    color: '#fff',
+    color: Colors.text,
     fontSize: 16,
     fontFamily: 'DMSans_600SemiBold',
     marginBottom: 6,
   },
   subtitle: {
-    color: '#8891aa',
+    color: Colors.textSecondary,
     fontSize: 13,
     fontFamily: 'DMSans_400Regular',
     marginBottom: 16,
@@ -171,11 +172,11 @@ const s = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     marginBottom: 8,
   },
   optionSelected: {
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     backgroundColor: 'rgba(200,240,0,0.05)',
   },
   radio: {
@@ -183,27 +184,27 @@ const s = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#4a4f65',
+    borderColor: Colors.textMuted,
     marginTop: 2,
   },
   radioSelected: {
-    borderColor: '#c8f000',
-    backgroundColor: '#c8f000',
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accent,
   },
   optionTitle: {
-    color: '#c8cfe0',
+    color: Colors.textSecondary,
     fontSize: 13,
     fontFamily: 'DMSans_600SemiBold',
   },
-  optionTitleSelected: { color: '#fff' },
+  optionTitleSelected: { color: Colors.text },
   optionHint: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 12,
     fontFamily: 'DMSans_400Regular',
     marginTop: 2,
   },
   label: {
-    color: '#8891aa',
+    color: Colors.textSecondary,
     fontSize: 11,
     fontFamily: 'DMSans_600SemiBold',
     textTransform: 'uppercase',
@@ -212,11 +213,11 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#07080f',
+    backgroundColor: Colors.bg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderRadius: 10,
-    color: '#fff',
+    color: Colors.text,
     fontFamily: 'DMSans_400Regular',
     fontSize: 13,
     padding: 12,
@@ -224,7 +225,7 @@ const s = StyleSheet.create({
     textAlignVertical: 'top',
   },
   error: {
-    color: '#ff4557',
+    color: Colors.error,
     fontSize: 12,
     fontFamily: 'DMSans_400Regular',
     marginTop: 6,
@@ -236,16 +237,16 @@ const s = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  btnPrimary: { backgroundColor: '#c8f000' },
+  btnPrimary: { backgroundColor: Colors.accent },
   btnDisabled: { opacity: 0.5 },
-  btnPrimaryText: { color: '#07080f', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  btnPrimaryText: { color: Colors.bg, fontFamily: 'DMSans_700Bold', fontSize: 14 },
   btnGhost: {
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.border,
     alignItems: 'center',
   },
-  btnGhostText: { color: '#8891aa', fontFamily: 'DMSans_400Regular', fontSize: 14 },
+  btnGhostText: { color: Colors.textSecondary, fontFamily: 'DMSans_400Regular', fontSize: 14 },
 });

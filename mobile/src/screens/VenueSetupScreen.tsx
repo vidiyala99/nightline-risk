@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -105,7 +106,7 @@ export function VenueSetupScreen({ navigation, route }: any) {
             <TextInput
               style={styles.input}
               placeholder="e.g. Elsewhere Brooklyn"
-              placeholderTextColor="#2e3247"
+              placeholderTextColor={Colors.border}
               autoCapitalize="words"
               value={name}
               onChangeText={setName}
@@ -117,7 +118,7 @@ export function VenueSetupScreen({ navigation, route }: any) {
             <TextInput
               style={styles.input}
               placeholder="599 Johnson Ave, Brooklyn, NY"
-              placeholderTextColor="#2e3247"
+              placeholderTextColor={Colors.border}
               value={address}
               onChangeText={setAddress}
             />
@@ -129,7 +130,7 @@ export function VenueSetupScreen({ navigation, route }: any) {
               <TextInput
                 style={styles.input}
                 placeholder="300"
-                placeholderTextColor="#2e3247"
+                placeholderTextColor={Colors.border}
                 keyboardType="numeric"
                 value={capacity}
                 onChangeText={setCapacity}
@@ -140,7 +141,7 @@ export function VenueSetupScreen({ navigation, route }: any) {
               <TextInput
                 style={styles.input}
                 placeholder="1"
-                placeholderTextColor="#2e3247"
+                placeholderTextColor={Colors.border}
                 keyboardType="numeric"
                 value={yearsInOp}
                 onChangeText={setYearsInOp}
@@ -173,7 +174,7 @@ export function VenueSetupScreen({ navigation, route }: any) {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#07080f" />
+              <ActivityIndicator color={Colors.bg} />
             ) : (
               <Text style={styles.btnText}>CREATE VENUE</Text>
             )}
@@ -185,14 +186,14 @@ export function VenueSetupScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   inner: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 48, gap: 32 },
 
   header: { gap: 6 },
   backBtn: { marginBottom: 16 },
-  backText: { color: '#4a4f65', fontSize: 13, fontFamily: 'DMSans_400Regular' },
+  backText: { color: Colors.textMuted, fontSize: 13, fontFamily: 'DMSans_400Regular' },
   eyebrow: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2.5,
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_700Bold',
   },
   title: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 40,
     fontWeight: '800',
     letterSpacing: -1.5,
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
     fontFamily: 'CormorantGaramond_700Bold',
   },
   subtitle: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 13,
     lineHeight: 20,
     marginTop: 8,
@@ -219,20 +220,20 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12 },
   inputWrap: { gap: 6 },
   label: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
     fontFamily: 'JetBrainsMono_700Bold',
   },
   input: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(23,21,15,0.10)',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 15,
     fontFamily: 'DMSans_400Regular',
   },
@@ -241,18 +242,18 @@ const styles = StyleSheet.create({
   typeRow: { flexDirection: 'row', gap: 8, paddingRight: 8 },
   typeChip: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
   },
-  typeChipActive: { borderColor: '#c8f000', backgroundColor: 'rgba(200,240,0,0.06)' },
-  typeChipText: { color: '#4a4f65', fontSize: 12, fontFamily: 'DMSans_400Regular' },
-  typeChipTextActive: { color: '#c8f000' },
+  typeChipActive: { borderColor: Colors.accent, backgroundColor: 'rgba(200,240,0,0.06)' },
+  typeChipText: { color: Colors.textMuted, fontSize: 12, fontFamily: 'DMSans_400Regular' },
+  typeChipTextActive: { color: Colors.accentInk },
 
   btn: {
-    backgroundColor: '#c8f000',
+    backgroundColor: Colors.accent,
     borderRadius: 10,
     paddingVertical: 17,
     alignItems: 'center',
@@ -260,5 +261,5 @@ const styles = StyleSheet.create({
   },
   btnPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   btnDisabled: { opacity: 0.5 },
-  btnText: { color: '#07080f', fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  btnText: { color: Colors.bg, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
 });

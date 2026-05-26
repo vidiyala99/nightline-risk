@@ -69,7 +69,7 @@ export default function App() {
       <ThemedAlertProvider>
         <AuthProvider>
           <NavigationContainer>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             <RootNavigator />
           </NavigationContainer>
         </AuthProvider>

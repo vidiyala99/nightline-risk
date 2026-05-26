@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   Pressable,
   ScrollView,
@@ -11,7 +12,7 @@ import { api } from '../api/client';
 import { type OverrideStats } from '../types/claims';
 
 const TIER_COLOR: Record<string, string> = {
-  A: '#c8f000', B: '#00d97e', C: '#ff9500', D: '#ff4557',
+  A: Colors.accent, B: Colors.success, C: Colors.warning, D: Colors.error,
 };
 
 // Per-factor plain-English explanations based on score ranges
@@ -59,9 +60,9 @@ function getFactorTier(score: number): 'good' | 'moderate' | 'poor' {
 }
 
 function getFactorColor(score: number): string {
-  if (score >= 85) return '#c8f000';
-  if (score >= 65) return '#ff9500';
-  return '#ff4557';
+  if (score >= 85) return Colors.accent;
+  if (score >= 65) return Colors.warning;
+  return Colors.error;
 }
 
 export function RiskProfileDetailScreen({ route, navigation }: any) {
@@ -79,7 +80,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
 
   const tier = riskData?.tier ?? '—';
   const score = riskData?.total_score ?? 0;
-  const tierColor = TIER_COLOR[tier] ?? '#4a4f65';
+  const tierColor = TIER_COLOR[tier] ?? Colors.textMuted;
   const factors: Record<string, number> = riskData?.factors ?? {};
 
   const goodFactors = Object.entries(factors).filter(([, v]) => getFactorTier(Number(v)) === 'good');
@@ -163,7 +164,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                   max={100}
                   invertScale
                 />
-                <Text style={[styles.factorExplain, { color: color === '#c8f000' ? '#8b90a8' : color }]}>
+                <Text style={[styles.factorExplain, { color: color === Colors.accent ? Colors.textSecondary : color }]}>
                   {info?.[tier] ?? ''}
                 </Text>
               </View>
@@ -253,11 +254,11 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
           {savingsAnnual > 0 && (
             <View style={styles.premiumRow}>
               <Text style={styles.premiumLabel}>vs. Market Rate</Text>
-              <Text style={[styles.premiumValue, { color: '#c8f000' }]}>-${savingsAnnual.toLocaleString()}/yr</Text>
+              <Text style={[styles.premiumValue, { color: Colors.accentInk }]}>-${savingsAnnual.toLocaleString()}/yr</Text>
             </View>
           )}
           {!isBroker && nextTierSavings > 0 && (
-            <View style={[styles.upgradeCard, { borderColor: '#c8f000' + '33' }]}>
+            <View style={[styles.upgradeCard, { borderColor: Colors.accent + '33' }]}>
               <Text style={styles.upgradeText}>
                 Improving to the next tier could save an additional ~${nextTierSavings.toLocaleString()}/yr at renewal.
               </Text>
@@ -271,16 +272,16 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
         const right = overrideStats.override_right_rate;
         const base = overrideStats.non_override_right_rate;
         const decided = overrideStats.override_approved + overrideStats.override_rejected;
-        const rateColor = right == null ? '#4a4f65'
-          : base == null ? '#c8f000'
-          : right >= base ? '#c8f000'
-          : right >= base * 0.6 ? '#ff9500'
-          : '#ff4557';
+        const rateColor = right == null ? Colors.textMuted
+          : base == null ? Colors.accent
+          : right >= base ? Colors.accent
+          : right >= base * 0.6 ? Colors.warning
+          : Colors.error;
         const delta = right != null && base != null ? Math.round((right - base) * 100) : null;
         return (
           <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: rateColor }]}>
             <Text style={styles.eyebrow}>OVERRIDE CALIBRATION</Text>
-            <Text style={{ color: '#8b90a8', fontSize: 12, fontFamily: 'DMSans_400Regular', marginTop: -8 }}>
+            <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'DMSans_400Regular', marginTop: -8 }}>
               How often operator overrides align with broker decisions
             </Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -289,22 +290,22 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                   {right == null ? '—' : `${Math.round(right * 100)}%`}
                 </Text>
                 <Text style={styles.eyebrow}>OVERRIDES</Text>
-                <Text style={{ color: '#4a4f65', fontSize: 10, fontFamily: 'JetBrainsMono_400Regular', marginTop: 2 }}>
+                <Text style={{ color: Colors.textMuted, fontSize: 10, fontFamily: 'JetBrainsMono_400Regular', marginTop: 2 }}>
                   {decided} of {overrideStats.override_total} decided
                 </Text>
               </View>
-              <View style={{ flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.07)', borderRadius: 10 }}>
-                <Text style={{ color: '#8b90a8', fontSize: 28, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: -1 }}>
+              <View style={{ flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 10 }}>
+                <Text style={{ color: Colors.textSecondary, fontSize: 28, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: -1 }}>
                   {base == null ? '—' : `${Math.round(base * 100)}%`}
                 </Text>
                 <Text style={styles.eyebrow}>BASELINE</Text>
-                <Text style={{ color: '#4a4f65', fontSize: 10, fontFamily: 'JetBrainsMono_400Regular', marginTop: 2 }}>
+                <Text style={{ color: Colors.textMuted, fontSize: 10, fontFamily: 'JetBrainsMono_400Regular', marginTop: 2 }}>
                   Non-overrides
                 </Text>
               </View>
               {delta != null && (
-                <View style={{ flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.07)', borderRadius: 10 }}>
-                  <Text style={{ color: delta >= 0 ? '#c8f000' : '#ff4557', fontSize: 24, fontFamily: 'JetBrainsMono_700Bold' }}>
+                <View style={{ flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 10 }}>
+                  <Text style={{ color: delta >= 0 ? Colors.accent : Colors.error, fontSize: 24, fontFamily: 'JetBrainsMono_700Bold' }}>
                     {delta >= 0 ? '+' : ''}{delta}
                   </Text>
                   <Text style={styles.eyebrow}>DELTA PP</Text>
@@ -315,11 +316,11 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
               const d = counts.approved + counts.rejected;
               const rr = d > 0 ? Math.round(counts.approved / d * 100) : null;
               return (
-                <View key={reason} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.05)' }}>
-                  <Text style={{ color: '#8b90a8', fontSize: 12, fontFamily: 'DMSans_400Regular', textTransform: 'capitalize' }}>
+                <View key={reason} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' }}>
+                  <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'DMSans_400Regular', textTransform: 'capitalize' }}>
                     {reason.replace(/_/g, ' ')}
                   </Text>
-                  <Text style={{ color: rr == null ? '#4a4f65' : rr >= 70 ? '#c8f000' : rr >= 40 ? '#ff9500' : '#ff4557', fontFamily: 'JetBrainsMono_700Bold', fontSize: 12 }}>
+                  <Text style={{ color: rr == null ? Colors.textMuted : rr >= 70 ? Colors.accent : rr >= 40 ? Colors.warning : Colors.error, fontFamily: 'JetBrainsMono_700Bold', fontSize: 12 }}>
                     {rr == null ? 'pending' : `${rr}%`}
                   </Text>
                 </View>
@@ -333,64 +334,64 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  backArrow: { color: '#c8f000', fontSize: 18 },
-  backLabel: { color: '#c8f000', fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  signOut: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  backArrow: { color: Colors.accentInk, fontSize: 18 },
+  backLabel: { color: Colors.accentInk, fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
 
-  venueName: { color: '#4a4f65', fontSize: 13, fontFamily: 'DMSans_400Regular', marginBottom: 2 },
-  screenTitle: { color: '#eeeef5', fontSize: 32, fontWeight: '800', letterSpacing: -0.5, marginBottom: 20, fontFamily: 'CormorantGaramond_700Bold' },
+  venueName: { color: Colors.textMuted, fontSize: 13, fontFamily: 'DMSans_400Regular', marginBottom: 2 },
+  screenTitle: { color: Colors.text, fontSize: 32, fontWeight: '800', letterSpacing: -0.5, marginBottom: 20, fontFamily: 'CormorantGaramond_700Bold' },
 
   scoreCard: {
-    backgroundColor: '#0d0f1c', borderWidth: 1, borderRadius: 16,
+    backgroundColor: Colors.surface, borderWidth: 1, borderRadius: 16,
     padding: 20, marginBottom: 12,
   },
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   tierGlyph: { fontSize: 72, fontWeight: '800', letterSpacing: -2, lineHeight: 72, fontFamily: 'CormorantGaramond_700Bold' },
   scoreDetail: { flex: 1, gap: 4 },
   scoreNum: { fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
-  scoreMax: { fontSize: 16, color: '#4a4f65', fontFamily: 'DMSans_400Regular' },
-  tierLabel: { color: '#4a4f65', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
-  savingsNote: { color: '#c8f000', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
+  scoreMax: { fontSize: 16, color: Colors.textMuted, fontFamily: 'DMSans_400Regular' },
+  tierLabel: { color: Colors.textMuted, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  savingsNote: { color: Colors.accentInk, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
 
   framingCard: {
-    backgroundColor: '#0d0f1c', borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)', borderRadius: 14, padding: 16, marginBottom: 12, gap: 8,
+    backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12, gap: 8,
   },
-  framingTitle: { color: '#eeeef5', fontSize: 16, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  framingBody: { color: '#8b90a8', fontSize: 14, lineHeight: 22, fontFamily: 'DMSans_400Regular' },
+  framingTitle: { color: Colors.text, fontSize: 16, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
+  framingBody: { color: Colors.textSecondary, fontSize: 14, lineHeight: 22, fontFamily: 'DMSans_400Regular' },
 
   card: {
-    backgroundColor: '#0d0f1c', borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)', borderRadius: 14, padding: 16, marginBottom: 12, gap: 14,
+    backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12, gap: 14,
   },
-  eyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
 
   factorList: { gap: 18 },
   factorItem: { gap: 6 },
   factorExplain: { fontSize: 12, lineHeight: 17, fontFamily: 'DMSans_400Regular' },
 
   insightRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  insightIcon: { fontSize: 16, fontWeight: '700', color: '#c8f000', width: 16, fontFamily: 'JetBrainsMono_700Bold' },
+  insightIcon: { fontSize: 16, fontWeight: '700', color: Colors.accentInk, width: 16, fontFamily: 'JetBrainsMono_700Bold' },
   insightContent: { flex: 1, gap: 3 },
-  insightLabel: { color: '#eeeef5', fontSize: 14, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  insightText: { color: '#8b90a8', fontSize: 13, lineHeight: 19, fontFamily: 'DMSans_400Regular' },
+  insightLabel: { color: Colors.text, fontSize: 14, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
+  insightText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'DMSans_400Regular' },
   insightAction: { fontSize: 12, fontWeight: '700', marginTop: 2, fontFamily: 'JetBrainsMono_700Bold' },
 
   premiumRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.05)',
+    paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)',
   },
-  premiumLabel: { color: '#8b90a8', fontSize: 14, fontFamily: 'DMSans_400Regular' },
+  premiumLabel: { color: Colors.textSecondary, fontSize: 14, fontFamily: 'DMSans_400Regular' },
   premiumValue: { fontSize: 18, fontWeight: '800', fontFamily: 'JetBrainsMono_700Bold' },
-  premiumValueSub: { color: '#4a4f65', fontSize: 14, fontFamily: 'JetBrainsMono_400Regular' },
+  premiumValueSub: { color: Colors.textMuted, fontSize: 14, fontFamily: 'JetBrainsMono_400Regular' },
   upgradeCard: {
     borderWidth: 1, borderRadius: 10, padding: 12, marginTop: 4,
     backgroundColor: 'rgba(200,240,0,0.04)',
   },
-  upgradeText: { color: '#8b90a8', fontSize: 13, lineHeight: 19, fontFamily: 'DMSans_400Regular' },
+  upgradeText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'DMSans_400Regular' },
 });

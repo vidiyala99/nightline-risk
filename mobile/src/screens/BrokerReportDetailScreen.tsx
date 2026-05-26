@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   Pressable,
@@ -15,11 +16,11 @@ import { useAlert } from '../components/ThemedAlert';
 import { STATE_LABEL, STATE_COLOR, type ClaimProposal } from '../types/claims';
 
 const SEVERITY_COLOR: Record<string, string> = {
-  critical: '#ff4557', high: '#ff4557', medium: '#ff9500', low: '#c8f000', unknown: '#4a4f65',
+  critical: Colors.error, high: Colors.error, medium: Colors.warning, low: Colors.accent, unknown: Colors.textMuted,
 };
 
 const CORROBORATION_COLOR: Record<string, string> = {
-  CONSISTENT: '#c8f000', PARTIAL: '#ff9500', CONTRADICTED: '#ff4557', INCONCLUSIVE: '#4a4f65',
+  CONSISTENT: Colors.accent, PARTIAL: Colors.warning, CONTRADICTED: Colors.error, INCONCLUSIVE: Colors.textMuted,
 };
 
 export function BrokerReportDetailScreen({ route, navigation }: any) {
@@ -99,11 +100,11 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
     }
   }
 
-  if (loading) return <View style={styles.centered}><ActivityIndicator color="#c8f000" /></View>;
+  if (loading) return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
   if (!packet) return <View style={styles.centered}><Text style={styles.notFound}>Report not found</Text></View>;
 
   const severity = packet.risk_signals?.severity ?? 'unknown';
-  const sevColor = SEVERITY_COLOR[severity] ?? '#4a4f65';
+  const sevColor = SEVERITY_COLOR[severity] ?? Colors.textMuted;
   const confidence = Math.round((packet.risk_signals?.confidence ?? 0) * 100);
 
   return (
@@ -131,7 +132,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
       {/* AI Claim Recommendation — EV math card (was missing on mobile) */}
       {packet.claim_recommendation && (() => {
         const rec = packet.claim_recommendation;
-        const accent = rec.should_file ? '#c8f000' : '#4a4f65';
+        const accent = rec.should_file ? Colors.accent : Colors.textMuted;
         const netEv = rec.net_expected_value_usd;
         const netLabel = (netEv >= 0 ? '+' : '-') + '$' + Math.abs(netEv).toLocaleString();
         return (
@@ -151,28 +152,28 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
                 </Text>
               </View>
             </View>
-            <View style={{ backgroundColor: '#07080f', borderRadius: 10, padding: 12, gap: 8 }}>
+            <View style={{ backgroundColor: Colors.bg, borderRadius: 10, padding: 12, gap: 8 }}>
               <View style={styles.rowBetween}>
                 <Text style={styles.eyebrow}>EXPECTED PAYOUT</Text>
-                <Text style={{ color: '#8b90a8', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' }}>
+                <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' }}>
                   ${rec.expected_payout.low_usd.toLocaleString()} – ${rec.expected_payout.high_usd.toLocaleString()}
                 </Text>
               </View>
               <View style={styles.rowBetween}>
                 <Text style={styles.eyebrow}>MEDIAN</Text>
-                <Text style={{ color: '#c8f000', fontSize: 13, fontFamily: 'JetBrainsMono_700Bold' }}>
+                <Text style={{ color: Colors.accentInk, fontSize: 13, fontFamily: 'JetBrainsMono_700Bold' }}>
                   ${rec.expected_payout.median_usd.toLocaleString()}
                 </Text>
               </View>
               <View style={styles.rowBetween}>
                 <Text style={styles.eyebrow}>PREMIUM IMPACT</Text>
-                <Text style={{ color: '#ff9500', fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' }}>
+                <Text style={{ color: Colors.warning, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' }}>
                   +${rec.expected_premium_impact.annual_delta_usd.toLocaleString()}/yr × {rec.expected_premium_impact.duration_years}yr
                 </Text>
               </View>
-              <View style={[styles.rowBetween, { paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.07)' }]}>
+              <View style={[styles.rowBetween, { paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.borderSubtle }]}>
                 <Text style={styles.eyebrow}>NET EV</Text>
-                <Text style={{ color: netEv >= 0 ? '#c8f000' : '#ff4557', fontSize: 13, fontFamily: 'JetBrainsMono_700Bold' }}>
+                <Text style={{ color: netEv >= 0 ? Colors.accent : Colors.error, fontSize: 13, fontFamily: 'JetBrainsMono_700Bold' }}>
                   {netLabel}
                 </Text>
               </View>
@@ -199,13 +200,13 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
             </View>
           );
         }
-        const stateColor = STATE_COLOR[proposal.state] ?? '#4a4f65';
+        const stateColor = STATE_COLOR[proposal.state] ?? Colors.textMuted;
         return (
           <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: stateColor }]}>
             <View style={styles.rowBetween}>
               <Text style={styles.eyebrow}>CLAIM DECISION</Text>
               {proposal.override_recommendation && (
-                <Text style={{ color: '#ff9500', fontSize: 9, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1 }}>
+                <Text style={{ color: Colors.warning, fontSize: 9, fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1 }}>
                   OVERRIDE
                 </Text>
               )}
@@ -214,7 +215,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
               <Text style={{ color: stateColor, fontFamily: 'DMSans_700Bold', fontSize: 14 }}>
                 {STATE_LABEL[proposal.state]}
               </Text>
-              <Text style={[styles.eyebrow, { color: '#2e3247' }]}>
+              <Text style={[styles.eyebrow, { color: Colors.border }]}>
                 {new Date(proposal.proposed_at).toLocaleDateString()}
               </Text>
             </View>
@@ -232,7 +233,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
                 <TextInput
                   style={styles.notesInput}
                   placeholder="Reject notes (optional)..."
-                  placeholderTextColor="#4a4f65"
+                  placeholderTextColor={Colors.textMuted}
                   value={brokerRejectNotes}
                   onChangeText={setBrokerRejectNotes}
                   multiline
@@ -240,24 +241,24 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
                 />
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <Pressable
-                    style={[styles.decBtn, { flex: 1, backgroundColor: '#c8f000' }]}
+                    style={[styles.decBtn, { flex: 1, backgroundColor: Colors.accent }]}
                     onPress={() => submitBrokerDecision('approved')}
                     disabled={submittingBrokerDecision}
                   >
-                    <Text style={[styles.decBtnText, { color: '#07080f' }]}>Approve & File</Text>
+                    <Text style={[styles.decBtnText, { color: Colors.bg }]}>Approve & File</Text>
                   </Pressable>
                   <Pressable
-                    style={[styles.decBtn, { flex: 1, borderWidth: 1, borderColor: '#ff4557' }]}
+                    style={[styles.decBtn, { flex: 1, borderWidth: 1, borderColor: Colors.error }]}
                     onPress={() => submitBrokerDecision('rejected')}
                     disabled={submittingBrokerDecision}
                   >
-                    <Text style={[styles.decBtnText, { color: '#ff4557' }]}>Reject</Text>
+                    <Text style={[styles.decBtnText, { color: Colors.error }]}>Reject</Text>
                   </Pressable>
                 </View>
               </View>
             )}
             <Pressable onPress={() => navigation.navigate('ClaimDetail', { packetId: packet.id })}>
-              <Text style={{ color: '#c8f000', fontSize: 12, fontFamily: 'DMSans_600SemiBold', marginTop: 4 }}>
+              <Text style={{ color: Colors.accentInk, fontSize: 12, fontFamily: 'DMSans_600SemiBold', marginTop: 4 }}>
                 View claim detail →
               </Text>
             </Pressable>
@@ -269,8 +270,8 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
       <View style={styles.card}>
         <Text style={styles.eyebrow}>REVIEW DECISION</Text>
         {decisionMade ? (
-          <View style={[styles.decisionResult, { borderColor: decisionMade === 'approved' ? '#c8f000' : '#ff4557' }]}>
-            <Text style={[styles.decisionResultText, { color: decisionMade === 'approved' ? '#c8f000' : '#ff4557' }]}>
+          <View style={[styles.decisionResult, { borderColor: decisionMade === 'approved' ? Colors.accent : Colors.error }]}>
+            <Text style={[styles.decisionResultText, { color: decisionMade === 'approved' ? Colors.accent : Colors.error }]}>
               {decisionMade === 'approved' ? '✓ APPROVED' : decisionMade === 'blocked' ? '✕ BLOCKED' : decisionMade.replace(/_/g, ' ').toUpperCase()}
             </Text>
           </View>
@@ -279,19 +280,19 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
             <TextInput
               style={styles.notesInput}
               placeholder="Add notes (optional)..."
-              placeholderTextColor="#4a4f65"
+              placeholderTextColor={Colors.textMuted}
               value={notes}
               onChangeText={setNotes}
               multiline
             />
-            <Pressable style={[styles.decBtn, { backgroundColor: '#c8f000' }]} onPress={() => submitDecision('approved')} disabled={submitting}>
-              <Text style={[styles.decBtnText, { color: '#07080f' }]}>{submitting ? 'Recording...' : '✓  Approve'}</Text>
+            <Pressable style={[styles.decBtn, { backgroundColor: Colors.accent }]} onPress={() => submitDecision('approved')} disabled={submitting}>
+              <Text style={[styles.decBtnText, { color: Colors.bg }]}>{submitting ? 'Recording...' : '✓  Approve'}</Text>
             </Pressable>
-            <Pressable style={[styles.decBtn, { borderWidth: 1, borderColor: '#ff9500' }]} onPress={() => submitDecision('needs_more_info')} disabled={submitting}>
-              <Text style={[styles.decBtnText, { color: '#ff9500' }]}>Request More Info</Text>
+            <Pressable style={[styles.decBtn, { borderWidth: 1, borderColor: Colors.warning }]} onPress={() => submitDecision('needs_more_info')} disabled={submitting}>
+              <Text style={[styles.decBtnText, { color: Colors.warning }]}>Request More Info</Text>
             </Pressable>
-            <Pressable style={[styles.decBtn, { borderWidth: 1, borderColor: '#ff4557' }]} onPress={() => submitDecision('blocked')} disabled={submitting}>
-              <Text style={[styles.decBtnText, { color: '#ff4557' }]}>✕  Block</Text>
+            <Pressable style={[styles.decBtn, { borderWidth: 1, borderColor: Colors.error }]} onPress={() => submitDecision('blocked')} disabled={submitting}>
+              <Text style={[styles.decBtnText, { color: Colors.error }]}>✕  Block</Text>
             </Pressable>
           </View>
         )}
@@ -308,9 +309,9 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
             <MetaRow label="DATE" value={new Date(incident.occurred_at).toLocaleString()} />
           </View>
           <View style={styles.flagRow}>
-            {incident.injury_observed && <Flag label="INJURY" color="#ff4557" />}
-            {incident.police_called && <Flag label="POLICE" color="#ff9500" />}
-            {incident.ems_called && <Flag label="EMS" color="#5b8af5" />}
+            {incident.injury_observed && <Flag label="INJURY" color={Colors.error} />}
+            {incident.police_called && <Flag label="POLICE" color={Colors.warning} />}
+            {incident.ems_called && <Flag label="EMS" color={Colors.info} />}
           </View>
         </View>
       )}
@@ -371,19 +372,19 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
             <Text style={styles.eyebrow}>VISUAL EVIDENCE</Text>
             {visionAnalysis.analyses[0]?.corroboration && (
               <Text style={[styles.corroBadge, {
-                color: CORROBORATION_COLOR[visionAnalysis.analyses[0].corroboration] ?? '#4a4f65',
-                borderColor: `${CORROBORATION_COLOR[visionAnalysis.analyses[0].corroboration] ?? '#4a4f65'}44`,
+                color: CORROBORATION_COLOR[visionAnalysis.analyses[0].corroboration] ?? Colors.textMuted,
+                borderColor: `${CORROBORATION_COLOR[visionAnalysis.analyses[0].corroboration] ?? Colors.textMuted}44`,
               }]}>
                 {visionAnalysis.analyses[0].corroboration}
               </Text>
             )}
           </View>
           {visionAnalysis.analyses.map((a: any, i: number) => (
-            <View key={i} style={[styles.visionItem, { borderLeftColor: CORROBORATION_COLOR[a.corroboration] ?? '#4a4f65' }]}>
+            <View key={i} style={[styles.visionItem, { borderLeftColor: CORROBORATION_COLOR[a.corroboration] ?? Colors.textMuted }]}>
               <View style={styles.rowBetween}>
                 <Text style={styles.visionType}>{(a.analysis_type ?? '').toUpperCase()}</Text>
                 {a.confidence_delta != null && (
-                  <Text style={{ color: '#c8f000', fontSize: 11 }}>+{Math.round(a.confidence_delta * 100)}%</Text>
+                  <Text style={{ color: Colors.accentInk, fontSize: 11 }}>+{Math.round(a.confidence_delta * 100)}%</Text>
                 )}
               </View>
               {a.raw_description ? <Text style={styles.bodyText}>{a.raw_description}</Text> : null}
@@ -445,9 +446,9 @@ function Flag({ label, color }: { label: string; color: string }) {
 }
 
 const metaStyles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.05)' },
-  label: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
-  value: { color: '#8b90a8', fontSize: 12, flex: 1, textAlign: 'right', fontFamily: 'DMSans_400Regular' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
+  label: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  value: { color: Colors.textSecondary, fontSize: 12, flex: 1, textAlign: 'right', fontFamily: 'DMSans_400Regular' },
 });
 
 const flagStyles = StyleSheet.create({
@@ -456,25 +457,25 @@ const flagStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
-  notFound: { color: '#4a4f65', fontSize: 15, fontFamily: 'DMSans_400Regular' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
+  notFound: { color: Colors.textMuted, fontSize: 15, fontFamily: 'DMSans_400Regular' },
 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  backArrow: { color: '#c8f000', fontSize: 18 },
-  backLabel: { color: '#c8f000', fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  signOut: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  backArrow: { color: Colors.accentInk, fontSize: 18 },
+  backLabel: { color: Colors.accentInk, fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
 
-  venueName: { color: '#eeeef5', fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
-  reportDate: { color: '#4a4f65', fontSize: 12, marginTop: 4, marginBottom: 12, fontFamily: 'JetBrainsMono_400Regular' },
+  venueName: { color: Colors.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  reportDate: { color: Colors.textMuted, fontSize: 12, marginTop: 4, marginBottom: 12, fontFamily: 'JetBrainsMono_400Regular' },
   sevBanner: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16, alignSelf: 'flex-start' },
   sevBannerText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'JetBrainsMono_700Bold' },
 
-  card: { backgroundColor: '#0d0f1c', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.07)', borderRadius: 14, padding: 16, marginBottom: 12, gap: 10 },
-  eyebrow: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  bodyText: { color: '#8b90a8', fontSize: 13, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
+  card: { backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12, gap: 10 },
+  eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  bodyText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'DMSans_400Regular' },
   metaGrid: { gap: 0 },
   flagRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -485,32 +486,32 @@ const styles = StyleSheet.create({
   confNum: { fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'JetBrainsMono_700Bold' },
 
   questionRow: { flexDirection: 'row', gap: 8 },
-  questionDot: { color: '#c8f000', fontSize: 16, lineHeight: 20 },
-  questionText: { color: '#8b90a8', fontSize: 13, lineHeight: 20, flex: 1, fontFamily: 'DMSans_400Regular' },
+  questionDot: { color: Colors.accentInk, fontSize: 16, lineHeight: 20 },
+  questionText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, flex: 1, fontFamily: 'DMSans_400Regular' },
 
-  actionItem: { gap: 3, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.05)' },
-  actionTitle: { color: '#eeeef5', fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
-  actionSub: { color: '#8b90a8', fontSize: 12, fontFamily: 'DMSans_400Regular' },
-  actionEvidence: { color: '#c8f000', fontSize: 11, fontFamily: 'DMSans_400Regular' },
+  actionItem: { gap: 3, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
+  actionTitle: { color: Colors.text, fontSize: 13, fontWeight: '600', fontFamily: 'DMSans_600SemiBold' },
+  actionSub: { color: Colors.textSecondary, fontSize: 12, fontFamily: 'DMSans_400Regular' },
+  actionEvidence: { color: Colors.accentInk, fontSize: 11, fontFamily: 'DMSans_400Regular' },
 
   corroBadge: { fontSize: 9, fontWeight: '700', letterSpacing: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3, fontFamily: 'JetBrainsMono_700Bold' },
   visionItem: { borderLeftWidth: 2, paddingLeft: 10, gap: 4, paddingVertical: 4 },
-  visionType: { color: '#4a4f65', fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  visionType: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
 
-  timelineRow: { flexDirection: 'row', gap: 12, paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.05)' },
-  timelineTime: { color: '#4a4f65', fontSize: 11, fontWeight: '600', width: 40, fontFamily: 'JetBrainsMono_400Regular' },
+  timelineRow: { flexDirection: 'row', gap: 12, paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
+  timelineTime: { color: Colors.textMuted, fontSize: 11, fontWeight: '600', width: 40, fontFamily: 'JetBrainsMono_400Regular' },
   timelineContent: { flex: 1 },
-  timelineLabel: { color: '#eeeef5', fontSize: 13, fontFamily: 'DMSans_400Regular' },
-  timelineSource: { color: '#4a4f65', fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
+  timelineLabel: { color: Colors.text, fontSize: 13, fontFamily: 'DMSans_400Regular' },
+  timelineSource: { color: Colors.textMuted, fontSize: 11, fontFamily: 'JetBrainsMono_400Regular' },
 
   evidenceSummaryRow: { flexDirection: 'row', gap: 10 },
-  evidenceSummaryCard: { flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.07)', borderRadius: 10 },
-  evidenceSummaryNum: { color: '#c8f000', fontSize: 24, fontWeight: '800', fontFamily: 'JetBrainsMono_700Bold' },
-  evidenceSummaryLabel: { color: '#4a4f65', fontSize: 9, fontWeight: '700', letterSpacing: 1.5, marginTop: 2, fontFamily: 'JetBrainsMono_700Bold' },
-  reportId: { color: '#2e3247', fontSize: 10, fontFamily: 'JetBrainsMono_400Regular' },
+  evidenceSummaryCard: { flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 10 },
+  evidenceSummaryNum: { color: Colors.accentInk, fontSize: 24, fontWeight: '800', fontFamily: 'JetBrainsMono_700Bold' },
+  evidenceSummaryLabel: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, marginTop: 2, fontFamily: 'JetBrainsMono_700Bold' },
+  reportId: { color: Colors.border, fontSize: 10, fontFamily: 'JetBrainsMono_400Regular' },
 
   decisionButtons: { gap: 10 },
-  notesInput: { backgroundColor: '#07080f', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 12, color: '#eeeef5', fontSize: 14, minHeight: 72, textAlignVertical: 'top' },
+  notesInput: { backgroundColor: Colors.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, borderRadius: 10, padding: 12, color: Colors.text, fontSize: 14, minHeight: 72, textAlignVertical: 'top' },
   decBtn: { borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
   decBtnText: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'DMSans_700Bold' },
   decisionResult: { borderWidth: 1, borderRadius: 10, paddingVertical: 16, alignItems: 'center' },

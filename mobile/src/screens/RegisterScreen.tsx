@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -97,7 +98,7 @@ export function RegisterScreen({ navigation }: Props) {
             <TextInput
               style={styles.input}
               placeholder="Your name"
-              placeholderTextColor="#2e3247"
+              placeholderTextColor={Colors.border}
               autoCapitalize="words"
               value={name}
               onChangeText={(v) => { setName(v); clearError(); }}
@@ -109,7 +110,7 @@ export function RegisterScreen({ navigation }: Props) {
             <TextInput
               style={[styles.input, (hasError || emailInvalid) && styles.inputError]}
               placeholder="you@venue.com"
-              placeholderTextColor="#2e3247"
+              placeholderTextColor={Colors.border}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -128,7 +129,7 @@ export function RegisterScreen({ navigation }: Props) {
               <TextInput
                 style={[styles.input, styles.passwordInput, (hasError || passwordShort) && styles.inputError]}
                 placeholder="Min. 6 characters"
-                placeholderTextColor="#2e3247"
+                placeholderTextColor={Colors.border}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={(v) => { setPassword(v); clearError(); }}
@@ -187,7 +188,7 @@ export function RegisterScreen({ navigation }: Props) {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#07080f" />
+              <ActivityIndicator color={Colors.bg} />
             ) : (
               <Text style={[styles.btnText, hasError && styles.btnTextError]}>
                 CREATE ACCOUNT
@@ -205,12 +206,12 @@ export function RegisterScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
   inner: { paddingHorizontal: 28, paddingTop: 80, paddingBottom: 48, gap: 40 },
 
   brandBlock: { gap: 6 },
   eyebrow: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2.5,
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_700Bold',
   },
   wordmark: {
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 52,
     fontWeight: '800',
     letterSpacing: -2,
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
     fontFamily: 'CormorantGaramond_700Bold',
   },
   tagline: {
-    color: '#c8f000',
+    color: Colors.accentInk,
     fontSize: 16,
     fontStyle: 'italic',
     marginTop: 8,
@@ -236,27 +237,27 @@ const styles = StyleSheet.create({
   form: { gap: 16 },
   inputWrap: { gap: 6 },
   inputLabel: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
     fontFamily: 'JetBrainsMono_700Bold',
   },
   input: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(23,21,15,0.10)',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    color: '#eeeef5',
+    color: Colors.text,
     fontSize: 15,
     fontFamily: 'DMSans_400Regular',
   },
   passwordWrap: { position: 'relative' },
   passwordInput: { paddingRight: 64 },
   eyeBtn: { position: 'absolute', right: 16, top: 0, bottom: 0, justifyContent: 'center' },
-  eyeText: { color: '#4a4f65', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
+  eyeText: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'JetBrainsMono_700Bold' },
 
   inputError: {
     borderColor: 'rgba(255,69,87,0.5)',
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,69,87,0.04)',
   },
   fieldError: {
-    color: '#ff8090',
+    color: Colors.error,
     fontSize: 11,
     fontFamily: 'DMSans_400Regular',
     marginTop: 2,
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   errorIconText: {
-    color: '#ff4557',
+    color: Colors.error,
     fontSize: 11,
     fontWeight: '800',
     fontFamily: 'JetBrainsMono_700Bold',
@@ -300,7 +301,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     flex: 1,
-    color: '#ff8090',
+    color: Colors.error,
     fontSize: 13,
     lineHeight: 19,
     fontFamily: 'DMSans_400Regular',
@@ -317,21 +318,21 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   roleBtnActive: {
-    borderColor: '#c8f000',
+    borderColor: Colors.accent,
     backgroundColor: 'rgba(200,240,0,0.06)',
   },
   roleBtnLabel: {
-    color: '#4a4f65',
+    color: Colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.5,
     fontFamily: 'JetBrainsMono_700Bold',
   },
-  roleBtnLabelActive: { color: '#c8f000' },
-  roleBtnSub: { color: '#4a4f65', fontSize: 12, fontFamily: 'DMSans_400Regular' },
+  roleBtnLabelActive: { color: Colors.accentInk },
+  roleBtnSub: { color: Colors.textMuted, fontSize: 12, fontFamily: 'DMSans_400Regular' },
 
   btn: {
-    backgroundColor: '#c8f000',
+    backgroundColor: Colors.accent,
     borderRadius: 10,
     paddingVertical: 17,
     alignItems: 'center',
@@ -344,9 +345,9 @@ const styles = StyleSheet.create({
   },
   btnPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   btnDisabled: { opacity: 0.5 },
-  btnText: { color: '#07080f', fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
-  btnTextError: { color: '#ff4557' },
+  btnText: { color: Colors.bg, fontWeight: '800', fontSize: 13, letterSpacing: 1.5, fontFamily: 'DMSans_700Bold' },
+  btnTextError: { color: Colors.error },
 
   backLink: { alignItems: 'center', paddingVertical: 8 },
-  backLinkText: { color: '#4a4f65', fontSize: 13, fontFamily: 'DMSans_400Regular' },
+  backLinkText: { color: Colors.textMuted, fontSize: 13, fontFamily: 'DMSans_400Regular' },
 });

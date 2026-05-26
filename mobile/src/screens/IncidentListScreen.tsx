@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Colors } from "../theme/colors";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,9 +17,9 @@ import { StatusBadge } from '../components/StatusBadge';
 type Filter = 'all' | 'open' | 'under_review' | 'closed';
 
 const STATUS_ACCENT: Record<string, string> = {
-  open: '#ff9500',
-  under_review: '#5b8af5',
-  closed: '#00d97e',
+  open: Colors.warning,
+  under_review: Colors.info,
+  closed: Colors.success,
 };
 
 export function IncidentListScreen({ navigation, route }: any) {
@@ -57,7 +58,7 @@ export function IncidentListScreen({ navigation, route }: any) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color="#c8f000" />
+        <ActivityIndicator color={Colors.accentInk} />
       </View>
     );
   }
@@ -104,11 +105,11 @@ export function IncidentListScreen({ navigation, route }: any) {
         data={filtered}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchIncidents(); }} tintColor="#c8f000" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchIncidents(); }} tintColor={Colors.accent} />}
         renderItem={({ item }) => (
           <Pressable
             onPress={() => navigation.navigate('IncidentDetail', { incidentId: item.id })}
-            style={({ pressed }) => [styles.card, { borderLeftColor: STATUS_ACCENT[item.status] ?? '#2e3247' }, pressed && { opacity: 0.75 }]}
+            style={({ pressed }) => [styles.card, { borderLeftColor: STATUS_ACCENT[item.status] ?? Colors.border }, pressed && { opacity: 0.75 }]}
           >
             <View style={styles.cardHeader}>
               <Text style={styles.location}>{item.location}</Text>
@@ -146,22 +147,22 @@ export function IncidentListScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07080f' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#07080f' },
+  root: { flex: 1, backgroundColor: Colors.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
   header: { paddingHorizontal: 20, paddingBottom: 16, gap: 16 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  signOut: { color: '#8b90a8', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingVertical: 4, paddingLeft: 12, fontFamily: 'JetBrainsMono_700Bold' },
-  addBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#c8f000', alignItems: 'center', justifyContent: 'center' },
-  addBtnText: { color: '#07080f', fontSize: 20, fontWeight: '800', lineHeight: 24 },
-  title: { color: '#eeeef5', fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
+  signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingVertical: 4, paddingLeft: 12, fontFamily: 'JetBrainsMono_700Bold' },
+  addBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center' },
+  addBtnText: { color: Colors.bg, fontSize: 20, fontWeight: '800', lineHeight: 24 },
+  title: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'CormorantGaramond_700Bold' },
   countBadge: {
     backgroundColor: 'rgba(200,240,0,0.12)',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  countText: { color: '#c8f000', fontSize: 12, fontWeight: '700', fontFamily: 'JetBrainsMono_700Bold' },
+  countText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', fontFamily: 'JetBrainsMono_700Bold' },
 
   filters: { flexDirection: 'row', gap: 8 },
   chip: {
@@ -169,27 +170,27 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: '#0d0f1c',
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
   },
-  chipActive: { backgroundColor: '#c8f000', borderColor: '#c8f000' },
-  chipText: { color: '#4a4f65', fontSize: 12, fontWeight: '600', fontFamily: 'JetBrainsMono_400Regular' },
-  chipTextActive: { color: '#07080f', fontFamily: 'JetBrainsMono_400Regular' },
+  chipActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  chipText: { color: Colors.textMuted, fontSize: 12, fontWeight: '600', fontFamily: 'JetBrainsMono_400Regular' },
+  chipTextActive: { color: Colors.bg, fontFamily: 'JetBrainsMono_400Regular' },
 
   list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
   card: {
-    backgroundColor: '#0d0f1c',
+    backgroundColor: Colors.surface,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: Colors.borderSubtle,
     borderLeftWidth: 3,
     padding: 16,
     gap: 8,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  location: { color: '#eeeef5', fontSize: 15, fontWeight: '700', flex: 1, fontFamily: 'DMSans_600SemiBold' },
-  date: { color: '#4a4f65', fontSize: 11, fontWeight: '600', letterSpacing: 0.3, fontFamily: 'JetBrainsMono_400Regular' },
-  summary: { color: '#8b90a8', fontSize: 13, lineHeight: 19, fontFamily: 'DMSans_400Regular' },
+  location: { color: Colors.text, fontSize: 15, fontWeight: '700', flex: 1, fontFamily: 'DMSans_600SemiBold' },
+  date: { color: Colors.textMuted, fontSize: 11, fontWeight: '600', letterSpacing: 0.3, fontFamily: 'JetBrainsMono_400Regular' },
+  summary: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'DMSans_400Regular' },
   cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   flag: {
     paddingHorizontal: 7,
@@ -199,9 +200,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,69,87,0.3)',
   },
-  flagText: { color: '#ff4557', fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
+  flagText: { color: Colors.error, fontSize: 9, fontWeight: '700', letterSpacing: 1, fontFamily: 'JetBrainsMono_700Bold' },
 
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
-  emptyTitle: { color: '#eeeef5', fontSize: 18, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
-  emptySub: { color: '#4a4f65', fontSize: 14, textAlign: 'center', fontFamily: 'DMSans_400Regular' },
+  emptyTitle: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'DMSans_700Bold' },
+  emptySub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', fontFamily: 'DMSans_400Regular' },
 });
