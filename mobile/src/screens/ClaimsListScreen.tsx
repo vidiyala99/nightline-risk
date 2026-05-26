@@ -73,6 +73,7 @@ export function ClaimsListScreen({ navigation }: any) {
         data={FILTERS}
         keyExtractor={f => f}
         showsHorizontalScrollIndicator={false}
+        style={s.filterList}
         contentContainerStyle={s.filterRow}
         renderItem={({ item: f }) => (
           <Pressable
@@ -142,8 +143,10 @@ const s = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16 },
   title: { color: Colors.text, fontSize: 26, fontFamily: 'CormorantGaramond_700Bold', letterSpacing: -0.5 },
   subtitle: { color: Colors.textMuted, fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', marginTop: 4 },
-  filterRow: { paddingHorizontal: 20, paddingBottom: 12, gap: 8 },
+  filterList: { flexGrow: 0, flexShrink: 0, alignSelf: 'stretch' },
+  filterRow: { paddingHorizontal: 20, paddingBottom: 12, gap: 8, alignItems: 'center' },
   chip: {
+    alignSelf: 'center',
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 100,
     borderWidth: 1, borderColor: Colors.borderSubtle,
   },
