@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   btnConfirm: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   btnConfirmLabel: {
-    color: Colors.bg,
+    color: Colors.text,
     fontSize: 12,
     letterSpacing: 1,
     fontFamily: Fonts.monoBold,

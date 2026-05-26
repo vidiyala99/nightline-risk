@@ -37,6 +37,24 @@ import { policiesApi } from '../api/policies';
 
 type PromptKind = { kind: 'withdraw' } | { kind: 'decline'; qid: string } | null;
 
+/** api.request throws Error(rawBody); pull the structured {error,message} detail out. */
+function parseErrorDetail(message?: string): { error?: string; message?: string } | null {
+  if (!message) return null;
+  try {
+    const p = JSON.parse(message);
+    const d = p?.detail ?? p;
+    return d && typeof d === 'object' ? d : null;
+  } catch {
+    return null;
+  }
+}
+
+function friendlyError(e: any): string {
+  const d = parseErrorDetail(e?.message);
+  if (d && typeof d.message === 'string') return d.message;
+  return e?.message ?? 'Try again.';
+}
+
 function hasBreakdown(q: CarrierQuote): q is CarrierQuote & { premium_breakdown: PremiumBreakdown } {
   return !!q.premium_breakdown && 'total' in q.premium_breakdown;
 }
@@ -91,7 +109,7 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
         await load();
         onDone?.();
       } catch (e: any) {
-        alert.show({ title: 'Action failed', message: e?.message ?? 'Try again.', variant: 'error' });
+        alert.show({ title: 'Action failed', message: friendlyError(e), variant: 'error' });
       } finally {
         setBusy(null);
       }
@@ -99,20 +117,43 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
     [load, alert],
   );
 
-  const doSubmit = () => {
-    const targets = [...selected];
-    if (targets.length === 0) return;
-    run('submit', async () => {
-      const res = await submissionsApi.submitToMarket(sid, { target_carriers: targets });
-      setSelected(new Set());
-      if (res.rejected_carriers.length > 0) {
-        const lines = res.rejected_carriers
-          .map((r) => `${r.carrier_id}: ${r.reasons.join(', ')}`)
-          .join('\n');
-        alert.show({ title: 'Some carriers skipped', message: lines, variant: 'warning' });
-      }
-    });
-  };
+  const doSubmit = useCallback(
+    (allowOutOfAppetite = false) => {
+      const targets = [...selected];
+      if (targets.length === 0) return;
+      setBusy('submit');
+      submissionsApi
+        .submitToMarket(sid, { target_carriers: targets, allow_out_of_appetite: allowOutOfAppetite })
+        .then(async (res) => {
+          setSelected(new Set());
+          await load();
+          if (res.rejected_carriers.length > 0) {
+            const lines = res.rejected_carriers
+              .map((r) => `${r.carrier_id}: ${r.reasons.join(', ')}`)
+              .join('\n');
+            alert.show({ title: 'Some carriers skipped', message: lines, variant: 'warning' });
+          }
+        })
+        .catch((e) => {
+          const detail = parseErrorDetail(e?.message);
+          if (detail?.error === 'out_of_appetite' && !allowOutOfAppetite) {
+            alert.show({
+              title: 'Out of appetite',
+              message: `All ${targets.length} selected carrier${targets.length === 1 ? '' : 's'} are out of appetite for this venue and coverage profile. Submit anyway?`,
+              variant: 'warning',
+              buttons: [
+                { label: 'Cancel', style: 'cancel' },
+                { label: 'Submit anyway', style: 'primary', onPress: () => doSubmit(true) },
+              ],
+            });
+          } else {
+            alert.show({ title: 'Submit failed', message: friendlyError(e), variant: 'error' });
+          }
+        })
+        .finally(() => setBusy(null));
+    },
+    [selected, sid, load, alert],
+  );
 
   const doRecordQuoted = (q: CarrierQuote) =>
     run(`rec-${q.id}`, async () => {
@@ -135,7 +176,11 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
           onPress: () =>
             run(
               `bind-${q.id}`,
-              () => policiesApi.bind(q.id),
+              async () => {
+                // Backend requires a selected quote before binding.
+                if (!q.is_selected) await submissionsApi.selectQuote(q.id);
+                await policiesApi.bind(q.id);
+              },
               () =>
                 alert.show({
                   title: 'Bound',
@@ -235,7 +280,7 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
                 <Pressable
                   style={[styles.primaryBtn, (selected.size === 0 || busy === 'submit') && styles.btnDisabled]}
                   disabled={selected.size === 0 || busy === 'submit'}
-                  onPress={doSubmit}
+                  onPress={() => doSubmit()}
                 >
                   <Text style={styles.primaryBtnText}>
                     {busy === 'submit' ? 'Submitting…' : `Submit to ${selected.size || 0} carrier${selected.size === 1 ? '' : 's'}`}
@@ -462,7 +507,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxOn: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  checkboxTick: { color: Colors.bg, fontSize: 13, fontFamily: Fonts.monoBold },
+  checkboxTick: { color: Colors.text, fontSize: 13, fontFamily: Fonts.monoBold },
   carrierName: { fontFamily: Fonts.sansSemiBold, fontSize: 14, color: Colors.text },
   carrierDim: { color: Colors.textMuted },
   carrierMeta: { fontFamily: Fonts.monoRegular, fontSize: 10, color: Colors.textMuted, marginTop: 1 },
@@ -508,7 +553,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
   },
-  primaryBtnText: { color: Colors.bg, fontFamily: Fonts.monoBold, fontSize: 12, letterSpacing: 1 },
+  primaryBtnText: { color: Colors.text, fontFamily: Fonts.monoBold, fontSize: 12, letterSpacing: 1 },
   ghostBtn: {
     borderWidth: 1,
     borderColor: Colors.accent,
