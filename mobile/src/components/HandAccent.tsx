@@ -14,10 +14,10 @@ const styles = StyleSheet.create({
   accent: {
     color: Colors.accentInk,
     fontFamily: 'Caveat_600SemiBold',
-    fontSize: 20,
-    lineHeight: 22,
+    fontSize: 21,
+    lineHeight: 30,
     marginTop: 2,
-    transform: [{ rotate: '-2deg' }],
+    paddingRight: 8,
     alignSelf: 'flex-start',
   },
 });
