@@ -189,8 +189,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     color: Colors.accentInk,
-    fontSize: 16,
-    fontStyle: 'italic',
+    fontSize: 20,
     marginTop: 8,
     fontFamily: 'Caveat_600SemiBold',
   },
