@@ -23,7 +23,7 @@ test("broker renewals page — Renewals due heading visible", async ({ page }) =
 
   // 1. Log in as broker
   await loginPage.goto();
-  await loginPage.signIn("broker@thirdspace.risk", "demo123");
+  await loginPage.signIn("broker@nightline.risk", "demo123");
 
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
   await dashboardPage.waitForLoad();
@@ -46,7 +46,7 @@ test("broker renewals — Renew button triggers YoY result panel (skips if empty
 
   // 1. Log in as broker
   await loginPage.goto();
-  await loginPage.signIn("broker@thirdspace.risk", "demo123");
+  await loginPage.signIn("broker@nightline.risk", "demo123");
 
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
   await dashboardPage.waitForLoad();

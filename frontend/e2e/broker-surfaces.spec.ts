@@ -11,7 +11,7 @@ async function loginBroker(page: any) {
   const login = new LoginPage(page);
   const dashboard = new DashboardPage(page);
   await login.goto();
-  await login.signIn("broker@thirdspace.risk", "demo123");
+  await login.signIn("broker@nightline.risk", "demo123");
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
   await dashboard.waitForLoad();
 }
