@@ -203,6 +203,16 @@ export default function VenueTerminalPage() {
     return () => clearInterval(interval);
   }, [venueId]);
 
+  // Deep-link from the Risk Profile "Operational" factor (#infrastructure).
+  // The terminal loads async, so a plain hash can't catch the element — scroll
+  // once the insurance grid (which holds the Infrastructure section) is in.
+  useEffect(() => {
+    if (insightLoading || typeof window === "undefined") return;
+    if (window.location.hash !== "#infrastructure") return;
+    const el = document.getElementById("infrastructure");
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [insightLoading]);
+
   if (venueNotFound) return <VenueNotFound venueId={venueId} />;
 
   const displayName = venueInfo?.name ?? venueId.replace(/-/g, " ").toUpperCase();
@@ -475,7 +485,7 @@ export default function VenueTerminalPage() {
                 </div>
               </div>
 
-              <section>
+              <section id="infrastructure" style={{ scrollMarginTop: 80 }}>
                 <div className="lc-rule">
                   <span className="lc-rule__label">Infrastructure Sync</span>
                   <div className="lc-rule__line" />

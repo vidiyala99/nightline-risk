@@ -50,7 +50,7 @@ const PRIORITY_COLOR: Record<string, string> = {
   low: Colors.textMuted,
 };
 
-export function LiveTerminalScreen({ navigation }: any) {
+export function LiveTerminalScreen({ navigation, route }: any) {
   const { user } = useAuth();
   const [data, setData] = useState<LiveData | null>(null);
   const [riskData, setRiskData] = useState<any>(null);
@@ -58,6 +58,19 @@ export function LiveTerminalScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Deep-link target: the Risk Profile "Operational" factor routes here with
+  // focus=infrastructure, so we scroll to the Infrastructure Sync card once.
+  const scrollRef = useRef<ScrollView>(null);
+  const infraYRef = useRef<number | null>(null);
+  const didFocusRef = useRef(false);
+  const focusInfra = route?.params?.focus === 'infrastructure';
+
+  const scrollToInfra = useCallback(() => {
+    if (!focusInfra || didFocusRef.current || infraYRef.current == null) return;
+    didFocusRef.current = true;
+    scrollRef.current?.scrollTo({ y: Math.max(infraYRef.current - 12, 0), animated: true });
+  }, [focusInfra]);
 
   const fetchLive = useCallback(async () => {
     if (!user?.tenant_id) return;
@@ -156,7 +169,7 @@ export function LiveTerminalScreen({ navigation }: any) {
   const capacityPct = data.current_capacity / data.max_capacity;
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: 12 }]}>
+    <ScrollView ref={scrollRef} style={styles.root} contentContainerStyle={[styles.content, { paddingTop: 12 }]}>
       <View style={styles.topRow}>
         <Text style={styles.title}>Live Terminal</Text>
         <View style={styles.livePill}>
@@ -227,7 +240,10 @@ export function LiveTerminalScreen({ navigation }: any) {
       </View>
 
       {data.infrastructure.length > 0 && (
-        <View style={styles.card}>
+        <View
+          style={styles.card}
+          onLayout={(e) => { infraYRef.current = e.nativeEvent.layout.y; scrollToInfra(); }}
+        >
           <Text style={styles.sectionEyebrow}>INFRASTRUCTURE SYNC</Text>
           {data.infrastructure.some(i => i.is_degraded) && (
             <View style={styles.degradedWarning}>

@@ -97,7 +97,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
         // see it, so this factor stays static for them.
         return isBroker ? null : () => navigation.navigate('More', {
           screen: 'Live',
-          params: { screen: 'LiveHome' },
+          params: { screen: 'LiveHome', params: { focus: 'infrastructure' } },
         });
       case 'business_profile':
         return () => navigation.navigate('VenueProfile', { venueId, venueName });

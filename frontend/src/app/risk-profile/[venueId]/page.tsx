@@ -730,7 +730,7 @@ export default function RiskProfilePage() {
                 let href: string | null = null;
                 if (key === "incident_history") href = `/incidents?venue=${encodeURIComponent(venueId)}`;
                 else if (key === "compliance") href = `/compliance?venue=${encodeURIComponent(venueId)}`;
-                else if (key === "operational" && !isBroker) href = `/terminal/${encodeURIComponent(venueId)}`;
+                else if (key === "operational" && !isBroker) href = `/terminal/${encodeURIComponent(venueId)}#infrastructure`;
                 else if (key === "business_profile") href = `/venues/${encodeURIComponent(venueId)}`;
 
                 const body = (
