@@ -724,20 +724,41 @@ export default function RiskProfilePage() {
                 const color = getFactorColor(s);
                 const info = FACTOR_EXPLANATIONS[key];
                 const ft = getFactorTier(s);
-                return (
-                  <div key={key}>
+                const label = info?.label ?? key.replace(/_/g, " ");
+                // Drill into the evidence behind each factor. Only link rows with
+                // a real destination — others stay static (no chevron, no cursor).
+                let href: string | null = null;
+                if (key === "incident_history") href = `/incidents?venue=${encodeURIComponent(venueId)}`;
+                else if (key === "compliance") href = `/compliance?venue=${encodeURIComponent(venueId)}`;
+                else if (key === "operational" && !isBroker) href = `/terminal/${encodeURIComponent(venueId)}`;
+
+                const body = (
+                  <>
                     <div className="flex items-center justify-between mb-xs">
-                      <span className="text-xs uppercase tracking-wide text-secondary">{info?.label ?? key.replace(/_/g, " ")}</span>
+                      <span className="text-xs uppercase tracking-wide text-secondary">{label}</span>
                       <span className="flex items-center gap-xs">
                         <FactorTierIcon tier={ft} color={color} />
                         <span className="text-sm font-bold font-mono" style={{ color }} aria-label={`${s} out of 100, ${ft}`}>{s}</span>
+                        {href && <ChevronRight size={14} style={{ color: "var(--text-muted)" }} aria-hidden="true" />}
                       </span>
                     </div>
                     <div className="capacity-bar-track" style={{ height: 4, background: "var(--bg-elevated)", borderRadius: 2, overflow: "hidden" }} aria-hidden="true">
                       <div style={{ width: `${s}%`, height: "100%", background: color, borderRadius: 2 }} />
                     </div>
                     <p className="text-xs text-secondary mt-xs" style={{ lineHeight: 1.6 }}>{info?.[ft]}</p>
-                  </div>
+                  </>
+                );
+
+                if (!href) return <div key={key}>{body}</div>;
+                return (
+                  <Link
+                    key={key}
+                    href={href}
+                    aria-label={`View ${label.toLowerCase()}`}
+                    style={{ display: "block", textDecoration: "none", color: "inherit", cursor: "pointer" }}
+                  >
+                    {body}
+                  </Link>
                 );
               })}
             </div>

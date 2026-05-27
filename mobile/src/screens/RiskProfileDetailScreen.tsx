@@ -12,10 +12,8 @@ import { CapacityBar } from '../components/CapacityBar';
 import { api } from '../api/client';
 import { type OverrideStats } from '../types/claims';
 import { getFactorTier, factorGlyph } from '../lib/format';
-
-const TIER_COLOR: Record<string, string> = {
-  A: Colors.accent, B: Colors.success, C: Colors.warning, D: Colors.error,
-};
+import { tierColor as getTierColor } from '../theme/tiers';
+import { ChevronRight } from 'lucide-react-native';
 
 // Per-factor plain-English explanations based on score ranges
 const FACTOR_EXPLANATIONS: Record<string, {
@@ -76,8 +74,35 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
 
   const tier = riskData?.tier ?? '—';
   const score = riskData?.total_score ?? 0;
-  const tierColor = TIER_COLOR[tier] ?? Colors.textMuted;
+  const tierColor = getTierColor(tier);
   const factors: Record<string, number> = riskData?.factors ?? {};
+
+  // Each factor drills into the evidence behind it. Only return an action when
+  // a real, in-context destination exists — rows without one stay static (no
+  // chevron), so we never show a fake affordance.
+  const factorAction = (key: string): (() => void) | null => {
+    switch (key) {
+      case 'incident_history':
+        return () => navigation.navigate('Incidents', {
+          screen: 'IncidentList',
+          params: { venueId, initialFilter: 'open' },
+        });
+      case 'compliance':
+        return () => navigation.navigate('Compliance', {
+          screen: 'ComplianceList',
+          params: { venueId },
+        });
+      case 'operational':
+        // Floor telemetry lives in the operator's Live Terminal; brokers can't
+        // see it, so this factor stays static for them.
+        return isBroker ? null : () => navigation.navigate('More', {
+          screen: 'Live',
+          params: { screen: 'LiveHome' },
+        });
+      default:
+        return null;
+    }
+  };
 
   const goodFactors = Object.entries(factors).filter(([, v]) => getFactorTier(Number(v)) === 'good');
   const moderateFactors = Object.entries(factors).filter(([, v]) => getFactorTier(Number(v)) === 'moderate');
@@ -153,14 +178,12 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
             const color = getFactorColor(score);
             const info = FACTOR_EXPLANATIONS[key];
             const tier = getFactorTier(score);
-            return (
-              <View key={key} style={styles.factorItem}>
-                <CapacityBar
-                  label={info?.label ?? key.replace(/_/g, ' ').toUpperCase()}
-                  value={score}
-                  max={100}
-                  invertScale
-                />
+            const label = info?.label ?? key.replace(/_/g, ' ').toUpperCase();
+            const onPress = factorAction(key);
+
+            const inner = (
+              <>
+                <CapacityBar label={label} value={score} max={100} invertScale />
                 <View style={styles.factorExplainRow}>
                   <Text
                     style={[styles.factorGlyph, { color }]}
@@ -172,7 +195,23 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                     {info?.[tier] ?? ''}
                   </Text>
                 </View>
-              </View>
+              </>
+            );
+
+            if (!onPress) {
+              return <View key={key} style={styles.factorItem}>{inner}</View>;
+            }
+            return (
+              <Pressable
+                key={key}
+                onPress={onPress}
+                accessibilityRole="button"
+                accessibilityLabel={`View ${label.toLowerCase()}`}
+                style={({ pressed }) => [styles.factorItemNav, pressed && { opacity: 0.7 }]}
+              >
+                <View style={styles.factorMain}>{inner}</View>
+                <ChevronRight size={18} color={Colors.textMuted} />
+              </Pressable>
             );
           })}
         </View>
@@ -378,6 +417,8 @@ const styles = StyleSheet.create({
 
   factorList: { gap: 18 },
   factorItem: { gap: 6 },
+  factorItemNav: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  factorMain: { flex: 1, gap: 6 },
   factorExplainRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
   factorGlyph: { fontSize: 12, lineHeight: 17, fontFamily: 'SpaceMono_700Bold', width: 14 },
   factorExplain: { flex: 1, fontSize: 12, lineHeight: 17, fontFamily: 'HankenGrotesk_400Regular' },

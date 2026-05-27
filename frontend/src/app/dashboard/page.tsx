@@ -19,7 +19,7 @@ interface PortfolioVenue {
   venue_type: string;
   address: string;
   capacity: number;
-  current_capacity: number;
+  current_capacity: number | null;
   renewal_date: string;
   current_carrier: string;
   tier: string;
@@ -225,7 +225,7 @@ function DashboardPageInner() {
   const avgScore = portfolioVenues.length
     ? Math.round(portfolioVenues.reduce((s, v) => s + v.total_score, 0) / portfolioVenues.length)
     : null;
-  const atCapacity = portfolioVenues.filter(v => v.capacity > 0 && v.current_capacity / v.capacity >= 0.9).length;
+  const atCapacity = portfolioVenues.filter(v => v.current_capacity != null && v.capacity > 0 && v.current_capacity / v.capacity >= 0.9).length;
   const degraded = portfolioVenues.filter(v => v.has_degraded_infra).length;
   const tierCounts = portfolioVenues.reduce<Record<string, number>>((acc, v) => {
     acc[v.tier] = (acc[v.tier] ?? 0) + 1; return acc;
@@ -640,7 +640,7 @@ type Bucket = "tonight" | "watchlist" | "standing";
 type Filter = "all" | Bucket | "renewals";
 
 function classifyVenue(v: PortfolioVenue): Bucket {
-  const capPct = v.capacity > 0 ? v.current_capacity / v.capacity : 0;
+  const capPct = v.current_capacity != null && v.capacity > 0 ? v.current_capacity / v.capacity : 0;
   const acute = v.open_incidents > 0 || v.has_degraded_infra || capPct >= 0.9 || v.compliance_actions > 0;
   if (acute) return "tonight";
   if (v.tier === "C" || v.tier === "D") return "watchlist";
@@ -770,7 +770,7 @@ function TriageRow({
   venue: PortfolioVenue & { _bucket: Bucket; _daysToRenew: number | null };
 }) {
   const tierColor = TIER_COLOR[venue.tier] || "var(--text-tertiary)";
-  const capPct = venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
+  const capPct = venue.current_capacity != null && venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
   const capCritical = capPct >= 95;
   const incidentsHot = venue.open_incidents > 0;
   const renewalSoon = venue._daysToRenew != null && venue._daysToRenew <= 14;
@@ -806,7 +806,7 @@ function TriageRow({
           )}
         </div>
         <div className="lc-triage__row-sub">
-          {venue.venue_type.replace(/_/g, " ")} · {venue.current_capacity}/{venue.capacity.toLocaleString()}
+          {venue.venue_type.replace(/_/g, " ")} · {venue.current_capacity != null ? `${venue.current_capacity}/${venue.capacity.toLocaleString()}` : `${venue.capacity.toLocaleString()} cap`}
           {capCritical && <span style={{ color: "var(--state-error)", marginLeft: 6 }}>· {Math.round(capPct)}%</span>}
         </div>
       </div>

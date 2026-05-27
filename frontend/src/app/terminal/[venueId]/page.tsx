@@ -11,10 +11,10 @@ import { authHeaders } from "@/lib/authFetch";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 const TIER_COLOR: Record<string, string> = {
-  A: "var(--brand-primary)",
-  B: "var(--brand-secondary)",
-  C: "var(--state-warning)",
-  D: "var(--brand-tertiary)",
+  A: "var(--tier-a)",
+  B: "var(--tier-b)",
+  C: "var(--tier-c)",
+  D: "var(--tier-d)",
 };
 
 const makeFallback = (venueId: string) => ({
@@ -349,7 +349,7 @@ export default function VenueTerminalPage() {
                 </div>
                 <div className="flex flex-col items-end gap-sm">
                   <div className="font-mono font-bold px-3 py-1 text-lg"
-                    style={{ border: `1px solid ${TIER_COLOR[riskScore.tier] ?? "var(--brand-primary)"}`, color: TIER_COLOR[riskScore.tier] ?? "var(--brand-primary)", borderRadius: "var(--radius-sm)" }}>
+                    style={{ border: `1px solid ${TIER_COLOR[riskScore.tier] ?? "var(--text-muted)"}`, color: TIER_COLOR[riskScore.tier] ?? "var(--text-muted)", borderRadius: "var(--radius-sm)" }}>
                     TIER {riskScore.tier}
                   </div>
                   <div className="flex items-center gap-xs">
@@ -363,7 +363,7 @@ export default function VenueTerminalPage() {
                   <div key={key} className="flex items-center gap-md">
                     <span className="text-xs uppercase tracking-wide text-secondary" style={{ flex: "0 0 auto", minWidth: "5.5rem", maxWidth: "9rem" }}>{key.replace(/_/g, " ")}</span>
                     <div className="flex-1 capacity-bar bg-dark">
-                      <div className="capacity-fill" style={{ width: `${data.score}%`, background: TIER_COLOR[riskScore.tier] ?? "var(--brand-primary)" }} />
+                      <div className="capacity-fill" style={{ width: `${data.score}%`, background: TIER_COLOR[riskScore.tier] ?? "var(--text-muted)" }} />
                     </div>
                     <span className="text-xs font-mono text-secondary" style={{ width: "32px", textAlign: "right" }}>{data.score}</span>
                   </div>
@@ -391,13 +391,18 @@ export default function VenueTerminalPage() {
                 ) : (
                   liveState.compliance_queue?.map((item: any) => (
                     <div key={item.id} className="card bento-card" style={{ borderColor: "rgba(255,60,60,0.25)" }}>
-                      <h4 className="text-sm font-bold uppercase mb-md font-mono text-accent">{item.id}</h4>
+                      <div className="flex justify-between items-start mb-md gap-sm">
+                        <h4 className="text-sm font-bold uppercase font-mono text-accent">{item.title ?? item.id}</h4>
+                        {item.severity && (
+                          <span className="text-xs font-mono uppercase" style={{ color: "var(--state-error)", letterSpacing: "0.08em" }}>{item.severity}</span>
+                        )}
+                      </div>
                       <p className="text-sm mb-xl text-secondary">{item.description}</p>
                       {isOperator && (
                         <div className="relative">
                           <input
                             type="file"
-                            accept="video/*,image/*"
+                            accept="video/*,image/*,application/pdf"
                             onChange={(e) => handleUpload(item.id, e)}
                             className="visually-hidden"
                             id={`upload-${item.id}`}

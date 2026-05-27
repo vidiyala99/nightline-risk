@@ -11,10 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api/client';
 import { CapacityBar } from '../components/CapacityBar';
-
-const TIER_COLOR: Record<string, string> = {
-  A: Colors.accent, B: Colors.success, C: Colors.warning, D: Colors.error,
-};
+import { tierColor as getTierColor } from '../theme/tiers';
 
 const STATUS_DOT: Record<string, string> = {
   operational: Colors.accent, active: Colors.accent, degraded: Colors.warning, down: Colors.error,
@@ -79,7 +76,7 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
   if (loading) return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
 
   const tier = risk?.tier ?? '—';
-  const tierColor = TIER_COLOR[tier] ?? Colors.textMuted;
+  const tierColor = getTierColor(tier);
   const capacityPct = live ? live.current_capacity / live.max_capacity : 0;
   const factors: Record<string, number> = risk?.factors ?? {};
   const savingsAnnual = quote?.savings_annual ?? 0;
@@ -108,8 +105,9 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
         </View>
       </View>
 
-      {/* Live Occupancy — prominent, first */}
-      {live && (
+      {/* Live Occupancy — operator-only floor data; the /live endpoint zeros it
+          for brokers, so this card stays hidden on the broker surface. */}
+      {live && live.current_capacity > 0 && (
         <View style={[styles.card, capacityPct > 0.85 && styles.cardDanger]}>
           <View style={styles.occupancyHeader}>
             <Text style={styles.eyebrow}>LIVE OCCUPANCY</Text>

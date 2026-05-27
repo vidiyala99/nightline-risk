@@ -66,6 +66,30 @@ def test_portfolio_elsewhere_is_tier_a():
     assert elsewhere["total_score"] >= 80
 
 
+def test_portfolio_hides_live_capacity_from_brokers():
+    """Live occupancy is operator-only floor data. The book must not leak it —
+    it stays null for brokers so it matches the gated /venues/{id}/live detail
+    view (regression for the 325/350-vs-0/350 contradiction)."""
+    with TestClient(app) as client:
+        data = client.get("/api/portfolio?source=book", headers=_broker_headers()).json()
+    assert len(data) > 0
+    for venue in data:
+        assert venue["current_capacity"] is None, (
+            f"{venue['id']} leaked live occupancy to a broker"
+        )
+
+
+def test_portfolio_admin_sees_live_capacity():
+    """Admins can read floor state, so the book keeps real occupancy for them."""
+    admin_token = create_token("user-admin-1", "admin@example.com", "admin", "tenant-1")
+    with TestClient(app) as client:
+        data = client.get(
+            "/api/portfolio?source=book",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        ).json()
+    assert any(v["current_capacity"] is not None for v in data)
+
+
 def test_portfolio_anonymous_rejected():
     with TestClient(app) as client:
         resp = client.get("/api/portfolio")

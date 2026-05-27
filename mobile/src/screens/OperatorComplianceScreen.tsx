@@ -11,10 +11,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
+import { pickEvidence } from '../lib/pickEvidence';
 
 const PRIORITY_COLOR: Record<string, string> = {
   urgent: Colors.error,
@@ -63,21 +63,16 @@ export function OperatorComplianceScreen({ navigation, route }: any) {
 
   const handleUpload = useCallback(async (item: ComplianceItem) => {
     if (!venueId) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      quality: 0.85,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    const asset = result.assets[0];
+    const asset = await pickEvidence();
+    if (!asset) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setUploadingId(item.id);
     try {
       const formData = new FormData();
       formData.append('file', {
         uri: asset.uri,
-        name: asset.fileName ?? 'evidence',
-        type: asset.mimeType ?? 'application/octet-stream',
+        name: asset.name,
+        type: asset.type,
       } as any);
       await api.upload(`/api/venues/${venueId}/compliance/${item.id}/upload`, formData);
       setQueue(prev => prev.filter(q => q.id !== item.id));

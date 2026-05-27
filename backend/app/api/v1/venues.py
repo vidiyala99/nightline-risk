@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, Header
 from sqlmodel import Session, func, select
 
 from app.auth import (
+    can_read_venue_floor,
     current_user_optional,
     require_broker,
     require_non_broker,
@@ -294,10 +295,11 @@ def delete_venue(
 # ─── Portfolio aggregation (broker-only) ────────────────────────────────
 
 
-@router.get("/portfolio", dependencies=[Depends(require_broker)])
+@router.get("/portfolio")
 def get_portfolio(
     source: Optional[str] = None,
     session: Session = Depends(get_session),
+    user: dict = Depends(require_broker),
 ) -> list[dict]:
     """Single broker-facing rollup: every venue with risk score, live
     state, and an open-incident count. Used by the dashboard 'Book' widget.
@@ -317,7 +319,7 @@ def get_portfolio(
         )
         if vsource == "prospect":
             # No live floor state for a lead — don't run the live engine.
-            current_capacity = 0
+            current_capacity: Optional[int] = 0
             open_count: Optional[int] = 0
             compliance_actions = 0
             has_degraded = False
@@ -328,7 +330,14 @@ def get_portfolio(
                 .where(IncidentRecord.venue_id == venue_id)
                 .where(IncidentRecord.status == "open")
             ).one()
-            current_capacity = live.current_capacity
+            # Live occupancy is operator-only floor data. Brokers see policy
+            # artifacts but not the live shift state — null it so the book
+            # matches the gated /venues/{id}/live detail view (no contradiction).
+            current_capacity = (
+                live.current_capacity
+                if can_read_venue_floor(user, venue_id, session)
+                else None
+            )
             compliance_actions = len(live.compliance_queue)
             has_degraded = any(item.is_degraded for item in live.infrastructure)
         result.append({

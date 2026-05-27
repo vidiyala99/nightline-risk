@@ -10,10 +10,11 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
+import { pickEvidence } from '../lib/pickEvidence';
+import { PromptModal } from '../components/PromptModal';
 
 const SEVERITY_COLOR: Record<string, string> = {
   urgent: Colors.error,
@@ -49,6 +50,8 @@ export function ComplianceItemDetailScreen({ navigation, route }: any) {
   const [resolvedVenueName, setResolvedVenueName] = useState<string | undefined>(passedVenueName);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [waiveVisible, setWaiveVisible] = useState(false);
+  const [resolving, setResolving] = useState(false);
 
   const venueName = passedVenueName ?? resolvedVenueName;
 
@@ -78,27 +81,37 @@ export function ComplianceItemDetailScreen({ navigation, route }: any) {
   }, [venueId, passedVenueName]);
 
   const handleUpload = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      quality: 0.85,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    const asset = result.assets[0];
+    const asset = await pickEvidence();
+    if (!asset) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', {
         uri: asset.uri,
-        name: asset.fileName ?? 'evidence',
-        type: asset.mimeType ?? 'application/octet-stream',
+        name: asset.name,
+        type: asset.type,
       } as any);
       await api.upload(`/api/venues/${venueId}/compliance/${itemId}/upload`, formData);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
     } catch {
       setUploading(false);
+    }
+  };
+
+  const handleWaive = async (reason: string) => {
+    setWaiveVisible(false);
+    setResolving(true);
+    try {
+      await api.request(`/api/venues/${venueId}/compliance/${itemId}/resolve`, {
+        method: 'PATCH',
+        body: JSON.stringify({ reason: reason || null }),
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      navigation.goBack();
+    } catch {
+      setResolving(false);
     }
   };
 
@@ -143,19 +156,44 @@ export function ComplianceItemDetailScreen({ navigation, route }: any) {
             <Text style={styles.itemId}>{item.id}</Text>
           </View>
 
-          {!isBroker && (
+          {!isBroker ? (
             <Pressable
               onPress={handleUpload}
               disabled={uploading}
+              accessibilityRole="button"
+              accessibilityLabel="Upload evidence"
               style={({ pressed }) => [styles.uploadBtn, pressed && { opacity: 0.7 }]}
             >
               <Text style={styles.uploadBtnText}>
                 {uploading ? 'UPLOADING...' : '↑ UPLOAD EVIDENCE'}
               </Text>
             </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => setWaiveVisible(true)}
+              disabled={resolving}
+              accessibilityRole="button"
+              accessibilityLabel="Resolve or waive this compliance item"
+              style={({ pressed }) => [styles.waiveBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.waiveBtnText}>
+                {resolving ? 'RESOLVING...' : '✓ RESOLVE / WAIVE'}
+              </Text>
+            </Pressable>
           )}
         </>
       )}
+
+      <PromptModal
+        visible={waiveVisible}
+        title="Resolve / waive item"
+        message="Close this compliance item without operator evidence. Optionally note why — it's recorded in the audit trail."
+        placeholder="Reason (optional)"
+        confirmLabel="Waive"
+        required={false}
+        onSubmit={handleWaive}
+        onCancel={() => setWaiveVisible(false)}
+      />
     </ScrollView>
   );
 }
@@ -203,6 +241,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   uploadBtnText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
+
+  waiveBtn: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(200,240,0,0.35)',
+    backgroundColor: 'rgba(200,240,0,0.06)',
+    borderRadius: 10,
+    paddingVertical: 14,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  waiveBtnText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
 
   emptyWrap: { alignItems: 'center', paddingTop: 80, gap: 10 },
   emptyIcon: { fontSize: 48, color: Colors.accentInk },

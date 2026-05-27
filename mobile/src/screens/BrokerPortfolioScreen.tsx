@@ -13,13 +13,9 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
 import { useResponsive } from '../hooks/useResponsive';
-
-const TIER_COLOR: Record<string, string> = {
-  A: Colors.accent,
-  B: Colors.success,
-  C: Colors.warning,
-  D: Colors.error,
-};
+import { StatCard } from '../components/StatCard';
+import { QuickActionTile } from '../components/QuickActionTile';
+import { tierColor as getTierColor } from '../theme/tiers';
 
 interface PortfolioVenue {
   id: string;
@@ -27,7 +23,7 @@ interface PortfolioVenue {
   venue_type: string;
   address: string;
   capacity: number;
-  current_capacity: number;
+  current_capacity: number | null;
   renewal_date: string;
   current_carrier: string;
   tier: string;
@@ -95,33 +91,30 @@ export function BrokerPortfolioScreen({ navigation }: any) {
 
       {/* Stats bar: 3 cards */}
       <View style={styles.statsRow}>
-        <Pressable style={styles.statCard} onPress={() => navigation.getParent()?.navigate('Venues')}>
-          <Text style={styles.statNum}>{totalVenues}</Text>
-          <Text style={styles.statLabel}>TOTAL VENUES</Text>
-        </Pressable>
-        <Pressable style={styles.statCard} onPress={() => navigation.getParent()?.navigate('Incidents')}>
-          <Text style={[styles.statNum, openIncidents > 0 && styles.statNumRed]}>
-            {openIncidents}
-          </Text>
-          <Text style={styles.statLabel}>OPEN INCIDENTS</Text>
-        </Pressable>
-        <Pressable style={styles.statCard} onPress={() => navigation.getParent()?.navigate('Compliance')}>
-          <Text style={[styles.statNum, complianceActions > 0 && { color: Colors.warning }]}>{complianceActions}</Text>
-          <Text style={styles.statLabel}>COMPLIANCE</Text>
-        </Pressable>
+        <StatCard
+          value={totalVenues}
+          label="TOTAL VENUES"
+          onPress={() => navigation.getParent()?.navigate('Venues')}
+        />
+        <StatCard
+          value={openIncidents}
+          label="OPEN INCIDENTS"
+          tone={openIncidents > 0 ? 'error' : 'default'}
+          onPress={() => navigation.getParent()?.navigate('Incidents')}
+        />
+        <StatCard
+          value={complianceActions}
+          label="COMPLIANCE"
+          tone={complianceActions > 0 ? 'warning' : 'default'}
+          onPress={() => navigation.getParent()?.navigate('Compliance')}
+        />
       </View>
 
-      {/* Renewals entry — nested in this stack (no submissions screen on mobile) */}
-      <Pressable style={styles.renewalsLink} onPress={() => navigation.navigate('Renewals')}>
-        <Text style={styles.renewalsLinkLabel}>RENEWALS DUE</Text>
-        <Text style={styles.renewalsLinkArrow}>→</Text>
-      </Pressable>
-
-      {/* Operator request queue */}
-      <Pressable style={styles.renewalsLink} onPress={() => navigation.navigate('PolicyRequests')}>
-        <Text style={styles.renewalsLinkLabel}>POLICY REQUESTS</Text>
-        <Text style={styles.renewalsLinkArrow}>→</Text>
-      </Pressable>
+      {/* Quick actions — two-up compact row */}
+      <View style={styles.actionRow}>
+        <QuickActionTile label="RENEWALS DUE" onPress={() => navigation.navigate('Renewals')} />
+        <QuickActionTile label="POLICY REQUESTS" onPress={() => navigation.navigate('PolicyRequests')} />
+      </View>
 
       {/* Search bar */}
       <View style={styles.searchWrap}>
@@ -162,7 +155,7 @@ export function BrokerPortfolioScreen({ navigation }: any) {
         renderItem={({ item }) => {
           const tier = item.tier ?? '—';
           const score = item.total_score ?? 0;
-          const tierColor = TIER_COLOR[tier] ?? Colors.textMuted;
+          const tierColor = getTierColor(tier);
           const capacity = item.current_capacity ?? 0;
           const maxCapacity = item.capacity ?? 0;
           const capacityPct = maxCapacity > 0 ? Math.min(capacity / maxCapacity, 1) : 0;
@@ -211,8 +204,8 @@ export function BrokerPortfolioScreen({ navigation }: any) {
                 </View>
               </View>
 
-              {/* Live capacity */}
-              {maxCapacity > 0 && (
+              {/* Live capacity — operator-only floor data; null for brokers */}
+              {item.current_capacity != null && maxCapacity > 0 && (
                 <View style={styles.capacitySection}>
                   <View style={styles.capacityLabelRow}>
                     <Text style={styles.capacityHeading}>LIVE CAPACITY</Text>
@@ -281,57 +274,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 20,
+    paddingTop: 14,
+    paddingBottom: 14,
   },
   name: { color: Colors.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.5, fontFamily: 'BricolageGrotesque_700Bold' },
   role: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, marginTop: 4, fontFamily: 'SpaceMono_700Bold' },
   signOut: { color: Colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, paddingTop: 6, fontFamily: 'SpaceMono_700Bold' },
 
   // Stats bar
-  statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 16 },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderSubtle,
-    padding: 14,
-    alignItems: 'center',
-    gap: 4,
-  },
-  statNum: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
-  statNumRed: { color: Colors.error },
-  statLabel: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, textAlign: 'center', fontFamily: 'SpaceMono_700Bold' },
+  statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 12 },
 
-  // Renewals entry link
-  renewalsLink: {
+  // Quick actions — two-up compact row
+  actionRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 10,
     marginHorizontal: 20,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(200,240,0,0.25)',
+    marginBottom: 12,
   },
-  renewalsLinkLabel: {
-    color: Colors.accentInk,
-    fontSize: 11,
-    letterSpacing: 1.5,
-    fontFamily: 'SpaceMono_700Bold',
-  },
-  renewalsLinkArrow: { color: Colors.accentInk, fontSize: 16, fontFamily: 'SpaceMono_700Bold' },
 
   // Search bar
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
-    marginBottom: 14,
+    marginBottom: 12,
     backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
@@ -360,7 +326,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2,
     paddingHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: 10,
     fontFamily: 'SpaceMono_700Bold',
   },
 

@@ -13,13 +13,9 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
 import { CapacityBar } from '../components/CapacityBar';
-
-const TIER_COLOR: Record<string, string> = {
-  A: Colors.accent,
-  B: Colors.success,
-  C: Colors.warning,
-  D: Colors.error,
-};
+import { StatCard } from '../components/StatCard';
+import { QuickActionTile } from '../components/QuickActionTile';
+import { tierColor as getTierColor } from '../theme/tiers';
 
 interface RiskScore {
   venue_id: string;
@@ -179,7 +175,7 @@ export function DashboardScreen({ navigation }: any) {
   const tier = riskData?.tier ?? '—';
   const score = riskData?.total_score ?? 0;
   const factors: Record<string, number> = riskData?.factors ?? {};
-  const tierColor = TIER_COLOR[tier] ?? Colors.textMuted;
+  const tierColor = getTierColor(tier);
 
   return (
     <ScrollView
@@ -251,39 +247,29 @@ export function DashboardScreen({ navigation }: any) {
 
       {/* Stats bar */}
       <View style={styles.statsRow}>
-        {/* Your Venue(s) */}
-        <Pressable style={styles.statCard} onPress={() => navigation.getParent()?.navigate('Venues')}>
-          <Text style={styles.statEyebrow}>{venuesList.length === 1 ? 'YOUR VENUE' : 'YOUR VENUES'}</Text>
-          <Text style={styles.statValue}>{venuesList.length}</Text>
-        </Pressable>
-
-        {/* Open Incidents */}
-        <Pressable
-          style={styles.statCard}
+        <StatCard
+          value={venuesList.length}
+          label={venuesList.length === 1 ? 'YOUR VENUE' : 'YOUR VENUES'}
+          onPress={() => navigation.getParent()?.navigate('Venues')}
+        />
+        <StatCard
+          value={openIncidents}
+          label="OPEN INCIDENTS"
+          tone={openIncidents > 0 ? 'error' : 'default'}
           onPress={() => navigation.getParent()?.navigate('Incidents', {
             screen: 'IncidentList',
             params: { venueId: selectedVenueId, initialFilter: 'open' },
           })}
-        >
-          <Text style={styles.statEyebrow}>OPEN INCIDENTS</Text>
-          <Text style={[styles.statValue, openIncidents > 0 && styles.statError]}>
-            {openIncidents}
-          </Text>
-        </Pressable>
-
-        {/* Compliance Actions */}
-        <Pressable
-          style={styles.statCard}
+        />
+        <StatCard
+          value={complianceCount}
+          label="COMPLIANCE"
+          tone={complianceCount > 0 ? 'error' : 'default'}
           onPress={() => navigation.getParent()?.navigate('Compliance', {
             screen: 'ComplianceList',
             params: { venueId: selectedVenueId },
           })}
-        >
-          <Text style={styles.statEyebrow}>COMPLIANCE</Text>
-          <Text style={[styles.statValue, complianceCount > 0 && styles.statError]}>
-            {complianceCount}
-          </Text>
-        </Pressable>
+        />
       </View>
 
       {/* Error state — venue exists but data failed to load */}
@@ -324,13 +310,9 @@ export function DashboardScreen({ navigation }: any) {
       )}
 
       {/* Coverage entry — operator's policy + request surface (nested in DashboardStack) */}
-      <Pressable
-        style={({ pressed }) => [styles.coverageLink, pressed && { opacity: 0.8 }]}
-        onPress={() => navigation.navigate('Coverage')}
-      >
-        <Text style={styles.coverageLinkLabel}>MY COVERAGE</Text>
-        <Text style={styles.coverageLinkArrow}>→</Text>
-      </Pressable>
+      <View style={styles.actionRow}>
+        <QuickActionTile label="MY COVERAGE" onPress={() => navigation.navigate('Coverage')} />
+      </View>
 
       {/* Risk Profile card */}
       {riskData && (
@@ -384,13 +366,13 @@ export function DashboardScreen({ navigation }: any) {
             <View
               style={[
                 styles.tierBadge,
-                { borderColor: TIER_COLOR[quoteData.tier] ?? Colors.textMuted },
+                { borderColor: getTierColor(quoteData.tier) },
               ]}
             >
               <Text
                 style={[
                   styles.tierBadgeText,
-                  { color: TIER_COLOR[quoteData.tier] ?? Colors.textMuted },
+                  { color: getTierColor(quoteData.tier) },
                 ]}
               >
                 {quoteData.tier} Tier
@@ -539,34 +521,14 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderSubtle,
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'flex-start',
-  },
-  statEyebrow: {
-    color: Colors.textMuted,
-    fontSize: 8,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    marginBottom: 6,
-    fontFamily: 'SpaceMono_700Bold',
-  },
-  statValue: {
-    color: Colors.text,
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    fontFamily: 'SpaceMono_700Bold',
-  },
-  statError: {
-    color: Colors.error,
+
+  // Quick actions — shared tile row
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
   },
 
   // Shared card
@@ -578,20 +540,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 12,
   },
-  coverageLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(200,240,0,0.25)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 12,
-  },
-  coverageLinkLabel: { color: Colors.accentInk, fontSize: 11, letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
-  coverageLinkArrow: { color: Colors.accentInk, fontSize: 16, fontFamily: 'SpaceMono_700Bold' },
   sectionEyebrow: {
     color: Colors.textMuted,
     fontSize: 10,

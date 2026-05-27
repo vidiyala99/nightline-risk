@@ -14,9 +14,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, File, UploadFile
 from sqlmodel import Session, select
 
+from app.auth import require_broker
 from app.database import get_session
 from app.live_state import live_state_manager
 from app.models import ComplianceEvidence
+from app.packet_core import _add_audit_event
 from app.schemas.errors import error_response
 
 router = APIRouter()
@@ -110,6 +112,42 @@ async def upload_compliance_evidence(
         "uploaded_at": record.uploaded_at.isoformat(),
         "citation": citation.model_dump() if citation else None,
     }
+
+
+@router.patch("/venues/{venue_id}/compliance/{item_id}/resolve")
+def resolve_compliance_item_as_broker(
+    venue_id: str,
+    item_id: str,
+    body: dict | None = None,
+    session: Session = Depends(get_session),
+    user: dict = Depends(require_broker),
+) -> dict:
+    """Broker/admin waiver: close out a compliance item without operator
+    evidence. Records an audit event so the waiver is traceable. Operator
+    resolution stays upload-driven (see upload route above)."""
+    from app.main import _find_compliance_item, _resolve_venue
+
+    venue = _resolve_venue(venue_id, session)
+    # Materialize live state so the in-memory queue exists before we resolve.
+    live_state_manager.get_state(venue_id, venue["capacity"], venue)
+    item = _find_compliance_item(venue_id, venue, item_id)
+    if item is None or not live_state_manager.resolve_compliance_item(venue_id, item_id):
+        raise error_response(
+            "compliance_item_not_found",
+            f"Compliance item {item_id!r} not found for venue {venue_id!r}.",
+            status_code=404,
+        )
+
+    reason = (body or {}).get("reason")
+    _add_audit_event(
+        session=session,
+        actor_id=user["sub"], actor_type="user",
+        entity_type="compliance", entity_id=item_id,
+        event_type="compliance.waived",
+        event_metadata={"venue_id": venue_id, "reason": reason},
+    )
+    session.commit()
+    return {"status": "resolved", "item_id": item_id}
 
 
 @router.get("/venues/{venue_id}/compliance/{item_id}/evidence")

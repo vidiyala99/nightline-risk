@@ -53,6 +53,7 @@ export default function ComplianceDetailPage() {
   const [venueName, setVenueName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [resolving, setResolving] = useState(false);
   const [citation, setCitation] = useState<CitationChip | null>(null);
 
   useEffect(() => {
@@ -121,6 +122,28 @@ export default function ComplianceDetailPage() {
     } catch {
       toastError("Failed to upload evidence");
       setUploading(false);
+    }
+  };
+
+  const handleWaive = async () => {
+    const reason = window.prompt(
+      "Resolve / waive this compliance item without operator evidence?\nOptionally note why (recorded in the audit trail):",
+      "",
+    );
+    if (reason === null) return; // cancelled
+    setResolving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/venues/${venueId}/compliance/${itemId}/resolve`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ reason: reason || null }),
+      });
+      if (!res.ok) throw new Error("Resolve failed");
+      toastSuccess("Compliance item resolved");
+      router.push(`/compliance?venue=${encodeURIComponent(venueId)}`);
+    } catch {
+      toastError("Failed to resolve item");
+      setResolving(false);
     }
   };
 
@@ -211,7 +234,7 @@ export default function ComplianceDetailPage() {
                 </p>
               </div>
             )}
-            {!isBroker && (
+            {!isBroker ? (
               <div className="compliance-actions">
                 <input
                   type="file"
@@ -231,6 +254,21 @@ export default function ComplianceDetailPage() {
                     <><Upload size={18} />Upload Evidence</>
                   )}
                 </label>
+              </div>
+            ) : (
+              <div className="compliance-actions">
+                <button
+                  type="button"
+                  className={`btn btn-secondary${resolving ? " disabled" : ""}`}
+                  onClick={handleWaive}
+                  disabled={resolving}
+                >
+                  {resolving ? (
+                    <><div className="loading-spinner loading-spinner-sm" />Resolving...</>
+                  ) : (
+                    <><CheckSquare size={18} />Resolve / Waive</>
+                  )}
+                </button>
               </div>
             )}
           </div>

@@ -52,6 +52,7 @@ function CompliancePageInner() {
   // Operator/detail state
   const [complianceItems, setComplianceItems] = useState<ComplianceItem[]>([]);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   // Broker portfolio state (only when no ?venue filter)
   const [brokerVenues, setBrokerVenues] = useState<VenueWithCompliance[]>([]);
@@ -137,6 +138,30 @@ function CompliancePageInner() {
       setUploadingId(null);
       const input = document.getElementById(`upload-${itemId}`) as HTMLInputElement | null;
       if (input) input.value = "";
+    }
+  };
+
+  const handleWaive = async (itemId: string) => {
+    if (!detailVenueId) return;
+    const reason = window.prompt(
+      "Resolve / waive this compliance item without operator evidence?\nOptionally note why (recorded in the audit trail):",
+      "",
+    );
+    if (reason === null) return; // cancelled
+    setResolvingId(itemId);
+    try {
+      const res = await fetch(`${API_URL}/api/venues/${detailVenueId}/compliance/${itemId}/resolve`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ reason: reason || null }),
+      });
+      if (!res.ok) throw new Error("Resolve failed");
+      toastSuccess("Compliance item resolved");
+      setComplianceItems((prev) => prev.filter((item) => item.id !== itemId));
+    } catch {
+      toastError("Failed to resolve item");
+    } finally {
+      setResolvingId(null);
     }
   };
 
@@ -266,7 +291,7 @@ function CompliancePageInner() {
                     {item.severity}
                   </span>
                 </div>
-                {!isBroker && (
+                {!isBroker ? (
                   // stopPropagation only — preventDefault would block the
                   // label→input file picker activation (per HTML spec, a
                   // click whose defaultPrevented is true on a label does
@@ -293,6 +318,24 @@ function CompliancePageInner() {
                         <><Upload size={18} />Upload Evidence</>
                       )}
                     </label>
+                  </div>
+                ) : (
+                  <div
+                    className="compliance-actions"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  >
+                    <button
+                      type="button"
+                      className={`btn btn-secondary${resolvingId === item.id ? " disabled" : ""}`}
+                      onClick={() => handleWaive(item.id)}
+                      disabled={resolvingId === item.id}
+                    >
+                      {resolvingId === item.id ? (
+                        <><div className="loading-spinner loading-spinner-sm" />Resolving...</>
+                      ) : (
+                        <><CheckSquare size={18} />Resolve / Waive</>
+                      )}
+                    </button>
                   </div>
                 )}
               </Link>

@@ -9,11 +9,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { CapacityBar } from '../components/CapacityBar';
+import { tierColor as getTierColor } from '../theme/tiers';
+import { pickEvidence } from '../lib/pickEvidence';
 
 interface InfraItem {
   name: string;
@@ -24,8 +25,9 @@ interface InfraItem {
 
 interface QueueItem {
   id: string;
-  action: string;
-  priority: string;
+  title: string;
+  description: string;
+  severity: string;
 }
 
 interface LiveData {
@@ -34,13 +36,6 @@ interface LiveData {
   infrastructure: InfraItem[];
   compliance_queue: QueueItem[];
 }
-
-const TIER_COLOR: Record<string, string> = {
-  A: Colors.accent,
-  B: Colors.success,
-  C: Colors.warning,
-  D: Colors.error,
-};
 
 const STATUS_DOT: Record<string, string> = {
   operational: Colors.accent,
@@ -91,11 +86,13 @@ export function LiveTerminalScreen({ navigation }: any) {
           is_degraded: typeof val === 'object' ? Boolean(val.is_degraded) : false,
         }));
       }
-      // Normalize compliance queue — API uses title/severity, UI uses action/priority
+      // Normalize compliance queue to the canonical ComplianceItem shape
+      // (id/title/description/severity) so mobile + web render the same fields.
       const queue: QueueItem[] = (raw.compliance_queue ?? []).map((item: any) => ({
         id: String(item.id ?? ''),
-        action: String(item.action ?? item.title ?? ''),
-        priority: String(item.priority ?? item.severity ?? 'low').toLowerCase(),
+        title: String(item.title ?? item.action ?? ''),
+        description: String(item.description ?? ''),
+        severity: String(item.severity ?? item.priority ?? 'low').toLowerCase(),
       }));
       setData({ ...raw, infrastructure: infra, compliance_queue: queue });
     } catch {
@@ -115,21 +112,16 @@ export function LiveTerminalScreen({ navigation }: any) {
 
   const handleUpload = useCallback(async (item: QueueItem) => {
     if (!user?.tenant_id) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      quality: 0.85,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    const asset = result.assets[0];
+    const asset = await pickEvidence();
+    if (!asset) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setUploadingId(item.id);
     try {
       const formData = new FormData();
       formData.append('file', {
         uri: asset.uri,
-        name: asset.fileName ?? 'evidence',
-        type: asset.mimeType ?? 'application/octet-stream',
+        name: asset.name,
+        type: asset.type,
       } as any);
       await api.upload(`/api/venues/${user.tenant_id}/compliance/${item.id}/upload`, formData);
       setData(prev =>
@@ -174,11 +166,26 @@ export function LiveTerminalScreen({ navigation }: any) {
       </View>
 
       <HandAccent>the live room</HandAccent>
+
+      {/* Savings hero — mirrors the web terminal's "Nightline saves you" block */}
+      {quoteData && (quoteData.savings_annual ?? 0) > 0 && (
+        <View style={styles.savingsCard}>
+          <Text style={styles.savingsEyebrow}>NIGHTLINE SAVES YOU</Text>
+          <Text style={styles.savingsAmount}>
+            ${(quoteData.savings_annual ?? 0).toLocaleString()}
+            <Text style={styles.savingsPerYear}>/yr</Text>
+          </Text>
+          <Text style={styles.savingsSub}>
+            vs. market rate of ${quoteData.market_rate_annual?.toLocaleString()} — {quoteData.savings_pct}% discount through evidence-first underwriting
+          </Text>
+        </View>
+      )}
+
       {/* Risk Score + Premium */}
       {riskData && (
         <View style={styles.statsRow}>
           <Pressable
-            style={({ pressed }) => [styles.statCard, { borderColor: `${TIER_COLOR[riskData.tier] ?? Colors.textMuted}33` }, pressed && { opacity: 0.75 }]}
+            style={({ pressed }) => [styles.statCard, { borderColor: `${getTierColor(riskData.tier)}33` }, pressed && { opacity: 0.75 }]}
             onPress={() => navigation.navigate('RiskProfileDetail', {
               riskData,
               quoteData,
@@ -187,10 +194,10 @@ export function LiveTerminalScreen({ navigation }: any) {
             })}
           >
             <Text style={styles.statEyebrow}>RISK TIER</Text>
-            <Text style={[styles.statBig, { color: TIER_COLOR[riskData.tier] ?? Colors.text }]}>
+            <Text style={[styles.statBig, { color: getTierColor(riskData.tier) }]}>
               {riskData.tier ?? '—'}
             </Text>
-            <Text style={[styles.statSub, { color: TIER_COLOR[riskData.tier] ?? Colors.textMuted }]}>
+            <Text style={[styles.statSub, { color: getTierColor(riskData.tier) }]}>
               {riskData.total_score ?? 0} / 100
             </Text>
           </Pressable>
@@ -205,7 +212,7 @@ export function LiveTerminalScreen({ navigation }: any) {
       )}
 
       <View style={[styles.card, capacityPct > 0.85 && styles.cardDanger]}>
-        <Text style={styles.sectionEyebrow}>CAPACITY</Text>
+        <Text style={styles.sectionEyebrow}>LIVE OCCUPANCY</Text>
         <View style={styles.capacityNumbers}>
           <Text style={[styles.capacityBig, { color: capacityPct > 0.85 ? Colors.error : Colors.text }]}>
             {data.current_capacity}
@@ -249,11 +256,12 @@ export function LiveTerminalScreen({ navigation }: any) {
           <Text style={styles.complianceClear}>{'>'} All clear{'\n'}No pending compliance actions.</Text>
         ) : (
           data.compliance_queue.map((item, i) => (
-            <View key={item.id || i} style={[styles.queueRow, { borderLeftColor: PRIORITY_COLOR[item.priority] ?? Colors.textMuted }]}>
+            <View key={item.id || i} style={[styles.queueRow, { borderLeftColor: PRIORITY_COLOR[item.severity] ?? Colors.textMuted }]}>
               <View style={styles.queueContent}>
-                <Text style={styles.queueAction}>{item.action}</Text>
-                <Text style={[styles.queuePriority, { color: PRIORITY_COLOR[item.priority] ?? Colors.textMuted }]}>
-                  {item.priority.toUpperCase()}
+                <Text style={styles.queueAction}>{item.title}</Text>
+                {!!item.description && <Text style={styles.queueDesc}>{item.description}</Text>}
+                <Text style={[styles.queuePriority, { color: PRIORITY_COLOR[item.severity] ?? Colors.textMuted }]}>
+                  {item.severity.toUpperCase()}
                 </Text>
               </View>
               <Pressable
@@ -409,7 +417,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   queueContent: { gap: 2 },
-  queueAction: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18, fontFamily: 'HankenGrotesk_400Regular' },
+  queueAction: { color: Colors.text, fontSize: 13, fontWeight: '700', lineHeight: 18, fontFamily: 'HankenGrotesk_700Bold' },
+  queueDesc: { color: Colors.textSecondary, fontSize: 12, lineHeight: 17, fontFamily: 'HankenGrotesk_400Regular' },
   queuePriority: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, fontFamily: 'SpaceMono_700Bold' },
   uploadBtn: {
     alignSelf: 'flex-start',

@@ -394,6 +394,7 @@ def require_broker(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     if decoded.get("role") not in ("broker", "admin"):
         raise HTTPException(status_code=403, detail="Broker access required")
+    return decoded
 
 
 def _get_current_user_record(authorization: str, session: Session):
