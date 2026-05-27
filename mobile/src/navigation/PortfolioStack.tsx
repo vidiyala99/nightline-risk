@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BrokerPortfolioScreen } from '../screens/BrokerPortfolioScreen';
 import { BrokerVenueDetailScreen } from '../screens/BrokerVenueDetailScreen';
 import { RiskProfileDetailScreen } from '../screens/RiskProfileDetailScreen';
+import { VenueProfileScreen } from '../screens/VenueProfileScreen';
 import { RenewalsScreen } from '../screens/RenewalsScreen';
 import { PolicyRequestsScreen } from '../screens/PolicyRequestsScreen';
 
@@ -14,6 +15,7 @@ export function PortfolioStack() {
       <Stack.Screen name="PortfolioList" component={BrokerPortfolioScreen} />
       <Stack.Screen name="VenueDetail" component={BrokerVenueDetailScreen} />
       <Stack.Screen name="RiskProfileDetail" component={RiskProfileDetailScreen} />
+      <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />
       <Stack.Screen name="Renewals" component={RenewalsScreen} />
       <Stack.Screen name="PolicyRequests" component={PolicyRequestsScreen} />
     </Stack.Navigator>

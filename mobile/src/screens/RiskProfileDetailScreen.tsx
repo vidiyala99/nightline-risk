@@ -99,6 +99,8 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
           screen: 'Live',
           params: { screen: 'LiveHome' },
         });
+      case 'business_profile':
+        return () => navigation.navigate('VenueProfile', { venueId, venueName });
       default:
         return null;
     }
