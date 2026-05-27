@@ -267,12 +267,16 @@ def test_runner_compare_baseline_exits_zero_on_no_regression():
 
 
 def test_runner_compare_baseline_exits_one_on_regression(tmp_path, monkeypatch):
-    """Point the runner at a fake higher baseline; current run must regress.
+    """A run scoring below the committed baseline must register as a regression.
 
-    Uses a temp baseline file via monkeypatching the module constant.
+    Decoupled from the live agent's quality: we feed compare_to_baseline a
+    deliberately degraded snapshot against a higher baseline so the gate logic
+    is what's under test, not whatever the deterministic stack happens to score
+    today (it currently passes everything, so a real run can't fall below a
+    perfect baseline).
     """
-    # Construct a baseline that requires perfect scores (15/15 = 1.0 aggregate)
-    # The actual deterministic run is 7/15, so this MUST regress.
+    from app.evals import baseline as baseline_mod
+
     perfect = _snapshot(
         aggregate=1.0,
         scorers={
@@ -283,30 +287,23 @@ def test_runner_compare_baseline_exits_one_on_regression(tmp_path, monkeypatch):
             "factor_recognition": 1.0,
         },
     )
-    fake_baseline = tmp_path / "baseline.json"
-    fake_baseline.write_text(json.dumps(perfect), encoding="utf-8")
+    # Same scorers, but severity_match and the aggregate have slipped — exactly
+    # the shape of a real regression PR.
+    regressed_run = _snapshot(
+        aggregate=0.8,
+        scorers={
+            "structural": 1.0,
+            "severity_match": 0.6,
+            "citation_coverage": 1.0,
+            "review_status_match": 1.0,
+            "factor_recognition": 1.0,
+        },
+    )
 
-    # Need to override the BASELINE_PATH the subprocess sees. Cleanest path:
-    # set an env var that runner.py respects. We don't have one — instead,
-    # do an in-process test using load + compare directly, since the runner's
-    # main() already has integration coverage via the green-path test above.
-    # This avoids monkeypatching across a subprocess boundary.
-    from app.evals import baseline as baseline_mod
-
-    # Run the runner in-process and compare against the perfect baseline.
-    from app.providers import DeterministicProvider
-    from app.agents.runtime import UnderwritingPacketAgentRuntime
-    from app.evals.runner import run_all, _provider_info
-    from app.evals.report import snapshot_payload
-
-    provider = DeterministicProvider()
-    runtime = UnderwritingPacketAgentRuntime(memo_provider=provider)
-    info = _provider_info(provider)
-    results = run_all(runtime, memo_provider_mode=info.mode)
-    snapshot = snapshot_payload(results, timestamp="t", provider=info)
-
-    diff = baseline_mod.compare_to_baseline(snapshot, perfect)
+    diff = baseline_mod.compare_to_baseline(regressed_run, perfect)
     assert diff.regressed is True
+    assert diff.aggregate_regressed is True
+    assert any(s.name == "severity_match" and s.regressed for s in diff.scorers)
 
 
 # --- PR2: provider matrix + stack-keyed baseline --------------------------

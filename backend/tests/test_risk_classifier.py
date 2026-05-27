@@ -203,6 +203,40 @@ def test_classifier_factory_resolution_order(monkeypatch):
     assert isinstance(get_default_risk_classifier(), AnthropicRiskClassifier)
 
 
+def _signal_for(summary: str, **flags):
+    incident = IncidentCreate(
+        occurred_at="2026-05-02T23:13:00Z",
+        location="venue",
+        summary=summary,
+        reported_by="shift-lead",
+        injury_observed=flags.get("injury_observed", False),
+        police_called=flags.get("police_called", False),
+        ems_called=flags.get("ems_called", False),
+    )
+    runtime = UnderwritingPacketAgentRuntime(risk_classifier=DeterministicRiskClassifier())
+    return runtime._run_risk_evaluator_agent(citations=[], incident=incident)
+
+
+def test_unrecognized_input_routes_to_review_not_auto_approved():
+    """Safety: an off-topic / non-incident input the classifier can't place
+    must NOT auto-approve — it routes to needs_review so a human catches the
+    misroute. (ADV-005 menu-question regression.)"""
+    signal = _signal_for("Can the bar team get more limes for the weekend? Cocktail menu needs them.")
+    assert signal.type == "general_incident"
+    assert signal.severity == "low"
+    assert signal.review_status == "needs_review"
+
+
+def test_recognized_low_incident_still_auto_approves():
+    """Guard: a *recognized* low-severity incident (mitigated crowd event)
+    still auto-approves — the review gate only opens for unrecognized input,
+    not every low-severity packet."""
+    signal = _signal_for("Crowd management on dance floor with security present and proactive water distribution")
+    assert signal.type == "crowd_management"
+    assert signal.severity == "low"
+    assert signal.review_status == "approved"
+
+
 def test_hard_signal_escalation_overrides_classifier_severity():
     """Even if the classifier says 'low', EMS-called must escalate the final severity."""
     class _LowBallClassifier(RiskClassifierProvider):

@@ -206,7 +206,12 @@ class UnderwritingPacketAgentRuntime:
             "low": "Limited liability exposure. Standard documentation and follow-up recommended.",
         }
 
-        review_status = "approved" if severity == "low" else "needs_review"
+        # Fail safe to human review on anything the classifier couldn't place
+        # as a known incident type: an unrecognized (general_incident) input is
+        # never auto-approved, even at low severity. This catches off-topic /
+        # misrouted packets (e.g. a menu question) before they flow downstream.
+        unrecognized = classification.risk_type == "general_incident"
+        review_status = "approved" if (severity == "low" and not unrecognized) else "needs_review"
 
         return RiskSignal(
             type=classification.risk_type,
