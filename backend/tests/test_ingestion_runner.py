@@ -15,7 +15,16 @@ def _session() -> Session:
     return Session(engine)
 
 
-def test_run_pos_moves_a_venue_score():
+def test_run_pos_moves_a_venue_score(monkeypatch):
+    # Freeze the connector window so the seeded over_pour_rate is deterministic.
+    # With now_utc() the rate is timestamp-seeded and ~1% of runs roll a value
+    # tiny enough to round to a zero penalty, making `after < before` flaky.
+    from datetime import datetime, timezone
+    monkeypatch.setattr(
+        "app.ingestion.connectors.now_utc",
+        lambda: datetime(2026, 5, 26, 1, 0, 0, tzinfo=timezone.utc),  # rate ≈ 0.92 → clear penalty
+    )
+
     s = _session()
     venue = {
         "name": "Elsewhere",
