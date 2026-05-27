@@ -3034,6 +3034,12 @@ a:hover { color: var(--text-primary); }
   border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 16px;
   flex-wrap: wrap;
+  /* Pinned control bar: search + chips stay put while the book scrolls
+     (mirrors the mobile RN screen's pinned header). */
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--bg-base);
 }
 .lc-triage__title {
   font-family: var(--font-display);
@@ -3115,6 +3121,11 @@ a:hover { color: var(--text-primary); }
 .lc-triage__group-head[data-critical="true"] .lc-triage__group-label {
   color: var(--state-error);
 }
+/* In The Book the head is the pinned bar, so bucket labels scroll under it
+   instead of fighting it for the top (avoids a nested-sticky collision). */
+.lc-triage--book .lc-triage__group-head {
+  position: static;
+}
 
 /* "The Book" variant: a flat navigable list, not a master-detail split.
    The shared .lc-triage grid is still used by the reports/underwriter page. */
@@ -3132,24 +3143,51 @@ a:hover { color: var(--text-primary); }
 
 .lc-triage__row {
   display: grid;
-  grid-template-columns: 14px 1fr auto auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   min-height: 44px;
   padding: 12px 14px;
-  margin: 4px 0;
+  margin: 6px 0;
   border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  border-left: 2px solid transparent;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--text-tertiary);
   cursor: pointer;
   text-decoration: none;
   color: inherit;
-  transition: background 0.15s, border-color 0.15s;
+  transition: box-shadow 0.15s, border-color 0.15s, background 0.15s;
 }
-.lc-triage__row:hover { background: rgba(23,21,15,0.05); }
 .lc-triage__row:focus-visible {
   outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
+}
+/* Tonight: warm wash + lift draws the eye; Standing: muted/condensed. */
+.lc-triage__row[data-bucket="tonight"] {
+  background: rgba(200,52,30,0.05);
+  border-color: rgba(200,52,30,0.18);
+  box-shadow: 0 2px 10px rgba(23,21,15,0.06);
+}
+.lc-triage__row[data-bucket="standing"] {
+  background: var(--bg-dark);
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lc-triage__row:hover {
+    box-shadow: 0 4px 16px rgba(23,21,15,0.10);
+    transform: translateY(-1px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lc-triage__row:hover { box-shadow: 0 4px 16px rgba(23,21,15,0.10); }
+}
+.lc-triage__row-tierline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
 }
 /* Trailing chevron signals the row navigates; only present in The Book. */
 .lc-triage__row-go {
@@ -3202,17 +3240,17 @@ a:hover { color: var(--text-primary); }
   min-width: 64px;
 }
 .lc-triage__row-meta .conf {
-  font-family: var(--font-body);
+  font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1.3rem;
+  line-height: 1;
   font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 .lc-triage__row-meta .date {
   font-family: var(--font-mono);
   font-size: 0.66rem;
   color: var(--text-tertiary);
-  margin-top: 4px;
   letter-spacing: 0.04em;
 }
 
@@ -3335,6 +3373,8 @@ a:hover { color: var(--text-primary); }
   .lc-triage__list { height: auto; max-height: none; }
   .lc-triage__preview { display: none; }
   .lc-triage__head { padding: 14px 0 12px; }
+  /* Sit below the sticky mobile top bar (.mobile-nav-bar) when pinned. */
+  .lc-triage__head { top: 56px; }
   .lc-triage__chips { margin-left: 0; width: 100%; }
 
   /* Operator "On The Floor" live-status hero stacks below 900px */

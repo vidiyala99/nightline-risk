@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { AlertTriangle, ArrowUpRight, CheckSquare, WifiOff } from 'lucide-react-native';
+import { AlertTriangle, CheckSquare, WifiOff } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
 import { useResponsive } from '../hooks/useResponsive';
@@ -132,79 +132,81 @@ export function BrokerPortfolioScreen({ navigation }: any) {
     { key: 'renewals', label: 'Renewals 30d', count: counts.renewals },
   ];
 
-  return (
-    <View style={styles.root}>
-      {/* Header */}
+  // Glanceable context (identity, stats, quick actions, KPI) scrolls away as
+  // the broker browses; search + chips stay pinned below as a fixed control bar.
+  const scrollAwayHeader = (
+    <View style={styles.scrollHeader}>
       <View style={styles.header}>
         <Text style={styles.name}>{user?.name}</Text>
         <Text style={styles.role}>BROKER · NIGHTLINE RISK</Text>
       </View>
 
-      {/* Stats bar: 3 cards */}
       <View style={styles.statsRow}>
         <StatCard value={totalVenues} label="TOTAL VENUES" onPress={() => navigation.getParent()?.navigate('Venues')} />
         <StatCard value={openIncidents} label="OPEN INCIDENTS" tone={openIncidents > 0 ? 'error' : 'default'} onPress={() => navigation.getParent()?.navigate('Incidents')} />
         <StatCard value={complianceActions} label="COMPLIANCE" tone={complianceActions > 0 ? 'warning' : 'default'} onPress={() => navigation.getParent()?.navigate('Compliance')} />
       </View>
 
-      {/* Quick actions — two-up compact row */}
       <View style={styles.actionRow}>
         <QuickActionTile label="RENEWALS DUE" onPress={() => navigation.navigate('Renewals')} />
         <QuickActionTile label="POLICY REQUESTS" onPress={() => navigation.navigate('PolicyRequests')} />
       </View>
 
-      {/* Search bar */}
-      <View style={styles.searchWrap}>
-        <Text style={styles.searchIcon}>⌕</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search venues, types, addresses…"
-          placeholderTextColor={Colors.textMuted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCorrect={false}
-          autoCapitalize="none"
-          clearButtonMode="while-editing"
-        />
-      </View>
-
-      {/* KPI + urgency chips */}
       <View style={styles.kpiRow}>
-        <Text style={styles.kpiText}>
-          THE BOOK · {String(totalVenues).padStart(2, '0')} VENUES
-        </Text>
-        {counts.tonight > 0 && (
-          <Text style={styles.kpiHi}>{counts.tonight} NEED EYES</Text>
-        )}
+        <Text style={styles.kpiText}>THE BOOK · {String(totalVenues).padStart(2, '0')} VENUES</Text>
+        {counts.tonight > 0 && <Text style={styles.kpiHi}>{counts.tonight} NEED EYES</Text>}
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipRow}
-        style={styles.chipScroll}
-      >
-        {chips.map(c => {
-          const active = filter === c.key;
-          return (
-            <Pressable
-              key={c.key}
-              onPress={() => setFilter(c.key)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && { opacity: 0.7 }]}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {c.label} · {c.count}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+    </View>
+  );
+
+  return (
+    <View style={styles.root}>
+      {/* Pinned control bar — search + filter chips stay put while browsing */}
+      <View style={styles.pinnedBar}>
+        <View style={styles.searchWrap}>
+          <Text style={styles.searchIcon}>⌕</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search venues, types, addresses…"
+            placeholderTextColor={Colors.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+            autoCapitalize="none"
+            clearButtonMode="while-editing"
+          />
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+          style={styles.chipScroll}
+        >
+          {chips.map(c => {
+            const active = filter === c.key;
+            return (
+              <Pressable
+                key={c.key}
+                onPress={() => setFilter(c.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  {c.label} · {c.count}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       <SectionList
         sections={sections}
         keyExtractor={item => item.id}
         stickySectionHeadersEnabled
+        ListHeaderComponent={scrollAwayHeader}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.list,
           isTablet && { maxWidth: 720, alignSelf: 'center', width: '100%' },
@@ -223,6 +225,7 @@ export function BrokerPortfolioScreen({ navigation }: any) {
               <Text style={[styles.groupLabel, critical && { color: Colors.error }]}>
                 {(section as any).title}
               </Text>
+              <View style={styles.groupRule} />
               <Text style={styles.groupCount}>{String(section.data.length).padStart(2, '0')}</Text>
             </View>
           );
@@ -231,56 +234,67 @@ export function BrokerPortfolioScreen({ navigation }: any) {
           const tier = item.tier ?? '—';
           const tColor = getTierColor(tier);
           const isTonight = item._bucket === 'tonight';
+          const isStanding = item._bucket === 'standing';
           const renewalSoon = item._daysToRenew != null && item._daysToRenew <= 14;
           const capLabel = item.current_capacity != null
             ? `${item.current_capacity}/${item.capacity.toLocaleString()}`
             : `${(item.capacity ?? 0).toLocaleString()} cap`;
           const typeLabel = (item.venue_type ?? '').replace(/_/g, ' ').toUpperCase();
+          const daysLabel = item._daysToRenew != null
+            ? (item._daysToRenew < 0 ? `${Math.abs(item._daysToRenew)}d past` : `${item._daysToRenew}d`)
+            : null;
 
           return (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Open ${item.name}`}
               onPress={() => navigation.navigate('VenueDetail', { venueId: item.id, venueName: item.name ?? item.id })}
-              style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [
+                styles.card,
+                { borderLeftColor: tColor },
+                isTonight && styles.cardTonight,
+                isStanding && styles.cardStanding,
+                pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+              ]}
             >
-              <View style={[styles.dot, { backgroundColor: tColor, opacity: isTonight ? 1 : 0.4 }]} />
-
-              <View style={styles.rowMain}>
+              {/* Line 1: name + badges · score */}
+              <View style={styles.cardTopRow}>
                 <View style={styles.titleRow}>
                   <Text style={styles.venueName} numberOfLines={1}>{item.name}</Text>
                   {item.open_incidents > 0 && (
                     <View style={styles.badge}>
-                      <AlertTriangle size={10} color={Colors.error} />
+                      <AlertTriangle size={11} color={Colors.error} />
                       <Text style={[styles.badgeText, { color: Colors.error }]}>{item.open_incidents}</Text>
                     </View>
                   )}
                   {item.compliance_actions > 0 && (
                     <View style={styles.badge}>
-                      <CheckSquare size={10} color={Colors.accentInk} />
+                      <CheckSquare size={11} color={Colors.accentInk} />
                       <Text style={[styles.badgeText, { color: Colors.accentInk }]}>{item.compliance_actions}</Text>
                     </View>
                   )}
                   {item.has_degraded_infra && (
                     <View style={styles.badge}>
-                      <WifiOff size={10} color={Colors.warning} />
+                      <WifiOff size={11} color={Colors.warning} />
                       <Text style={[styles.badgeText, { color: Colors.warning }]}>DEG</Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.rowSub} numberOfLines={1}>{typeLabel} · {capLabel}</Text>
-              </View>
-
-              <View style={styles.meta}>
                 <Text style={[styles.score, { color: tColor }]}>{item.total_score ?? 0}</Text>
-                <Text style={[styles.days, renewalSoon && { color: Colors.warning }]}>
-                  {item._daysToRenew != null
-                    ? (item._daysToRenew < 0 ? `${Math.abs(item._daysToRenew)}d past` : `${item._daysToRenew}d`)
-                    : `Tier ${tier}`}
-                </Text>
               </View>
 
-              <ArrowUpRight size={14} color={Colors.textMuted} />
+              {/* Line 2: type · capacity · tier pill + days */}
+              <View style={styles.cardBottomRow}>
+                <Text style={styles.rowSub} numberOfLines={1}>{typeLabel} · {capLabel}</Text>
+                <View style={styles.metaRight}>
+                  <View style={[styles.tierPill, { borderColor: tColor }]}>
+                    <Text style={[styles.tierPillText, { color: tColor }]}>Tier {tier}</Text>
+                  </View>
+                  {daysLabel && (
+                    <Text style={[styles.days, renewalSoon && { color: Colors.warning }]}>{daysLabel}</Text>
+                  )}
+                </View>
+              </View>
             </Pressable>
           );
         }}
@@ -301,18 +315,28 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
 
-  header: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14 },
+  scrollHeader: { paddingTop: 4 },
+  header: { paddingTop: 12, paddingBottom: 14 },
   name: { color: Colors.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.5, fontFamily: 'BricolageGrotesque_700Bold' },
   role: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, marginTop: 4, fontFamily: 'SpaceMono_700Bold' },
 
-  statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 12 },
-  actionRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 12 },
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  actionRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+
+  // Pinned control bar (fixed above the scrolling list)
+  pinnedBar: {
+    backgroundColor: Colors.bg,
+    paddingTop: 8,
+    paddingBottom: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderSubtle,
+  },
 
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: 10,
     backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
@@ -324,11 +348,11 @@ const styles = StyleSheet.create({
   searchIcon: { color: Colors.textMuted, fontSize: 16 },
   searchInput: { flex: 1, color: Colors.text, fontFamily: 'HankenGrotesk_400Regular', fontSize: 14, padding: 0, margin: 0 },
 
-  kpiRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, marginBottom: 8 },
+  kpiRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
   kpiText: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
   kpiHi: { color: Colors.error, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
 
-  chipScroll: { maxHeight: 44, marginBottom: 4 },
+  chipScroll: { maxHeight: 44 },
   chipRow: { paddingHorizontal: 20, gap: 8, alignItems: 'center' },
   chip: {
     paddingHorizontal: 12,
@@ -346,43 +370,63 @@ const styles = StyleSheet.create({
 
   list: { paddingHorizontal: 20, paddingBottom: 40 },
 
+  // Editorial bucket divider
   groupHead: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
     backgroundColor: Colors.bg,
-    paddingVertical: 8,
-    marginTop: 4,
+    paddingTop: 14,
+    paddingBottom: 8,
   },
-  groupLabel: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
+  groupLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 2.5, fontFamily: 'SpaceMono_700Bold' },
+  groupRule: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
   groupCount: { color: Colors.textMuted, fontSize: 11, fontFamily: 'SpaceMono_400Regular' },
 
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    minHeight: 56,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(23,21,15,0.06)',
+  // Venue card
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    borderLeftWidth: 3,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    gap: 5,
   },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  rowMain: { flex: 1, minWidth: 0, gap: 3 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardTonight: {
+    backgroundColor: 'rgba(200,52,30,0.05)',
+    borderColor: 'rgba(200,52,30,0.18)',
+    shadowColor: '#17150F',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  cardStanding: {
+    backgroundColor: Colors.bgDeep,
+  },
+
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  titleRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   venueName: {
     flexShrink: 1,
     color: Colors.text,
-    fontSize: 17,
+    fontSize: 16,
     fontStyle: 'italic',
     letterSpacing: -0.3,
     fontFamily: 'BricolageGrotesque_700Bold',
   },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   badgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold' },
-  rowSub: { color: Colors.textMuted, fontSize: 10, letterSpacing: 1, fontFamily: 'SpaceMono_400Regular' },
+  score: { fontSize: 23, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
 
-  meta: { alignItems: 'flex-end', gap: 2 },
-  score: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'SpaceMono_700Bold' },
+  cardBottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  rowSub: { flexShrink: 1, color: Colors.textMuted, fontSize: 10, letterSpacing: 1, fontFamily: 'SpaceMono_400Regular' },
+  metaRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tierPill: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  tierPillText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold' },
   days: { color: Colors.textMuted, fontSize: 10, fontFamily: 'SpaceMono_400Regular' },
 
   empty: { alignItems: 'center', paddingTop: 60, gap: 8 },

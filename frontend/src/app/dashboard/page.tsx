@@ -779,13 +779,10 @@ function TriageRow({
     <Link
       href={`/risk-profile/${venue.id}`}
       className="lc-triage__row"
+      data-bucket={venue._bucket}
+      style={{ borderLeftColor: tierColor }}
       aria-label={`Open risk profile for ${venue.name}`}
     >
-      <span
-        className="lc-triage__dot"
-        data-filled={venue._bucket === "tonight" ? "true" : "false"}
-        style={{ color: tierColor, background: tierColor }}
-      />
       <div style={{ minWidth: 0 }}>
         <div className="lc-triage__row-title" style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{venue.name}</span>
@@ -812,10 +809,13 @@ function TriageRow({
       </div>
       <div className="lc-triage__row-meta">
         <span className="conf" style={{ color: tierColor }}>{venue.total_score}</span>
-        <div className="date" style={{ color: renewalSoon ? "var(--state-warning)" : undefined }}>
-          {venue._daysToRenew != null
-            ? venue._daysToRenew < 0 ? `${Math.abs(venue._daysToRenew)}d past` : `${venue._daysToRenew}d`
-            : <TierBadge tier={venue.tier as UiTier} />}
+        <div className="lc-triage__row-tierline">
+          <TierBadge tier={venue.tier as UiTier} />
+          {venue._daysToRenew != null && (
+            <span className="date" style={{ color: renewalSoon ? "var(--state-warning)" : undefined }}>
+              {venue._daysToRenew < 0 ? `${Math.abs(venue._daysToRenew)}d past` : `${venue._daysToRenew}d`}
+            </span>
+          )}
         </div>
       </div>
       <ArrowUpRight size={14} className="lc-triage__row-go" aria-hidden="true" />
