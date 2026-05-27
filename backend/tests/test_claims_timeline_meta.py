@@ -148,6 +148,28 @@ def test_clean_packet_can_be_complete():
     assert result.claims_timeline_meta.review_status != "blocked"
 
 
+# ─── Mixed tz-awareness (the backfill crash) ─────────────────────────────
+
+def test_naive_incident_against_aware_events_does_not_crash():
+    """Backfill regression: seed incidents store occurred_at without a tz
+    (e.g. '2026-05-02T23:13:00'), while stream events carry 'Z'. Comparing
+    the naive incident time against aware event times must not raise
+    'can't compare offset-naive and offset-aware datetimes' — and the
+    before/after classification must still work."""
+    naive_incident = _make_incident(occurred_at="2026-05-02T23:13:00")
+    events = [
+        {"source_id": "stream:door-count", "venue_id": VENUE_ID,
+         "at": "2026-05-02T22:55:00Z", "label": "before", "text": "pre"},
+        {"source_id": "stream:door-count", "venue_id": VENUE_ID,
+         "at": "2026-05-02T23:20:00Z", "label": "after", "text": "post"},
+    ]
+    result = _run(naive_incident, stream_events=events)
+    gaps = " ".join(result.claims_timeline_meta.gaps).lower()
+    # Telemetry exists on both sides → neither pre- nor post-incident gap.
+    assert "pre-incident" not in gaps, gaps
+    assert "post-incident" not in gaps, gaps
+
+
 # ─── Backwards compatibility ─────────────────────────────────────────────
 
 def test_claims_timeline_list_unchanged_in_shape():

@@ -461,11 +461,16 @@ class UnderwritingPacketAgentRuntime:
         the venue-filtered stream events + the incident report."""
         from datetime import datetime, timedelta
 
+        from app.time import as_utc
+
         def _parse(ts: str):
             if not ts:
                 return None
             try:
-                return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                # Normalize to tz-aware UTC so naive incident timestamps (seed
+                # data stores occurred_at without a tz) compare cleanly against
+                # aware stream-event times that carry 'Z'.
+                return as_utc(datetime.fromisoformat(ts.replace("Z", "+00:00")))
             except ValueError:
                 return None
 
