@@ -3143,11 +3143,11 @@ a:hover { color: var(--text-primary); }
 
 .lc-triage__row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
+  grid-template-columns: 1fr auto;
+  align-items: start;
   gap: 14px;
   min-height: 44px;
-  padding: 12px 14px;
+  padding: 10px 14px;
   margin: 6px 0;
   border-radius: var(--radius-md);
   background: var(--bg-surface);
@@ -3187,7 +3187,15 @@ a:hover { color: var(--text-primary); }
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 4px;
+}
+/* Match the mobile screen: outlined tier pill labeled "Tier X" (not a filled letter). */
+.lc-triage__row-tierline .tier-badge {
+  background: transparent;
+  border-color: currentColor;
+}
+.lc-triage__row-tierline .tier-badge::before {
+  content: "Tier ";
 }
 /* Trailing chevron signals the row navigates; only present in The Book. */
 .lc-triage__row-go {

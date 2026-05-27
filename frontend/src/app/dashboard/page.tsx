@@ -818,7 +818,6 @@ function TriageRow({
           )}
         </div>
       </div>
-      <ArrowUpRight size={14} className="lc-triage__row-go" aria-hidden="true" />
     </Link>
   );
 }
