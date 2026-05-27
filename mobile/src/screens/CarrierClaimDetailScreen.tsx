@@ -53,6 +53,7 @@ import {
 } from '../api/claim-tokens';
 import { Fonts } from '../theme/typography';
 import { StatusBadge } from '../components/StatusBadge';
+import { PromptModal } from '../components/PromptModal';
 
 const ACTION_LABEL: Record<ActionId, string> = {
   record_reserve: 'Record reserve',
@@ -69,6 +70,9 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  // Free-text / amount prompts use the cross-platform PromptModal (Alert.prompt
+  // is iOS-only). `final_indemnity` is reached only via the "paid" disposition.
+  const [prompt, setPrompt] = useState<null | { kind: 'reopen' } | { kind: 'final_indemnity' }>(null);
 
   const onDownloadDefensePdf = useCallback(async (packetId: string) => {
     setDownloadingPdf(true);
@@ -93,6 +97,29 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
     }
   }, [cid]);
 
+  const onDone = useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    load();
+  }, [load]);
+
+  const runReopen = useCallback(async (id: string, reason: string) => {
+    try {
+      await claimsApi.reopenClaim(id, { reason });
+      onDone();
+    } catch (e: any) {
+      Alert.alert('Reopen failed', e?.message ?? 'Try again.');
+    }
+  }, [onDone]);
+
+  const runClose = useCallback(async (id: string, disposition: 'paid' | 'denied' | 'dropped', final: string | null) => {
+    try {
+      await claimsApi.closeClaim(id, { disposition, final_indemnity: final });
+      onDone();
+    } catch (e: any) {
+      Alert.alert('Close failed', e?.message ?? 'Try again.');
+    }
+  }, [onDone]);
+
   useEffect(() => {
     load();
   }, [load]);
@@ -111,15 +138,14 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
       } else if (id === 'record_payment') {
         navigation.navigate('RecordPayment', { cid: claim.id, onSuccess: () => load() });
       } else if (id === 'close_claim') {
-        confirmClose(claim.id, () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          load();
+        chooseDisposition((disposition) => {
+          // Paid settlements need an amount → defer to the prompt modal; the
+          // other dispositions close immediately.
+          if (disposition === 'paid') setPrompt({ kind: 'final_indemnity' });
+          else runClose(claim.id, disposition, null);
         });
       } else if (id === 'reopen_claim') {
-        confirmReopen(claim.id, () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          load();
-        });
+        setPrompt({ kind: 'reopen' });
       } else if (id === 'attach_defense_package') {
         Alert.alert(
           'Attach defense package',
@@ -127,7 +153,7 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
         );
       }
     },
-    [claim, load, navigation],
+    [claim, load, navigation, runClose],
   );
 
   if (loading) {
@@ -304,6 +330,33 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
       </ScrollView>
 
       <ActionToolbar status={claim.status} onAction={onAction} />
+
+      <PromptModal
+        visible={prompt?.kind === 'reopen'}
+        title="Reopen reason"
+        message="Logged on the claim audit trail."
+        placeholder="e.g. New medical bills received"
+        confirmLabel="Reopen"
+        onCancel={() => setPrompt(null)}
+        onSubmit={(reason) => {
+          setPrompt(null);
+          runReopen(claim.id, reason);
+        }}
+      />
+      <PromptModal
+        visible={prompt?.kind === 'final_indemnity'}
+        title="Final indemnity"
+        message="Required for a paid disposition. Enter the settlement amount."
+        placeholder="0.00"
+        confirmLabel="Close claim"
+        keyboardType="decimal-pad"
+        multiline={false}
+        onCancel={() => setPrompt(null)}
+        onSubmit={(amount) => {
+          setPrompt(null);
+          runClose(claim.id, 'paid', amount);
+        }}
+      />
     </>
   );
 }
@@ -435,98 +488,27 @@ function ActionToolbar({
 
 // ─── Inline destructive-action confirms ──────────────────────────────────
 
-function confirmClose(cid: string, onDone: () => void) {
-  const options = ['Paid', 'Denied', 'Dropped', 'Cancel'];
-  const cancelIndex = 3;
-  const handle = async (disposition: 'paid' | 'denied' | 'dropped') => {
-    let final: string | null = null;
-    if (disposition === 'paid') {
-      final = await promptAmount(
-        'Final indemnity',
-        'Required for paid disposition. Enter the settlement amount.',
-      );
-      if (final === null) return;
-    }
-    try {
-      await claimsApi.closeClaim(cid, { disposition, final_indemnity: final });
-      onDone();
-    } catch (e: any) {
-      Alert.alert('Close failed', e?.message ?? 'Try again.');
-    }
-  };
+// Disposition is a choice (not text), so a native action sheet / alert is the
+// right control. The amount + reason free-text inputs are handled by
+// PromptModal in the component (Alert.prompt is iOS-only).
+function chooseDisposition(onPick: (disposition: 'paid' | 'denied' | 'dropped') => void) {
   if (Platform.OS === 'ios') {
     ActionSheetIOS.showActionSheetWithOptions(
-      { options, cancelButtonIndex: cancelIndex, title: 'Close claim — disposition' },
+      { options: ['Paid', 'Denied', 'Dropped', 'Cancel'], cancelButtonIndex: 3, title: 'Close claim — disposition' },
       (idx) => {
-        if (idx === 0) handle('paid');
-        else if (idx === 1) handle('denied');
-        else if (idx === 2) handle('dropped');
+        if (idx === 0) onPick('paid');
+        else if (idx === 1) onPick('denied');
+        else if (idx === 2) onPick('dropped');
       },
     );
   } else {
     Alert.alert('Close claim', 'Choose a disposition.', [
-      { text: 'Paid', onPress: () => handle('paid') },
-      { text: 'Denied', onPress: () => handle('denied') },
-      { text: 'Dropped', onPress: () => handle('dropped') },
+      { text: 'Paid', onPress: () => onPick('paid') },
+      { text: 'Denied', onPress: () => onPick('denied') },
+      { text: 'Dropped', onPress: () => onPick('dropped') },
       { text: 'Cancel', style: 'cancel' },
     ]);
   }
-}
-
-function confirmReopen(cid: string, onDone: () => void) {
-  promptText('Reopen reason', 'Logged on the claim audit trail.').then(async (reason) => {
-    if (!reason) return;
-    try {
-      await claimsApi.reopenClaim(cid, { reason });
-      onDone();
-    } catch (e: any) {
-      Alert.alert('Reopen failed', e?.message ?? 'Try again.');
-    }
-  });
-}
-
-function promptText(title: string, message: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    if (Platform.OS === 'ios' && (Alert as any).prompt) {
-      (Alert as any).prompt(
-        title,
-        message,
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
-          { text: 'OK', onPress: (text: string) => resolve(text?.trim() || null) },
-        ],
-        'plain-text',
-      );
-    } else {
-      // Android fallback — minimal: ask user to use web flow if multi-line input matters.
-      Alert.alert(title, `${message}\n\n(Android prompt UI is limited — use the web app for free-text input.)`, [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
-        { text: 'Submit (placeholder)', onPress: () => resolve('Reopened from mobile') },
-      ]);
-    }
-  });
-}
-
-function promptAmount(title: string, message: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    if (Platform.OS === 'ios' && (Alert as any).prompt) {
-      (Alert as any).prompt(
-        title,
-        message,
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
-          { text: 'OK', onPress: (text: string) => resolve(text?.trim() || null) },
-        ],
-        'plain-text',
-        '',
-        'decimal-pad',
-      );
-    } else {
-      Alert.alert(title, `${message}\n\n(Use the web app to enter the amount.)`, [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
-      ]);
-    }
-  });
 }
 
 function deltaStyle(tone: 'success' | 'danger' | 'neutral') {

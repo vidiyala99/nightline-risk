@@ -199,6 +199,16 @@ class RegisterRequest(BaseModel):
     role: str = "venue_operator"
 
 
+class ProfileUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+
+
+class PasswordChangeRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
 @router.post("/login")
 def login(request: LoginRequest, session: Session = Depends(get_session)):
     user = authenticate_user(request.email, request.password, session)
@@ -364,6 +374,87 @@ def get_me(authorization: str = Header(None), session: Session = Depends(get_ses
     record = _get_current_user_record(authorization, session)
     user = _record_to_dict(record)
     return {k: v for k, v in user.items() if k != "password_hash"}
+
+
+@router.patch("/me")
+def update_me(
+    request: ProfileUpdateRequest,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+):
+    """Update the caller's own name and/or email. Email must be unique."""
+    from sqlmodel import select
+    from app.models import UserRecord
+    from app.packet_core import _add_audit_event
+
+    record = _get_current_user_record(authorization, session)
+    changed: list[str] = []
+
+    if request.name is not None:
+        new_name = request.name.strip()
+        if not new_name:
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+        if new_name != record.name:
+            record.name = new_name
+            changed.append("name")
+
+    if request.email is not None:
+        new_email = request.email.strip().lower()
+        if "@" not in new_email or "." not in new_email:
+            raise HTTPException(status_code=400, detail="Invalid email address")
+        if new_email != record.email:
+            existing = session.exec(select(UserRecord).where(UserRecord.email == new_email)).first()
+            if existing and existing.id != record.id:
+                raise HTTPException(status_code=409, detail="That email is already in use")
+            record.email = new_email
+            changed.append("email")
+
+    if changed:
+        session.add(record)
+        _add_audit_event(
+            session=session,
+            actor_id=record.id,
+            actor_type="user",
+            entity_type="user",
+            entity_id=record.id,
+            event_type="profile_updated",
+            event_metadata={"changed_fields": changed},
+        )
+        session.commit()
+        session.refresh(record)
+
+    user = _record_to_dict(record)
+    return {k: v for k, v in user.items() if k != "password_hash"}
+
+
+@router.post("/me/change-password", status_code=200)
+def change_password(
+    request: PasswordChangeRequest,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+):
+    """Change the caller's own password after verifying the current one."""
+    from app.packet_core import _add_audit_event
+
+    record = _get_current_user_record(authorization, session)
+    if not verify_password(request.old_password, record.password_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    if len(request.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    record.password_hash = create_password_hash(request.new_password)
+    session.add(record)
+    _add_audit_event(
+        session=session,
+        actor_id=record.id,
+        actor_type="user",
+        entity_type="user",
+        entity_id=record.id,
+        event_type="password_changed",
+        event_metadata={},
+    )
+    session.commit()
+    return {"success": True}
 
 
 @router.post("/me/extra-venues/{venue_id}", status_code=200)

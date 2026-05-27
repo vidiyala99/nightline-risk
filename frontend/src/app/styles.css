@@ -2602,6 +2602,15 @@ a:hover { color: var(--text-primary); }
   color: var(--text-tertiary);
 }
 
+/* Inline field-level validation/error text — shown directly below its input
+   (Forms & Feedback: error-placement / error-clarity). */
+.input-error {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--state-error);
+}
+
 .security-card {
   display: flex;
   align-items: center;

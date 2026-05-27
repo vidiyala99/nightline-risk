@@ -5,8 +5,9 @@ import { Fonts } from '../theme/typography';
 
 /**
  * Single-field text prompt. ThemedAlert is confirm-only, so reason/number
- * inputs (decline, withdraw, cancel, assign policy #) use this instead of
- * the iOS-only Alert.prompt. Controlled by the caller via `visible`.
+ * inputs (decline, withdraw, cancel, assign policy #, reopen reason, final
+ * indemnity) use this instead of the iOS-only Alert.prompt. Controlled by the
+ * caller via `visible`.
  */
 export function PromptModal({
   visible,
@@ -16,6 +17,8 @@ export function PromptModal({
   initialValue = '',
   confirmLabel = 'Confirm',
   required = true,
+  keyboardType = 'default',
+  multiline = true,
   onSubmit,
   onCancel,
 }: {
@@ -26,6 +29,8 @@ export function PromptModal({
   initialValue?: string;
   confirmLabel?: string;
   required?: boolean;
+  keyboardType?: 'default' | 'decimal-pad';
+  multiline?: boolean;
   onSubmit: (value: string) => void;
   onCancel: () => void;
 }) {
@@ -50,16 +55,33 @@ export function PromptModal({
             onChangeText={setValue}
             placeholder={placeholder}
             placeholderTextColor={Colors.textMuted}
+            keyboardType={keyboardType}
             autoFocus
-            multiline
+            multiline={multiline}
+            onSubmitEditing={() => {
+              if (!multiline && canSubmit) onSubmit(trimmed);
+            }}
           />
           <View style={styles.buttonRow}>
-            <Pressable style={[styles.btn, styles.btnCancel]} onPress={onCancel}>
+            <Pressable
+              style={({ pressed }) => [styles.btn, styles.btnCancel, pressed && styles.btnPressed]}
+              onPress={onCancel}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+            >
               <Text style={styles.btnCancelLabel}>Cancel</Text>
             </Pressable>
             <Pressable
-              style={[styles.btn, styles.btnConfirm, !canSubmit && styles.btnDisabled]}
+              style={({ pressed }) => [
+                styles.btn,
+                styles.btnConfirm,
+                pressed && styles.btnConfirmPressed,
+                !canSubmit && styles.btnDisabled,
+              ]}
               disabled={!canSubmit}
+              accessibilityRole="button"
+              accessibilityLabel={confirmLabel}
+              accessibilityState={{ disabled: !canSubmit }}
               onPress={() => onSubmit(trimmed)}
             >
               <Text style={styles.btnConfirmLabel}>{confirmLabel}</Text>
@@ -74,7 +96,9 @@ export function PromptModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(7, 8, 15, 0.78)',
+    // Ink scrim (Paper & Ink theme) at ~55% — within the 40-60% legibility
+    // guidance; replaces a stale dark-theme navy left from the theme migration.
+    backgroundColor: 'rgba(23, 21, 15, 0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
@@ -123,13 +147,16 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   btn: {
+    minHeight: 44, // touch-target-size (Apple HIG 44pt / Material 48dp)
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 10,
     borderWidth: 1,
-    minWidth: 90,
+    minWidth: 96,
     alignItems: 'center',
+    justifyContent: 'center',
   },
+  btnPressed: { backgroundColor: Colors.surfaceHover },
   btnCancel: { backgroundColor: 'transparent', borderColor: 'rgba(23,21,15,0.14)' },
   btnCancelLabel: {
     color: Colors.textSecondary,
@@ -138,6 +165,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.monoBold,
   },
   btnConfirm: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  btnConfirmPressed: { opacity: 0.85 },
   btnConfirmLabel: {
     color: Colors.text,
     fontSize: 12,
