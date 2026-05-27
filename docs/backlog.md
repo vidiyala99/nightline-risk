@@ -21,12 +21,13 @@ Last updated: 2026-05-27.
 
 ## Next up (subscription-free) — pick a track
 
-### 1. Eval harness deepening  ★ headline / best pitch fit
-- [ ] Audit current eval scenarios + scoring in `backend/app/evals/` (runner, baselines).
-- [ ] Add more research-grounded incident scenarios (A&B, dram-shop, crowd, medical).
-- [ ] Per-provider baseline snapshots + regression gate (runs on deterministic providers — no keys).
-- [ ] Render a scorecard on the `/evals` page (pass-rate, per-factor accuracy, deltas).
-- [ ] Wire/confirm the CI gate fails on baseline regression.
+### 1. Eval harness deepening  ★ headline / best pitch fit  — mostly already shipped (audited 2026-05-27)
+- [x] Audit current eval scenarios + scoring — done. Harness is mature: 15 standard + 6 adversarial scenarios, 10 scorers (severity/citation/review-status/factor + NDCG@5/MRR retrieval + 3 safety).
+- [x] ~~Add more research-grounded scenarios~~ — already 15 across 7 exposure classes (A&B, dram-shop, crowd, medical, premises, property, negligent-security) + 6 adversarial.
+- [x] ~~Per-provider baseline snapshots + regression gate~~ — already stack-keyed (`baseline.py`); `--compare-baseline` exits 1 on any scorer drop.
+- [x] ~~Scorecard on `/evals`~~ — already a full scoreboard (`frontend/src/app/evals/page.tsx`); reads `public/eval-baseline.json`.
+- [x] ~~Wire/confirm CI gate~~ — already wired: `evals` + `evals-matrix` jobs in `ci.yml` run `--compare-baseline`.
+- [ ] Remaining honest gap: `off_topic_review_status` adversarial scorer at 50% (off-topic content not always routed to human review). Documented, not yet fixed.
 
 ### 2. Correctness pass on latent bugs  ✓ done 2026-05-27
 - [x] Fix the tz naive/aware crash in incident-packet backfill — `_reconstruct_timeline_meta._parse` returned mixed-awareness datetimes (naive seed `occurred_at` vs aware `Z` stream events); normalized via `as_utc()`. Regression test in `test_claims_timeline_meta.py`.
@@ -34,7 +35,7 @@ Last updated: 2026-05-27.
 - [x] Reviewed every `except Exception` site — all log or are intentional best-effort guards; none silently hide real failures.
 
 ### 3. Deterministic (no-key) agent quality
-- [ ] Improve the keyword-ladder risk classifier (`app/providers/deterministic.py`) — better factor recognition than ~50%.
+- [x] Improve the keyword-ladder risk classifier (`app/providers/deterministic.py`) — added a generalizable aggravator/mitigator severity modifier + filled the medical keyword gap. `severity_match` 47%→100%, aggregate 57%→95%, no other scorer regressed. Unit tests in `test_risk_classifier.py` include over-fit guards (novel summaries + plain-incident guards). Baseline + public scoreboard refreshed.
 - [ ] Tighten deterministic memo templates so no-key output reads credibly in a demo.
 - [ ] Add eval coverage that pins the deterministic-mode quality (ties into track 1).
 

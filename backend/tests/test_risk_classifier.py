@@ -39,6 +39,93 @@ def test_deterministic_classifier_preserves_keyword_ladder(summary, expected_typ
     assert result.mode == ProviderMode.DETERMINISTIC
 
 
+# ─── Severity modifiers: deterministic aggravator/mitigator reasoning ─────
+#
+# The keyword ladder picks a coarse base severity from the incident *type*.
+# Real underwriting severity also depends on aggravating circumstances
+# (regulatory breach, foreseeable-and-preventable harm, negligent security)
+# and mitigating ones (proactive controls, containment). These tests pin the
+# modifier's behavior on the *substance* of the summary — phrased generically,
+# never by scenario id — so the eval gains can't be faked by string-matching
+# the gold set.
+
+
+@pytest.mark.parametrize("summary,expected_severity", [
+    # Aggravators that should escalate to critical
+    (
+        "Liquor service of tequila shots continuing after legal cutoff time, dram shop exposure",
+        "critical",  # service past cutoff
+    ),
+    (
+        "Bartender served draft beer to a patron whose wristband was issued without an ID scan, dram shop and license compliance exposure",
+        "critical",  # underage / missing-ID service
+    ),
+    (
+        "Patron assaulted in venue parking lot off-premises, venue advertises lot security, no security staff present in zone",
+        "critical",  # advertised-but-absent security (negligent security)
+    ),
+    (
+        "Patron physically assaulted at rear exit, three prior similar assaults documented in 60 days, no security staff detected in zone",
+        "critical",  # foreseeable repeat harm
+    ),
+    (
+        "Patron showed acute respiratory distress consistent with allergic reaction at main bar, staff delayed calling EMS for several minutes",
+        "critical",  # life-threatening medical + delayed EMS
+    ),
+    # Single-step aggravator: documented overcapacity bumps medium -> high
+    (
+        "Patron slipped and fell in main corridor with documented overcapacity, 250 patrons in zone exceeding posted limit",
+        "high",
+    ),
+    # Mitigators that should downgrade to low
+    (
+        "Crowd management on dance floor with security present and proactive water distribution",
+        "low",  # proactive controls
+    ),
+    (
+        "Small kitchen fire behind the line, staff deployed extinguisher within 30 seconds, no evacuation required, no injuries reported",
+        "low",  # containment, no harm
+    ),
+])
+def test_severity_modifiers_adjust_for_circumstances(summary, expected_severity):
+    result = DeterministicRiskClassifier().classify(
+        incident_summary=summary, incident_location="venue", citation_excerpts=[]
+    )
+    assert result.base_severity == expected_severity, result.rationale
+
+
+@pytest.mark.parametrize("summary,expected_severity", [
+    # Generalization guards: NOVEL summaries (not in the gold set) carrying the
+    # same signals must move the same way.
+    (
+        "Bouncer assaulted a patron at the door, four prior similar assaults this quarter, no security posted",
+        "critical",  # foreseeable repeat, generalized
+    ),
+    (
+        "Small electrical fire flared at the bar, staff extinguished it within seconds, no injuries, no evacuation needed",
+        "low",  # containment, generalized
+    ),
+    # Guards that the modifier does NOT over-fire on plain incidents
+    (
+        "Bartender continued serving an intoxicated patron.",
+        "high",  # plain over-service: stays high, NOT critical
+    ),
+    (
+        "Crowd surge near the front of the stage.",
+        "high",  # plain crowd surge: no mitigators, stays high
+    ),
+    (
+        "Two patrons began fighting near the rear bar.",
+        "medium",  # plain brawl: no aggravators, stays medium
+    ),
+])
+def test_severity_modifiers_generalize_without_overfitting(summary, expected_severity):
+    result = DeterministicRiskClassifier().classify(
+        incident_summary=summary, incident_location="venue", citation_excerpts=[]
+    )
+    assert result.base_severity == expected_severity, result.rationale
+
+
 class _RaisingClassifier(RiskClassifierProvider):
     @property
     def provider_name(self) -> str:

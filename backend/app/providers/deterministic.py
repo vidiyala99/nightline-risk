@@ -72,13 +72,110 @@ class DeterministicEmbeddingProvider(EmbeddingProvider):
 
 _KEYWORD_LADDER = [
     (("fire", "electrical"), "property_damage", "medium", 0.82),
-    (("overdose", "unresponsive", "hospital"), "medical_emergency", "critical", 0.94),
+    (
+        (
+            "overdose", "unresponsive", "hospital", "respiratory distress",
+            "allergic reaction", "anaphyla", "seizure", "cardiac", "collapsed",
+            "unconscious",
+        ),
+        "medical_emergency",
+        "critical",
+        0.94,
+    ),
     (("assault", "excessive force", "fight", "brawl", "fighting"), "altercation_event", "medium", 0.78),
     (("slip", "fell", "fall", "stairs"), "premises_liability", "medium", 0.81),
     (("serving", "liquor", "intoxicated", "cutoff", "dram"), "liquor_liability", "high", 0.91),
     (("crowd", "surge", "faint"), "crowd_management", "high", 0.87),
     (("vandal", "damage"), "property_damage", "low", 0.74),
 ]
+
+_SEVERITY_ORDER = ("low", "medium", "high", "critical")
+
+
+def _has_all(text: str, *needles: str) -> bool:
+    return all(n in text for n in needles)
+
+
+def _has_any(text: str, *needles: str) -> bool:
+    return any(n in text for n in needles)
+
+
+# Aggravating circumstances that, on their own, imply the worst exposure tier.
+# Each predicate reads the *substance* of the summary, so a novel incident with
+# the same signal escalates identically — this is the deterministic stand-in
+# for the reasoning an LLM classifier would do natively.
+def _is_critical_aggravator(text: str) -> str | None:
+    if _has_any(text, "after legal cutoff", "after cutoff", "past cutoff", "after hours", "after-hours"):
+        return "service past legal cutoff"
+    if _has_any(text, "underage") or _has_any(
+        text, "without an id scan", "without id scan", "no id scan", "missing id scan"
+    ):
+        return "underage / unverified-age service"
+    if _has_all(text, "advertis", "security") and _has_any(
+        text, "no security", "absent", "none present", "not present", "no staff"
+    ):
+        return "advertised security absent (negligent security)"
+    if _has_any(text, "prior", "previous", "repeated", "history of") and _has_any(
+        text, "assault", "fight", "incident", "similar"
+    ):
+        return "foreseeable repeat harm"
+    if _has_all(text, "ems") and _has_any(text, "delayed", "delay") and _has_any(
+        text, "respiratory", "allergic", "overdose", "unresponsive", "anaphyla",
+        "cardiac", "seizure", "distress", "unconscious",
+    ):
+        return "delayed response to life-threatening medical event"
+    return None
+
+
+def _is_single_step_aggravator(text: str) -> str | None:
+    if _has_any(
+        text, "overcapacity", "over capacity", "capacity exceeded",
+        "exceeding posted limit", "exceeded posted limit", "overcrowded",
+    ):
+        return "documented overcapacity"
+    return None
+
+
+def _is_mitigated(text: str) -> str | None:
+    proactive = (_has_any(text, "security present", "proactive")) and _has_any(
+        text, "water", "hydration", "within limits", "within stated", "under stated"
+    )
+    contained = _has_any(text, "extinguish", "contained", "within 30 seconds") and _has_any(
+        text, "no evacuation", "no injur", "no one hurt", "nobody hurt", "no harm"
+    )
+    if proactive:
+        return "proactive on-site controls"
+    if contained:
+        return "incident contained without harm"
+    return None
+
+
+def _apply_severity_modifiers(summary: str, base_severity: str) -> tuple[str, str | None]:
+    """Adjust a coarse base severity for aggravating / mitigating circumstances.
+
+    Returns (severity, note). Conservative by design: a critical aggravator
+    always wins over a mitigator (insurance never relaxes a regulatory or
+    foreseeable-harm exposure), and the function only moves severity when a
+    specific signal is present — plain incidents pass through unchanged.
+    """
+    text = summary.lower()
+
+    crit = _is_critical_aggravator(text)
+    if crit:
+        return "critical", f"aggravator: {crit}"
+
+    mitig = _is_mitigated(text)
+    if mitig:
+        return "low", f"mitigator: {mitig}"
+
+    bump = _is_single_step_aggravator(text)
+    if bump:
+        idx = _SEVERITY_ORDER.index(base_severity)
+        stepped = _SEVERITY_ORDER[min(idx + 1, _SEVERITY_ORDER.index("high"))]
+        if stepped != base_severity:
+            return stepped, f"aggravator: {bump}"
+
+    return base_severity, None
 
 
 class DeterministicRiskClassifier(RiskClassifierProvider):
@@ -105,21 +202,30 @@ class DeterministicRiskClassifier(RiskClassifierProvider):
         citation_excerpts: list[str],
     ) -> RiskClassification:
         summary = (incident_summary or "").lower()
-        for keywords, risk_type, severity, confidence in _KEYWORD_LADDER:
+        for keywords, risk_type, base_severity, confidence in _KEYWORD_LADDER:
             if any(k in summary for k in keywords):
+                matched = next(k for k in keywords if k in summary)
+                severity, mod_note = _apply_severity_modifiers(incident_summary or "", base_severity)
+                rationale = f"Keyword match on {matched}"
+                if mod_note:
+                    rationale += f"; {mod_note} ({base_severity}->{severity})"
                 return RiskClassification(
                     risk_type=risk_type,
                     base_severity=severity,
                     base_confidence=confidence,
-                    rationale=f"Keyword match on {next(k for k in keywords if k in summary)}",
+                    rationale=rationale,
                     provider=self.provider_name,
                     mode=self.mode,
                 )
+        severity, mod_note = _apply_severity_modifiers(incident_summary or "", "low")
+        rationale = "No keyword match — defaulting to general_incident."
+        if mod_note:
+            rationale += f" {mod_note} (low->{severity})"
         return RiskClassification(
             risk_type="general_incident",
-            base_severity="low",
+            base_severity=severity,
             base_confidence=0.70,
-            rationale="No keyword match — defaulting to general_incident.",
+            rationale=rationale,
             provider=self.provider_name,
             mode=self.mode,
         )

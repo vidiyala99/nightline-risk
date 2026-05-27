@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-13T05-19-36Z",
+  "timestamp": "2026-05-27T22-45-50Z",
   "provider": {
     "name": "deterministic-v1",
     "mode": "deterministic",
@@ -7,8 +7,8 @@
   },
   "aggregate": {
     "total": 21,
-    "passed": 12,
-    "pass_rate": 0.5714285714285714
+    "passed": 20,
+    "pass_rate": 0.9523809523809523
   },
   "scorer_averages": [
     {
@@ -19,8 +19,8 @@
     },
     {
       "name": "severity_match",
-      "pass_rate": 0.4666666666666667,
-      "avg_score": 0.6666666666666666,
+      "pass_rate": 1.0,
+      "avg_score": 1.0,
       "count": 15
     },
     {
@@ -31,14 +31,14 @@
     },
     {
       "name": "review_status_match",
-      "pass_rate": 0.8666666666666667,
-      "avg_score": 0.8666666666666667,
+      "pass_rate": 1.0,
+      "avg_score": 1.0,
       "count": 15
     },
     {
       "name": "factor_recognition",
       "pass_rate": 1.0,
-      "avg_score": 0.18888888888888886,
+      "avg_score": 0.2111111111111111,
       "count": 15
     },
     {
@@ -133,7 +133,7 @@
       "difficulty": "medium",
       "scenario_type": "standard",
       "error": null,
-      "passed": false,
+      "passed": true,
       "scorers": [
         {
           "name": "structural",
@@ -143,9 +143,9 @@
         },
         {
           "name": "severity_match",
-          "passed": false,
-          "score": 0.5,
-          "detail": "agent=high, gold=critical, off by 1 (under-classified)"
+          "passed": true,
+          "score": 1.0,
+          "detail": "critical == critical"
         },
         {
           "name": "citation_coverage",
@@ -186,7 +186,7 @@
       "difficulty": "hard",
       "scenario_type": "mitigating_factor_bait",
       "error": null,
-      "passed": false,
+      "passed": true,
       "scorers": [
         {
           "name": "structural",
@@ -196,9 +196,9 @@
         },
         {
           "name": "severity_match",
-          "passed": false,
-          "score": 0.0,
-          "detail": "agent=high, gold=low, off by 2 (over-classified)"
+          "passed": true,
+          "score": 1.0,
+          "detail": "low == low"
         },
         {
           "name": "citation_coverage",
@@ -208,9 +208,9 @@
         },
         {
           "name": "review_status_match",
-          "passed": false,
-          "score": 0.0,
-          "detail": "agent=needs_review, gold=approved"
+          "passed": true,
+          "score": 1.0,
+          "detail": "approved == approved"
         },
         {
           "name": "factor_recognition",
@@ -504,7 +504,7 @@
       "difficulty": "medium",
       "scenario_type": "subtle_catastrophic",
       "error": null,
-      "passed": false,
+      "passed": true,
       "scorers": [
         {
           "name": "structural",
@@ -514,9 +514,9 @@
         },
         {
           "name": "severity_match",
-          "passed": false,
-          "score": 0.5,
-          "detail": "agent=high, gold=critical, off by 1 (under-classified)"
+          "passed": true,
+          "score": 1.0,
+          "detail": "critical == critical"
         },
         {
           "name": "citation_coverage",
@@ -610,7 +610,7 @@
       "difficulty": "hard",
       "scenario_type": "subtle_catastrophic",
       "error": null,
-      "passed": false,
+      "passed": true,
       "scorers": [
         {
           "name": "structural",
@@ -620,9 +620,9 @@
         },
         {
           "name": "severity_match",
-          "passed": false,
-          "score": 0.5,
-          "detail": "agent=high, gold=critical, off by 1 (under-classified)"
+          "passed": true,
+          "score": 1.0,
+          "detail": "critical == critical"
         },
         {
           "name": "citation_coverage",
@@ -663,7 +663,7 @@
       "difficulty": "hard",
       "scenario_type": "subtle_catastrophic",
       "error": null,
-      "passed": false,
+      "passed": true,
       "scorers": [
         {
           "name": "structural",
@@ -673,9 +673,9 @@
         },
         {
           "name": "severity_match",
-          "passed": false,
-          "score": 0.5,
-          "detail": "agent=medium, gold=high, off by 1 (under-classified)"
+          "passed": true,
+          "score": 1.0,
+          "detail": "high == high"
         },
         {
           "name": "citation_coverage",
@@ -716,7 +716,7 @@
       "difficulty": "hard",
       "scenario_type": "subtle_catastrophic",
       "error": null,
-      "passed": false,
+      "passed": true,
       "scorers": [
         {
           "name": "structural",
@@ -726,9 +726,9 @@
         },
         {
           "name": "severity_match",
-          "passed": false,
-          "score": 0.0,
-          "detail": "agent=medium, gold=critical, off by 2 (under-classified)"
+          "passed": true,
+          "score": 1.0,
+          "detail": "critical == critical"
         },
         {
           "name": "citation_coverage",
@@ -745,8 +745,8 @@
         {
           "name": "factor_recognition",
           "passed": true,
-          "score": 0.0,
-          "detail": "0/3 recognized; missing ['allergic_reaction_signal', 'delayed_ems_response', 'staff_present_no_action'] (informational on deterministic)"
+          "score": 0.3333333333333333,
+          "detail": "1/3 recognized; missing ['allergic_reaction_signal', 'staff_present_no_action'] (informational on deterministic)"
         },
         {
           "name": "ndcg_at_5",
@@ -769,7 +769,7 @@
       "difficulty": "easy",
       "scenario_type": "mitigating_factor_bait",
       "error": null,
-      "passed": false,
+      "passed": true,
       "scorers": [
         {
           "name": "structural",
@@ -779,9 +779,9 @@
         },
         {
           "name": "severity_match",
-          "passed": false,
-          "score": 0.5,
-          "detail": "agent=medium, gold=low, off by 1 (over-classified)"
+          "passed": true,
+          "score": 1.0,
+          "detail": "low == low"
         },
         {
           "name": "citation_coverage",
@@ -791,9 +791,9 @@
         },
         {
           "name": "review_status_match",
-          "passed": false,
-          "score": 0.0,
-          "detail": "agent=needs_review, gold=approved"
+          "passed": true,
+          "score": 1.0,
+          "detail": "approved == approved"
         },
         {
           "name": "factor_recognition",
@@ -822,7 +822,7 @@
       "difficulty": "hard",
       "scenario_type": "subtle_catastrophic",
       "error": null,
-      "passed": false,
+      "passed": true,
       "scorers": [
         {
           "name": "structural",
@@ -832,9 +832,9 @@
         },
         {
           "name": "severity_match",
-          "passed": false,
-          "score": 0.5,
-          "detail": "agent=high, gold=critical, off by 1 (under-classified)"
+          "passed": true,
+          "score": 1.0,
+          "detail": "critical == critical"
         },
         {
           "name": "citation_coverage",
