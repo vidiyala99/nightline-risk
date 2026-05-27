@@ -3088,20 +3088,53 @@ a:hover { color: var(--text-primary); }
   color: var(--state-error);
 }
 
+/* "The Book" variant: a flat navigable list, not a master-detail split.
+   The shared .lc-triage grid is still used by the reports/underwriter page. */
+.lc-triage--book {
+  display: block;
+  height: auto;
+  min-height: 0;
+}
+.lc-triage--book .lc-triage__list {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
 .lc-triage__row {
   display: grid;
-  grid-template-columns: 14px 1fr auto;
+  grid-template-columns: 14px 1fr auto auto;
   align-items: center;
   gap: 12px;
+  min-height: 44px;
   padding: 12px 14px;
   margin: 4px 0;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   border-left: 2px solid transparent;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
   transition: background 0.15s, border-color 0.15s;
 }
 .lc-triage__row:hover { background: rgba(23,21,15,0.05); }
+.lc-triage__row:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+/* Trailing chevron signals the row navigates; only present in The Book. */
+.lc-triage__row-go {
+  color: var(--text-tertiary);
+  opacity: 0.5;
+  transition: opacity 0.15s, transform 0.15s, color 0.15s;
+}
+.lc-triage__row:hover .lc-triage__row-go,
+.lc-triage__row:focus-visible .lc-triage__row-go {
+  opacity: 1;
+  color: var(--brand-primary);
+  transform: translate(2px, -2px);
+}
 .lc-triage__row[data-selected="true"] {
   background: rgba(200,240,0,0.04);
   border-color: var(--border-subtle);

@@ -61,7 +61,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
   type Group = { label: string; items: Item[] };
 
   const portfolioItems: Item[] = [
-    { href: `/dashboard${venueQuery}`, label: "The Book", icon: LayoutDashboard },
+    { href: `/dashboard${venueQuery}`, label: role === "venue_operator" ? "Dashboard" : "The Book", icon: LayoutDashboard },
     { href: "/venues", label: "Venues", icon: Building2, roles: ["broker", "admin", "venue_operator"] },
     { href: "/submissions", label: "Submissions", icon: FileSearch, roles: ["broker", "admin"] },
     { href: "/policies", label: "Policies", icon: FileSpreadsheet, roles: ["broker", "admin"] },

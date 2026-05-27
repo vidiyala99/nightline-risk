@@ -56,10 +56,13 @@ test("broker dashboard — multiple venue portfolio cards visible in a grid", as
   // The broker triage console header ("The Book") should be visible
   await expect(dashboardPage.portfolioGrid).toBeVisible({ timeout: 15000 });
 
-  // There should be more than one venue row in the triage list. Rows are
-  // div.lc-triage__row (each row is selectable; clicking opens the preview
-  // pane, not a hard nav to /terminal anymore — that link was role-gated).
+  // There should be more than one venue row in the triage list. Each row is
+  // now an anchor (a.lc-triage__row) that navigates straight to the venue's
+  // risk profile — consistent on desktop and mobile (no hidden preview pane).
   const venueRows = page.locator(".lc-triage__row");
   const count = await venueRows.count();
   expect(count).toBeGreaterThan(1);
+
+  // The row links to /risk-profile/<id> so tapping it works on mobile too.
+  await expect(venueRows.first()).toHaveAttribute("href", /\/risk-profile\//);
 });

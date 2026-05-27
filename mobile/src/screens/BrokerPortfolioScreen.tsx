@@ -139,7 +139,7 @@ export function BrokerPortfolioScreen({ navigation }: any) {
       </View>
 
       <Text style={styles.sectionEyebrow}>
-        PORTFOLIO —{' '}
+        THE BOOK —{' '}
         {searchQuery.trim().length > 0
           ? `${filteredVenues.length} of ${totalVenues} VENUES`
           : `${totalVenues} VENUES`}

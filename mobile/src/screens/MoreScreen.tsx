@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Activity, FileText, FileSearch, Building2, Send, FileSpreadsheet, Bell, ListChecks } from 'lucide-react-native';
+import { ChevronRight, Activity, FileText, FileSearch, Building2, Send, FileSpreadsheet, Bell, ListChecks, MapPin, Database, Settings } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,6 +13,7 @@ const OPERATOR_OVERFLOW: Row[] = [
   { route: 'Live', label: 'Live Terminal', description: 'Real-time venue floor activity', icon: Activity },
   { route: 'Proposals', label: 'Claim Proposals', description: 'Incidents recommended for filing', icon: FileText },
   { route: 'Reports', label: 'Reports', description: 'Risk and loss reporting', icon: FileSearch },
+  { route: 'Settings', label: 'Settings', description: 'Account and preferences', icon: Settings },
 ];
 
 const BROKER_OVERFLOW: Row[] = [
@@ -20,8 +21,11 @@ const BROKER_OVERFLOW: Row[] = [
   { route: 'Submissions', label: 'Submissions', description: 'Place venue risk out to carriers', icon: Send },
   { route: 'Policies', label: 'Policies', description: 'Your in-force book', icon: FileSpreadsheet },
   { route: 'Venues', label: 'Venues', description: 'Book and prospect venues', icon: Building2 },
+  { route: 'Market', label: 'Market', description: 'NYC nightlife prospects & savings', icon: MapPin },
   { route: 'Proposals', label: 'Claim Proposals', description: 'Operator-filed proposals', icon: FileText },
   { route: 'Reports', label: 'Reports', description: 'Underwriting and loss reports', icon: FileSearch },
+  { route: 'Ingestion', label: 'Ingestion', description: 'Operational-data connector runs', icon: Database },
+  { route: 'Settings', label: 'Settings', description: 'Account and preferences', icon: Settings },
 ];
 
 export function MoreScreen({ navigation }: any) {

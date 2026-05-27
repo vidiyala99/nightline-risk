@@ -66,6 +66,14 @@ function getFactorColor(score: number): string {
   return Colors.error;
 }
 
+// Mirrors the web FactorTierIcon (CheckCircle2 / Minus / AlertTriangle) so the
+// good/moderate/poor signal isn't carried by bar color alone (a11y: color-not-only).
+function factorGlyph(tier: 'good' | 'moderate' | 'poor'): string {
+  if (tier === 'good') return '✓';
+  if (tier === 'moderate') return '–';
+  return '⚠';
+}
+
 export function RiskProfileDetailScreen({ route, navigation }: any) {
   const { riskData, quoteData, venueName, isBroker } = route.params;
   const venueId: string | undefined = riskData?.venue_id;
@@ -166,9 +174,17 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                   max={100}
                   invertScale
                 />
-                <Text style={[styles.factorExplain, { color: color === Colors.accent ? Colors.textSecondary : color }]}>
-                  {info?.[tier] ?? ''}
-                </Text>
+                <View style={styles.factorExplainRow}>
+                  <Text
+                    style={[styles.factorGlyph, { color }]}
+                    accessibilityLabel={`${score} out of 100, ${tier}`}
+                  >
+                    {factorGlyph(tier)}
+                  </Text>
+                  <Text style={[styles.factorExplain, { color: color === Colors.accent ? Colors.textSecondary : color }]}>
+                    {info?.[tier] ?? ''}
+                  </Text>
+                </View>
               </View>
             );
           })}
@@ -375,7 +391,9 @@ const styles = StyleSheet.create({
 
   factorList: { gap: 18 },
   factorItem: { gap: 6 },
-  factorExplain: { fontSize: 12, lineHeight: 17, fontFamily: 'HankenGrotesk_400Regular' },
+  factorExplainRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
+  factorGlyph: { fontSize: 12, lineHeight: 17, fontFamily: 'SpaceMono_700Bold', width: 14 },
+  factorExplain: { flex: 1, fontSize: 12, lineHeight: 17, fontFamily: 'HankenGrotesk_400Regular' },
 
   insightRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   insightIcon: { fontSize: 16, fontWeight: '700', color: Colors.accentInk, width: 16, fontFamily: 'SpaceMono_700Bold' },

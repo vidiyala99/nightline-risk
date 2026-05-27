@@ -56,8 +56,15 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   );
 }
 
+// Route name -> display label. Route names stay stable (other navigation code
+// references "Portfolio"); only the visible label is role-aware. Keep brokers'
+// home labeled "The Book" to match the web sidebar and bottom nav.
+const TAB_LABELS: Record<string, string> = {
+  Portfolio: 'The Book',
+};
+
 // Auto-shrinks to fit the tab cell instead of truncating with an ellipsis,
-// so full words ("COMPLIANCE", "PORTFOLIO") render at any device font scale.
+// so full words ("COMPLIANCE", "THE BOOK") render at any device font scale.
 function TabLabel({ name, color }: { name: string; color: string }) {
   return (
     <Text
@@ -66,7 +73,7 @@ function TabLabel({ name, color }: { name: string; color: string }) {
       allowFontScaling={false}
       style={[styles.tabLabel, { color }]}
     >
-      {name}
+      {TAB_LABELS[name] ?? name}
     </Text>
   );
 }

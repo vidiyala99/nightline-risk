@@ -27,7 +27,7 @@ const OPERATOR_PRIMARY: PrimaryItem[] = [
 ];
 
 const BROKER_PRIMARY: PrimaryItem[] = [
-  { key: "dashboard",  href: "/dashboard",  label: "Portfolio",  icon: LayoutDashboard },
+  { key: "dashboard",  href: "/dashboard",  label: "The Book",   icon: LayoutDashboard },
   { key: "incidents",  href: "/incidents",  label: "Incidents",  icon: AlertTriangle },
   { key: "claims",     href: "/claims",     label: "Claims",     icon: FileSpreadsheet },
   { key: "compliance", href: "/compliance", label: "Compliance", icon: CheckSquare },

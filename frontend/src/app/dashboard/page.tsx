@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
-import { Building2, LogOut, MapPin, ArrowUpRight, WifiOff, Search, AlertTriangle, CheckSquare, Activity } from "lucide-react";
+import { Building2, LogOut, ArrowUpRight, WifiOff, Search, AlertTriangle, CheckSquare } from "lucide-react";
 import Link from "next/link";
 import { Grid } from "@/components/layout/Grid";
 import { authHeaders } from "@/lib/authFetch";
@@ -669,7 +669,6 @@ interface BrokerTriageProps {
 
 function BrokerTriage({ venues, totalCount, searchQuery, onSearch }: BrokerTriageProps) {
   const [filter, setFilter] = useState<Filter>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const tagged = useMemo(
     () => venues.map(v => ({ ...v, _bucket: classifyVenue(v), _daysToRenew: daysUntil(v.renewal_date) })),
@@ -690,19 +689,6 @@ function BrokerTriage({ venues, totalCount, searchQuery, onSearch }: BrokerTriag
     standing: tagged.filter(v => v._bucket === "standing").length,
     renewals: tagged.filter(v => v._daysToRenew != null && v._daysToRenew <= 30 && v._daysToRenew >= -7).length,
   }), [tagged]);
-
-  // Default selection: first row, biased toward most urgent
-  useEffect(() => {
-    if (visible.length === 0) { setSelectedId(null); return; }
-    if (selectedId && visible.some(v => v.id === selectedId)) return;
-    const sorted = [...visible].sort((a, b) => {
-      const order = { tonight: 0, watchlist: 1, standing: 2 } as const;
-      return order[a._bucket] - order[b._bucket] || a.total_score - b.total_score;
-    });
-    setSelectedId(sorted[0]?.id ?? null);
-  }, [visible, selectedId]);
-
-  const selected = visible.find(v => v.id === selectedId) ?? null;
 
   // Group rows when filter === "all" so the underwriter sees urgency structure
   const grouped: Array<{ bucket: Bucket; items: typeof visible }> = useMemo(() => {
@@ -752,7 +738,7 @@ function BrokerTriage({ venues, totalCount, searchQuery, onSearch }: BrokerTriag
         </div>
       </div>
 
-      <div className="lc-triage">
+      <div className="lc-triage lc-triage--book">
         <div className="lc-triage__list">
           {visible.length === 0 ? (
             <div className="lc-triage__empty">
@@ -768,24 +754,11 @@ function BrokerTriage({ venues, totalCount, searchQuery, onSearch }: BrokerTriag
                 <span className="lc-stat-foot">{String(group.items.length).padStart(2, "0")}</span>
               </div>
               {group.items.map(v => (
-                <TriageRow
-                  key={v.id}
-                  venue={v}
-                  selected={v.id === selectedId}
-                  onSelect={() => setSelectedId(v.id)}
-                />
+                <TriageRow key={v.id} venue={v} />
               ))}
             </React.Fragment>
           ))}
         </div>
-
-        <aside className="lc-triage__preview">
-          {selected ? <TriagePreview venue={selected} /> : (
-            <div className="lc-triage__empty">
-              <span className="lc-stat-label">Select a venue</span>
-            </div>
-          )}
-        </aside>
       </div>
     </>
   );
@@ -793,12 +766,8 @@ function BrokerTriage({ venues, totalCount, searchQuery, onSearch }: BrokerTriag
 
 function TriageRow({
   venue,
-  selected,
-  onSelect,
 }: {
   venue: PortfolioVenue & { _bucket: Bucket; _daysToRenew: number | null };
-  selected: boolean;
-  onSelect: () => void;
 }) {
   const tierColor = TIER_COLOR[venue.tier] || "var(--text-tertiary)";
   const capPct = venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
@@ -807,13 +776,10 @@ function TriageRow({
   const renewalSoon = venue._daysToRenew != null && venue._daysToRenew <= 14;
 
   return (
-    <div
+    <Link
+      href={`/risk-profile/${venue.id}`}
       className="lc-triage__row"
-      data-selected={selected ? "true" : "false"}
-      onClick={onSelect}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
+      aria-label={`Open risk profile for ${venue.name}`}
     >
       <span
         className="lc-triage__dot"
@@ -852,80 +818,7 @@ function TriageRow({
             : <TierBadge tier={venue.tier as UiTier} />}
         </div>
       </div>
-    </div>
-  );
-}
-
-function TriagePreview({ venue }: { venue: PortfolioVenue & { _bucket: Bucket; _daysToRenew: number | null } }) {
-  const tierColor = TIER_COLOR[venue.tier] || "var(--text-tertiary)";
-  const capPct = venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
-  const capColor = capPct >= 95 ? "var(--state-error)" : capPct >= 80 ? "var(--state-warning)" : "var(--tier-a)";
-
-  return (
-    <>
-      <div className="lc-triage__preview-head">
-        <span className="lc-stat-label" style={{ color: tierColor, display: "block", marginBottom: 8 }}>{venue.venue_type.replace(/_/g, " ")}</span>
-        <h3>{venue.name}</h3>
-        <div className="lc-triage__preview-meta" style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-          {venue.address && <><MapPin size={11} /> {venue.address}</>}
-        </div>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 4 }}>
-        <span className="lc-num-data lc-num-data--lg" style={{ color: tierColor }}>{venue.total_score}</span>
-        <span className="text-muted" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>/ 100</span>
-        <span className="lc-tier" style={{ color: tierColor, marginLeft: "auto" }}>Tier {venue.tier}</span>
-      </div>
-
-      <div style={{ marginTop: 14, marginBottom: 6 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-          <span className="lc-stat-label">Live capacity</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.74rem", color: capColor }}>
-            {venue.current_capacity} <span style={{ color: "var(--text-tertiary)" }}>/ {venue.capacity.toLocaleString()}</span>
-            <span style={{ marginLeft: 8, color: "var(--text-tertiary)" }}>{Math.round(capPct)}%</span>
-          </span>
-        </div>
-        <div className="lc-bar"><div className="lc-bar__fill" style={{ width: `${Math.min(100, capPct)}%`, ['--bar-color' as string]: capColor }} /></div>
-      </div>
-
-      <div className="lc-triage__preview-section">
-        <h4>Open signals</h4>
-        <dl style={{ display: "grid", gap: 2 }}>
-          <div className="lc-triage__kv"><dt>Incidents</dt><dd style={{ color: venue.open_incidents > 0 ? "var(--state-error)" : "var(--text-secondary)" }}>{venue.open_incidents.toString().padStart(2, "0")} open</dd></div>
-          <div className="lc-triage__kv"><dt>Compliance</dt><dd style={{ color: venue.compliance_actions > 0 ? "var(--brand-secondary)" : "var(--text-secondary)" }}>{venue.compliance_actions.toString().padStart(2, "0")} action{venue.compliance_actions === 1 ? "" : "s"}</dd></div>
-          <div className="lc-triage__kv"><dt>Infrastructure</dt><dd style={{ color: venue.has_degraded_infra ? "var(--state-warning)" : "var(--state-success)" }}>{venue.has_degraded_infra ? "Degraded" : "Operational"}</dd></div>
-        </dl>
-      </div>
-
-      <div className="lc-triage__preview-section">
-        <h4>Policy</h4>
-        <dl style={{ display: "grid", gap: 2 }}>
-          <div className="lc-triage__kv"><dt>Carrier</dt><dd>{venue.current_carrier || "—"}</dd></div>
-          <div className="lc-triage__kv">
-            <dt>Renews</dt>
-            <dd style={{ color: venue._daysToRenew != null && venue._daysToRenew <= 14 ? "var(--state-warning)" : undefined }}>
-              {venue.renewal_date}
-              {venue._daysToRenew != null && (
-                <span style={{ marginLeft: 8, fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-tertiary)" }}>
-                  ({venue._daysToRenew < 0 ? `${Math.abs(venue._daysToRenew)}d past` : `in ${venue._daysToRenew}d`})
-                </span>
-              )}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      <div className="lc-triage__actions">
-        <Link href={`/risk-profile/${venue.id}`} className="lc-triage__btn" data-tone="approve">
-          <Activity size={13} /> Risk Profile <ArrowUpRight size={12} />
-        </Link>
-        <Link href={`/incidents?venue=${encodeURIComponent(venue.id)}`} className="lc-triage__btn">
-          <AlertTriangle size={13} /> Incidents
-        </Link>
-        <Link href={`/compliance?venue=${encodeURIComponent(venue.id)}`} className="lc-triage__btn">
-          <CheckSquare size={13} /> Compliance
-        </Link>
-      </div>
-    </>
+      <ArrowUpRight size={14} className="lc-triage__row-go" aria-hidden="true" />
+    </Link>
   );
 }
