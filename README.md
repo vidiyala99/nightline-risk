@@ -90,6 +90,7 @@ Or create a new account via **Sign Up / Create Account** on the login screen (we
 - **Risk Profile + Compliance pages** — factor breakdowns, premium impact, role-aware compliance views
 - **Self-serve registration + venue management** — sign up on web or mobile, add/edit multiple venues
 - **Mobile app** — full iOS/Android app at broker parity with the web: a unified 5-tab bottom nav + overflow, the complete placement flow (Submissions create → submit → quote → bind), Policies (assign #, cancel, endorsements/COI/claims read), Renewals, broker Tasks, venue Alerts, and FNOL — same Paper & Ink type system as the web
+- **Operational-data ingestion spine** — extract→transform→quality-gate→idempotent-load→rollup pipeline (POS / ID-scanner / staffing / NY State open data connectors) that moves venue risk scores from real signals; content-hash dedupe + watermark incrementality, run-history observability with per-reason rejection stats at `/ingestion`, and bounded extract retries
 - **Pluggable provider matrix** — `MemoProvider`, `RiskClassifierProvider`, `TranscriptionProvider`, `EmbeddingProvider` interfaces with deterministic stubs + Anthropic/Gemini/OpenAI implementations; swap providers without touching agent code
 - **Live camera monitoring + PWA alerts** — RTSP frame sampler per venue zone feeds Gemini 2.5 Flash; a 3-gate filter (confidence, temporal persistence, severity) suppresses false positives; qualifying events push mobile notifications via Web Push to subscribed operators; operators confirm or flag as false alarm to self-calibrate per-venue thresholds
 - **Broker platform — Placement, Policy lifecycle, Carrier-side claims** — Phases 1–3 shipped end-to-end on **web and mobile**:
@@ -109,11 +110,14 @@ cd backend
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Required env vars in `backend/.env`:
+Env vars in `backend/.env` (full list + notes in [`backend/.env.example`](backend/.env.example)):
 ```
-GEMINI_API_KEY=...          # vision analysis
-ANTHROPIC_API_KEY=...       # memo drafting
+APP_SECRET=...              # session-token secret — REQUIRED in production (the app refuses to boot without it)
+DATABASE_URL=...            # Postgres in prod; unset → local SQLite
+GEMINI_API_KEY=...          # vision analysis (unset → deterministic fallback)
+ANTHROPIC_API_KEY=...       # memo drafting (unset → deterministic fallback)
 VAPID_PRIVATE_KEY=...       # Web Push alerts (generate with: npx web-push generate-vapid-keys)
+RESEND_API_KEY=...          # password-reset emails (unset → reset URL is logged instead)
 ```
 
 **Frontend:**

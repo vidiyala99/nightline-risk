@@ -87,8 +87,11 @@ Run seed scripts against prod (Railway) with the Postgres **public** URL:
 
 - **Venue uniqueness:** keyed on normalized **(name, address)** in `create_venue` (`app/api/v1/venues.py`) — same name at a different address is allowed and gets a suffixed slug. `tenant_id == venue_id` for operators, so merges must repoint operator links too (see `scripts/dedupe_venues.py`).
 - **JSON list columns on Postgres:** `Column(JSON)` list fields (e.g. `IncidentRecord.parties/witnesses`, `packet.claims_timeline`) round-trip as parsed lists on SQLite but as **JSON strings** on Postgres — coerce at the read boundary (`_as_list` in `app/defense_package.py`) before iterating, or `list(value)` silently iterates characters.
+- **File storage:** route all uploaded bytes through `app/storage.py` `get_storage()` (`LocalStorage` today, `STORAGE_BACKEND=s3` is a future one-class swap). Don't write/read evidence files with raw `open()`/`write_bytes`. Local storage is **ephemeral on Railway** — real persistence needs the S3 backend (see `docs/go-live-readiness.md`).
+- **Config / secrets:** `app/config.py` `validate_startup_env()` runs first in the lifespan and **refuses to boot in prod without `APP_SECRET`**. Env detection: `is_production()` keys off `RAILWAY_ENVIRONMENT`/`APP_ENV`. Document new env vars in `backend/.env.example`.
+- **Account self-service:** `PATCH /api/auth/me` (name/email), `POST /api/auth/me/change-password`, and `POST /api/auth/forgot-password` + `/reset-password` (purpose-scoped reset tokens; email via the env-gated `app/services/email.py`, which logs the reset URL when `RESEND_API_KEY` is unset).
 
 ## Testing
 
-- Full backend: `cd backend && python -m pytest -q` (666 tests as of 2026-05-26).
+- Full backend: `cd backend && python -m pytest -q` (740 tests as of 2026-05-27).
 - The 62 `test_phase_1.py` characterization tests pin every `(venue × tier × billing)` cell of `pricing.py`. New pricing work must keep them green.
