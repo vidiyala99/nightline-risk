@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors';
 import { api } from '../api/client';
+import { money, venueTypeLabel as typeLabel } from '../lib/format';
 
 // Mobile equivalent of the web /market opportunity map. RN can't render the
 // Leaflet map, so this is the card-list view of the same data: real NYC
@@ -33,17 +34,6 @@ interface Prospect {
 const TIER_COLOR: Record<string, string> = {
   A: Colors.tierA, B: Colors.tierB, C: Colors.tierC, D: Colors.tierD,
 };
-
-function money(s: string | null): string {
-  if (s == null) return '—';
-  const n = Number(s);
-  if (Number.isNaN(n)) return s;
-  return `$${Math.round(n).toLocaleString('en-US')}`;
-}
-
-function typeLabel(t: string): string {
-  return t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 export function MarketScreen() {
   const insets = useSafeAreaInsets();

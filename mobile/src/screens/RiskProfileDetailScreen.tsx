@@ -11,6 +11,7 @@ import {
 import { CapacityBar } from '../components/CapacityBar';
 import { api } from '../api/client';
 import { type OverrideStats } from '../types/claims';
+import { getFactorTier, factorGlyph } from '../lib/format';
 
 const TIER_COLOR: Record<string, string> = {
   A: Colors.accent, B: Colors.success, C: Colors.warning, D: Colors.error,
@@ -54,24 +55,10 @@ const FACTOR_EXPLANATIONS: Record<string, {
   },
 };
 
-function getFactorTier(score: number): 'good' | 'moderate' | 'poor' {
-  if (score >= 85) return 'good';
-  if (score >= 65) return 'moderate';
-  return 'poor';
-}
-
 function getFactorColor(score: number): string {
   if (score >= 85) return Colors.accent;
   if (score >= 65) return Colors.warning;
   return Colors.error;
-}
-
-// Mirrors the web FactorTierIcon (CheckCircle2 / Minus / AlertTriangle) so the
-// good/moderate/poor signal isn't carried by bar color alone (a11y: color-not-only).
-function factorGlyph(tier: 'good' | 'moderate' | 'poor'): string {
-  if (tier === 'good') return '✓';
-  if (tier === 'moderate') return '–';
-  return '⚠';
 }
 
 export function RiskProfileDetailScreen({ route, navigation }: any) {
