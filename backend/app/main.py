@@ -273,6 +273,24 @@ async def lifespan(app: FastAPI):
     except Exception as e:  # pragma: no cover - defensive startup guard
         print(f"[SEED] prospect seed skipped: {e}")
 
+    # Seed ingestion run history on a fresh DB so the /ingestion page shows real
+    # connector runs + quality-gate stats (and moves venue scores via the
+    # rollup). Idempotent: only seeds when there are no runs yet. Non-fatal.
+    # Skipped under pytest: the rollup mutates the in-memory VENUES scores, which
+    # would shift baselines that the score/pricing characterization tests pin
+    # (those tests exercise the runner directly with their own fixtures).
+    if not os.getenv("PYTEST_CURRENT_TEST"):
+        try:
+            from sqlmodel import select as _select
+            from app.ingestion.runner import run as _seed_ingest
+            from app.models import IngestionRun as _IngestionRun
+            with next(get_session()) as _s:
+                if _s.exec(_select(_IngestionRun).limit(1)).first() is None:
+                    runs = _seed_ingest("all", _s, venues=VENUES)
+                    print(f"[SEED] ingestion seeded: {len(runs)} run(s).")
+        except Exception as e:  # pragma: no cover - defensive startup guard
+            print(f"[SEED] ingestion seed skipped: {e}")
+
     # Opt-in in-process ingestion tick for the live demo. Off in prod unless
     # INGEST_TICK_SECONDS is set; prod-realistic scheduling uses the CLI
     # (scripts.run_ingest) on a Railway cron instead.

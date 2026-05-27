@@ -2611,6 +2611,25 @@ a:hover { color: var(--text-primary); }
   color: var(--state-error);
 }
 
+/* Quality-gate rejection-reason chips under a run's Rejected count (ingestion). */
+.ingestion-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.ingestion-reason {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
 .security-card {
   display: flex;
   align-items: center;

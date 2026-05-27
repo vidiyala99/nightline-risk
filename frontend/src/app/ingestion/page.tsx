@@ -14,6 +14,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   IngestionRun,
+  REJECTION_REASON_LABEL,
   SOURCE_LABEL,
   STATUS_TONE,
   ingestionApi,
@@ -114,6 +115,15 @@ export default function IngestionPage() {
                     style={r.rejected > 0 ? { color: "var(--state-error)" } : undefined}
                   >
                     {r.rejected}
+                    {r.rejected > 0 && Object.keys(r.rejected_reasons ?? {}).length > 0 && (
+                      <span className="ingestion-reasons">
+                        {Object.entries(r.rejected_reasons).map(([code, count]) => (
+                          <span key={code} className="ingestion-reason">
+                            {REJECTION_REASON_LABEL[code] ?? code} ×{count}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                   </td>
                   <td className="policies-table__mono">{fmtTime(r.started_at)}</td>
                 </tr>

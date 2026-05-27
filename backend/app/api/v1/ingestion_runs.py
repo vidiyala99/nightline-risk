@@ -8,6 +8,8 @@ the connectors pulled and whether anything was rejected by the quality gate.
 """
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 
@@ -34,6 +36,7 @@ def _serialize(run: IngestionRun) -> dict:
         "loaded": run.loaded,
         "skipped": run.skipped,
         "rejected": run.rejected,
+        "rejected_reasons": json.loads(run.rejected_reasons) if run.rejected_reasons else {},
         "watermark": _iso(run.watermark),
         "error": run.error,
     }

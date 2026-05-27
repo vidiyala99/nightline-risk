@@ -22,9 +22,18 @@ export interface IngestionRun {
   loaded: number;
   skipped: number;
   rejected: number;
+  rejected_reasons: Record<string, number>;
   watermark: string | null;
   error: string | null;
 }
+
+// Human labels for the quality-gate rejection codes the backend emits.
+export const REJECTION_REASON_LABEL: Record<string, string> = {
+  out_of_range: "Out of range",
+  non_finite: "Non-finite value",
+  unknown_metric: "Unknown metric",
+  rejected: "Rejected",
+};
 
 export const STATUS_TONE: Record<IngestionStatus, "success" | "danger" | "info"> = {
   success: "success",

@@ -675,5 +675,6 @@ class IngestionRun(SQLModel, table=True):
     loaded: int = Field(default=0)
     skipped: int = Field(default=0)                     # deduped (already ingested)
     rejected: int = Field(default=0)                    # failed the data-quality filter
+    rejected_reasons: Optional[str] = None              # JSON {reason_code: count}, explains `rejected`
     watermark: Optional[datetime] = None                # max occurred_at after this run
     error: Optional[str] = None

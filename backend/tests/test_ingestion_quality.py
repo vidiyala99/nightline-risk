@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from app.ingestion.base import NormalizedEvent
-from app.ingestion.quality import is_valid_event
+from app.ingestion.quality import is_valid_event, rejection_reason
 
 
 def _ev(metric: str, value: float) -> NormalizedEvent:
@@ -48,3 +48,11 @@ def test_non_event_item_passes_gate():
     # master-data rows (dicts, no metric_name) aren't operational events;
     # the gate is N/A and must not reject them.
     assert is_valid_event({"id": "SLA-1", "name": "The Owl Bar"}) is True
+
+
+def test_rejection_reason_codes():
+    assert rejection_reason(_ev("over_pour_rate", 0.4)) is None          # valid
+    assert rejection_reason(_ev("over_pour_rate", 1.5)) == "out_of_range"
+    assert rejection_reason(_ev("over_pour_rate", float("nan"))) == "non_finite"
+    assert rejection_reason(_ev("made_up_metric", 0.5)) == "unknown_metric"
+    assert rejection_reason({"id": "SLA-1"}) is None                     # master-data

@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -20,6 +22,8 @@ from sqlmodel import Session, select
 
 from app.models import IngestionRun, VenueOperationalEvent
 from app.time import as_utc, now_utc
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -145,6 +149,34 @@ def load_operational_events(
     return LoadResult(loaded=loaded, skipped=skipped)
 
 
+def _extract_with_retries(
+    connector: Connector,
+    *,
+    attempts: int = 3,
+    base_delay: float = 0.1,
+) -> list[NormalizedEvent]:
+    """Collect extract→transform output, retrying the I/O boundary with
+    exponential backoff. The simulated connectors never fail, but a real feed
+    (HTTP/DB) can have transient errors — retrying here avoids losing a whole
+    run to a blip. On exhaustion, raise so run_connector logs status='error'."""
+    last_exc: Optional[Exception] = None
+    for attempt in range(1, attempts + 1):
+        try:
+            events: list[NormalizedEvent] = []
+            for raw in connector.extract():
+                events.extend(connector.transform(raw))
+            return events
+        except Exception as exc:  # noqa: BLE001 - transient feed errors are retried
+            last_exc = exc
+            if attempt < attempts:
+                logger.warning(
+                    "ingest extract failed (attempt %d/%d) for %s: %s",
+                    attempt, attempts, connector.source_system, exc,
+                )
+                time.sleep(base_delay * (2 ** (attempt - 1)))
+    raise RuntimeError(f"extract failed after {attempts} attempts: {last_exc}") from last_exc
+
+
 def run_connector(
     connector: Connector,
     session: Session,
@@ -165,9 +197,7 @@ def run_connector(
         status="running",
     )
     try:
-        all_events: list[NormalizedEvent] = []
-        for raw in connector.extract():
-            all_events.extend(connector.transform(raw))
+        all_events = _extract_with_retries(connector)
         run.extracted = len(all_events)
 
         # Incremental: drop anything we've already advanced past. Master-data
@@ -187,13 +217,21 @@ def run_connector(
 
         fresh = [e for e in all_events if _is_fresh(e)]
 
-        # Data-quality gate.
+        # Data-quality gate. Tally *why* events were rejected (not just how
+        # many) so the run log can explain the rejected count.
+        from app.ingestion.quality import rejection_reason
+
         accepted: list[NormalizedEvent] = []
+        reasons: dict[str, int] = {}
         for e in fresh:
             if quality_filter is None or quality_filter(e):
                 accepted.append(e)
             else:
                 run.rejected += 1
+                code = rejection_reason(e) or "rejected"
+                reasons[code] = reasons.get(code, 0) + 1
+        if reasons:
+            run.rejected_reasons = json.dumps(reasons)
 
         if not dry_run:
             result = connector.load(session, accepted)

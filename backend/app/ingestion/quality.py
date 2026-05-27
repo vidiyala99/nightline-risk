@@ -7,12 +7,14 @@ Master-data items (no `metric_name`) aren't operational events, so the gate
 passes them — they have their own idempotent upsert path.
 
 `is_valid_event` is wired into the runner as the default `quality_filter`.
+`rejection_reason` returns *why* an event was rejected so the run log can
+explain its `rejected` count instead of just totalling it.
 """
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass(frozen=True)
@@ -32,19 +34,28 @@ METRIC_SPECS: dict[str, MetricSpec] = {
 }
 
 
-def is_valid_event(item: Any) -> bool:
-    """True if `item` is a structurally-sound operational event (or not an
-    operational event at all). False marks a data-quality rejection."""
+def rejection_reason(item: Any) -> Optional[str]:
+    """None if the event is valid (or is a non-operational master-data item),
+    else a stable reason code: 'unknown_metric' | 'non_finite' | 'out_of_range'."""
     metric = getattr(item, "metric_name", None)
     if metric is None:
-        return True  # master-data item — gate not applicable
+        return None  # master-data item — gate not applicable
 
     spec = METRIC_SPECS.get(metric)
     if spec is None:
-        return False  # unknown metric
+        return "unknown_metric"
 
     value = getattr(item, "value", None)
     if value is None or not isinstance(value, (int, float)) or not math.isfinite(value):
-        return False
+        return "non_finite"
 
-    return spec.min_value <= value <= spec.max_value
+    if not (spec.min_value <= value <= spec.max_value):
+        return "out_of_range"
+
+    return None
+
+
+def is_valid_event(item: Any) -> bool:
+    """True if `item` is a structurally-sound operational event (or not an
+    operational event at all). False marks a data-quality rejection."""
+    return rejection_reason(item) is None

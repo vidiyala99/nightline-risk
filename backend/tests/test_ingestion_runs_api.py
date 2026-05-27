@@ -51,8 +51,9 @@ def test_runs_returns_recent_runs_for_broker(client):
     ids = {r["id"] for r in body}
     assert "ingest-apitest-0" in ids
     sample = next(r for r in body if r["id"] == "ingest-apitest-0")
-    for key in ("source_system", "status", "extracted", "loaded", "skipped", "rejected"):
+    for key in ("source_system", "status", "extracted", "loaded", "skipped", "rejected", "rejected_reasons"):
         assert key in sample
+    assert isinstance(sample["rejected_reasons"], dict)  # {} when none, never null
 
 
 def test_runs_respects_limit(client):

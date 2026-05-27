@@ -44,6 +44,8 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     ("incidentrecord", "weapon_involved", "BOOLEAN", ""),
     ("incidentrecord", "refused_service_or_overserved", "TEXT", ""),
     ("incidentrecord", "injury_detail", "TEXT", ""),
+    # Ingestion rejection-reason observability — added 2026-05-27.
+    ("ingestionrun", "rejected_reasons", "TEXT", ""),
 ]
 
 

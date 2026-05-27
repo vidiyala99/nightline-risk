@@ -123,6 +123,21 @@ def test_quality_filter_rejects_and_counts():
     assert [r.external_ref for r in rows] == ["good"]
 
 
+def test_run_connector_aggregates_rejected_reasons():
+    import json
+
+    from app.ingestion.quality import is_valid_event
+
+    s = _session()
+    good = _event(value=0.4, ref="good")
+    oor = _event(value=1.5, ref="oor")                         # out_of_range
+    unknown = _event(metric="made_up_metric", value=0.5, ref="unk")  # unknown_metric
+    run = run_connector(_FakeConnector([good, oor, unknown]), s, quality_filter=is_valid_event)
+    assert run.loaded == 1
+    assert run.rejected == 2
+    assert json.loads(run.rejected_reasons) == {"out_of_range": 1, "unknown_metric": 1}
+
+
 def test_watermark_comparison_tolerates_mixed_tzawareness():
     # Regression: SQLite strips tzinfo on read, so a watermark loaded from the
     # IngestionRun log is naive while fresh events (now_utc) are tz-aware.
@@ -145,6 +160,42 @@ def test_watermark_comparison_tolerates_mixed_tzawareness():
     run = run_connector(_FakeConnector([aware_early, aware_late]), s, watermark=naive_watermark)
     assert run.status == "success"
     assert run.loaded == 1  # only the post-watermark event
+
+
+def test_extract_retries_then_succeeds(monkeypatch):
+    import app.ingestion.base as base
+    monkeypatch.setattr(base.time, "sleep", lambda *_a, **_k: None)  # no real backoff in tests
+    s = _session()
+
+    class _Flaky(_FakeConnector):
+        def __init__(self, events, fail_times):
+            super().__init__(events)
+            self._fail_times = fail_times
+            self._calls = 0
+
+        def extract(self):
+            self._calls += 1
+            if self._calls <= self._fail_times:
+                raise RuntimeError("transient")
+            return [self._events]
+
+    run = run_connector(_Flaky([_event()], fail_times=2), s)
+    assert run.status == "success"
+    assert run.loaded == 1
+
+
+def test_extract_exhausts_retries_and_records_error(monkeypatch):
+    import app.ingestion.base as base
+    monkeypatch.setattr(base.time, "sleep", lambda *_a, **_k: None)
+    s = _session()
+
+    class _AlwaysFails(_FakeConnector):
+        def extract(self):
+            raise RuntimeError("boom")
+
+    run = run_connector(_AlwaysFails([_event()]), s)
+    assert run.status == "error"
+    assert "after 3 attempts" in (run.error or "")
 
 
 def test_dry_run_writes_nothing():
