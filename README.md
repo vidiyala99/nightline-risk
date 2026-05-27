@@ -3,7 +3,7 @@
 [![CI](https://github.com/vidiyala99/nightline-risk/actions/workflows/ci.yml/badge.svg)](https://github.com/vidiyala99/nightline-risk/actions/workflows/ci.yml)
 [![E2E](https://github.com/vidiyala99/nightline-risk/actions/workflows/e2e.yml/badge.svg)](https://github.com/vidiyala99/nightline-risk/actions/workflows/e2e.yml)
 
-Evidence-first underwriting infrastructure for nightlife venues. Built as a working prototype of what Nightline's core platform could look like.
+Evidence-first underwriting infrastructure for nightlife venues.
 
 **Live demo:** https://frontend-mu-ebon-n3x8uw2rpx.vercel.app  
 **Mobile walkthrough:** https://drive.google.com/file/d/1UaMGv5HxK811FAFx8cNE9l1x2IPFVuuI/view?usp=sharing  
