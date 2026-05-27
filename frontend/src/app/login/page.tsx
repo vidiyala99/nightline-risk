@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { accountApi } from "@/lib/account";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -33,6 +34,19 @@ export default function LoginPage() {
       toastError(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgot = async () => {
+    if (!email.trim()) {
+      setError("Enter your email above, then tap Forgot password.");
+      return;
+    }
+    try {
+      await accountApi.forgotPassword(email.trim());
+      toastSuccess("If that email is registered, a reset link has been sent.");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Request failed");
     }
   };
 
@@ -124,6 +138,17 @@ export default function LoginPage() {
               placeholder="••••••••"
               required
             />
+
+            {!isSignUp && (
+              <button
+                type="button"
+                className="lc-login__forgot"
+                onClick={handleForgot}
+                disabled={loading}
+              >
+                Forgot password?
+              </button>
+            )}
 
             {isSignUp && (
               <div className="lc-login__role">

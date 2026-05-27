@@ -60,4 +60,23 @@ export const accountApi = {
     });
     if (!res.ok) await raise(res, "Failed to change password");
   },
+
+  // Pre-auth flows — no bearer token needed.
+  forgotPassword: async (email: string): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) await raise(res, "Couldn't start the reset. Try again.");
+  },
+
+  resetPassword: async (body: { token: string; new_password: string }): Promise<void> => {
+    const res = await fetch(`${API_URL}/api/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) await raise(res, "Couldn't reset your password.");
+  },
 };

@@ -70,3 +70,42 @@ describe("accountApi.changePassword", () => {
     ).rejects.toMatchObject({ status: 401, message: "Current password is incorrect" });
   });
 });
+
+describe("accountApi.forgotPassword", () => {
+  it("POSTs the email to the forgot-password endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ message: "ok" }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await accountApi.forgotPassword("user@x.com");
+
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toContain("/api/auth/forgot-password");
+    expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body)).toEqual({ email: "user@x.com" });
+  });
+});
+
+describe("accountApi.resetPassword", () => {
+  it("POSTs token + new password to the reset endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await accountApi.resetPassword({ token: "t0k", new_password: "brandnew1" });
+
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toContain("/api/auth/reset-password");
+    expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body)).toEqual({ token: "t0k", new_password: "brandnew1" });
+  });
+
+  it("throws AccountError on an invalid/expired token", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({ detail: "This reset link is invalid or has expired" }) }),
+    );
+
+    await expect(
+      accountApi.resetPassword({ token: "bad", new_password: "brandnew1" }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+});

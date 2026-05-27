@@ -263,17 +263,18 @@ class GeminiTranscriptionProvider(TranscriptionProvider):
         import base64
         import json
         import httpx
-        from pathlib import Path
 
-        size = Path(file_path).stat().st_size
+        from app.storage import get_storage
+
+        data = get_storage().read(file_path)
+        size = len(data)
         if size > self._MAX_INLINE_BYTES:
             raise RuntimeError(
                 f"Audio file too large for inline upload ({size} bytes > {self._MAX_INLINE_BYTES}). "
                 "Use the File API path."
             )
 
-        with open(file_path, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode("ascii")
+        b64 = base64.b64encode(data).decode("ascii")
 
         prompt = (
             "Transcribe this audio recording from a nightlife venue incident report. "

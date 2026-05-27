@@ -52,11 +52,11 @@ async def upload_compliance_evidence(
     from uuid import uuid4
     from app.main import (
         COMPLIANCE_EVIDENCE_MAX_BYTES,
-        EVIDENCE_DIR,
         _find_compliance_item,
         _predict_evidence_citation,
         _resolve_venue,
     )
+    from app.storage import get_storage
     venue = _resolve_venue(venue_id, session)
 
     contents = await file.read()
@@ -77,8 +77,7 @@ async def upload_compliance_evidence(
 
     evidence_id = f"ce-{uuid4().hex[:12]}"
     safe_name = f"{evidence_id}_{file.filename or 'upload'}"
-    dest = EVIDENCE_DIR / safe_name
-    dest.write_bytes(contents)
+    file_ref = get_storage().save(safe_name, contents)
 
     record = ComplianceEvidence(
         id=evidence_id,
@@ -86,7 +85,7 @@ async def upload_compliance_evidence(
         compliance_item_id=item_id,
         filename=file.filename or "upload",
         content_type=file.content_type or "application/octet-stream",
-        file_path=str(dest),
+        file_path=file_ref,
         file_size=len(contents),
         uploaded_by=uploaded_by,
         cited_source_id=citation.source_id if citation else None,

@@ -156,6 +156,9 @@ def _backfill_incident_packets(session: Session) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app.config import validate_startup_env
+    validate_startup_env()  # fail fast on a misconfigured prod boot (e.g. no APP_SECRET)
+
     create_db_and_tables()
 
     # Column-level ALTER migrations now live in app.database.create_db_and_tables

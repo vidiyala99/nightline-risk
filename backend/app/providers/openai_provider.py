@@ -49,15 +49,22 @@ class OpenAITranscriptionProvider(TranscriptionProvider):
         return ProviderMode.LLM
 
     def transcribe(self, *, file_path: str, content_type: str) -> TranscriptionOutput:
+        import os
+
         from openai import OpenAI
 
+        from app.storage import get_storage
+
         client = OpenAI(api_key=self._api_key)
-        with open(file_path, "rb") as audio_file:
-            response = client.audio.transcriptions.create(
-                model=self.MODEL,
-                file=audio_file,
-                response_format="verbose_json",
-            )
+        # The SDK accepts a (filename, bytes) tuple; the filename keeps the
+        # original extension for format detection. Bytes come from storage so
+        # the source can be local or a future remote backend.
+        data = get_storage().read(file_path)
+        response = client.audio.transcriptions.create(
+            model=self.MODEL,
+            file=(os.path.basename(file_path), data),
+            response_format="verbose_json",
+        )
 
         # response_format=verbose_json returns language and duration; gracefully
         # degrade if the SDK shape changes (it's evolved twice already).

@@ -82,6 +82,37 @@ def verify_token(token: str) -> Optional[dict]:
         return None
 
 
+RESET_TOKEN_EXPIRE_SECONDS = 3600  # 1 hour
+
+
+def create_reset_token(user_id: str) -> str:
+    """Short-lived, purpose-scoped token for password reset. The `reset:` prefix
+    keeps it distinct from a session token (verify_token rejects it and vice-versa)."""
+    expiry = int(time.time()) + RESET_TOKEN_EXPIRE_SECONDS
+    payload = f"reset:{user_id}:{expiry}"
+    encoded = base64.urlsafe_b64encode(payload.encode()).decode()
+    return f"{_sign(encoded)}.{encoded}"
+
+
+def verify_reset_token(token: str) -> Optional[str]:
+    """Return the user_id for a valid, unexpired reset token, else None."""
+    try:
+        if "." not in token:
+            return None
+        signature, encoded = token.split(".", 1)
+        if not hmac.compare_digest(signature, _sign(encoded)):
+            return None
+        payload = base64.urlsafe_b64decode(encoded.encode()).decode()
+        parts = payload.split(":")
+        if len(parts) != 3 or parts[0] != "reset":
+            return None
+        if time.time() > int(parts[2]):
+            return None
+        return parts[1]
+    except Exception:
+        return None
+
+
 def _pw_bytes(password: str) -> bytes:
     # bcrypt hashes only the first 72 bytes; truncate to avoid backend errors
     # on long inputs.
@@ -206,6 +237,15 @@ class ProfileUpdateRequest(BaseModel):
 
 class PasswordChangeRequest(BaseModel):
     old_password: str
+    new_password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
     new_password: str
 
 
@@ -451,6 +491,54 @@ def change_password(
         entity_type="user",
         entity_id=record.id,
         event_type="password_changed",
+        event_metadata={},
+    )
+    session.commit()
+    return {"success": True}
+
+
+@router.post("/forgot-password", status_code=200)
+def forgot_password(request: ForgotPasswordRequest, session: Session = Depends(get_session)):
+    """Begin a password reset. Always 200 (never leak whether an account exists)."""
+    from sqlmodel import select
+    from app.models import UserRecord
+    from app.services.email import send_password_reset_email
+
+    email = request.email.strip().lower()
+    record = session.exec(select(UserRecord).where(UserRecord.email == email)).first()
+    if record:
+        token = create_reset_token(record.id)
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+        reset_url = f"{frontend_url}/reset-password?token={token}"
+        send_password_reset_email(record.email, reset_url)
+    return {"message": "If that email is registered, a reset link has been sent."}
+
+
+@router.post("/reset-password", status_code=200)
+def reset_password(request: ResetPasswordRequest, session: Session = Depends(get_session)):
+    """Complete a password reset using a valid reset token."""
+    from app.models import UserRecord
+    from app.packet_core import _add_audit_event
+
+    user_id = verify_reset_token(request.token)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired")
+    if len(request.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    record = session.get(UserRecord, user_id)
+    if not record:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired")
+
+    record.password_hash = create_password_hash(request.new_password)
+    session.add(record)
+    _add_audit_event(
+        session=session,
+        actor_id=record.id,
+        actor_type="user",
+        entity_type="user",
+        entity_id=record.id,
+        event_type="password_reset",
         event_metadata={},
     )
     session.commit()

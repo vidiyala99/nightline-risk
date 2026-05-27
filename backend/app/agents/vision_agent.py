@@ -11,7 +11,6 @@ import logging
 import mimetypes
 import os
 from dataclasses import dataclass
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -104,16 +103,18 @@ def _call_gemini_vision(file_path: str, mime_type: str, prompt: str) -> dict:
 
     import httpx
 
+    from app.storage import get_storage
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY not configured")
 
-    file_size = Path(file_path).stat().st_size
+    data = get_storage().read(file_path)
+    file_size = len(data)
     if file_size > _MAX_INLINE_BYTES:
         raise RuntimeError(f"File too large for inline upload ({file_size} bytes)")
 
-    with open(file_path, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("ascii")
+    b64 = base64.b64encode(data).decode("ascii")
 
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     payload = {

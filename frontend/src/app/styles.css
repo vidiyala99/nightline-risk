@@ -3807,6 +3807,21 @@ a:hover { color: var(--text-primary); }
 }
 .lc-login__back a:hover { color: var(--accent-ink); }
 
+.lc-login__forgot {
+  align-self: flex-end;
+  margin-top: -6px;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+.lc-login__forgot:hover { color: var(--accent-ink); }
+.lc-login__forgot:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ============================================
    RESPONSIVE LAYOUT PRIMITIVES (Pass 0)
    Used by Container/Stack/Cluster/Grid/Split/ResponsiveTable.

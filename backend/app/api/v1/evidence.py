@@ -13,15 +13,15 @@ collapse into a services/evidence.py module after Phase B completes.
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models import EvidenceAnalysis, EvidenceFile, IncidentRecord
 from app.schemas.errors import error_response
+from app.storage import get_storage
 
 router = APIRouter()
 
@@ -47,11 +47,11 @@ async def upload_evidence(
             status_code=404,
         )
     from uuid import uuid4
-    from app.main import EVIDENCE_DIR, _process_evidence_sync
+    from app.main import _process_evidence_sync
+    from app.storage import get_storage
 
     evidence_id = f"ev-{uuid4().hex[:12]}"
     safe_name = f"{evidence_id}_{file.filename}"
-    dest = EVIDENCE_DIR / safe_name
 
     contents = await file.read()
     max_size = MAX_VIDEO_SIZE if (file.content_type or "").startswith("video/") else MAX_IMAGE_SIZE
@@ -64,7 +64,7 @@ async def upload_evidence(
             status_code=413,
             details={"limit_mb": limit_mb, "received_bytes": len(contents)},
         )
-    dest.write_bytes(contents)
+    file_ref = get_storage().save(safe_name, contents)
     content_hash = hashlib.sha256(contents).hexdigest()
 
     evidence = EvidenceFile(
@@ -72,7 +72,7 @@ async def upload_evidence(
         incident_id=incident_id,
         filename=file.filename or "upload",
         content_type=file.content_type or "application/octet-stream",
-        file_path=str(dest),
+        file_path=file_ref,
         file_size=len(contents),
         uploaded_by=uploaded_by,
         content_hash=content_hash,
@@ -173,11 +173,20 @@ def serve_evidence(
             f"Evidence {evidence_id!r} not found",
             status_code=404,
         )
-    path = Path(ev.file_path)
-    if not path.exists():
+    storage = get_storage()
+    if not storage.exists(ev.file_path):
         raise error_response(
             "evidence_file_missing",
-            "Evidence row exists but the file is not on disk.",
+            "Evidence row exists but the file is not in storage.",
             status_code=404,
         )
-    return FileResponse(str(path), media_type=ev.content_type, filename=ev.filename)
+    # Local backend → FileResponse (efficient); remote backend (local_path None)
+    # → stream the bytes through read().
+    local = storage.local_path(ev.file_path)
+    if local is not None:
+        return FileResponse(str(local), media_type=ev.content_type, filename=ev.filename)
+    return StreamingResponse(
+        iter([storage.read(ev.file_path)]),
+        media_type=ev.content_type,
+        headers={"Content-Disposition": f'attachment; filename="{ev.filename}"'},
+    )
