@@ -62,37 +62,73 @@ const TIER_COLOR: Record<string, string> = {
 
 const FACTOR_EXPLANATIONS: Record<string, {
   label: string;
-  good: string;
-  moderate: string;
-  poor: string;
+  good: { operator: string; broker: string };
+  moderate: { operator: string; broker: string };
+  poor: { operator: string; broker: string };
   action: string;
 }> = {
   incident_history: {
-    label: "Incident History",
-    good: "Your incident record is clean. Low frequency and quick resolution show underwriters you run a safe operation.",
-    moderate: "A few open or recent incidents are moderately impacting your score. Closing them and documenting outcomes improves this factor.",
-    poor: "Multiple unresolved incidents are the biggest drag on your score. Prioritize closing open cases and uploading evidence packets.",
+    label: "Safety Record",
+    good: {
+      operator: "Your incident record is clean. Low frequency and quick resolution show underwriters you run a safe operation.",
+      broker: "Incident record is clean. Low frequency and quick resolution indicate a safe operation.",
+    },
+    moderate: {
+      operator: "A few open or recent incidents are moderately impacting your score. Closing them and documenting outcomes improves this factor.",
+      broker: "A few open or recent incidents are moderately impacting the score. Closing them and documenting outcomes would improve this factor.",
+    },
+    poor: {
+      operator: "Multiple unresolved incidents are the biggest drag on your score. Prioritize closing open cases and uploading evidence packets.",
+      broker: "Multiple unresolved incidents are the biggest drag on the score. The venue should prioritize closing open cases and uploading evidence.",
+    },
     action: "Close open incidents and upload supporting evidence to each report.",
   },
   compliance: {
     label: "Compliance",
-    good: "All compliance actions are resolved. Your documentation is in good standing with underwriters.",
-    moderate: "Some compliance items are pending. Clearing them shows proactive risk management.",
-    poor: "Unresolved compliance actions signal gaps in your risk documentation. Address these first.",
+    good: {
+      operator: "All compliance actions are resolved. Your documentation is in good standing with underwriters.",
+      broker: "All compliance actions are resolved. Documentation is in good standing with underwriters.",
+    },
+    moderate: {
+      operator: "Some compliance items are pending. Clearing them shows proactive risk management.",
+      broker: "Some compliance items are pending. Clearing them would show proactive risk management.",
+    },
+    poor: {
+      operator: "Unresolved compliance actions signal gaps in your risk documentation. Address these first.",
+      broker: "Unresolved compliance actions signal gaps in risk documentation.",
+    },
     action: "Complete all pending compliance actions in the Live Terminal.",
   },
   operational: {
-    label: "Operational",
-    good: "Your infrastructure and security setup are strong. Real-time data feeds give underwriters confidence in your operations.",
-    moderate: "Some operational systems need attention. Degraded infrastructure signals reduce your score.",
-    poor: "Operational gaps — degraded feeds, low security rating — are significantly impacting your premium.",
+    label: "Operational Health",
+    good: {
+      operator: "Your infrastructure and security setup are strong. Real-time data feeds give underwriters confidence in your operations.",
+      broker: "Infrastructure and security setup are strong. Real-time data feeds give underwriters confidence in operations.",
+    },
+    moderate: {
+      operator: "Some operational systems need attention. Degraded infrastructure signals reduce your score.",
+      broker: "Some operational systems need attention. Degraded infrastructure signals reduce the score.",
+    },
+    poor: {
+      operator: "Operational gaps — degraded feeds, low security rating — are significantly impacting your premium.",
+      broker: "Operational gaps — degraded feeds, low security rating — are significantly impacting the premium.",
+    },
     action: "Repair degraded infrastructure feeds and ensure all systems report in real-time.",
   },
   business_profile: {
     label: "Business Profile",
-    good: "Your venue type, capacity management, and carrier history all contribute positively to your profile.",
-    moderate: "Your business profile has some areas that underwriters view as higher risk.",
-    poor: "Your venue type or operating history is a significant risk factor. Evidence-based documentation can offset this.",
+    good: {
+      operator: "Your venue type, capacity management, and carrier history all contribute positively to your profile.",
+      broker: "Venue type, capacity management, and carrier history all contribute positively to the profile.",
+    },
+    moderate: {
+      operator: "Your business profile has some areas that underwriters view as higher risk.",
+      broker: "The business profile has some areas that underwriters view as higher risk.",
+    },
+    poor: {
+      operator: "Your venue type or operating history is a significant risk factor. Evidence-based documentation can offset this.",
+      broker: "Venue type or operating history is a significant risk factor. Evidence-based documentation can offset this.",
+    },
     action: "Maintain consistent carrier relationships and document your operational standards.",
   },
 };
@@ -156,6 +192,10 @@ export default function RiskProfilePage() {
     non_override_right_rate: number | null;
     by_reason: Record<string, { total: number; approved: number; rejected: number; pending: number }>;
   } | null>(null);
+  // Status-bucketed incident counts for the Incident History factor row.
+  // `total` here MUST equal the unfiltered list at /incidents?venue=... and
+  // the scoring engine's `incident_count` input — same `IncidentRecord` COUNT(*).
+  const [incidentCounts, setIncidentCounts] = useState<{ total: number; open: number } | null>(null);
 
   // Master policy ingestion (broker-only) — see backend POST /api/venues/{id}/policy-docs
   const [policyText, setPolicyText] = useState("");
@@ -285,16 +325,21 @@ export default function RiskProfilePage() {
         // they need the bearer token (risk-score/quote are open reads).
         const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
         const authH: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const [riskRes, quoteRes, venueRes, statsRes] = await Promise.all([
+        const [riskRes, quoteRes, venueRes, statsRes, countsRes] = await Promise.all([
           fetch(`${API_URL}/api/venues/${venueId}/risk-score`),
           fetch(`${API_URL}/api/venues/${venueId}/quote`),
           fetch(`${API_URL}/api/venues/${venueId}`, { headers: authH }),
           fetch(`${API_URL}/api/venues/${venueId}/override-stats`, { headers: authH }),
+          fetch(`${API_URL}/api/venues/${venueId}/incidents/counts`, { headers: authH }),
         ]);
         if (riskRes.ok) setRiskData(await riskRes.json());
         if (quoteRes.ok) setQuoteData(await quoteRes.json());
         if (venueRes.ok) { const v = await venueRes.json(); setVenueName(v.name ?? venueId); setVenueMeta(v); }
         if (statsRes.ok) setOverrideStats(await statsRes.json());
+        if (countsRes.ok) {
+          const c = await countsRes.json();
+          setIncidentCounts({ total: c.total ?? 0, open: c.open ?? 0 });
+        }
       } catch {
         // non-fatal
       } finally {
@@ -610,7 +655,14 @@ export default function RiskProfilePage() {
         @media (min-width: 1024px) { .rp-page { padding: var(--space-xl); } }
         .rp-container { max-width: 1280px; margin: 0 auto; }
         .rp-grid { display: flex; flex-direction: column; gap: var(--space-lg); }
-        @media (min-width: 1180px) { .rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); } }
+        /* Column wrappers collapse so their children become direct grid items,
+           then grid-auto-flow:dense packs cards into whichever column has
+           space. This keeps the narrative order while preventing the right
+           column from looking empty when there are fewer right-side cards. */
+        @media (min-width: 1024px) {
+          .rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); grid-auto-flow: row dense; align-items: start; }
+          .rp-grid > .rp-col { display: contents; }
+        }
         .rp-back { display: inline-flex; align-items: center; gap: var(--space-xs); background: none; border: none; cursor: pointer;
                    padding: var(--space-sm) var(--space-md) var(--space-sm) 0; margin: 0 0 var(--space-lg); min-height: 44px;
                    color: var(--text-secondary); font-size: 0.875rem; border-radius: var(--radius-sm); }
@@ -662,8 +714,10 @@ export default function RiskProfilePage() {
         </header>
 
         <div className="rp-grid">
-        {/* Left column */}
-        <div className="flex flex-col gap-lg">
+        {/* Left column — at 1024px+ this wrapper collapses (display:contents)
+            and its cards become direct grid children, so cards from both
+            columns flow together into the 2-col grid. */}
+        <div className="flex flex-col gap-lg rp-col">
 
           {/* Score hero — tier and score are responsive via clamp() so they don't overflow on 375px phones */}
           <div className="card" style={{ border: `1px solid ${tierColor}33` }}>
@@ -672,10 +726,15 @@ export default function RiskProfilePage() {
                 {tier}
               </div>
               <div>
-                <div className="rp-score" style={{ color: tierColor }}>
-                  {score}<span className="text-xl text-secondary font-normal"> / 100</span>
+                <div className="rp-score" style={{ color: tierColor, display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span>{score}<span className="text-xl text-secondary font-normal"> / 100</span></span>
+                  {isProspect && <span className="venue-prospect-badge" title="Estimated from public records — not live telemetry">EST.</span>}
                 </div>
-                <p className="text-xs font-mono text-secondary mt-xs">Tier {tier} · Evidence-First Underwriting</p>
+                <p className="text-xs font-mono text-secondary mt-xs">
+                  {isProspect
+                    ? `Tier ${tier} · Estimated from public records`
+                    : `Tier ${tier} · Evidence-First Underwriting`}
+                </p>
                 {/* P3: surface savings to both personas with persona-appropriate framing */}
                 {savingsAnnual > 0 && (
                   <p className="text-xs mt-xs" style={{ color: "var(--accent-ink)" }}>
@@ -692,9 +751,13 @@ export default function RiskProfilePage() {
           <div className="card">
             {isBroker ? (
               <>
-                <h2 className="text-sm font-semibold mb-sm">Risk Intelligence Summary</h2>
+                <h2 className="text-sm font-semibold mb-sm">
+                  {isProspect ? "Estimated Risk Profile" : "Risk Intelligence Summary"}
+                </h2>
                 <p className="text-sm text-secondary" style={{ lineHeight: 1.7 }}>
-                  This venue's risk profile reflects their operational data, incident history, and compliance posture. Use this breakdown when discussing coverage terms or renewal pricing with the venue.
+                  {isProspect
+                    ? "This profile is modeled from public license records — incident history, compliance items, and operational attributes are estimates, not the venue's real telemetry. Bind a quote to start collecting live data and convert this into an underwritten profile."
+                    : "This venue's risk profile reflects their operational data, incident history, and compliance posture. Use this breakdown when discussing coverage terms or renewal pricing with the venue."}
                 </p>
               </>
             ) : (
@@ -733,20 +796,66 @@ export default function RiskProfilePage() {
                 else if (key === "operational" && !isBroker) href = `/terminal/${encodeURIComponent(venueId)}#infrastructure`;
                 else if (key === "business_profile") href = `/venues/${encodeURIComponent(venueId)}`;
 
+                const showIncidentCounts = key === "incident_history" && incidentCounts !== null;
+                // Risk-language chip: the 0-100 score is inverted from risk
+                // (higher score = lower risk, like a credit score). Risk verbs
+                // make the row read direction-correctly for an insurance audience.
+                const tierWord = ft === "good" ? "LOW RISK" : ft === "moderate" ? "MODERATE" : "HIGH RISK";
                 const body = (
                   <>
-                    <div className="flex items-center justify-between mb-xs">
+                    {/* Header: label on the left, tier chip on the right. The
+                        chip pairs the tier word with the 0-100 score so the
+                        bare number can't be misread as a count of items. */}
+                    <div className="flex items-center justify-between mb-xs" style={{ gap: 8 }}>
                       <span className="text-xs uppercase tracking-wide text-secondary">{label}</span>
                       <span className="flex items-center gap-xs">
-                        <FactorTierIcon tier={ft} color={color} />
-                        <span className="text-sm font-bold font-mono" style={{ color }} aria-label={`${s} out of 100, ${ft}`}>{s}</span>
+                        <span
+                          className="text-xs font-mono"
+                          style={{
+                            color,
+                            border: `1px solid ${color}55`,
+                            background: `${color}14`,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            letterSpacing: "0.05em",
+                            fontWeight: 700,
+                          }}
+                          aria-label={`${ft}, ${s} out of 100`}
+                        >
+                          <FactorTierIcon tier={ft} color={color} /> {tierWord} · {s}/100
+                        </span>
                         {href && <ChevronRight size={14} style={{ color: "var(--text-muted)" }} aria-hidden="true" />}
                       </span>
                     </div>
                     <div className="capacity-bar-track" style={{ height: 4, background: "var(--bg-elevated)", borderRadius: 2, overflow: "hidden" }} aria-hidden="true">
                       <div style={{ width: `${s}%`, height: "100%", background: color, borderRadius: 2 }} />
                     </div>
-                    <p className="text-xs text-secondary mt-xs" style={{ lineHeight: 1.6 }}>{info?.[ft]}</p>
+                    {showIncidentCounts && (
+                      incidentCounts!.total === 0 ? (
+                        <p
+                          className="text-xs font-mono mt-xs"
+                          style={{ color: "var(--text-muted)", fontStyle: "italic" }}
+                        >
+                          No incidents on file
+                        </p>
+                      ) : (
+                        <p
+                          className="text-xs font-mono mt-xs"
+                          style={{ color: "var(--text-primary)", letterSpacing: "-0.01em" }}
+                          aria-label={`${incidentCounts!.total} incidents total${incidentCounts!.open > 0 ? `, ${incidentCounts!.open} still open` : ""}`}
+                        >
+                          <span style={{ fontWeight: 700 }}>
+                            {incidentCounts!.total} {incidentCounts!.total === 1 ? "incident" : "incidents"}
+                          </span>
+                          {incidentCounts!.open > 0 && (
+                            <span style={{ color: "var(--state-warning)", marginLeft: 6 }}>
+                              · {incidentCounts!.open} open
+                            </span>
+                          )}
+                        </p>
+                      )
+                    )}
+                    <p className="text-xs text-secondary mt-xs" style={{ lineHeight: 1.6 }}>{info?.[ft]?.[isBroker ? "broker" : "operator"]}</p>
                   </>
                 );
 
@@ -766,8 +875,8 @@ export default function RiskProfilePage() {
           </div>
         </div>
 
-        {/* Right column */}
-        <div className="flex flex-col gap-lg">
+        {/* Right column — also collapses at 1024px+; see note on left column. */}
+        <div className="flex flex-col gap-lg rp-col">
 
           {/* P2: empty-state onboarding placement — Master Policy is Step 1 for a new venue */}
           {isPolicyEmpty && masterPolicyCard}
@@ -822,7 +931,7 @@ export default function RiskProfilePage() {
                   return (
                     <div key={key}>
                       <p className="text-sm font-semibold mb-xs">{info?.label}</p>
-                      <p className="text-sm text-secondary" style={{ lineHeight: 1.6 }}>{info?.good}</p>
+                      <p className="text-sm text-secondary" style={{ lineHeight: 1.6 }}>{info?.good?.[isBroker ? "broker" : "operator"]}</p>
                     </div>
                   );
                 })}
@@ -860,7 +969,7 @@ export default function RiskProfilePage() {
                           {weightPct != null && <> · weighted {weightPct}%</>}
                         </span>
                       </div>
-                      <p className="text-sm text-secondary mb-xs" style={{ lineHeight: 1.6 }}>{info?.[ft]}</p>
+                      <p className="text-sm text-secondary mb-xs" style={{ lineHeight: 1.6 }}>{info?.[ft]?.[isBroker ? "broker" : "operator"]}</p>
                       {!isBroker && info?.action && (
                         <p className="text-xs font-mono" style={{ color }}>→ {info.action}</p>
                       )}
@@ -966,7 +1075,7 @@ export default function RiskProfilePage() {
                 ? "var(--state-warning)"
                 : "var(--state-error)";
             return (
-              <section className="card" style={{ gridColumn: "1 / -1" }}>
+              <section className="card">
                 <div
                   className="flex items-center justify-between mb-lg"
                   style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}

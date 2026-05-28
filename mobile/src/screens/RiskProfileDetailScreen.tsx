@@ -8,47 +8,86 @@ import {
   Text,
   View,
 } from 'react-native';
-import { CapacityBar } from '../components/CapacityBar';
 import { api } from '../api/client';
 import { type OverrideStats } from '../types/claims';
 import { getFactorTier, factorGlyph } from '../lib/format';
 import { tierColor as getTierColor } from '../theme/tiers';
 import { ChevronRight } from 'lucide-react-native';
 
-// Per-factor plain-English explanations based on score ranges
+// Per-factor plain-English explanations based on score ranges.
+// Each severity copy is persona-aware: operators read second-person ("your");
+// brokers read third-person about the venue. `action` is operator-only — it
+// only renders in the "WHAT TO IMPROVE" block, which is gated on !isBroker.
+type FactorCopy = { operator: string; broker: string };
 const FACTOR_EXPLANATIONS: Record<string, {
   label: string;
-  good: string;
-  moderate: string;
-  poor: string;
+  good: FactorCopy;
+  moderate: FactorCopy;
+  poor: FactorCopy;
   action: string;
 }> = {
   incident_history: {
-    label: 'Incident History',
-    good: 'Your incident record is clean. Low frequency and quick resolution show underwriters you run a safe operation.',
-    moderate: 'A few open or recent incidents are moderately impacting your score. Closing them and documenting outcomes improves this factor.',
-    poor: 'Multiple unresolved incidents are the biggest drag on your score. Prioritize closing open cases and uploading evidence packets.',
+    label: 'Safety Record',
+    good: {
+      operator: 'Your incident record is clean. Low frequency and quick resolution show underwriters you run a safe operation.',
+      broker: 'Incident record is clean. Low frequency and quick resolution indicate a safe operation.',
+    },
+    moderate: {
+      operator: 'A few open or recent incidents are moderately impacting your score. Closing them and documenting outcomes improves this factor.',
+      broker: 'A few open or recent incidents are moderately impacting the score. Closing them and documenting outcomes would improve this factor.',
+    },
+    poor: {
+      operator: 'Multiple unresolved incidents are the biggest drag on your score. Prioritize closing open cases and uploading evidence packets.',
+      broker: 'Multiple unresolved incidents are the biggest drag on the score. The venue should prioritize closing open cases and uploading evidence.',
+    },
     action: 'Close open incidents and upload supporting evidence to each report.',
   },
   compliance: {
     label: 'Compliance',
-    good: 'All compliance actions are resolved. Your documentation is in good standing with underwriters.',
-    moderate: 'Some compliance items are pending. Clearing them shows proactive risk management.',
-    poor: 'Unresolved compliance actions signal gaps in your risk documentation. Address these first.',
+    good: {
+      operator: 'All compliance actions are resolved. Your documentation is in good standing with underwriters.',
+      broker: 'All compliance actions are resolved. Documentation is in good standing with underwriters.',
+    },
+    moderate: {
+      operator: 'Some compliance items are pending. Clearing them shows proactive risk management.',
+      broker: 'Some compliance items are pending. Clearing them would show proactive risk management.',
+    },
+    poor: {
+      operator: 'Unresolved compliance actions signal gaps in your risk documentation. Address these first.',
+      broker: 'Unresolved compliance actions signal gaps in risk documentation.',
+    },
     action: 'Complete all pending compliance actions in the Live Terminal.',
   },
   operational: {
-    label: 'Operational',
-    good: 'Your infrastructure and security setup are strong. Real-time data feeds give underwriters confidence in your operations.',
-    moderate: 'Some operational systems need attention. Degraded infrastructure signals reduce your score.',
-    poor: 'Operational gaps — degraded feeds, low security rating — are significantly impacting your premium.',
+    label: 'Operational Health',
+    good: {
+      operator: 'Your infrastructure and security setup are strong. Real-time data feeds give underwriters confidence in your operations.',
+      broker: 'Infrastructure and security setup are strong. Real-time data feeds give underwriters confidence in operations.',
+    },
+    moderate: {
+      operator: 'Some operational systems need attention. Degraded infrastructure signals reduce your score.',
+      broker: 'Some operational systems need attention. Degraded infrastructure signals reduce the score.',
+    },
+    poor: {
+      operator: 'Operational gaps — degraded feeds, low security rating — are significantly impacting your premium.',
+      broker: 'Operational gaps — degraded feeds, low security rating — are significantly impacting the premium.',
+    },
     action: 'Repair degraded infrastructure feeds and ensure all systems report in real-time.',
   },
   business_profile: {
     label: 'Business Profile',
-    good: 'Your venue type, capacity management, and carrier history all contribute positively to your profile.',
-    moderate: 'Your business profile has some areas that underwriters view as higher risk.',
-    poor: 'Your venue type or operating history is a significant risk factor. Evidence-based documentation can offset this.',
+    good: {
+      operator: 'Your venue type, capacity management, and carrier history all contribute positively to your profile.',
+      broker: 'Venue type, capacity management, and carrier history all contribute positively to the profile.',
+    },
+    moderate: {
+      operator: 'Your business profile has some areas that underwriters view as higher risk.',
+      broker: 'The business profile has some areas that underwriters view as higher risk.',
+    },
+    poor: {
+      operator: 'Your venue type or operating history is a significant risk factor. Evidence-based documentation can offset this.',
+      broker: 'Venue type or operating history is a significant risk factor. Evidence-based documentation can offset this.',
+    },
     action: 'Maintain consistent carrier relationships and document your operational standards.',
   },
 };
@@ -60,15 +99,23 @@ function getFactorColor(score: number): string {
 }
 
 export function RiskProfileDetailScreen({ route, navigation }: any) {
-  const { riskData, quoteData, venueName, isBroker } = route.params;
+  const { riskData, quoteData, venueName, isBroker, isProspect: isProspectParam } = route.params;
   const venueId: string | undefined = riskData?.venue_id;
 
   const [overrideStats, setOverrideStats] = useState<OverrideStats | null>(null);
+  const [incidentCounts, setIncidentCounts] = useState<{ total: number; open: number } | null>(null);
 
   useEffect(() => {
     if (!venueId) return;
     api.request<OverrideStats>(`/api/venues/${venueId}/override-stats`)
       .then(setOverrideStats)
+      .catch(() => {});
+    // Status-bucketed counts power the dual-row Incident History annotation
+    // ("N total · N open"). The total MUST match the IncidentList header for
+    // the same venue when no filter is applied — that's the reconciliation
+    // contract enforced by /api/venues/{id}/incidents/counts.
+    api.request<{ total: number; open: number }>(`/api/venues/${venueId}/incidents/counts`)
+      .then((c) => setIncidentCounts({ total: c.total ?? 0, open: c.open ?? 0 }))
       .catch(() => {});
   }, [venueId]);
 
@@ -76,6 +123,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
   const score = riskData?.total_score ?? 0;
   const tierColor = getTierColor(tier);
   const factors: Record<string, number> = riskData?.factors ?? {};
+  const isProspect = isProspectParam ?? riskData?.source === 'prospect';
 
   // Each factor drills into the evidence behind it. Only return an action when
   // a real, in-context destination exists — rows without one stay static (no
@@ -83,15 +131,16 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
   const factorAction = (key: string): (() => void) | null => {
     switch (key) {
       case 'incident_history':
-        return () => navigation.navigate('Incidents', {
-          screen: 'IncidentList',
-          params: { venueId, initialFilter: 'open' },
-        });
+        // Local push (not cross-tab jump) so back returns to Risk Profile,
+        // not the Incidents tab root. IncidentList is registered in each
+        // broker stack that owns RiskProfileDetail for exactly this reason.
+        // Open the list with NO filter — the count badge in the IncidentList
+        // header must reconcile with the total we display on this row. The
+        // user can flip to 'open' via the chip if they want the actionable
+        // subset.
+        return () => navigation.navigate('IncidentList', { venueId });
       case 'compliance':
-        return () => navigation.navigate('Compliance', {
-          screen: 'ComplianceList',
-          params: { venueId },
-        });
+        return () => navigation.navigate('ComplianceList', { venueId });
       case 'operational':
         // Floor telemetry lives in the operator's Live Terminal; brokers can't
         // see it, so this factor stays static for them.
@@ -122,23 +171,39 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
     >
       {/* Header */}
       <View style={styles.headerRow}>
-        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
           <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backLabel}>Dashboard</Text>
+          <Text style={styles.backLabel}>Back</Text>
         </Pressable>
       </View>
 
       {venueName && <Text style={styles.venueName}>{venueName}</Text>}
       <Text style={styles.screenTitle}>Risk Profile</Text>
-      <HandAccent>your risk picture</HandAccent>
+      <HandAccent>
+        {isBroker
+          ? (venueName ? `${venueName}'s risk picture` : 'risk picture')
+          : 'your risk picture'}
+      </HandAccent>
 
       {/* Score hero */}
       <View style={[styles.scoreCard, { borderColor: `${tierColor}33` }]}>
         <View style={styles.scoreRow}>
           <Text style={[styles.tierGlyph, { color: tierColor }]}>{tier}</Text>
           <View style={styles.scoreDetail}>
-            <Text style={[styles.scoreNum, { color: tierColor }]}>{score}<Text style={styles.scoreMax}>/100</Text></Text>
-            <Text style={styles.tierLabel}>Tier {tier} · Evidence-First Underwriting</Text>
+            <View style={styles.scoreNumRow}>
+              <Text style={[styles.scoreNum, { color: tierColor }]}>{score}<Text style={styles.scoreMax}>/100</Text></Text>
+              {isProspect && <Text style={styles.estChip}>EST.</Text>}
+            </View>
+            <Text style={styles.tierLabel}>
+              {isProspect
+                ? `Tier ${tier} · Estimated from public records`
+                : `Tier ${tier} · Evidence-First Underwriting`}
+            </Text>
             {savingsAnnual > 0 && !isBroker && (
               <Text style={styles.savingsNote}>Saving ${savingsAnnual.toLocaleString()}/yr vs market rate</Text>
             )}
@@ -149,9 +214,13 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
       {/* Broker framing vs operator framing */}
       {isBroker ? (
         <View style={styles.framingCard}>
-          <Text style={styles.framingTitle}>Risk Intelligence Summary</Text>
+          <Text style={styles.framingTitle}>
+            {isProspect ? 'Estimated Risk Profile' : 'Risk Intelligence Summary'}
+          </Text>
           <Text style={styles.framingBody}>
-            This venue's risk profile reflects their operational data, incident history, and compliance posture. Use this breakdown when discussing coverage terms or renewal pricing with the venue.
+            {isProspect
+              ? "This profile is modeled from public license records — incident history, compliance items, and operational attributes are estimates, not the venue's real telemetry. Bind a quote to start collecting live data and convert this into an underwritten profile."
+              : "This venue's risk profile reflects their operational data, incident history, and compliance posture. Use this breakdown when discussing coverage terms or renewal pricing with the venue."}
           </Text>
         </View>
       ) : (
@@ -183,9 +252,42 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
             const label = info?.label ?? key.replace(/_/g, ' ').toUpperCase();
             const onPress = factorAction(key);
 
+            const showIncidentCounts = key === 'incident_history' && incidentCounts !== null;
+            const pct = Math.min(score / 100, 1);
+            // Risk-language chip: the 0-100 score is inverted from risk (higher
+            // score = lower risk, like a credit score). Using risk verbs here
+            // makes the row read direction-correctly for an insurance audience.
+            const tierLabel = tier === 'good' ? 'LOW RISK' : tier === 'moderate' ? 'MODERATE' : 'HIGH RISK';
             const inner = (
               <>
-                <CapacityBar label={label} value={score} max={100} invertScale />
+                <View style={styles.factorHeader}>
+                  <Text style={styles.factorLabel}>{label.toUpperCase()}</Text>
+                  <View style={[styles.factorChip, { borderColor: `${color}55`, backgroundColor: `${color}14` }]}>
+                    <Text
+                      style={[styles.factorChipText, { color }]}
+                      accessibilityLabel={`${tier} · ${score} out of 100`}
+                    >
+                      {tierLabel} · {Math.round(score)}/100
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.factorTrack}>
+                  <View style={[styles.factorFill, { width: `${pct * 100}%` as any, backgroundColor: color }]} />
+                </View>
+                {showIncidentCounts && (
+                  incidentCounts!.total === 0 ? (
+                    <Text style={styles.factorReconEmpty}>No incidents on file</Text>
+                  ) : (
+                    <View style={styles.factorReconRow} accessibilityLabel={`${incidentCounts!.total} incidents total${incidentCounts!.open > 0 ? `, ${incidentCounts!.open} still open` : ''}`}>
+                      <Text style={styles.factorReconTotal}>
+                        {incidentCounts!.total} {incidentCounts!.total === 1 ? 'incident' : 'incidents'}
+                      </Text>
+                      {incidentCounts!.open > 0 && (
+                        <Text style={styles.factorReconOpen}>· {incidentCounts!.open} open</Text>
+                      )}
+                    </View>
+                  )
+                )}
                 <View style={styles.factorExplainRow}>
                   <Text
                     style={[styles.factorGlyph, { color }]}
@@ -194,7 +296,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                     {factorGlyph(tier)}
                   </Text>
                   <Text style={[styles.factorExplain, { color: color === Colors.accent ? Colors.textSecondary : color }]}>
-                    {info?.[tier] ?? ''}
+                    {info?.[tier]?.[isBroker ? 'broker' : 'operator'] ?? ''}
                   </Text>
                 </View>
               </>
@@ -230,7 +332,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                 <Text style={styles.insightIcon}>✓</Text>
                 <View style={styles.insightContent}>
                   <Text style={styles.insightLabel}>{info?.label ?? key.replace(/_/g, ' ')}</Text>
-                  <Text style={styles.insightText}>{info?.good ?? ''}</Text>
+                  <Text style={styles.insightText}>{info?.good?.[isBroker ? 'broker' : 'operator'] ?? ''}</Text>
                 </View>
               </View>
             );
@@ -252,7 +354,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                 <Text style={[styles.insightIcon, { color }]}>↑</Text>
                 <View style={styles.insightContent}>
                   <Text style={styles.insightLabel}>{info?.label ?? key.replace(/_/g, ' ')}</Text>
-                  <Text style={styles.insightText}>{info?.[tier] ?? ''}</Text>
+                  <Text style={styles.insightText}>{info?.[tier]?.operator ?? ''}</Text>
                   {info?.action && (
                     <Text style={[styles.insightAction, { color }]}>{info.action}</Text>
                   )}
@@ -277,7 +379,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                 <Text style={[styles.insightIcon, { color }]}>!</Text>
                 <View style={styles.insightContent}>
                   <Text style={styles.insightLabel}>{info?.label ?? key.replace(/_/g, ' ')}</Text>
-                  <Text style={styles.insightText}>{info?.[tier] ?? ''}</Text>
+                  <Text style={styles.insightText}>{info?.[tier]?.broker ?? ''}</Text>
                 </View>
               </View>
             );
@@ -399,8 +501,15 @@ const styles = StyleSheet.create({
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   tierGlyph: { fontSize: 72, fontWeight: '800', letterSpacing: -2, lineHeight: 72, fontFamily: 'BricolageGrotesque_700Bold' },
   scoreDetail: { flex: 1, gap: 4 },
+  scoreNumRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   scoreNum: { fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
   scoreMax: { fontSize: 16, color: Colors.textMuted, fontFamily: 'HankenGrotesk_400Regular' },
+  estChip: {
+    fontSize: 10, letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold',
+    color: Colors.textMuted,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle,
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: 'hidden',
+  },
   tierLabel: { color: Colors.textMuted, fontSize: 12, fontFamily: 'SpaceMono_400Regular' },
   savingsNote: { color: Colors.accentInk, fontSize: 12, fontFamily: 'SpaceMono_400Regular', marginTop: 4 },
 
@@ -421,6 +530,19 @@ const styles = StyleSheet.create({
   factorItem: { gap: 6 },
   factorItemNav: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   factorMain: { flex: 1, gap: 6 },
+  factorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  factorLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold' },
+  factorChip: {
+    borderWidth: StyleSheet.hairlineWidth, borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  factorChipText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, fontFamily: 'SpaceMono_700Bold' },
+  factorTrack: { height: 3, backgroundColor: Colors.borderSubtle, borderRadius: 2, overflow: 'hidden' },
+  factorFill: { height: '100%', borderRadius: 2 },
+  factorReconRow: { flexDirection: 'row', gap: 6, alignItems: 'baseline', marginTop: 2 },
+  factorReconTotal: { color: Colors.text, fontSize: 13, fontFamily: 'SpaceMono_700Bold', letterSpacing: -0.2 },
+  factorReconOpen: { color: Colors.warning, fontSize: 12, fontFamily: 'SpaceMono_700Bold' },
+  factorReconEmpty: { color: Colors.textMuted, fontSize: 12, fontFamily: 'SpaceMono_400Regular', fontStyle: 'italic', marginTop: 2 },
   factorExplainRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
   factorGlyph: { fontSize: 12, lineHeight: 17, fontFamily: 'SpaceMono_700Bold', width: 14 },
   factorExplain: { flex: 1, fontSize: 12, lineHeight: 17, fontFamily: 'HankenGrotesk_400Regular' },

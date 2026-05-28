@@ -12,26 +12,59 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api/client';
 import { CapacityBar } from '../components/CapacityBar';
 import { tierColor as getTierColor } from '../theme/tiers';
+import { getFactorTier } from '../lib/format';
+
+// Tier-label shown in the factor-row chip. The 0-100 score is inverted from
+// risk (higher score = lower risk, like a credit score). Pairing with risk
+// language ("LOW RISK · 95/100") makes the row read direction-correctly for
+// an insurance audience and stops the score from being misread as a count.
+const FACTOR_TIER_LABEL: Record<'good' | 'moderate' | 'poor', string> = {
+  good: 'LOW RISK',
+  moderate: 'MODERATE',
+  poor: 'HIGH RISK',
+};
+const FACTOR_TIER_COLOR: Record<'good' | 'moderate' | 'poor', string> = {
+  good: Colors.accent,
+  moderate: Colors.warning,
+  poor: Colors.error,
+};
+// Display labels for the factor keys returned by the risk-score API. We
+// rename the count-shaped ones to direction-bearing nouns so users don't
+// read "Incident History 70" as "70 incidents".
+const FACTOR_DISPLAY_LABEL: Record<string, string> = {
+  incident_history: 'SAFETY RECORD',
+  compliance: 'COMPLIANCE',
+  operational: 'OPERATIONAL HEALTH',
+  business_profile: 'BUSINESS PROFILE',
+};
 
 const STATUS_DOT: Record<string, string> = {
   operational: Colors.accent, active: Colors.accent, degraded: Colors.warning, down: Colors.error,
 };
 
 export function BrokerVenueDetailScreen({ route, navigation }: any) {
-  const { venueId, venueName } = route.params;
+  const { venueId, venueName, isProspect: isProspectParam } = route.params;
   const insets = useSafeAreaInsets();
   const [live, setLive] = useState<any>(null);
   const [risk, setRisk] = useState<any>(null);
   const [quote, setQuote] = useState<any>(null);
+  // Status-bucketed counts power the "4 incidents · 2 open" line under the
+  // Incident History factor. The total here MUST equal what IncidentList
+  // shows when no filter is applied — guarded by backend reconciliation test.
+  const [incidentCounts, setIncidentCounts] = useState<{ total: number; open: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [liveRaw, riskData, quoteData] = await Promise.all([
+      const [liveRaw, riskData, quoteData, countsData] = await Promise.all([
         api.request<any>(`/api/venues/${venueId}/live`),
         api.request<any>(`/api/venues/${venueId}/risk-score`).catch(() => null),
         api.request<any>(`/api/venues/${venueId}/quote`).catch(() => null),
+        api.request<{ total: number; open: number }>(`/api/venues/${venueId}/incidents/counts`).catch(() => null),
       ]);
+      if (countsData) {
+        setIncidentCounts({ total: countsData.total ?? 0, open: countsData.open ?? 0 });
+      }
 
       let infra: { name: string; status: string; detail?: string; is_degraded?: boolean }[] = [];
       if (Array.isArray(liveRaw.infrastructure)) {
@@ -81,28 +114,51 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
   const factors: Record<string, number> = risk?.factors ?? {};
   const savingsAnnual = quote?.savings_annual ?? 0;
   const renewalDate = quote?.renewal_date ?? null;
+  // Route param is authoritative — MarketScreen sets it for prospect entries,
+  // BrokerVenuesScreen sets it to false. Backend `source` field is a fallback
+  // for deep-link entries that don't go through those screens.
+  const isProspect = isProspectParam ?? risk?.source === 'prospect';
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}>
       {/* Back */}
-      <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
+      <Pressable
+        style={styles.backRow}
+        onPress={() => navigation.goBack()}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+      >
         <Text style={styles.backArrow}>←</Text>
-        <Text style={styles.backLabel}>Portfolio</Text>
+        <Text style={styles.backLabel}>Back</Text>
       </Pressable>
 
-      {/* Header: LIVE TERMINAL + venue name + LIVE badge */}
+      {/* Header — framing flips for prospects (no live floor data exists) */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
-            <Text style={styles.headerEyebrow}>LIVE TERMINAL</Text>
+            <Text style={styles.headerEyebrow}>{isProspect ? 'ESTIMATED PROFILE' : 'LIVE TERMINAL'}</Text>
             <Text style={styles.venueName}>{venueName}</Text>
           </View>
-          <View style={styles.liveBadge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveBadgeText}>LIVE</Text>
-            {renewalDate && <Text style={styles.renewalDate}>{renewalDate}</Text>}
-          </View>
+          {isProspect ? (
+            renewalDate && (
+              <View style={styles.estBadge}>
+                <Text style={styles.estBadgeText}>EST.</Text>
+                <Text style={styles.renewalDate}>{renewalDate}</Text>
+              </View>
+            )
+          ) : (
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveBadgeText}>LIVE</Text>
+              {renewalDate && <Text style={styles.renewalDate}>{renewalDate}</Text>}
+            </View>
+          )}
         </View>
+        {isProspect && (
+          <Text style={styles.prospectNote}>
+            Modeled from public license records — bind a quote to convert to a live profile.
+          </Text>
+        )}
       </View>
 
       {/* Live Occupancy — operator-only floor data; the /live endpoint zeros it
@@ -123,10 +179,10 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
       {risk && (
         <Pressable
           style={({ pressed }) => [styles.card, { borderColor: `${tierColor}22` }, pressed && { opacity: 0.8 }]}
-          onPress={() => navigation.navigate('RiskProfileDetail', { riskData: risk, quoteData: quote, venueName, isBroker: true })}
+          onPress={() => navigation.navigate('RiskProfileDetail', { riskData: risk, quoteData: quote, venueName, isBroker: true, isProspect })}
         >
           <View style={styles.riskHeader}>
-            <Text style={styles.eyebrow}>RISK PROFILE</Text>
+            <Text style={styles.eyebrow}>RISK PROFILE{isProspect ? ' (EST.)' : ''}</Text>
             <View style={[styles.tierBadge, { borderColor: tierColor }]}>
               <Text style={[styles.tierBadgeText, { color: tierColor }]}>TIER {tier}</Text>
             </View>
@@ -137,9 +193,48 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
           </View>
           {Object.keys(factors).length > 0 && (
             <View style={styles.factorList}>
-              {Object.entries(factors).map(([key, val]) => (
-                <CapacityBar key={key} label={key.replace(/_/g, ' ').toUpperCase()} value={Number(val)} max={100} invertScale />
-              ))}
+              {Object.entries(factors).map(([key, val]) => {
+                const s = Number(val);
+                const ft = getFactorTier(s);
+                const fcolor = FACTOR_TIER_COLOR[ft];
+                const pct = Math.min(s / 100, 1);
+                const label = FACTOR_DISPLAY_LABEL[key] ?? key.replace(/_/g, ' ').toUpperCase();
+                // For incident_history we have a real count we can show. Other
+                // factors don't have a clean numeric count, so we leave them
+                // chip-only — truth over symmetry.
+                const showCount = key === 'incident_history' && incidentCounts !== null;
+                return (
+                  <View key={key} style={styles.factorRow}>
+                    <View style={styles.factorHeader}>
+                      <Text style={styles.factorLabel}>{label}</Text>
+                      <View style={[styles.factorChip, { borderColor: `${fcolor}55`, backgroundColor: `${fcolor}14` }]}>
+                        <Text style={[styles.factorChipText, { color: fcolor }]}>
+                          {FACTOR_TIER_LABEL[ft]} · {Math.round(s)}/100
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.factorTrack}>
+                      <View style={[styles.factorFill, { width: `${pct * 100}%` as any, backgroundColor: fcolor }]} />
+                    </View>
+                    {showCount && (
+                      incidentCounts!.total === 0 ? (
+                        <Text style={styles.factorCountEmpty}>No incidents on file</Text>
+                      ) : (
+                        <Text style={styles.factorCount} accessibilityLabel={`${incidentCounts!.total} incidents total${incidentCounts!.open > 0 ? `, ${incidentCounts!.open} still open` : ''}`}>
+                          <Text style={styles.factorCountStrong}>
+                            {incidentCounts!.total} {incidentCounts!.total === 1 ? 'incident' : 'incidents'}
+                          </Text>
+                          {incidentCounts!.open > 0 && (
+                            <Text style={[styles.factorCountOpen, { color: Colors.warning }]}>
+                              {' '}· {incidentCounts!.open} open
+                            </Text>
+                          )}
+                        </Text>
+                      )
+                    )}
+                  </View>
+                );
+              })}
             </View>
           )}
           <Text style={styles.tapHint}>→ View full risk analysis</Text>
@@ -259,6 +354,14 @@ const styles = StyleSheet.create({
   liveBadgeText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
   renewalDate: { color: Colors.textMuted, fontSize: 9, fontFamily: 'SpaceMono_400Regular' },
 
+  estBadge: {
+    alignItems: 'center', gap: 4,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle,
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8,
+  },
+  estBadgeText: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
+  prospectNote: { color: Colors.textMuted, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular', marginTop: 10, lineHeight: 16 },
+
   card: {
     backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle, borderRadius: 14,
@@ -277,6 +380,20 @@ const styles = StyleSheet.create({
   scoreBig: { fontSize: 48, fontWeight: '800', letterSpacing: -2, fontFamily: 'SpaceMono_700Bold' },
   scoreMax: { color: Colors.textMuted, fontSize: 18, fontFamily: 'HankenGrotesk_400Regular' },
   factorList: { gap: 14 },
+  factorRow: { gap: 6 },
+  factorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  factorLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold' },
+  factorChip: {
+    borderWidth: StyleSheet.hairlineWidth, borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  factorChipText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, fontFamily: 'SpaceMono_700Bold' },
+  factorTrack: { height: 3, backgroundColor: Colors.borderSubtle, borderRadius: 2, overflow: 'hidden' },
+  factorFill: { height: '100%', borderRadius: 2 },
+  factorCount: { fontSize: 13, fontFamily: 'SpaceMono_400Regular', color: Colors.textSecondary, marginTop: 2 },
+  factorCountEmpty: { fontSize: 12, fontFamily: 'SpaceMono_400Regular', color: Colors.textMuted, marginTop: 2, fontStyle: 'italic' },
+  factorCountStrong: { color: Colors.text, fontFamily: 'SpaceMono_700Bold', letterSpacing: -0.2 },
+  factorCountOpen: { fontFamily: 'SpaceMono_700Bold' },
   tapHint: { color: Colors.textMuted, fontSize: 11, fontFamily: 'SpaceMono_400Regular' },
 
   premiumAmount: { color: Colors.text, fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },

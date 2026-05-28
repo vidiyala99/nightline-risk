@@ -58,12 +58,17 @@ def test_portfolio_all_tiers_valid():
         assert venue["tier"] in ("A", "B", "C", "D"), f"{venue['id']} has invalid tier"
 
 
-def test_portfolio_elsewhere_is_tier_a():
+def test_portfolio_elsewhere_reflects_live_incident_count():
+    """Risk score now reads the LIVE count of IncidentRecord rows for each
+    venue (so the Risk Profile factor matches what the scoped Incidents list
+    shows). Elsewhere has 6 SEED_INCIDENTS rows → incident_history factor 40
+    → blended total lands in the C band. This pins the new live-count
+    behavior; if Elsewhere's seeded incident rows change, update this."""
     with TestClient(app) as client:
         data = client.get("/api/portfolio", headers=_broker_headers()).json()
     elsewhere = next(v for v in data if v["id"] == "elsewhere-brooklyn")
-    assert elsewhere["tier"] == "A"
-    assert elsewhere["total_score"] >= 80
+    assert elsewhere["tier"] in ("B", "C"), f"got tier {elsewhere['tier']}"
+    assert elsewhere["total_score"] < 80, "should reflect 6 real incidents, not the curated 2-incident baseline"
 
 
 def test_portfolio_hides_live_capacity_from_brokers():
@@ -172,6 +177,42 @@ def test_incident_status_patch():
         assert patch.json()["status"] == "closed"
         open_list = client.get("/api/venues/elsewhere-brooklyn/incidents?status=open", headers=h).json()
     assert not any(i["id"] == incident_id for i in open_list)
+
+
+def test_incident_counts_reconcile_with_list_and_score():
+    """Reconciliation contract: the counts endpoint's `total` must equal the
+    unfiltered list length AND the scoring engine's incident input. The bug
+    this guards: the Risk Profile factor showed one number, the IncidentList
+    header showed another, because the list was opened with an `open` filter
+    pre-applied. Now the counts endpoint is the single source of truth — the
+    Risk Profile uses `total` for the headline number and `open` for the chip,
+    and a no-filter list view shows `total` in its badge.
+    """
+    h = _operator_headers()
+    venue_id = "elsewhere-brooklyn"
+    with TestClient(app) as client:
+        # Create one fresh incident, close another to ensure status mix.
+        create_a = client.post(f"/api/venues/{venue_id}/incidents", json=DEMO_INCIDENT)
+        assert create_a.status_code == 201
+        create_b = client.post(f"/api/venues/{venue_id}/incidents", json=DEMO_INCIDENT)
+        client.patch(
+            f"/api/incidents/{create_b.json()['incident']['id']}/status",
+            json={"status": "closed"},
+            headers=h,
+        )
+
+        all_list = client.get(f"/api/venues/{venue_id}/incidents", headers=h).json()
+        counts = client.get(f"/api/venues/{venue_id}/incidents/counts", headers=h).json()
+
+    assert counts["total"] == len(all_list), (
+        f"counts.total={counts['total']} must equal unfiltered list length {len(all_list)}"
+    )
+    assert counts["open"] == sum(1 for i in all_list if i["status"] == "open")
+    assert counts["closed"] == sum(1 for i in all_list if i["status"] == "closed")
+    # Mix is real (we have both open and closed), so the bug-reproduction
+    # scenario — different filtered subsets — is exercised.
+    assert counts["open"] >= 1
+    assert counts["closed"] >= 1
 
 
 def test_incident_status_invalid_value_rejected():

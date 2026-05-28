@@ -13,7 +13,7 @@ lands and the legacy main.py is fully drained.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Header, Query
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from app.auth import require_venue_access
 from app.database import get_session
@@ -63,6 +63,40 @@ def list_incidents_by_venue(
     query = query.order_by(IncidentRecord.created_at.desc())
     records = session.exec(query).all()
     return [_incident_to_response(r) for r in records]
+
+
+@router.get("/venues/{venue_id}/incidents/counts")
+def incident_counts_by_venue(
+    venue_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Status-bucketed incident counts for a venue. Used by the Risk Profile's
+    'Safety Record' factor row to show total + 'N open' chip without paying
+    the cost of fetching every row. `total` here MUST equal the unfiltered
+    `list_incidents_by_venue` length and the scoring engine's `incident_count`
+    input — these are the same `IncidentRecord.venue_id == ?` COUNT(*).
+    """
+    require_venue_access(venue_id, authorization, session)
+    rows = session.exec(
+        select(IncidentRecord.status, func.count(IncidentRecord.id))
+        .where(IncidentRecord.venue_id == venue_id)
+        .group_by(IncidentRecord.status)
+    ).all()
+    buckets: dict[str, int] = {
+        "open": 0,
+        "under_review": 0,
+        "closed": 0,
+        "closed_archived": 0,
+    }
+    total = 0
+    for row in rows:
+        status_value, count_value = row if isinstance(row, tuple) else (row[0], row[1])
+        count_int = int(count_value or 0)
+        total += count_int
+        if status_value in buckets:
+            buckets[status_value] = count_int
+    return {**buckets, "total": total}
 
 
 @router.get("/incidents", response_model=list[Incident])
