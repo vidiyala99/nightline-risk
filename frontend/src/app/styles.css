@@ -632,8 +632,31 @@ a:hover { color: var(--text-primary); }
 }
 
 @media (max-width: 640px) {
-  .page-header { padding-top: var(--space-lg); }
+  .page-header {
+    padding-top: var(--space-lg);
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .page-header > * { width: 100%; }
+  /* Inner row that holds "← Reports" + the venue h1 — stack them too so the
+     title reads as left-aligned, matching the RN report-detail screen. */
+  .page-header .flex.items-center.gap-md {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
   .page-header h1 { line-height: 1.08; }
+
+  /* AI Claim Recommendation card header (data-section="ai-rec"): drop the
+     lucide icon and keep the title + confidence pill on single lines so they
+     don't wrap onto 2 rows each at narrow widths. */
+  section[data-section="ai-rec"] .ai-rec-card__head svg { display: none; }
+  section[data-section="ai-rec"] .ai-rec-card__head h2,
+  section[data-section="ai-rec"] .ai-rec-card__head > span { white-space: nowrap; }
+
+  /* Generic phone-hide utility (currently used by the disclaimer caption
+     under the AI Rec card; mobile RN doesn't show it). */
+  .hide-on-phone { display: none; }
 }
 
 /* (Removed the italic gradient drop-cap — it clashed with the bold grotesque

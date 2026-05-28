@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, FileSpreadsheet, LockKeyhole, RefreshCw, ShieldCheck, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 import ClaimProposeModal, { type OverrideReason } from "@/components/ClaimProposeModal";
 import { authHeaders } from "@/lib/authFetch";
@@ -117,6 +118,10 @@ export default function ReportDetailPage() {
 
   const isOperator = user?.role === "venue_operator";
   const isBroker = user?.role === "broker" || user?.role === "admin";
+
+  const bp = useBreakpoint();
+  const mounted = useMounted();
+  const isPhone = mounted && (bp === "xs" || bp === "sm");
 
   const toggleQuestion = (i: number) => {
     setCheckedQuestions((prev) => {
@@ -518,7 +523,7 @@ export default function ReportDetailPage() {
                   background: accent, borderTopLeftRadius: "var(--radius-md)", borderBottomLeftRadius: "var(--radius-md)",
                 }} aria-hidden="true" />
 
-                <div className="flex items-center justify-between mb-md" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>
+                <div className="flex items-center justify-between mb-md ai-rec-card__head" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>
                   <div className="flex items-center gap-sm">
                     <FileSpreadsheet size={16} style={{ color: accent }} aria-hidden="true" />
                     <h2 className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>AI Claim Recommendation</h2>
@@ -563,7 +568,7 @@ export default function ReportDetailPage() {
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
-                    <span className="text-xs uppercase tracking-wide text-secondary">Median payout</span>
+                    <span className="text-xs uppercase tracking-wide text-secondary">Median</span>
                     <span className="text-sm font-mono font-bold" style={{ color: "var(--accent-ink)" }}>
                       ${rec.expected_payout.median_usd.toLocaleString()}
                     </span>
@@ -575,28 +580,39 @@ export default function ReportDetailPage() {
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline" style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "var(--space-sm)" }}>
-                    <span className="text-xs uppercase tracking-wide text-secondary">Net expected value</span>
+                    <span className="text-xs uppercase tracking-wide text-secondary">Net EV</span>
                     <span className="text-sm font-mono font-bold" style={{ color: rec.net_expected_value_usd >= 0 ? "var(--brand-primary)" : "var(--state-error)" }}>
                       {netEvFormatted}
                     </span>
                   </div>
                 </div>
 
-                <details>
-                  <summary className="text-xs font-mono cursor-pointer text-secondary" style={{ userSelect: "none" }}>
-                    Why this recommendation ({rec.reasons?.length ?? 0} reason{(rec.reasons?.length ?? 0) === 1 ? "" : "s"})
-                  </summary>
-                  <ul className="mt-sm flex flex-col gap-xs" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {(rec.reasons ?? []).map((reason, i) => (
-                      <li key={i} className="text-xs text-secondary" style={{ lineHeight: 1.5, paddingLeft: "var(--space-md)", position: "relative" }}>
+                {isPhone ? (
+                  <ul className="flex flex-col gap-sm" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {(rec.reasons ?? []).slice(0, 2).map((reason, i) => (
+                      <li key={i} className="text-sm" style={{ lineHeight: 1.45, paddingLeft: "var(--space-lg)", position: "relative", color: "var(--text-primary)" }}>
                         <span style={{ position: "absolute", left: 0, color: accent }} aria-hidden="true">→</span>
                         {reason}
                       </li>
                     ))}
                   </ul>
-                </details>
+                ) : (
+                  <details>
+                    <summary className="text-xs font-mono cursor-pointer text-secondary" style={{ userSelect: "none" }}>
+                      Why this recommendation ({rec.reasons?.length ?? 0} reason{(rec.reasons?.length ?? 0) === 1 ? "" : "s"})
+                    </summary>
+                    <ul className="mt-sm flex flex-col gap-xs" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                      {(rec.reasons ?? []).map((reason, i) => (
+                        <li key={i} className="text-xs text-secondary" style={{ lineHeight: 1.5, paddingLeft: "var(--space-md)", position: "relative" }}>
+                          <span style={{ position: "absolute", left: 0, color: accent }} aria-hidden="true">→</span>
+                          {reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
 
-                <p className="text-xs text-tertiary mt-md" style={{ fontStyle: "italic", lineHeight: 1.5 }}>
+                <p className="text-xs text-tertiary mt-md hide-on-phone" style={{ fontStyle: "italic", lineHeight: 1.5 }}>
                   Carrier makes the final coverage decision. This recommendation surfaces the expected-value math before filing.
                 </p>
               </section>
