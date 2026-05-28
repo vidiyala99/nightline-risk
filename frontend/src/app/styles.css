@@ -6437,3 +6437,212 @@ html, body { overflow-x: clip; }
   color: var(--state-error);
 }
 
+/* ─── Phone /underwriter (Reports) — mirrors BrokerReportsScreen.tsx ───
+   Replaces the desktop 2-pane triage console with a stats bar + filter
+   chips + rich card list at xs/sm widths. Tap a card to drill in
+   (skips the in-page preview pane the desktop layout uses). */
+.reports-mobile { padding: 0 16px 80px; }
+.reports-mobile__head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 4px 16px;
+}
+.reports-mobile__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.75rem;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  margin: 0;
+}
+.reports-mobile__stats {
+  display: flex;
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 4px;
+}
+.reports-mobile__stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.reports-mobile__stat-num {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+}
+.reports-mobile__stat-label {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+}
+.reports-mobile__stat-div {
+  width: 1px;
+  height: 28px;
+  background: var(--border-subtle);
+}
+.reports-mobile__filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.reports-mobile__chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.reports-mobile__chip.is-active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--text-inverse);
+}
+
+.reports-mobile__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 24px;
+}
+.reports-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  text-align: left;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.reports-card:hover { border-color: var(--border-default); }
+.reports-card:active { background: var(--bg-surface-hover); }
+.reports-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.reports-card__venue {
+  flex: 1;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reports-card__status {
+  border: 1px solid;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.563rem;
+  letter-spacing: 0.12em;
+  flex-shrink: 0;
+}
+.reports-card__type {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  text-transform: lowercase;
+}
+.reports-card__signal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.reports-card__sev {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.563rem;
+  letter-spacing: 0.1em;
+}
+.reports-card__conf-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.reports-card__conf-track {
+  flex: 1;
+  height: 3px;
+  background: var(--border-subtle);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.reports-card__conf-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+.reports-card__conf-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.688rem;
+  width: 32px;
+  text-align: right;
+}
+.reports-card__memo {
+  margin: 0;
+  font-size: 0.813rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.reports-card__date {
+  font-family: var(--font-mono);
+  font-size: 0.688rem;
+  color: var(--text-muted);
+}
+.reports-mobile__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 80px 32px;
+  text-align: center;
+}
+.reports-mobile__empty-icon {
+  font-size: 36px;
+  color: var(--border-default);
+  margin-bottom: 4px;
+}
+.reports-mobile__empty h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+}
+.reports-mobile__empty p {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+

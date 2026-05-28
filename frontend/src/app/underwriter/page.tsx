@@ -14,6 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { toastError, toastSuccess } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -84,6 +85,9 @@ function formatDateTime(iso: string) {
 export default function ReportsPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const bp = useBreakpoint();
+  const mounted = useMounted();
+  const isPhone = mounted && (bp === "xs" || bp === "sm");
   const isBroker = user?.role === "broker" || user?.role === "admin";
   const isOperator = user?.role === "venue_operator";
 
@@ -339,6 +343,139 @@ export default function ReportsPage() {
           </p>
         )}
       </>
+    );
+  }
+
+  function renderMobileCard(packet: QueueItem) {
+    const severity = packet.risk_signals?.severity ?? "unknown";
+    const severityColor = SEVERITY_COLOR[severity] ?? "var(--text-tertiary)";
+    const confidencePct = Math.round((packet.risk_signals?.confidence ?? 0) * 100);
+    const riskType = packet.risk_signals?.type ?? "";
+    const statusCfg = STATUS_CONFIG[packet.status] ?? STATUS_CONFIG.draft;
+    const statusLabel = packet.status === "needs_review"
+      ? "NEEDS REVIEW"
+      : (packet.status ?? "").toUpperCase().replace("_", " ");
+    const summary = packet.memo?.summary || packet.risk_signals?.explanation || "";
+    const dateStr = packet.generated_at
+      ? new Date(packet.generated_at).toLocaleDateString("en-US", {
+          month: "short", day: "numeric", year: "2-digit",
+        })
+      : "";
+
+    return (
+      <button
+        type="button"
+        key={packet.id}
+        className="reports-card"
+        style={{ borderLeftColor: severityColor }}
+        onClick={() => router.push(`/underwriter/${packet.id}`)}
+      >
+        <div className="reports-card__top">
+          <span className="reports-card__venue">{formatVenue(packet.venue_id)}</span>
+          <span
+            className="reports-card__status"
+            style={{
+              borderColor: `${statusCfg.color}55`,
+              background: `${statusCfg.color}15`,
+              color: statusCfg.color,
+            }}
+          >
+            {statusLabel}
+          </span>
+        </div>
+        {riskType && <span className="reports-card__type">{riskType.replace(/_/g, " ")}</span>}
+        <div className="reports-card__signal">
+          <span className="reports-card__sev" style={{ background: `${severityColor}18`, color: severityColor }}>
+            {severity.toUpperCase()}
+          </span>
+          <div className="reports-card__conf-wrap">
+            <div className="reports-card__conf-track">
+              <div className="reports-card__conf-fill" style={{ width: `${confidencePct}%`, background: severityColor }} />
+            </div>
+            <span className="reports-card__conf-num" style={{ color: severityColor }}>{confidencePct}%</span>
+          </div>
+        </div>
+        {summary && <p className="reports-card__memo">{summary}</p>}
+        {dateStr && <span className="reports-card__date">{dateStr}</span>}
+      </button>
+    );
+  }
+
+  // Phone layout mirrors mobile/src/screens/BrokerReportsScreen.tsx
+  if (isPhone) {
+    return (
+      <div className="page page--fluid reports-mobile">
+        <header className="reports-mobile__head">
+          <h1 className="reports-mobile__title">{isOperator ? "My Reports" : "Reports"}</h1>
+
+          <div className="reports-mobile__stats">
+            <div className="reports-mobile__stat">
+              <span className="reports-mobile__stat-num">{counts.all}</span>
+              <span className="reports-mobile__stat-label">TOTAL</span>
+            </div>
+            <span className="reports-mobile__stat-div" />
+            <div className="reports-mobile__stat">
+              <span className="reports-mobile__stat-num" style={{ color: "var(--state-warning)" }}>{counts.needs_review}</span>
+              <span className="reports-mobile__stat-label">PENDING</span>
+            </div>
+            <span className="reports-mobile__stat-div" />
+            <div className="reports-mobile__stat">
+              <span className="reports-mobile__stat-num" style={{ color: "var(--state-error)" }}>{counts.high_critical}</span>
+              <span className="reports-mobile__stat-label">HIGH/CRIT</span>
+            </div>
+            <span className="reports-mobile__stat-div" />
+            <div className="reports-mobile__stat">
+              <span className="reports-mobile__stat-num" style={{ color: "var(--state-success)" }}>{counts.approved}</span>
+              <span className="reports-mobile__stat-label">APPROVED</span>
+            </div>
+            <span className="reports-mobile__stat-div" />
+            <div className="reports-mobile__stat">
+              <span className="reports-mobile__stat-num" style={{ color: "var(--state-error)" }}>{counts.blocked}</span>
+              <span className="reports-mobile__stat-label">BLOCKED</span>
+            </div>
+          </div>
+
+          <div className="reports-mobile__filters" role="tablist" aria-label="Filter by status">
+            {(["all", "needs_review", "approved", "blocked"] as const).map((f) => {
+              const label = f === "all" ? "All" : f === "needs_review" ? "Pending" : f === "approved" ? "Approved" : "Blocked";
+              const active = statusFilter === f;
+              return (
+                <button
+                  key={f}
+                  role="tab"
+                  aria-selected={active}
+                  className={`reports-mobile__chip${active ? " is-active" : ""}`}
+                  onClick={() => setStatusFilter(f)}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        {loading ? (
+          <div className="page-loading"><div className="loading-spinner" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="reports-mobile__empty">
+            <span className="reports-mobile__empty-icon">□</span>
+            <h3>
+              {statusFilter === "all" && packets.length === 0
+                ? "No Reports Yet"
+                : `No ${statusFilter === "needs_review" ? "pending" : statusFilter} reports`}
+            </h3>
+            <p>
+              {statusFilter === "all" && packets.length === 0
+                ? "Underwriting packets will appear here as incidents are filed and processed."
+                : "Try switching to 'All' to see all packets."}
+            </p>
+          </div>
+        ) : (
+          <div className="reports-mobile__list">
+            {filtered.map(renderMobileCard)}
+          </div>
+        )}
+      </div>
     );
   }
 
