@@ -256,7 +256,10 @@ export default function ReportDetailPage() {
             <h1 style={{ fontSize: "1.5rem" }}>
               {packet.venue_id.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
             </h1>
-            <p className="page-subtitle">Report · {new Date(packet.generated_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
+            <p className="page-subtitle">
+              <span className="hide-on-phone">Report · </span>
+              {new Date(packet.generated_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+            </p>
           </div>
         </div>
         <div
@@ -542,7 +545,20 @@ export default function ReportDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-md mb-md">
-                  {rec.should_file ? (
+                  {isPhone ? (
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        color: accent,
+                        fontSize: "2rem",
+                        lineHeight: 1,
+                        fontWeight: 400,
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      {rec.should_file ? "↑" : "↓"}
+                    </span>
+                  ) : rec.should_file ? (
                     <TrendingUp size={32} style={{ color: accent }} aria-hidden="true" />
                   ) : (
                     <TrendingDown size={32} style={{ color: accent }} aria-hidden="true" />

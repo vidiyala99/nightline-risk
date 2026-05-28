@@ -637,7 +637,9 @@ a:hover { color: var(--text-primary); }
     flex-direction: column;
     align-items: flex-start;
   }
-  .page-header > * { width: 100%; }
+  /* Only stretch the inner back+title row to full width — the second child
+     (e.g. a severity pill) should size to its content, not the viewport. */
+  .page-header > .flex.items-center.gap-md { width: 100%; }
   /* Inner row that holds "← Reports" + the venue h1 — stack them too so the
      title reads as left-aligned, matching the RN report-detail screen. */
   .page-header .flex.items-center.gap-md {
