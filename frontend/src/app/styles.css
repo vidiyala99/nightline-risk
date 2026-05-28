@@ -6223,3 +6223,85 @@ html, body { overflow-x: clip; }
   .coverage-card { animation: none; }
 }
 
+/* ─── Phone-width broker dashboard — mirrors mobile BrokerPortfolioScreen ──
+   Only shown when the broker hits /dashboard at xs/sm widths. The hero +
+   ticker are hidden and replaced with this compact triage header, so The
+   Book lands above the fold on a phone (matches the RN app). */
+.lc-book-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 12px;
+}
+.lc-book-mobile__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lc-book-mobile__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+.lc-book-mobile__role {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--text-tertiary);
+}
+.lc-book-mobile__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.lc-book-mobile__stats .stat-tile { padding: 12px 10px; }
+.lc-book-mobile__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.lc-action-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 12px 14px;
+  gap: 8px;
+  background: rgba(200, 240, 0, 0.18);
+  border: 1px solid rgba(200, 240, 0, 0.45);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.lc-action-tile:hover { background: rgba(200, 240, 0, 0.28); border-color: var(--brand-primary); }
+.lc-action-tile span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc-action-tile svg { color: var(--accent-ink); flex-shrink: 0; }
+.lc-book-mobile__kpi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+.lc-book-mobile__kpi-text {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--text-tertiary);
+}
+.lc-book-mobile__kpi-hi {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--state-error);
+}
+

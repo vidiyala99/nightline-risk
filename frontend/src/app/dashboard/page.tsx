@@ -3,13 +3,14 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
-import { Building2, LogOut, ArrowUpRight, WifiOff, Search, AlertTriangle, CheckSquare } from "lucide-react";
+import { Building2, LogOut, ArrowUpRight, WifiOff, Search, AlertTriangle, CheckSquare, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Grid } from "@/components/layout/Grid";
 import { authHeaders } from "@/lib/authFetch";
 import { StatStrip } from "@/components/ui/StatStrip";
 import { StatTile } from "@/components/ui/StatTile";
 import { TierBadge, Tier as UiTier } from "@/components/ui/TierBadge";
+import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -83,6 +84,9 @@ function DashboardPageInner() {
   const { signOut, isSignedIn, isLoaded, user } = useAuth();
   const role = useRole();
   const tenantId = useTenantId();
+  const bp = useBreakpoint();
+  const mounted = useMounted();
+  const isPhone = mounted && (bp === "xs" || bp === "sm");
   const extraIdsKey = (user?.extra_venue_ids ?? []).join(",");
   const [loading, setLoading] = useState(true);
   const [portfolioVenues, setPortfolioVenues] = useState<PortfolioVenue[]>([]);
@@ -256,9 +260,55 @@ function DashboardPageInner() {
     ),
   ];
 
+  // Phone-width broker view mirrors the React Native BrokerPortfolioScreen
+  // (identity → 3 KPIs → 2 CTAs), in lieu of the desktop marketing hero.
+  // Operators on phone still see the original hero — their single-venue
+  // layout is already compact enough.
+  const showMobileBroker = isPhone && isBroker;
+  const tonightCount = portfolioVenues.filter(v => {
+    const capPct = v.current_capacity != null && v.capacity > 0 ? v.current_capacity / v.capacity : 0;
+    return v.open_incidents > 0 || v.has_degraded_infra || capPct >= 0.9 || v.compliance_actions > 0;
+  }).length;
+
   return (
     <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
-      {/* HERO */}
+      {showMobileBroker && (
+        <section className="lc-book-mobile">
+          <div className="lc-book-mobile__identity">
+            <span className="lc-book-mobile__name">{user?.name ?? "Broker"}</span>
+            <span className="lc-book-mobile__role">BROKER · NIGHTLINE RISK</span>
+          </div>
+
+          <div className="lc-book-mobile__stats">
+            <StatTile label="Total Venues" value={stats.venues.toString().padStart(2, "0")} tier="neutral" />
+            <StatTile label="Open Incidents" value={stats.incidents.toString().padStart(2, "0")} tier={stats.incidents > 0 ? "d" : "neutral"} />
+            <StatTile label="Compliance" value={stats.compliance.toString().padStart(2, "0")} tier={stats.compliance > 0 ? "b" : "neutral"} />
+          </div>
+
+          <div className="lc-book-mobile__actions">
+            <Link href="/renewals" className="lc-action-tile">
+              <span>RENEWALS DUE</span>
+              <ArrowRight size={16} aria-hidden />
+            </Link>
+            <Link href="/policy-requests" className="lc-action-tile">
+              <span>POLICY REQUESTS</span>
+              <ArrowRight size={16} aria-hidden />
+            </Link>
+          </div>
+
+          <div className="lc-book-mobile__kpi">
+            <span className="lc-book-mobile__kpi-text">
+              THE BOOK · {String(stats.venues).padStart(2, "0")} VENUES
+            </span>
+            {tonightCount > 0 && (
+              <span className="lc-book-mobile__kpi-hi">{tonightCount} NEED EYES</span>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* HERO — hidden on phone for brokers (replaced by lc-book-mobile above) */}
+      {!showMobileBroker && (
       <section className="lc-hero">
         <div>
           <span className="lc-eyebrow">
@@ -324,9 +374,11 @@ function DashboardPageInner() {
           </StatStrip>
         )}
       </section>
+      )}
 
-      {/* TICKER — portfolio-wide signal; hidden for operator (single venue) */}
-      {isBroker && (
+      {/* TICKER — portfolio-wide signal; hidden for operator (single venue),
+          and hidden on phone-broker (the compact header replaces it) */}
+      {isBroker && !showMobileBroker && (
         <div className="lc-ticker" aria-hidden>
           <div className="lc-ticker__track">{tickerItems}</div>
         </div>
