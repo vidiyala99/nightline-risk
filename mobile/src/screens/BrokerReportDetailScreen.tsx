@@ -139,12 +139,12 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
           <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: accent }]}>
             <View style={styles.rowBetween}>
               <Text style={styles.eyebrow}>AI CLAIM RECOMMENDATION</Text>
-              <Text style={[styles.eyebrow, { color: accent }]}>{Math.round(rec.confidence * 100)}% CONFIDENT</Text>
+              <Text style={[styles.eyebrow, { color: accent, fontSize: 13 }]}>{Math.round(rec.confidence * 100)}% CONFIDENT</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Text style={{ fontSize: 28 }}>{rec.should_file ? '↑' : '↓'}</Text>
-              <View>
-                <Text style={{ color: accent, fontSize: 16, fontFamily: 'HankenGrotesk_700Bold' }}>
+              <Text style={{ fontSize: 32, color: accent }}>{rec.should_file ? '↑' : '↓'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: accent, fontSize: 20, fontFamily: 'HankenGrotesk_700Bold', letterSpacing: -0.3 }}>
                   {rec.should_file ? 'File this claim' : "Don't file yet"}
                 </Text>
                 <Text style={styles.bodyText}>
@@ -152,7 +152,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
                 </Text>
               </View>
             </View>
-            <View style={{ backgroundColor: Colors.bg, borderRadius: 10, padding: 12, gap: 8 }}>
+            <View style={{ backgroundColor: Colors.bg, borderRadius: 10, padding: 14, gap: 8 }}>
               <View style={styles.rowBetween}>
                 <Text style={styles.eyebrow}>EXPECTED PAYOUT</Text>
                 <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'SpaceMono_400Regular' }}>
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   sevBanner: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16, alignSelf: 'flex-start' },
   sevBannerText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold' },
 
-  card: { backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12, gap: 10 },
+  card: { backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 14, padding: 18, marginBottom: 12, gap: 10 },
   eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
   bodyText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'HankenGrotesk_400Regular' },
   metaGrid: { gap: 0 },
