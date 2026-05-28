@@ -9,15 +9,11 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
 import { api } from '../api/client';
 import { money, venueTypeLabel as typeLabel } from '../lib/format';
 
-// Mobile equivalent of the web /market opportunity map. RN can't render the
-// Leaflet map, so this is the card-list view of the same data: real NYC
-// nightlife prospects (source=prospect from the shared portfolio rollup) with
-// estimated savings vs market. Read-only browsing — no per-card navigation,
-// matching the web card whose only CTA is a sign-up funnel that's moot here.
 interface Prospect {
   id: string;
   name: string;
@@ -37,6 +33,7 @@ const TIER_COLOR: Record<string, string> = {
 
 export function MarketScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const [prospects, setProspects] = useState<Prospect[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -150,11 +147,23 @@ export function MarketScreen() {
       }
       renderItem={({ item }) => {
         const tierColor = TIER_COLOR[item.tier] ?? Colors.textMuted;
+        const savingsLabel = `${money(item.savings_low)} to ${money(item.savings_high)} per year`;
         return (
-          <View style={styles.card}>
+          <Pressable
+            onPress={() => navigation.navigate('VenueDetail', { venueId: item.id, venueName: item.name, isProspect: true })}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.name}, estimated Tier ${item.tier}, estimated savings ${savingsLabel}`}
+            style={({ pressed }) => [
+              styles.card,
+              pressed && styles.cardPressed,
+            ]}
+          >
             <View style={styles.cardHead}>
               <Text style={[styles.cardType, { color: tierColor }]}>{typeLabel(item.venue_type)}</Text>
-              <Text style={[styles.tierPill, { color: tierColor }]}>Tier {item.tier} · {item.total_score}</Text>
+              <View style={styles.tierGroup}>
+                <Text style={styles.estTag}>EST.</Text>
+                <Text style={[styles.tierPill, { color: tierColor }]}>Tier {item.tier} · {item.total_score}</Text>
+              </View>
             </View>
             <Text style={styles.cardName}>{item.name}</Text>
             {!!item.address && <Text style={styles.cardAddr} numberOfLines={1}>{item.address}</Text>}
@@ -171,7 +180,7 @@ export function MarketScreen() {
                 </Text>
               </View>
             </View>
-          </View>
+          </Pressable>
         );
       }}
     />
@@ -216,8 +225,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle, borderRadius: 14,
   },
+  cardPressed: { opacity: 0.75 },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardType: { fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', fontFamily: 'SpaceMono_700Bold' },
+  tierGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  estTag: {
+    fontSize: 9, letterSpacing: 1, fontFamily: 'SpaceMono_700Bold',
+    color: Colors.textMuted,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle,
+    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden',
+  },
   tierPill: { fontSize: 12, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
   cardName: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'HankenGrotesk_700Bold' },
   cardAddr: { color: Colors.textMuted, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular' },

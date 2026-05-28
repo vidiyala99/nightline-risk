@@ -5942,12 +5942,7 @@ html, body { overflow-x: clip; }
   flex-shrink: 0;
 }
 
-/* Prospect venues (real NYC leads) — visually distinct from the book. */
-.venue-card--prospect {
-  border-style: dashed;
-  border-color: var(--border-default);
-}
-.venue-card--prospect .venue-icon { opacity: 0.7; }
+/* "Estimated" badge — reused on /risk-profile for tentative figures. */
 .venue-prospect-badge {
   display: inline-block;
   margin-left: 8px;
@@ -5960,12 +5955,6 @@ html, body { overflow-x: clip; }
   border: 1px solid var(--brand-primary);
   border-radius: 999px;
   vertical-align: middle;
-}
-.venue-prospect-savings {
-  color: var(--accent-ink);
-  font-size: 0.78rem;
-  margin-top: 4px;
-  font-variant-numeric: tabular-nums;
 }
 
 /* Broker to-do feed (/tasks) */

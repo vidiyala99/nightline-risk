@@ -18,16 +18,6 @@ interface Venue {
   venue_type?: string;
   renewal_date?: string;
   years_in_operation?: number;
-  source?: "book" | "prospect";
-  savings_low?: string;
-  savings_high?: string;
-  market_premium?: string;
-}
-
-function fmtMoney0(s?: string): string {
-  if (!s) return "—";
-  const n = Number(s);
-  return Number.isNaN(n) ? "—" : `$${Math.round(n).toLocaleString("en-US")}`;
 }
 
 const VENUE_TYPES = [
@@ -54,24 +44,17 @@ export default function VenuesPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sourceFilter, setSourceFilter] = useState<"all" | "book" | "prospect">("all");
 
   const isBroker = role === "broker" || role === "admin";
   const isOperator = role === "venue_operator";
 
   const filteredVenues = venues.filter(v => {
-    if (isBroker && sourceFilter !== "all" && (v.source ?? "book") !== sourceFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return v.name.toLowerCase().includes(q)
-        || (v.address?.toLowerCase().includes(q) ?? false)
-        || (v.venue_type?.toLowerCase().includes(q) ?? false);
-    }
-    return true;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return v.name.toLowerCase().includes(q)
+      || (v.address?.toLowerCase().includes(q) ?? false)
+      || (v.venue_type?.toLowerCase().includes(q) ?? false);
   });
-
-  const bookCount = venues.filter(v => (v.source ?? "book") === "book").length;
-  const prospectCount = venues.filter(v => v.source === "prospect").length;
 
   useEffect(() => {
     // Wait for auth to hydrate before redirecting — otherwise a cold load /
@@ -82,7 +65,7 @@ export default function VenuesPage() {
   useEffect(() => {
     async function fetchVenues() {
       try {
-        const res = await fetch(`${API_URL}/api/venues`);
+        const res = await fetch(`${API_URL}/api/venues?source=book`);
         const data = await res.json();
         setVenues(Array.isArray(data) ? data : []);
       } catch {
@@ -334,26 +317,6 @@ export default function VenuesPage() {
         </div>
       )}
 
-      {isBroker && (
-        <div className="filter-bar" style={{ marginBottom: "var(--space-lg)" }}>
-          {([
-            ["all", "All", venueCount],
-            ["book", "Book", bookCount],
-            ["prospect", "Prospects", prospectCount],
-          ] as const).map(([key, label, count]) => (
-            <button
-              key={key}
-              type="button"
-              className={`filter-chip${sourceFilter === key ? " filter-chip--active" : ""}`}
-              onClick={() => setSourceFilter(key)}
-            >
-              {label}
-              <span className="filter-chip__count">{count}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
       <div className="lc-rule">
         <span className="lc-rule__label">Roster</span>
         <span className="lc-rule__count">
@@ -364,7 +327,7 @@ export default function VenuesPage() {
 
       <div className="venues-grid">
         {filteredVenues.map((venue) => (
-          <div key={venue.id} className={`venue-card${venue.source === "prospect" ? " venue-card--prospect" : ""}`} style={{ textDecoration: "none", display: "block" }}>
+          <div key={venue.id} className="venue-card" style={{ textDecoration: "none", display: "block" }}>
             {editingId === venue.id ? (
               /* Inline edit form */
               <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%" }}>
@@ -409,58 +372,40 @@ export default function VenuesPage() {
               </div>
             ) : (
               /* Read view */
-              (() => {
-                const isProspect = venue.source === "prospect";
-                // Clicking a venue opens the venue, not a quote form. Prospects
-                // have no live floor terminal, so they go straight to their risk
-                // profile (the broker-appropriate detail view — the same place
-                // /terminal redirects a broker to for book venues).
-                const detailHref = isProspect ? `/risk-profile/${venue.id}` : `/terminal/${venue.id}`;
-                return (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", gap: "8px" }}>
-                  <Link href={detailHref} style={{ textDecoration: "none", display: "flex", gap: "12px", alignItems: "flex-start", flex: 1, color: "inherit" }}>
-                    <div className="venue-icon"><Building2 size={24} /></div>
-                    <div className="venue-info">
-                      <h3>
-                        {venue.name}
-                        {isProspect && <span className="venue-prospect-badge">Prospect</span>}
-                      </h3>
-                      {venue.venue_type && (
-                        <p className="venue-address" style={{ color: "var(--text-tertiary)", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: "0.05em" }}>
-                          {venue.venue_type}
-                        </p>
-                      )}
-                      {venue.address && <p className="venue-address"><MapPin size={12} />{venue.address}</p>}
-                      {venue.capacity && (
-                        <p className="venue-capacity">
-                          <Users size={12} />
-                          Cap. {venue.capacity.toLocaleString()}
-                          {venue.renewal_date && <span style={{ marginLeft: "8px", color: "var(--text-tertiary)" }}>· Renewal {venue.renewal_date}</span>}
-                        </p>
-                      )}
-                      {isProspect && (venue.savings_low || venue.savings_high) && (
-                        <p className="venue-prospect-savings">
-                          Est. savings {fmtMoney0(venue.savings_low)}–{fmtMoney0(venue.savings_high)}/yr
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
-                    {!isBroker && !isProspect && (
-                      <button
-                        onClick={() => startEdit(venue)}
-                        style={{ background: "none", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "5px 8px", cursor: "pointer", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem" }}
-                      >
-                        <Edit2 size={12} /> Edit
-                      </button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", gap: "8px" }}>
+                <Link href={`/terminal/${venue.id}`} style={{ textDecoration: "none", display: "flex", gap: "12px", alignItems: "flex-start", flex: 1, color: "inherit" }}>
+                  <div className="venue-icon"><Building2 size={24} /></div>
+                  <div className="venue-info">
+                    <h3>{venue.name}</h3>
+                    {venue.venue_type && (
+                      <p className="venue-address" style={{ color: "var(--text-tertiary)", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: "0.05em" }}>
+                        {venue.venue_type}
+                      </p>
                     )}
-                    <Link href={detailHref} style={{ color: "inherit" }} title={isProspect ? "View risk profile" : "Open terminal"}>
-                      <ArrowRight size={20} className="venue-arrow" />
-                    </Link>
+                    {venue.address && <p className="venue-address"><MapPin size={12} />{venue.address}</p>}
+                    {venue.capacity && (
+                      <p className="venue-capacity">
+                        <Users size={12} />
+                        Cap. {venue.capacity.toLocaleString()}
+                        {venue.renewal_date && <span style={{ marginLeft: "8px", color: "var(--text-tertiary)" }}>· Renewal {venue.renewal_date}</span>}
+                      </p>
+                    )}
                   </div>
+                </Link>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+                  {!isBroker && (
+                    <button
+                      onClick={() => startEdit(venue)}
+                      style={{ background: "none", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "5px 8px", cursor: "pointer", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem" }}
+                    >
+                      <Edit2 size={12} /> Edit
+                    </button>
+                  )}
+                  <Link href={`/terminal/${venue.id}`} style={{ color: "inherit" }} title="Open terminal">
+                    <ArrowRight size={20} className="venue-arrow" />
+                  </Link>
                 </div>
-                );
-              })()
+              </div>
             )}
           </div>
         ))}

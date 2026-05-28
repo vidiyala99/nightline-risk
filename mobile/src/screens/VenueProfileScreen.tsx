@@ -66,7 +66,12 @@ export function VenueProfileScreen({ navigation, route }: any) {
       style={styles.root}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
     >
-      <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
+      <Pressable
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+      >
         <Text style={styles.backText}>← Back</Text>
       </Pressable>
 

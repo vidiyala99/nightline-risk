@@ -23,17 +23,6 @@ interface Venue {
   capacity?: number;
   renewal_date?: string;
   current_carrier?: string;
-  source?: 'book' | 'prospect';
-  savings_low?: string;
-  savings_high?: string;
-}
-
-type SourceFilter = 'all' | 'book' | 'prospect';
-
-function fmtMoney0(s?: string): string {
-  if (!s) return '—';
-  const n = Number(s);
-  return Number.isNaN(n) ? '—' : `$${Math.round(n).toLocaleString('en-US')}`;
 }
 
 export function BrokerVenuesScreen({ navigation }: any) {
@@ -42,25 +31,18 @@ export function BrokerVenuesScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
 
   const filteredVenues = venues.filter(v => {
-    if (sourceFilter !== 'all' && (v.source ?? 'book') !== sourceFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return v.name.toLowerCase().includes(q)
-        || (v.address?.toLowerCase().includes(q) ?? false)
-        || (v.venue_type?.toLowerCase().includes(q) ?? false);
-    }
-    return true;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return v.name.toLowerCase().includes(q)
+      || (v.address?.toLowerCase().includes(q) ?? false)
+      || (v.venue_type?.toLowerCase().includes(q) ?? false);
   });
-
-  const bookCount = venues.filter(v => (v.source ?? 'book') === 'book').length;
-  const prospectCount = venues.filter(v => v.source === 'prospect').length;
 
   const fetchVenues = useCallback(async () => {
     try {
-      const data = await api.request<Venue[]>('/api/venues');
+      const data = await api.request<Venue[]>('/api/venues?source=book');
       setVenues(Array.isArray(data) ? data : []);
     } catch {
       // keep stale
@@ -97,20 +79,6 @@ export function BrokerVenuesScreen({ navigation }: any) {
         />
       </View>
 
-      <View style={styles.filterBar}>
-        {([['all', 'All', venues.length], ['book', 'Book', bookCount], ['prospect', 'Prospects', prospectCount]] as const).map(
-          ([key, label, count]) => {
-            const active = sourceFilter === key;
-            return (
-              <Pressable key={key} onPress={() => setSourceFilter(key)} style={[styles.chip, active && styles.chipActive]}>
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-                <Text style={[styles.chipCount, active && styles.chipCountActive]}>{count}</Text>
-              </Pressable>
-            );
-          },
-        )}
-      </View>
-
       <Text style={styles.sectionEyebrow}>
         {searchQuery.trim()
           ? `${filteredVenues.length} OF ${venues.length} VENUES`
@@ -128,40 +96,31 @@ export function BrokerVenuesScreen({ navigation }: any) {
             tintColor={Colors.accent}
           />
         }
-        renderItem={({ item }) => {
-          const isProspect = item.source === 'prospect';
-          return (
-            <Pressable
-              style={({ pressed }) => [styles.card, isProspect && styles.cardProspect, pressed && { opacity: 0.75 }]}
-              onPress={() => navigation.navigate('VenueDetail', { venueId: item.id, venueName: item.name })}
-            >
-              <View style={styles.cardTopRow}>
-                {item.venue_type ? (
-                  <Text style={styles.venueType} numberOfLines={1}>{item.venue_type.toUpperCase()}</Text>
-                ) : <View />}
-                {isProspect && <Text style={styles.prospectBadge}>PROSPECT</Text>}
-              </View>
-              <Text style={styles.venueName}>{item.name}</Text>
-              {!!item.address && (
-                <Text style={styles.venueAddress} numberOfLines={1}>{item.address}</Text>
+        renderItem={({ item }) => (
+          <Pressable
+            style={({ pressed }) => [styles.card, pressed && { opacity: 0.75 }]}
+            onPress={() => navigation.navigate('VenueDetail', { venueId: item.id, venueName: item.name, isProspect: false })}
+          >
+            <View style={styles.cardTopRow}>
+              {item.venue_type ? (
+                <Text style={styles.venueType} numberOfLines={1}>{item.venue_type.toUpperCase()}</Text>
+              ) : <View />}
+            </View>
+            <Text style={styles.venueName}>{item.name}</Text>
+            {!!item.address && (
+              <Text style={styles.venueAddress} numberOfLines={1}>{item.address}</Text>
+            )}
+            <View style={styles.metaRow}>
+              {!!item.capacity && (
+                <Text style={styles.metaItem}>CAP {item.capacity.toLocaleString()}</Text>
               )}
-              <View style={styles.metaRow}>
-                {!!item.capacity && (
-                  <Text style={styles.metaItem}>CAP {item.capacity.toLocaleString()}</Text>
-                )}
-                {!!item.renewal_date && (
-                  <Text style={styles.metaItem}> · Renewal {item.renewal_date}</Text>
-                )}
-              </View>
-              {isProspect && (item.savings_low || item.savings_high) && (
-                <Text style={styles.prospectSavings}>
-                  Est. savings {fmtMoney0(item.savings_low)}–{fmtMoney0(item.savings_high)}/yr
-                </Text>
+              {!!item.renewal_date && (
+                <Text style={styles.metaItem}> · Renewal {item.renewal_date}</Text>
               )}
-              <Text style={styles.viewDetail}>{isProspect ? 'View profile →' : 'View details →'}</Text>
-            </Pressable>
-          );
-        }}
+            </View>
+            <Text style={styles.viewDetail}>View details →</Text>
+          </Pressable>
+        )}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>
@@ -229,25 +188,7 @@ const styles = StyleSheet.create({
 
   viewDetail: { color: Colors.accentInk, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold', marginTop: 6 },
 
-  filterBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 14, flexWrap: 'wrap' },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
-  },
-  chipActive: { borderColor: Colors.accent },
-  chipText: { color: Colors.textSecondary, fontFamily: 'HankenGrotesk_500Medium', fontSize: 12 },
-  chipTextActive: { color: Colors.accentInk },
-  chipCount: { color: Colors.textSecondary, fontFamily: 'SpaceMono_700Bold', fontSize: 10, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(23,21,15,0.06)' },
-  chipCountActive: { color: Colors.accentInk },
-
-  cardProspect: { borderStyle: 'dashed', borderColor: 'rgba(200,240,0,0.25)' },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  prospectBadge: {
-    color: Colors.accentInk, fontSize: 9, fontFamily: 'SpaceMono_700Bold', letterSpacing: 1,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.accent, borderRadius: 999,
-    paddingHorizontal: 7, paddingVertical: 1, overflow: 'hidden',
-  },
-  prospectSavings: { color: Colors.accentInk, fontSize: 12, fontFamily: 'SpaceMono_700Bold', marginTop: 4 },
 
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
   emptyTitle: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'HankenGrotesk_700Bold' },

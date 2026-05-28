@@ -32,10 +32,25 @@ export function IncidentListScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Operator dashboard can override the listing venue via params (chip-row
-  // selection). Brokers always see the global list. Falls back to tenant_id.
-  const venueOverride: string | undefined = route?.params?.venueId;
-  const effectiveVenueId = !isBroker ? (venueOverride ?? user?.tenant_id) : undefined;
+  // Venue scope: route param is authoritative. Reading it directly (not via
+  // local state) ensures re-entries with a NEW venueId (e.g. user visits
+  // House of Yes after already having scoped to Market Hotel) pick up the
+  // change — useState would otherwise freeze on the first mount's value.
+  // The Clear button writes setParams({ venueId: undefined }) to drop scope.
+  const scopedVenueId: string | undefined = route?.params?.venueId;
+  const effectiveVenueId = scopedVenueId ?? (!isBroker ? user?.tenant_id : undefined);
+  const isUserScoped = !!scopedVenueId;
+  const [scopedVenueName, setScopedVenueName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isUserScoped || !scopedVenueId) {
+      setScopedVenueName(null);
+      return;
+    }
+    api.request<{ name?: string }>(`/api/venues/${scopedVenueId}`)
+      .then((v) => setScopedVenueName(v?.name ?? null))
+      .catch(() => setScopedVenueName(null));
+  }, [isUserScoped, scopedVenueId]);
 
   const fetchIncidents = useCallback(async () => {
     try {
@@ -84,6 +99,25 @@ export function IncidentListScreen({ navigation, route }: any) {
           )}
         </View>
         <HandAccent>tonight's floor</HandAccent>
+
+        {isUserScoped && (
+          <View style={styles.scopePill}>
+            <Text style={styles.scopeText} numberOfLines={1}>
+              Showing {incidents.length} for{' '}
+              <Text style={styles.scopeVenue}>{scopedVenueName ?? 'this venue'}</Text>
+            </Text>
+            <Pressable
+              onPress={() => navigation.setParams?.({ venueId: undefined })}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Clear venue filter, show all incidents"
+              style={({ pressed }) => [styles.scopeClear, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.scopeClearText}>CLEAR ×</Text>
+            </Pressable>
+          </View>
+        )}
+
         <View style={styles.filters}>
           {(['all', 'open', 'under_review', 'closed'] as Filter[]).map(f => {
             const count = f === 'all' ? incidents.length : incidents.filter(i => i.status === f).length;
@@ -110,7 +144,11 @@ export function IncidentListScreen({ navigation, route }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchIncidents(); }} tintColor={Colors.accent} />}
         renderItem={({ item }) => (
           <Pressable
-            onPress={() => navigation.navigate('IncidentDetail', { incidentId: item.id })}
+            onPress={() => navigation.navigate('IncidentDetail', {
+              incidentId: item.id,
+              venueId: item.venue_id ?? scopedVenueId,
+              venueName: scopedVenueName ?? undefined,
+            })}
             style={({ pressed }) => [styles.card, { borderLeftColor: STATUS_ACCENT[item.status] ?? Colors.border }, pressed && { opacity: 0.75 }]}
           >
             <View style={styles.cardHeader}>
@@ -165,6 +203,27 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   countText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
+
+  scopePill: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+    paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle,
+  },
+  scopeText: {
+    flex: 1, color: Colors.textSecondary, fontSize: 13,
+    fontFamily: 'HankenGrotesk_400Regular',
+  },
+  scopeVenue: { color: Colors.text, fontFamily: 'HankenGrotesk_600SemiBold' },
+  scopeClear: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
+  },
+  scopeClearText: {
+    color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1,
+    fontFamily: 'SpaceMono_700Bold',
+  },
 
   filters: { flexDirection: 'row', gap: 8 },
   chip: {

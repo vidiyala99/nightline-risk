@@ -323,6 +323,7 @@ export function DashboardScreen({ navigation }: any) {
             quoteData,
             venueName: user?.name,
             isBroker: false,
+            isProspect: false,
           })}
         >
           <Text style={styles.sectionEyebrow}>RISK PROFILE</Text>
