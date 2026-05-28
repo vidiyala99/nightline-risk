@@ -137,9 +137,11 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
         const netLabel = (netEv >= 0 ? '+' : '-') + '$' + Math.abs(netEv).toLocaleString();
         return (
           <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: accent }]}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.eyebrow} numberOfLines={1}>AI CLAIM RECOMMENDATION</Text>
-              <Text style={[styles.eyebrow, { color: accent, letterSpacing: 1.5 }]} numberOfLines={1}>
+            <View style={[styles.rowBetween, { gap: 10 }]}>
+              <Text style={[styles.eyebrow, { letterSpacing: 1, flexShrink: 1 }]} numberOfLines={1}>
+                AI CLAIM RECOMMENDATION
+              </Text>
+              <Text style={[styles.eyebrow, { color: accent, letterSpacing: 1 }]} numberOfLines={1}>
                 {Math.round(rec.confidence * 100)}% CONFIDENT
               </Text>
             </View>
