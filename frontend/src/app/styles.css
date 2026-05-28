@@ -6646,3 +6646,24 @@ html, body { overflow-x: clip; }
   margin: 0;
 }
 
+/* ─── /underwriter/[id] phone reordering ───
+   Desktop keeps the 3-column grid (Incident | Risk+Memo+Vision+Timeline |
+   AI-Rec+Decision+Evidence). On phones, the 3 columns collapse and we
+   reorder the flattened section list so the AI Claim Recommendation
+   (the most-impactful card) leads, followed by the priority sequence the
+   mobile app uses: risk → memo → incident → vision → actions → timeline
+   → claim decision → review decision → evidence. */
+@media (max-width: 640px) {
+  .report-detail-grid > div { display: contents; }
+  .report-detail-grid section[data-section="ai-rec"]          { order: 1; }
+  .report-detail-grid section[data-section="risk"]            { order: 2; }
+  .report-detail-grid section[data-section="memo"]            { order: 3; }
+  .report-detail-grid section[data-section="incident"]        { order: 4; }
+  .report-detail-grid section[data-section="vision"]          { order: 5; }
+  .report-detail-grid section[data-section="actions"]         { order: 6; }
+  .report-detail-grid section[data-section="timeline"]        { order: 7; }
+  .report-detail-grid section[data-section="claim-decision"]  { order: 8; }
+  .report-detail-grid section[data-section="review-decision"] { order: 9; }
+  .report-detail-grid section[data-section="evidence"]        { order: 10; }
+}
+

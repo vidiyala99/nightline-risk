@@ -262,12 +262,12 @@ export default function ReportDetailPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-3 gap-xl">
+      <div className="grid grid-cols-3 gap-xl report-detail-grid">
         {/* Left: Incident facts */}
         <div className="flex flex-col gap-lg">
-          <section className="card">
-            <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Incident</h2>
-            {incident ? (
+          {incident && (
+            <section className="card" data-section="incident">
+              <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Incident</h2>
               <div className="flex flex-col gap-md text-sm">
                 <div><span className="text-xs uppercase tracking-wide text-secondary block mb-xs">Summary</span><p>{incident.summary}</p></div>
                 <div><span className="text-xs uppercase tracking-wide text-secondary block mb-xs">Location</span><p>{incident.location}</p></div>
@@ -279,33 +279,37 @@ export default function ReportDetailPage() {
                   {incident.ems_called && <span className="badge badge-warning">EMS</span>}
                 </div>
               </div>
-            ) : (
-              <p className="text-sm text-secondary">Incident data unavailable.</p>
-            )}
-          </section>
+            </section>
+          )}
 
-          <section className="card">
-            <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Required Actions</h2>
-            <div className="flex flex-col gap-md">
-              {(packet.action_plan?.length ?? 0) > 0 ? packet.action_plan!.map((action, i) => (
-                <div key={i} className="flex gap-md">
-                  <ClipboardCheck size={16} className="text-secondary mt-xs flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold mb-xs">{action.title}</p>
-                    <p className="text-xs text-secondary mb-xs">{action.rationale}</p>
-                    {(action.evidence_needed?.length ?? 0) > 0 && (
-                      <p className="text-xs" style={{ color: "var(--accent-ink)" }}>{action.evidence_needed!.join(" · ")}</p>
-                    )}
-                  </div>
+          {(() => {
+            const actions = (packet.action_plan ?? []).filter(a => a?.title?.trim() || a?.rationale?.trim());
+            if (actions.length === 0) return null;
+            return (
+              <section className="card" data-section="actions">
+                <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Required Actions</h2>
+                <div className="flex flex-col gap-md">
+                  {actions.map((action, i) => (
+                    <div key={i} className="flex gap-md">
+                      <ClipboardCheck size={16} className="text-secondary mt-xs flex-shrink-0" />
+                      <div>
+                        {action.title && <p className="text-sm font-semibold mb-xs">{action.title}</p>}
+                        {action.rationale && <p className="text-xs text-secondary mb-xs">{action.rationale}</p>}
+                        {(action.evidence_needed?.length ?? 0) > 0 && (
+                          <p className="text-xs" style={{ color: "var(--accent-ink)" }}>{action.evidence_needed!.join(" · ")}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )) : <p className="text-sm text-secondary">No actions required.</p>}
-            </div>
-          </section>
+              </section>
+            );
+          })()}
         </div>
 
         {/* Center: Risk analysis */}
         <div className="flex flex-col gap-lg">
-          <section className="card">
+          <section className="card" data-section="risk">
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Risk Signal</h2>
             <div className="flex gap-lg items-start">
               <div className="flex-1">
@@ -324,7 +328,7 @@ export default function ReportDetailPage() {
             </div>
           </section>
 
-          <section className="card">
+          <section className="card" data-section="memo">
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Underwriting Memo</h2>
 
             {/* Transparency: warn whenever the prose came from the deterministic
@@ -438,7 +442,7 @@ export default function ReportDetailPage() {
 
           {/* Vision Analysis */}
           {visionAnalysis && visionAnalysis.analyses.length > 0 && (
-            <section className="card">
+            <section className="card" data-section="vision">
               <div className="flex items-center justify-between mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>
                 <h2 className="text-xs uppercase tracking-wide text-secondary">Visual Evidence Analysis</h2>
                 {visionAnalysis.analyses[0]?.corroboration && (
@@ -478,7 +482,7 @@ export default function ReportDetailPage() {
             </section>
           )}
 
-          <section className="card">
+          <section className="card" data-section="timeline">
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Claims Timeline</h2>
             <div className="flex flex-col gap-sm">
               {(packet.claims_timeline?.length ?? 0) > 0 ? packet.claims_timeline!.map((event, i) => (
@@ -507,7 +511,7 @@ export default function ReportDetailPage() {
             const netEvFormatted = (rec.net_expected_value_usd >= 0 ? "+" : "−") +
               "$" + Math.abs(rec.net_expected_value_usd).toLocaleString();
             return (
-              <section className="card" style={{ border: `1px solid ${accent}55`, position: "relative" }}>
+              <section className="card" data-section="ai-rec" style={{ border: `1px solid ${accent}55`, position: "relative" }}>
                 {/* Brand-primary accent stripe — earned only when the recommender says file */}
                 <div style={{
                   position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
@@ -604,7 +608,7 @@ export default function ReportDetailPage() {
               and the viewer's role. The actual "should this be a claim?" reasoning
               lives in the recommender card above; this card is the *action surface*. */}
           {packet.claim_recommendation && (
-            <section className="card">
+            <section className="card" data-section="claim-decision">
               <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>
                 Claim Decision
               </h2>
@@ -775,7 +779,7 @@ export default function ReportDetailPage() {
           {/* Review Decision — broker/admin only. Operators see a read-only
               result if a decision was already made, but never the action buttons. */}
           {(isBroker || decision) && (
-          <section className="card">
+          <section className="card" data-section="review-decision">
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Review Decision</h2>
             {decision ? (
               <div className="flex items-center gap-md p-md" style={{ border: `1px solid ${decision.decision === "approved" ? "var(--brand-primary)" : "var(--state-error)"}`, borderRadius: "var(--radius-sm)" }}>
@@ -829,7 +833,7 @@ export default function ReportDetailPage() {
           </section>
           )}
 
-          <section className="card">
+          <section className="card" data-section="evidence">
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Evidence Summary</h2>
             <div className="flex gap-md mb-md">
               <div className="flex-1 text-center p-md" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
