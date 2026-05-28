@@ -138,16 +138,18 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
         return (
           <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: accent }]}>
             <View style={styles.rowBetween}>
-              <Text style={styles.eyebrow}>AI CLAIM RECOMMENDATION</Text>
-              <Text style={[styles.eyebrow, { color: accent, fontSize: 13 }]}>{Math.round(rec.confidence * 100)}% CONFIDENT</Text>
+              <Text style={styles.eyebrow} numberOfLines={1}>AI CLAIM RECOMMENDATION</Text>
+              <Text style={[styles.eyebrow, { color: accent, letterSpacing: 1.5 }]} numberOfLines={1}>
+                {Math.round(rec.confidence * 100)}% CONFIDENT
+              </Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Text style={{ fontSize: 32, color: accent }}>{rec.should_file ? '↑' : '↓'}</Text>
+              <Text style={{ fontSize: 28, color: accent, lineHeight: 32 }}>{rec.should_file ? '↑' : '↓'}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: accent, fontSize: 20, fontFamily: 'HankenGrotesk_700Bold', letterSpacing: -0.3 }}>
                   {rec.should_file ? 'File this claim' : "Don't file yet"}
                 </Text>
-                <Text style={styles.bodyText}>
+                <Text style={[styles.bodyText, { fontSize: 12 }]}>
                   {Math.round(rec.probability * 100)}% paid-out probability · net EV {netLabel}
                 </Text>
               </View>
