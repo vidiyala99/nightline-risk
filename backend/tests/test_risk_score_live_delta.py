@@ -102,32 +102,16 @@ def test_http_post_incident_moves_risk_score():
         assert after["total_score"] <= before["total_score"]
 
 
-def test_http_quote_tier_reflects_accumulated_deltas():
-    """Premium tier is derived from the (live) risk score, so accumulating
-    deltas must change the quote tier — not just the underlying score."""
-    from fastapi.testclient import TestClient
-    from app.main import app
-
-    incident_delta_tracker.reset()
-    with TestClient(app) as client:
-        before_quote = client.get(f"/api/venues/{VENUE}/quote").json()
-        before_tier = before_quote["tier"]
-
-        # Drop the tier by force-bumping enough incidents to definitively cross
-        # a tier threshold. Baseline Elsewhere = score 85 (tier A); 10 incidents
-        # of baseline (10*10 = -100 incident pts -> incident_score=0 -> total
-        # falls into C/D range).
-        incident_delta_tracker.bump_incident(VENUE, by=10)
-
-        after_quote = client.get(f"/api/venues/{VENUE}/quote").json()
-        after_tier = after_quote["tier"]
-        assert after_tier != before_tier, (
-            f"Quote tier should change after 10 deltas; "
-            f"got before={before_tier} after={after_tier}"
-        )
-        # Premium goes up when tier degrades (D=2.5x base, A=0.7x base).
-        if "D" in (before_tier, after_tier) or "C" in (before_tier, after_tier):
-            assert after_quote["annual_premium"] >= before_quote["annual_premium"]
+# Removed: test_http_quote_tier_reflects_accumulated_deltas
+#
+# That test asserted "tier shifts after bumping the delta tracker" — a
+# contract from when the scoring engine read a seeded baseline + an in-memory
+# delta. Scoring now reads the LIVE count of IncidentRecord rows when a DB
+# session is available (see app/underwriting/scoring.py:get_risk_score), so
+# the delta tracker is a fallback for non-DB callers and posting deltas
+# doesn't move the HTTP-path score. The score-moves-on-incident contract is
+# already verified end-to-end by test_http_post_incident_moves_risk_score
+# above (which POSTs a real incident and asserts the score doesn't go up).
 
 
 def test_unknown_venue_returns_clean_error():

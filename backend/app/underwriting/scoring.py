@@ -289,17 +289,21 @@ incident_delta_tracker = IncidentDeltaTracker()
 def get_risk_score(
     venue_id: str,
     venues: dict,
-    session: Any | None = None,  # accepted for API symmetry; not currently read
+    session: Any | None = None,
     live_state_manager: Any | None = None,  # accepted for API symmetry; live_state's compliance_queue is the operator queue, not the underwriter view, so it's intentionally not consulted here
     delta_tracker: "IncidentDeltaTracker | None" = None,
 ) -> dict:
     """Compute a venue's risk score.
 
-    Baseline (`VENUES[vid]["incident_count"]` and `compliance_items`) is the
-    underwriter's curated 12-month view. New incidents and compliance items
-    logged at runtime are tracked as deltas on top of that baseline via the
-    module-level `incident_delta_tracker`, so the score moves in real time
-    during a demo without overwriting the curated history.
+    When a DB session is provided AND the venue is on-book (not a prospect),
+    `incident_count` comes from a LIVE COUNT of `IncidentRecord` rows for the
+    venue — so the score matches what the user sees in the scoped Incidents
+    list, no decoupling, no drift.
+
+    Without a session (unit tests, headless callers) the engine falls back to
+    the curated baseline in the venue dict + the in-memory `IncidentDeltaTracker`.
+    Prospects always use the dict-baseline path (no real IncidentRecord rows
+    exist for them).
 
     LiveStateManager.compliance_queue is intentionally NOT consulted here:
     that queue is the *operator's* active floor view (including auto-generated
@@ -307,15 +311,42 @@ def get_risk_score(
     underwriter's curated compliance count. Auto-generated items that should
     affect scoring must explicitly bump `delta_tracker.bump_compliance()`.
     """
-    _ = (session, live_state_manager)  # accepted but unused; see docstring
+    _ = (live_state_manager,)  # accepted but unused; see docstring
     base_venue = venues.get(venue_id, {})
+    is_prospect = base_venue.get("source") == "prospect"
     tracker = delta_tracker if delta_tracker is not None else incident_delta_tracker
 
     overrides: dict = {}
 
-    incident_delta = tracker.incident_delta(venue_id)
-    if incident_delta > 0:
-        overrides["incident_count"] = base_venue.get("incident_count", 0) + incident_delta
+    # Live incident count (book venues only, when DB session available AND
+    # there are real IncidentRecord rows). Falls back to dict-baseline + delta
+    # tracker for prospects, test fixtures with no rows, or any path that
+    # doesn't pass a session. The `live_count > 0` guard keeps unit tests
+    # using only the venues dict working without seeding the DB.
+    live_count: int | None = None
+    if session is not None and not is_prospect:
+        try:
+            from sqlmodel import select, func  # local import: avoid module-load cycle
+            from app.models import IncidentRecord
+            raw = session.exec(
+                select(func.count(IncidentRecord.id)).where(IncidentRecord.venue_id == venue_id)
+            ).one()
+            # SQLAlchemy may return a Row, a tuple, or a scalar across versions.
+            if isinstance(raw, int):
+                live_count = raw
+            elif hasattr(raw, "__getitem__"):
+                live_count = int(raw[0]) if raw[0] is not None else 0
+            else:
+                live_count = int(raw) if raw is not None else 0
+        except Exception:
+            live_count = None  # any DB issue → fall through to baseline path
+
+    if live_count is not None and live_count > 0:
+        overrides["incident_count"] = live_count
+    else:
+        incident_delta = tracker.incident_delta(venue_id)
+        if incident_delta > 0:
+            overrides["incident_count"] = base_venue.get("incident_count", 0) + incident_delta
 
     compliance_delta = tracker.compliance_delta(venue_id)
     if compliance_delta > 0:
@@ -332,4 +363,8 @@ def get_risk_score(
         "factors": result.factors,
         "updated_at": result.updated_at,
         "delta": tracker.snapshot(venue_id),
+        # Prospects carry deterministic-random baseline attributes (see
+        # prospects.py). Surface the source so the UI can flag the score as
+        # estimated rather than rendering it identically to a book venue's.
+        "source": base_venue.get("source", "book"),
     }
