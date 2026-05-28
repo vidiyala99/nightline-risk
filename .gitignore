@@ -29,6 +29,9 @@ frontend/playwright-report/
 frontend/playwright-results.xml
 frontend/test-results/
 
+# Expo / React Native local dev cache (regenerates; never track)
+.expo/
+
 # Local environment
 .env
 .env.*
