@@ -287,14 +287,14 @@ export default function ReportDetailPage() {
           <section className="card">
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Required Actions</h2>
             <div className="flex flex-col gap-md">
-              {packet.action_plan.length > 0 ? packet.action_plan.map((action, i) => (
+              {(packet.action_plan?.length ?? 0) > 0 ? packet.action_plan!.map((action, i) => (
                 <div key={i} className="flex gap-md">
                   <ClipboardCheck size={16} className="text-secondary mt-xs flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold mb-xs">{action.title}</p>
                     <p className="text-xs text-secondary mb-xs">{action.rationale}</p>
-                    {action.evidence_needed.length > 0 && (
-                      <p className="text-xs" style={{ color: "var(--accent-ink)" }}>{action.evidence_needed.join(" · ")}</p>
+                    {(action.evidence_needed?.length ?? 0) > 0 && (
+                      <p className="text-xs" style={{ color: "var(--accent-ink)" }}>{action.evidence_needed!.join(" · ")}</p>
                     )}
                   </div>
                 </div>
@@ -481,7 +481,7 @@ export default function ReportDetailPage() {
           <section className="card">
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Claims Timeline</h2>
             <div className="flex flex-col gap-sm">
-              {packet.claims_timeline.length > 0 ? packet.claims_timeline.map((event, i) => (
+              {(packet.claims_timeline?.length ?? 0) > 0 ? packet.claims_timeline!.map((event, i) => (
                 <div key={i} className="flex gap-md text-sm" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>
                   <span className="font-mono text-xs text-secondary flex-shrink-0 mt-xs">
                     {event.at.split("T")[1]?.slice(0, 5) ?? event.at}
@@ -580,10 +580,10 @@ export default function ReportDetailPage() {
 
                 <details>
                   <summary className="text-xs font-mono cursor-pointer text-secondary" style={{ userSelect: "none" }}>
-                    Why this recommendation ({rec.reasons.length} reason{rec.reasons.length === 1 ? "" : "s"})
+                    Why this recommendation ({rec.reasons?.length ?? 0} reason{(rec.reasons?.length ?? 0) === 1 ? "" : "s"})
                   </summary>
                   <ul className="mt-sm flex flex-col gap-xs" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {rec.reasons.map((reason, i) => (
+                    {(rec.reasons ?? []).map((reason, i) => (
                       <li key={i} className="text-xs text-secondary" style={{ lineHeight: 1.5, paddingLeft: "var(--space-md)", position: "relative" }}>
                         <span style={{ position: "absolute", left: 0, color: accent }} aria-hidden="true">→</span>
                         {reason}
@@ -833,11 +833,11 @@ export default function ReportDetailPage() {
             <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Evidence Summary</h2>
             <div className="flex gap-md mb-md">
               <div className="flex-1 text-center p-md" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
-                <div className="text-2xl font-bold font-mono" style={{ color: "var(--accent-ink)" }}>{packet.citation_ids.length}</div>
+                <div className="text-2xl font-bold font-mono" style={{ color: "var(--accent-ink)" }}>{packet.citation_ids?.length ?? 0}</div>
                 <div className="text-xs text-secondary uppercase tracking-wide">Citations</div>
               </div>
               <div className="flex-1 text-center p-md" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
-                <div className="text-2xl font-bold font-mono" style={{ color: "var(--accent-ink)" }}>{packet.claims_timeline.length}</div>
+                <div className="text-2xl font-bold font-mono" style={{ color: "var(--accent-ink)" }}>{packet.claims_timeline?.length ?? 0}</div>
                 <div className="text-xs text-secondary uppercase tracking-wide">Events</div>
               </div>
             </div>
