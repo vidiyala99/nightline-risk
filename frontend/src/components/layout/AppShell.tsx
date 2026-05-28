@@ -23,6 +23,7 @@ import {
 import { useAuth, useRole, useTenantId } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { MobileMoreSheet } from "@/components/layout/MobileMoreSheet";
 import { SidebarNavItem } from "@/components/ui/SidebarNavItem";
 
 interface AppShellProps {
@@ -132,6 +133,7 @@ export function AppShell({ children }: AppShellProps) {
   const role = useRole();
   const tenantId = useTenantId();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   // Breakpoint gating. SSR + first paint render as "full" sidebar.
   const bp = useBreakpoint();
@@ -223,8 +225,14 @@ export function AppShell({ children }: AppShellProps) {
 
       {showBottomNav && (
         <Suspense fallback={null}>
-          <MobileBottomNav onMore={() => setMobileOpen(true)} />
+          <MobileBottomNav onMore={() => setMoreSheetOpen(true)} />
         </Suspense>
+      )}
+
+      {/* Phone "More" overflow — mirrors mobile MoreScreen instead of the
+          desktop sidebar drawer. Sidebar drawer stays for tablet (md). */}
+      {showBottomNav && (
+        <MobileMoreSheet open={moreSheetOpen} onClose={() => setMoreSheetOpen(false)} />
       )}
     </div>
   );

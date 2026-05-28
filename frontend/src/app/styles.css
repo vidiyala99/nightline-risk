@@ -6305,3 +6305,135 @@ html, body { overflow-x: clip; }
   color: var(--state-error);
 }
 
+/* ─── Phone "More" overflow sheet — mirrors mobile MoreScreen.tsx ───
+   Replaces the desktop sidebar drawer when the bottom-nav More button
+   is tapped at xs/sm widths. Curated overflow list (excludes items
+   already in the bottom nav), with the same row card layout as RN. */
+.mobile-more-sheet__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 21, 15, 0.45);
+  z-index: 90;
+}
+.mobile-more-sheet {
+  position: fixed;
+  inset: 0 0 0 0;
+  z-index: 91;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 24px;
+}
+.mobile-more-sheet__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 20px 16px;
+  gap: 14px;
+}
+.mobile-more-sheet__eyebrow {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+.mobile-more-sheet__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: -1px;
+  color: var(--text-primary);
+  margin: 0;
+}
+.mobile-more-sheet__who {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+}
+.mobile-more-sheet__close {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  padding: 6px;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+.mobile-more-sheet__close:hover { background: var(--bg-surface-hover); }
+.mobile-more-sheet__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px;
+}
+.mobile-more-sheet__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.mobile-more-sheet__row:active { background: var(--bg-surface-hover); }
+.mobile-more-sheet__row:hover { border-color: var(--border-default); }
+.mobile-more-sheet__row-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(200, 240, 0, 0.18);
+  color: var(--accent-ink);
+  flex-shrink: 0;
+}
+.mobile-more-sheet__row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mobile-more-sheet__row-label {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
+}
+.mobile-more-sheet__row-desc {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+.mobile-more-sheet__signout {
+  margin: 24px 20px 0;
+  padding: 12px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+.mobile-more-sheet__signout:hover {
+  border-color: var(--state-error);
+  color: var(--state-error);
+}
+
