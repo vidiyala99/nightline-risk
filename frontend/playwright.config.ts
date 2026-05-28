@@ -12,7 +12,10 @@ export default defineConfig({
     ["list"],
   ],
   use: {
-    baseURL: "https://frontend-mu-ebon-n3x8uw2rpx.vercel.app",
+    // Production alias auto-follows the latest main deploy (a per-deployment
+    // `*-<hash>.vercel.app` URL is immutable and silently fossilizes the suite
+    // against an old build). Override with E2E_BASE_URL to pin a preview.
+    baseURL: process.env.E2E_BASE_URL ?? "https://nightline-app.vercel.app",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "on-first-retry",
