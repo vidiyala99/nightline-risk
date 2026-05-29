@@ -22,6 +22,14 @@ The data needed to make it specific is already passed in and discarded:
 The only existing memo eval is `score_structural` (fields non-empty), so a
 generic template "passes." Nothing pins quality.
 
+**This is now the floor for the whole demo, not just no-key mode.** As of the
+Gemini free-tier fix (2026-05-28), bulk startup backfill is pinned to the
+deterministic provider regardless of which API key is set — so every
+*seeded/backfilled* incident renders this deterministic memo even in
+production with `GEMINI_API_KEY` configured. Only freshly-created incidents
+hit the live LLM. A recruiter opening existing demo data sees the deterministic
+memo on ~everything, which makes its credibility the priority surface.
+
 ## Goal
 
 Make the deterministic memo read like a real underwriter wrote it *about this
@@ -68,11 +76,13 @@ citation text, and confidence phrasing. The identical-memo tell is dead.
 
 Add an **optional** `venue_name: str | None = None` to `draft_memo` across the
 provider interface (`app/providers/base.py`) and all implementations
-(`deterministic.py`, `anthropic_provider.py`, `gemini_provider.py`). LLM
-providers may ignore it. Wire it at the call site
-(`app/agents/runtime.py:596,610`) from the `venue` already in scope. The
-deterministic lead uses `venue_name` when present, else `incident_location`.
-Eval scenarios use the fixed `EVAL_VENUE`, so they exercise the `location` path.
+(`deterministic.py`, `anthropic_provider.py`, `gemini_provider.py`). Wire it at
+the call site (`app/agents/runtime.py:596,610`) from the `venue` already in
+scope. The deterministic lead uses `venue_name` when present, else
+`incident_location`. **The Gemini/Anthropic providers also weave `venue_name`
+into the prompt** (not ignore it) — so a live memo on a freshly-created incident
+names the venue too, keeping live and deterministic output consistent. Eval
+scenarios use the fixed `EVAL_VENUE`, so they exercise the `location` path.
 
 ## Eval coverage — pin the quality
 
