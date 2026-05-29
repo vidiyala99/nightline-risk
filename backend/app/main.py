@@ -768,8 +768,26 @@ def _predict_evidence_citation(venue_id: str, item_description: str, session: Se
     return hits[0] if hits else None
 
 
-def _find_compliance_item(venue_id: str, venue: dict, item_id: str):
-    """Pull a ComplianceItem out of the LiveVenueState's queue by id."""
+def _find_compliance_item(venue_id: str, venue: dict, item_id: str, session=None):
+    """Resolve a compliance item by id.
+
+    When a session is provided, queries open ComplianceSignal rows first. If
+    not found in the DB (e.g. legacy in-memory-only item), falls back to the
+    LiveVenueState in-memory queue so citation lookups still work for items
+    seeded from venue_data (pre-DB era). Returns None if not found anywhere.
+    """
+    from app.services.compliance_signals import open_signals_for
+    if session is not None:
+        for r in open_signals_for(venue_id, session):
+            if r.id == item_id:
+                return r
+        # Fall back to in-memory queue for seed items not yet migrated to DB
+        state = live_state_manager.get_state(venue_id, venue["capacity"], venue)
+        for q in state.compliance_queue:
+            if q.id == item_id:
+                return q
+        return None
+    # No session — in-memory only
     state = live_state_manager.get_state(venue_id, venue["capacity"], venue)
     for q in state.compliance_queue:
         if q.id == item_id:

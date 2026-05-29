@@ -16,9 +16,7 @@ from sqlmodel import Session, select
 
 from app.auth import require_broker
 from app.database import get_session
-from app.live_state import live_state_manager
 from app.models import ComplianceEvidence
-from app.packet_core import _add_audit_event
 from app.schemas.errors import error_response
 
 router = APIRouter()
@@ -35,7 +33,7 @@ def predict_compliance_citation(
     is unknown — the FE chip stays hidden in that case."""
     from app.main import _resolve_venue, _find_compliance_item, _predict_evidence_citation
     venue = _resolve_venue(venue_id, session)
-    item = _find_compliance_item(venue_id, venue, item_id)
+    item = _find_compliance_item(venue_id, venue, item_id, session=session)
     if item is None:
         return {"citation": None}
     hit = _predict_evidence_citation(venue_id, item.description, session)
@@ -58,6 +56,8 @@ async def upload_compliance_evidence(
         _predict_evidence_citation,
         _resolve_venue,
     )
+    from app.models import ComplianceSignal
+    from app.services.compliance_signals import transition_compliance_signal
     from app.storage import get_storage
     venue = _resolve_venue(venue_id, session)
 
@@ -71,10 +71,9 @@ async def upload_compliance_evidence(
             details={"limit_mb": limit_mb, "received_bytes": len(contents)},
         )
 
-    # Snapshot the citation BEFORE resolve_compliance_item runs (which
-    # removes the item from the live queue). Best-effort: missing item or
-    # missing policy docs just leaves the cited_* columns null.
-    item = _find_compliance_item(venue_id, venue, item_id)
+    # Snapshot the citation BEFORE resolving the signal (which changes status).
+    # Best-effort: missing item or missing policy docs just leaves cited_* null.
+    item = _find_compliance_item(venue_id, venue, item_id, session=session)
     citation = _predict_evidence_citation(venue_id, item.description, session) if item else None
 
     evidence_id = f"ce-{uuid4().hex[:12]}"
@@ -99,9 +98,15 @@ async def upload_compliance_evidence(
     session.add(record)
     session.commit()
 
-    # Preserve existing auto-resolve behavior — broker validation gate is
-    # tracked separately in the audit queue.
-    live_state_manager.resolve_compliance_item(venue_id, item_id)
+    # Transition the ComplianceSignal to resolved if it exists in the DB.
+    # Best-effort: if the row isn't found (e.g. legacy item_id), skip silently.
+    signal_row = session.get(ComplianceSignal, item_id)
+    if signal_row is not None and signal_row.venue_id == venue_id:
+        transition_compliance_signal(
+            session, signal_row, to="resolved",
+            actor_id=uploaded_by, evidence_ref=file_ref,
+        )
+        session.commit()
 
     return {
         "status": "accepted",
@@ -125,26 +130,21 @@ def resolve_compliance_item_as_broker(
     """Broker/admin waiver: close out a compliance item without operator
     evidence. Records an audit event so the waiver is traceable. Operator
     resolution stays upload-driven (see upload route above)."""
-    from app.main import _find_compliance_item, _resolve_venue
+    from app.main import _resolve_venue
+    from app.models import ComplianceSignal
+    from app.services.compliance_signals import transition_compliance_signal
 
-    venue = _resolve_venue(venue_id, session)
-    # Materialize live state so the in-memory queue exists before we resolve.
-    live_state_manager.get_state(venue_id, venue["capacity"], venue)
-    item = _find_compliance_item(venue_id, venue, item_id)
-    if item is None or not live_state_manager.resolve_compliance_item(venue_id, item_id):
+    _resolve_venue(venue_id, session)
+    row = session.get(ComplianceSignal, item_id)
+    if row is None or row.venue_id != venue_id:
         raise error_response(
             "compliance_item_not_found",
             f"Compliance item {item_id!r} not found for venue {venue_id!r}.",
             status_code=404,
         )
-
-    reason = (body or {}).get("reason")
-    _add_audit_event(
-        session=session,
-        actor_id=user["sub"], actor_type="user",
-        entity_type="compliance", entity_id=item_id,
-        event_type="compliance.waived",
-        event_metadata={"venue_id": venue_id, "reason": reason},
+    transition_compliance_signal(
+        session, row, to="resolved", actor_id=user["sub"],
+        metadata={"reason": (body or {}).get("reason")},
     )
     session.commit()
     return {"status": "resolved", "item_id": item_id}

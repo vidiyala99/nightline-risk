@@ -50,7 +50,7 @@ def inject_event_sync(
     immediately. Production should use /events/stream instead."""
     from app.main import _resolve_venue
     venue_data = _resolve_venue(venue_id, session)
-    live_state_manager.process_events(venue_id, events, venue_data)
+    live_state_manager.process_events(venue_id, events, venue_data, session=session)
     live = live_state_manager.get_state(venue_id, venue_data["capacity"], venue_data)
     return {
         "status": "processed",
@@ -73,8 +73,18 @@ def get_live_state(
     floor-specific data zeroed out — keeps broker compliance views
     working without leaking the operator's live shift state."""
     from app.main import _resolve_venue
+    from app.services.compliance_signals import open_signals_for
+    from app.schemas import ComplianceItem
     venue = _resolve_venue(venue_id, session)
     state = live_state_manager.get_state(venue_id, venue["capacity"], venue)
+    # Build compliance_queue from the persisted ComplianceSignal table so that
+    # the operator queue and the risk score are always in sync.
+    open_rows = open_signals_for(venue_id, session)
+    compliance_queue = [
+        ComplianceItem(id=r.id, title=r.title, description=r.description, severity=r.severity)
+        for r in open_rows
+    ]
+    state = state.model_copy(update={"compliance_queue": compliance_queue})
     if not can_read_venue_floor(user, venue_id, session):
         state = state.model_copy(update={
             "current_capacity": 0,

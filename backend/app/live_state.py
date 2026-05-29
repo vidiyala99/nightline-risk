@@ -48,12 +48,12 @@ class LiveStateManager:
             )
         return self._states[venue_id]
 
-    def process_events(self, venue_id: str, events: list[StreamEvent], venue_data: dict) -> None:
+    def process_events(self, venue_id: str, events: list[StreamEvent], venue_data: dict, session=None) -> None:
         if venue_id not in self._states:
             self.get_state(venue_id, venue_data["capacity"], venue_data)
 
         state = self._states[venue_id]
-        
+
         for event in events:
             if event.event_type == "door_scan":
                 scan_type = event.payload.get("scan_type")
@@ -62,20 +62,37 @@ class LiveStateManager:
                     state.current_capacity = min(state.current_capacity + count, state.max_capacity)
                 elif scan_type == "exit":
                     state.current_capacity = max(state.current_capacity - count, 0)
-            
+
             elif event.event_type == "camera_metadata":
                 anomaly_score = event.payload.get("anomaly_score", 0.0)
-                if (
-                    anomaly_score > CAMERA_ANOMALY_THRESHOLD
-                    and len(state.compliance_queue) < MAX_AUTO_GENERATED_COMPLIANCE_ITEMS
-                ):
-                    state.compliance_queue.append(ComplianceItem(
-                        id=f"INCIDENT_{event.event_id[:6].upper()}",
-                        title=f"ANOMALY_DETECTED_{event.payload.get('camera_id', 'UKN').upper()}",
-                        description="Upload verified security footage to preserve claims defensibility.",
-                        severity="URGENT"
-                    ))
-                    state.premium_impact += UNRESOLVED_INCIDENT_PREMIUM_PENALTY
+                if anomaly_score > CAMERA_ANOMALY_THRESHOLD and session is not None:
+                    from app.models import ComplianceSignal
+                    from sqlmodel import select
+                    open_auto = session.exec(
+                        select(ComplianceSignal)
+                        .where(ComplianceSignal.venue_id == venue_id)
+                        .where(ComplianceSignal.status == "open")
+                        .where(ComplianceSignal.provenance == "auto_generated")
+                    ).all()
+                    if len(open_auto) < MAX_AUTO_GENERATED_COMPLIANCE_ITEMS:
+                        session.add(ComplianceSignal(
+                            id=f"INCIDENT_{event.event_id[:6].upper()}",
+                            venue_id=venue_id,
+                            title=f"ANOMALY_DETECTED_{event.payload.get('camera_id', 'UKN').upper()}",
+                            description="Upload verified security footage to preserve claims defensibility.",
+                            provenance="auto_generated", severity="urgent", status="open",
+                        ))
+                        session.commit()
+                elif anomaly_score > CAMERA_ANOMALY_THRESHOLD and session is None:
+                    # No DB context — fall back to in-memory queue (legacy path)
+                    if len(state.compliance_queue) < MAX_AUTO_GENERATED_COMPLIANCE_ITEMS:
+                        state.compliance_queue.append(ComplianceItem(
+                            id=f"INCIDENT_{event.event_id[:6].upper()}",
+                            title=f"ANOMALY_DETECTED_{event.payload.get('camera_id', 'UKN').upper()}",
+                            description="Upload verified security footage to preserve claims defensibility.",
+                            severity="urgent"
+                        ))
+                        state.premium_impact += UNRESOLVED_INCIDENT_PREMIUM_PENALTY
 
     def resolve_compliance_item(self, venue_id: str, item_id: str) -> bool:
         if venue_id not in self._states:
