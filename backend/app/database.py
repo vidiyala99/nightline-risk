@@ -77,6 +77,42 @@ def create_db_and_tables():
                 conn.execute(text(ddl))
             except Exception:
                 pass
+    _backfill_compliance_signals()
+
+
+def _backfill_compliance_signals():
+    """Idempotent: seed ComplianceSignal rows from each venue's curated
+    compliance_items count, so the operator queue + compliance factor are
+    populated.
+
+    Idempotency is venue-level: if a venue already has ANY signal, it is left
+    untouched (we never clobber live operator state — resolved items, auto-
+    generated camera items, etc.). The single commit at the end of the loop
+    makes seeding atomic, so a crash can't leave a venue partially seeded; the
+    only way to reach a partial set is manual row deletion, which this backfill
+    intentionally does not try to repair (re-seeding a venue is a manual op)."""
+    from sqlmodel import Session, select
+    from app.models import ComplianceSignal
+    from app.seed_data import VENUES
+    with Session(engine) as session:
+        for venue_id, data in VENUES.items():
+            n = int(data.get("compliance_items", 0) or 0)
+            if n == 0:
+                continue
+            existing = session.exec(
+                select(ComplianceSignal).where(ComplianceSignal.venue_id == venue_id)
+            ).first()
+            if existing is not None:
+                continue
+            for i in range(n):
+                session.add(ComplianceSignal(
+                    id=f"seed-cmp-{venue_id}-{i}", venue_id=venue_id,
+                    title="Outstanding compliance item",
+                    description="Curated underwriter compliance item.",
+                    provenance="underwriter_verified", severity="medium", status="open",
+                ))
+        session.commit()
+
 
 def get_session():
     create_db_and_tables()

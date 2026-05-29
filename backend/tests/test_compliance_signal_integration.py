@@ -152,3 +152,13 @@ def test_anonymous_cannot_resolve(client_and_engine):
     _seed_signal(engine, item_id="cs-it-anon")
     r = client.patch(f"/api/venues/{VENUE}/compliance/cs-it-anon/resolve")
     assert r.status_code == 401
+
+
+def test_nowadays_seeds_two_verified_signals_consistent_with_score():
+    from app.main import app
+    with TestClient(app) as client:
+        live = client.get("/api/venues/nowadays/live").json()
+        seeded = [c for c in live["compliance_queue"] if c["id"].startswith("seed-cmp-nowadays")]
+        assert len(seeded) == 2
+        score = client.get("/api/venues/nowadays/risk-score").json()["factors"]["compliance"]["score"]
+        assert score == 49  # 2 verified open -> ~49
