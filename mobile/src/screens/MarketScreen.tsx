@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
 import { api } from '../api/client';
 import { money, venueTypeLabel as typeLabel } from '../lib/format';
+import { FilterChips } from '../components/FilterChips';
 
 interface LikelyCarrier {
   id: string;
@@ -156,76 +157,36 @@ export function MarketScreen() {
           </View>
 
           {types.length > 0 && (
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>TYPE</Text>
-              <FlatList
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                data={['all', ...types]}
-                keyExtractor={(t) => t}
-                contentContainerStyle={styles.chipsRow}
-                renderItem={({ item }) => {
-                  const active = vtype === item;
-                  return (
-                    <Pressable
-                      style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => setVtype(item)}
-                    >
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                        {item === 'all' ? 'All types' : typeLabel(item)}
-                      </Text>
-                    </Pressable>
-                  );
-                }}
-              />
-            </View>
+            <FilterChips
+              label="TYPE"
+              padH={16}
+              padB={14}
+              value={vtype}
+              onChange={setVtype}
+              options={['all', ...types].map((t) => ({ value: t, label: t === 'all' ? 'All types' : typeLabel(t) }))}
+            />
           )}
 
           {boroughs.length > 0 && (
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>BOROUGH</Text>
-              <FlatList
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                data={['all', ...boroughs]}
-                keyExtractor={(b) => b}
-                contentContainerStyle={styles.chipsRow}
-                renderItem={({ item }) => {
-                  const active = borough === item;
-                  return (
-                    <Pressable
-                      style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => setBorough(item)}
-                    >
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                        {item === 'all' ? 'All boroughs' : item}
-                      </Text>
-                    </Pressable>
-                  );
-                }}
-              />
-            </View>
+            <FilterChips
+              label="BOROUGH"
+              padH={16}
+              padB={14}
+              value={borough}
+              onChange={setBorough}
+              options={['all', ...boroughs].map((b) => ({ value: b, label: b === 'all' ? 'All boroughs' : b }))}
+            />
           )}
 
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>SORT</Text>
-            <View style={styles.sortRow}>
-              {SORT_OPTIONS.map((opt) => {
-                const active = sort === opt.key;
-                return (
-                  <Pressable
-                    key={opt.key}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => setSort(opt.key)}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+          <FilterChips
+            label="SORT"
+            scroll={false}
+            padH={16}
+            padB={14}
+            value={sort}
+            onChange={(v) => setSort(v as SortKey)}
+            options={SORT_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
+          />
         </View>
       }
       ListEmptyComponent={
@@ -318,20 +279,6 @@ const styles = StyleSheet.create({
   statNum: { color: Colors.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'SpaceMono_700Bold' },
   statLabel: { color: Colors.textMuted, fontSize: 9, letterSpacing: 1, marginTop: 4, fontFamily: 'SpaceMono_700Bold' },
 
-  filterGroup: { marginBottom: 2 },
-  filterLabel: {
-    color: Colors.textMuted, fontSize: 9, letterSpacing: 1.5,
-    fontFamily: 'SpaceMono_700Bold', paddingHorizontal: 16, marginBottom: 6,
-  },
-  sortRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 14 },
-  chipsRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 14 },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, backgroundColor: Colors.surface,
-  },
-  chipActive: { backgroundColor: Colors.accentWash, borderColor: Colors.accent },
-  chipText: { color: Colors.textSecondary, fontSize: 12, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
-  chipTextActive: { color: Colors.accentInk },
 
   card: {
     marginHorizontal: 16, marginBottom: 12, padding: 16, gap: 6,
