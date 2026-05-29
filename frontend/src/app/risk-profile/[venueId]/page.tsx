@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
-import { ArrowLeft, AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye, ClipboardCheck, Building2, Activity } from "lucide-react";
 import { toastSuccess, toastError } from "@/lib/toast";
 
 interface IngestedSource {
@@ -675,6 +675,40 @@ export default function RiskProfilePage() {
         .rp-input:focus-visible, .rp-textarea:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; border-color: transparent; }
         .rp-textarea { resize: vertical; min-height: 120px; }
         .rp-section-title { margin: 0; font-weight: inherit; }
+
+        /* Interactive factor rows — affordance mirrors the app's .lc-triage__row:
+           hover tint + lime focus ring + a chevron that nudges on hover/focus. */
+        .rp-factor-row { display: block; text-decoration: none; color: inherit; cursor: pointer;
+          border-radius: var(--radius-md); padding: var(--space-sm); margin: calc(var(--space-sm) * -1);
+          transition: background 0.15s ease; }
+        .rp-factor-row:hover { background: rgba(23,21,15,0.05); }
+        .rp-factor-row:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
+        .rp-factor-chevron { transition: transform 0.15s ease, color 0.15s ease; }
+        .rp-factor-row:hover .rp-factor-chevron,
+        .rp-factor-row:focus-visible .rp-factor-chevron { color: var(--accent-ink); transform: translateX(2px); }
+
+        /* Records & evidence — connective hub link tiles. */
+        .rp-dossier-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-sm); }
+        @media (min-width: 640px) { .rp-dossier-grid { grid-template-columns: 1fr 1fr; } }
+        .rp-dossier-tile { display: flex; align-items: center; gap: var(--space-sm); min-height: 56px;
+          padding: var(--space-sm) var(--space-md); border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md); background: transparent; text-decoration: none; color: inherit;
+          cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
+        .rp-dossier-tile:hover { background: rgba(23,21,15,0.05); border-color: var(--border-default); }
+        .rp-dossier-tile:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
+        .rp-dossier-icon { flex: 0 0 auto; color: var(--text-tertiary); }
+        .rp-dossier-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .rp-dossier-label { font-size: 0.8125rem; font-weight: 600; color: var(--text-primary); }
+        .rp-dossier-meta { font-size: 0.7rem; color: var(--text-tertiary); letter-spacing: -0.01em; }
+        .rp-dossier-chevron { flex: 0 0 auto; color: var(--text-muted); transition: transform 0.15s ease, color 0.15s ease; }
+        .rp-dossier-tile:hover .rp-dossier-chevron,
+        .rp-dossier-tile:focus-visible .rp-dossier-chevron { color: var(--accent-ink); transform: translateX(2px); }
+
+        @media (prefers-reduced-motion: reduce) {
+          .rp-factor-row, .rp-factor-chevron, .rp-dossier-tile, .rp-dossier-chevron { transition: none; }
+          .rp-factor-row:hover .rp-factor-chevron, .rp-factor-row:focus-visible .rp-factor-chevron,
+          .rp-dossier-tile:hover .rp-dossier-chevron, .rp-dossier-tile:focus-visible .rp-dossier-chevron { transform: none; }
+        }
       `}</style>
       <div className="rp-container">
         {/* Back nav — padded to meet 44pt minimum tap target */}
@@ -824,7 +858,7 @@ export default function RiskProfilePage() {
                         >
                           <FactorTierIcon tier={ft} color={color} /> {tierWord} · {s}/100
                         </span>
-                        {href && <ChevronRight size={14} style={{ color: "var(--text-muted)" }} aria-hidden="true" />}
+                        {href && <ChevronRight size={14} className="rp-factor-chevron" style={{ color: "var(--text-muted)" }} aria-hidden="true" />}
                       </span>
                     </div>
                     <div className="capacity-bar-track" style={{ height: 4, background: "var(--bg-elevated)", borderRadius: 2, overflow: "hidden" }} aria-hidden="true">
@@ -865,7 +899,7 @@ export default function RiskProfilePage() {
                     key={key}
                     href={href}
                     aria-label={`View ${label.toLowerCase()}`}
-                    style={{ display: "block", textDecoration: "none", color: "inherit", cursor: "pointer" }}
+                    className="rp-factor-row"
                   >
                     {body}
                   </Link>
@@ -873,6 +907,55 @@ export default function RiskProfilePage() {
               })}
             </div>
           </div>
+
+          {/* Records & evidence — connective hub. Complements the diagnostic
+              factor rows above by giving the broker one launchpad into the
+              venue's underlying records. Links to existing surfaces only.
+              Broker-only: operators launch from the live terminal; prospects
+              have no records. */}
+          {isBroker && !isProspect && (
+            <div className="card">
+              <h3 className="rp-section-title text-xs uppercase tracking-wide text-secondary mb-md">Records &amp; evidence</h3>
+              <p className="text-xs text-secondary mb-lg" style={{ lineHeight: 1.6 }}>
+                Dig into the records behind the score.
+              </p>
+              <div className="rp-dossier-grid">
+                <Link href={`/incidents?venue=${encodeURIComponent(venueId)}`} className="rp-dossier-tile" aria-label="View incidents and evidence packets">
+                  <AlertTriangle size={18} className="rp-dossier-icon" aria-hidden="true" />
+                  <span className="rp-dossier-body">
+                    <span className="rp-dossier-label">Incidents &amp; evidence packets</span>
+                    {incidentCounts !== null && (
+                      <span className="rp-dossier-meta font-mono">
+                        {incidentCounts.total} total{incidentCounts.open > 0 ? ` · ${incidentCounts.open} open` : ""}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
+                </Link>
+                <Link href={`/compliance?venue=${encodeURIComponent(venueId)}`} className="rp-dossier-tile" aria-label="View compliance records">
+                  <ClipboardCheck size={18} className="rp-dossier-icon" aria-hidden="true" />
+                  <span className="rp-dossier-body">
+                    <span className="rp-dossier-label">Compliance</span>
+                  </span>
+                  <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
+                </Link>
+                <Link href={`/venues/${encodeURIComponent(venueId)}`} className="rp-dossier-tile" aria-label="View business profile">
+                  <Building2 size={18} className="rp-dossier-icon" aria-hidden="true" />
+                  <span className="rp-dossier-body">
+                    <span className="rp-dossier-label">Business profile</span>
+                  </span>
+                  <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
+                </Link>
+                <Link href={`/terminal/${encodeURIComponent(venueId)}`} className="rp-dossier-tile" aria-label="View live terminal">
+                  <Activity size={18} className="rp-dossier-icon" aria-hidden="true" />
+                  <span className="rp-dossier-body">
+                    <span className="rp-dossier-label">Live terminal</span>
+                  </span>
+                  <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right column — also collapses at 1024px+; see note on left column. */}
