@@ -58,12 +58,30 @@ export default function IncidentsPage() {
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [venues, setVenues] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedVenueId, setSelectedVenueId] = useState<string>("");
+  const [claimByIncident, setClaimByIncident] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // Wait for auth to hydrate before redirecting — otherwise a cold load /
     // refresh / deep-link bounces a logged-in user to /login (hydration race).
     if (isLoaded && !isSignedIn) router.push("/login");
   }, [isLoaded, isSignedIn, router]);
+
+  // Badge incidents that became carrier claims (scoped broker view only —
+  // /api/claims is broker-gated). Maps incident_id → claim status.
+  useEffect(() => {
+    if (!isBroker || !filterVenueId) { setClaimByIncident({}); return; }
+    let cancelled = false;
+    fetch(`${API_URL}/api/claims?venue_id=${encodeURIComponent(filterVenueId)}`, { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((claims: Array<{ incident_id?: string; status?: string }>) => {
+        if (cancelled) return;
+        const m: Record<string, string> = {};
+        for (const c of claims) if (c.incident_id && c.status) m[c.incident_id] = c.status;
+        setClaimByIncident(m);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isBroker, filterVenueId]);
 
   useEffect(() => {
     if (!isBroker) return;
@@ -467,6 +485,15 @@ export default function IncidentsPage() {
                         {incident.status === "closed" && <CheckCircle2 size={10} />}
                         {statusLabel[incident.status]}
                       </span>
+                      {claimByIncident[incident.id] && (
+                        <span
+                          className="text-xs font-mono uppercase px-2 py-0 rounded"
+                          style={{ color: "var(--brand-secondary)", border: "1px solid var(--brand-secondary)" }}
+                          title="This incident was filed as a carrier claim"
+                        >
+                          Claim · {claimByIncident[incident.id].replace(/_/g, " ")}
+                        </span>
+                      )}
                       <ArrowRight size={14} style={{ color: "var(--text-muted)" }} />
                     </div>
                   </div>

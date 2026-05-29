@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
 import {
   AlertTriangle, ArrowLeft, Calendar, MapPin, User,
-  Clock, CheckCircle2, Shield, ExternalLink, FileText,
+  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -50,6 +51,18 @@ const SEVERITY_COLOR: Record<string, string> = {
   critical: "var(--state-error)",
 };
 
+// Whether a packet became a claim proposal, and its state — so a broker
+// drilling into an incident sees the actionable item, not just a read wall.
+const PROPOSAL_BADGE: Record<string, { label: string; color: string }> = {
+  pending_broker_review: { label: "Proposal · pending", color: "var(--state-warning)" },
+  needs_more_info: { label: "Proposal · info requested", color: "var(--state-warning)" },
+  approved: { label: "Proposal · approved", color: "var(--accent-ink)" },
+  rejected_by_broker: { label: "Proposal · rejected", color: "var(--state-error)" },
+  filed_with_carrier: { label: "Proposal · filed", color: "var(--accent-ink)" },
+  paid: { label: "Proposal · paid", color: "var(--accent-ink)" },
+  denied: { label: "Proposal · denied", color: "var(--state-error)" },
+};
+
 const statusLabel: Record<IncidentStatus, string> = {
   open: "Open",
   under_review: "Under Review",
@@ -65,6 +78,7 @@ export default function IncidentDetailPage() {
 
   const [incident, setIncident] = useState<Incident | null>(null);
   const [packets, setPackets] = useState<Packet[]>([]);
+  const [proposalByPacket, setProposalByPacket] = useState<Record<string, string>>({});
   const [evidence, setEvidence] = useState<Array<{ id: string; filename: string; content_type: string; file_size: number; uploaded_at: string }>>([]);
   const [visionAnalysis, setVisionAnalysis] = useState<{ status: string; processed: number; total_files: number; analyses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +98,26 @@ export default function IncidentDetailPage() {
           fetch(`${API_URL}/api/incidents/${id}/evidence-analysis`, { headers: authHeaders() }),
         ]);
         if (incidentRes.ok) setIncident(await incidentRes.json());
-        if (packetsRes.ok) setPackets(await packetsRes.json());
+        if (packetsRes.ok) {
+          const pkts = await packetsRes.json();
+          setPackets(pkts);
+          // Resolve whether each packet became a claim proposal (and its state).
+          // by-packet 404s when none exists; few packets per incident, so the
+          // per-packet calls are cheap.
+          const entries = await Promise.all(
+            (pkts as Packet[]).map(async (p) => {
+              try {
+                const r = await fetch(`${API_URL}/api/claim-proposals/by-packet/${p.id}`, { headers: authHeaders() });
+                if (!r.ok) return null;
+                const prop = await r.json();
+                return [p.id, prop.state] as [string, string];
+              } catch {
+                return null;
+              }
+            }),
+          );
+          setProposalByPacket(Object.fromEntries(entries.filter(Boolean) as [string, string][]));
+        }
         if (evidenceRes.ok) { const d = await evidenceRes.json(); setEvidence(Array.isArray(d) ? d : []); }
         if (analysisRes.ok) setVisionAnalysis(await analysisRes.json());
       } catch {
@@ -273,6 +306,20 @@ export default function IncidentDetailPage() {
                             }}>
                               {pkt.status.replace(/_/g, " ")}
                             </span>
+                            {(() => {
+                              const badge = PROPOSAL_BADGE[proposalByPacket[pkt.id]];
+                              return badge ? (
+                                <Link
+                                  href={`/claim-proposals/${pkt.id}`}
+                                  className="text-xs font-mono uppercase px-2 py-0 rounded flex items-center gap-xs"
+                                  style={{ color: badge.color, border: `1px solid ${badge.color}`, textDecoration: "none" }}
+                                  aria-label={`${badge.label} — open claim proposal`}
+                                >
+                                  {badge.label}
+                                  <ChevronRight size={11} aria-hidden="true" />
+                                </Link>
+                              ) : null;
+                            })()}
                           </div>
                         </div>
 
