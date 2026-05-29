@@ -444,6 +444,9 @@ function ActionToolbar({
   )
     .map((id) => ({ id, emphasis: priority[id] }))
     .filter((b) => b.emphasis !== 'hidden')
+    // Attach-defense is a web-only flow today; hide the button on mobile rather
+    // than surface a button that just points the user to desktop.
+    .filter((b) => b.id !== 'attach_defense_package')
     .sort((a, b) => {
       const order: Record<ActionEmphasis, number> = { primary: 0, secondary: 1, tertiary: 2, hidden: 3 };
       return order[a.emphasis] - order[b.emphasis];

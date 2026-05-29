@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { accountApi, AccountError } from "@/lib/account";
-import { User, Shield, Users, LogOut, Check, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { User, Shield, LogOut, Check, Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -19,8 +19,9 @@ export default function SettingsPage() {
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "security", label: "Security", icon: Shield },
-    ...(isBroker ? [{ id: "team", label: "Team", icon: Users }] : []),
-    { id: "coverage", label: "Coverage", icon: ShieldCheck },
+    // Coverage is operator-only (links to /coverage). Team + 2FA were
+    // placeholder "coming soon" surfaces — removed until they're real.
+    ...(!isBroker ? [{ id: "coverage", label: "Coverage", icon: ShieldCheck }] : []),
   ];
 
   const handleSignOut = () => { signOut(); router.push("/login"); };
@@ -71,35 +72,19 @@ export default function SettingsPage() {
 
       {activeTab === "security" && <SecurityTab onSignOut={handleSignOut} />}
 
-      {activeTab === "team" && isBroker && (
+      {activeTab === "coverage" && !isBroker && (
         <div className="settings-section animate-fade-in">
-          <ComingSoon
-            title="Team management is coming soon"
-            body="Inviting teammates and assigning roles isn't available yet. For now, each login is a single account."
-          />
-        </div>
-      )}
-
-      {activeTab === "coverage" && (
-        <div className="settings-section animate-fade-in">
-          {isBroker ? (
-            <ComingSoon
-              title="Coverage settings are coming soon"
-              body="Carrier appointments and coverage configuration aren't available here yet."
-            />
-          ) : (
-            <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-              <div>
-                <h4 style={{ marginBottom: 4 }}>Your coverage</h4>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-tertiary)" }}>
-                  View your active policies and coverage lines.
-                </p>
-              </div>
-              <button className="btn btn-secondary" onClick={() => router.push("/coverage")}>
-                View coverage
-              </button>
+          <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+            <div>
+              <h4 style={{ marginBottom: 4 }}>Your coverage</h4>
+              <p style={{ fontSize: "0.85rem", color: "var(--text-tertiary)" }}>
+                View your active policies and coverage lines.
+              </p>
             </div>
-          )}
+            <button className="btn btn-secondary" onClick={() => router.push("/coverage")}>
+              View coverage
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -204,13 +189,6 @@ function SecurityTab({ onSignOut }: { onSignOut: () => void }) {
   return (
     <div className="settings-section animate-fade-in">
       <ChangePasswordCard />
-      <div className="security-card mb-lg">
-        <div className="security-info">
-          <h4>Two-Factor Authentication</h4>
-          <p>Add an extra layer of security with an authenticator app</p>
-        </div>
-        <span className="badge badge-info">Coming soon</span>
-      </div>
       <div className="security-card">
         <div className="security-info">
           <h4>Session</h4>
@@ -285,14 +263,3 @@ function ChangePasswordCard() {
   );
 }
 
-// ── Shared ───────────────────────────────────────────────────────────────
-
-function ComingSoon({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="card" style={{ textAlign: "center", padding: "32px 24px" }}>
-      <span className="badge badge-info" style={{ marginBottom: 12, display: "inline-block" }}>Coming soon</span>
-      <h4 style={{ marginBottom: 6 }}>{title}</h4>
-      <p style={{ fontSize: "0.88rem", color: "var(--text-tertiary)", maxWidth: 420, margin: "0 auto", lineHeight: 1.6 }}>{body}</p>
-    </div>
-  );
-}

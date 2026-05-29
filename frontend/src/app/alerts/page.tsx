@@ -471,7 +471,7 @@ function AlertsPageInner() {
                     ? "No liability events flagged for this venue. Real-time detection is running across all infrastructure."
                     : "Select a venue to view its alert stream."}
                 </p>
-                {selectedVenueId && (
+                {selectedVenueId && process.env.NODE_ENV !== "production" && (
                   <Link
                     href={`/terminal/${selectedVenueId}`}
                     className="lc-empty__cta"
