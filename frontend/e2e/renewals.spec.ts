@@ -1,6 +1,6 @@
 /**
  * E2E tests — Renewals page
- * Target: https://frontend-mu-ebon-n3x8uw2rpx.vercel.app
+ * Target: https://nightline-app.vercel.app
  * Backend API: https://thirdspacerisk-production.up.railway.app
  *
  * Journey: broker logs in → visits /renewals → asserts due-list heading →

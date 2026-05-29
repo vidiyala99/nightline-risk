@@ -1,6 +1,6 @@
 /**
  * E2E tests — Venues page and Broker portfolio
- * Target: https://frontend-mu-ebon-n3x8uw2rpx.vercel.app
+ * Target: https://nightline-app.vercel.app
  *
  * Auth note: the app uses localStorage JWTs. Once logged in within a browser
  * context the token persists, but navigating via page.goto() causes a full

@@ -1,6 +1,6 @@
 /**
  * E2E tests — Authentication flows
- * Target: https://frontend-mu-ebon-n3x8uw2rpx.vercel.app
+ * Target: https://nightline-app.vercel.app
  * Backend API: https://thirdspacerisk-production.up.railway.app
  *
  * Tests are kept independent: each test navigates to /login fresh
