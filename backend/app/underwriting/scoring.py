@@ -334,36 +334,34 @@ def get_risk_score(
 
     overrides: dict = {}
 
-    # Live incident count (book venues only, when a DB session is available).
-    # A successful query is authoritative — including a genuine 0, so the
-    # safety factor reconciles with the live incident list ("No incidents on
-    # file" → safety scored as zero incidents, not the seeded baseline).
-    # Only when there was NO live query (no session, prospect, or a DB error →
-    # live_count is None) do we fall back to the dict baseline + delta tracker;
-    # that keeps session-less unit fixtures working off the venues dict.
-    live_count: int | None = None
+    # Live incident load (book venues, when a DB session is available). We read
+    # the rows (not just COUNT) to weight each incident by severity (injury/
+    # police/EMS) and status (open vs resolved). A successful query is
+    # authoritative — including zero rows -> load 0 -> clean score. Only a missing
+    # query (no session, prospect, or DB error -> live_rows is None) falls back
+    # to the dict baseline + delta tracker, keeping session-less fixtures working.
+    live_rows = None
     if session is not None and not is_prospect:
         try:
-            from sqlmodel import select, func  # local import: avoid module-load cycle
+            from sqlmodel import select  # local import: avoid module-load cycle
             from app.models import IncidentRecord
-            raw = session.exec(
-                select(func.count(IncidentRecord.id)).where(IncidentRecord.venue_id == venue_id)
-            ).one()
-            # SQLAlchemy may return a Row, a tuple, or a scalar across versions.
-            if isinstance(raw, int):
-                live_count = raw
-            elif hasattr(raw, "__getitem__"):
-                live_count = int(raw[0]) if raw[0] is not None else 0
-            else:
-                live_count = int(raw) if raw is not None else 0
+            live_rows = session.exec(
+                select(
+                    IncidentRecord.injury_observed,
+                    IncidentRecord.police_called,
+                    IncidentRecord.ems_called,
+                    IncidentRecord.status,
+                ).where(IncidentRecord.venue_id == venue_id)
+            ).all()
         except Exception:
-            live_count = None  # any DB issue → fall through to baseline path
+            live_rows = None  # any DB issue -> fall through to baseline path
 
-    if live_count is not None:
-        # DB query succeeded — authoritative, including a genuine 0. (Was
-        # `and live_count > 0`, which made a real zero fall back to the seeded
-        # baseline and contradict the live incident list.)
-        overrides["incident_count"] = live_count
+    if live_rows is not None:
+        overrides["incident_count"] = len(live_rows)
+        overrides["incident_load"] = sum(
+            _incident_weight(injury=r[0], police=r[1], ems=r[2], status=r[3])
+            for r in live_rows
+        )
     else:
         incident_delta = tracker.incident_delta(venue_id)
         if incident_delta > 0:
