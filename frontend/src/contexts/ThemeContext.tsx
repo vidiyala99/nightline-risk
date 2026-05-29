@@ -18,7 +18,7 @@ interface ThemeContextType {
 const defaultTheme: ThemeConfig = {
   primaryColor: "#0369A1",
   secondaryColor: "#0EA5E9",
-  accentColor: "#D4FF00",
+  accentColor: "#c8f000",
   companyName: "Nightline Risk",
 };
 

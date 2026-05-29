@@ -34,7 +34,7 @@ function SkeletonBlock({ width = "100%", height = "1rem", className = "" }: { wi
       style={{
         width,
         height,
-        background: "linear-gradient(90deg, var(--bg-surface, #111) 25%, var(--bg-elevated, #1a1a1a) 50%, var(--bg-surface, #111) 75%)",
+        background: "linear-gradient(90deg, var(--bg-surface, #FBF8F0) 25%, var(--bg-elevated, #FFFFFF) 50%, var(--bg-surface, #FBF8F0) 75%)",
         backgroundSize: "200% 100%",
         animation: "skeleton-scan 1.6s linear infinite",
         borderRadius: "var(--radius-sm, 4px)",
@@ -449,7 +449,7 @@ export default function VenueTerminalPage() {
                   <span className="text-xs text-muted uppercase tracking-wide">/ Month</span>
                 </div>
                 {quote.savings_annual > 0 && (
-                  <div className="p-sm mb-md rounded" style={{ background: "rgba(212,255,0,0.06)", border: "1px solid rgba(212,255,0,0.2)" }}>
+                  <div className="p-sm mb-md rounded" style={{ background: "rgba(200,240,0,0.06)", border: "1px solid rgba(200,240,0,0.2)" }}>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-secondary uppercase">Market Rate</span>
                       <span className="text-xs font-mono text-secondary line-through">${quote.market_rate_annual?.toLocaleString()}/yr</span>

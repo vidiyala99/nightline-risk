@@ -138,7 +138,7 @@ export default function ClaimProposeModal({
                 style={{
                   border: `1px solid ${isSelected ? "var(--brand-primary)" : "var(--border-subtle)"}`,
                   borderRadius: "var(--radius-sm)",
-                  background: isSelected ? "rgba(212,255,0,0.04)" : "transparent",
+                  background: isSelected ? "rgba(200,240,0,0.04)" : "transparent",
                 }}
               >
                 <input

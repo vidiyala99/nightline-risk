@@ -222,7 +222,7 @@ export default function IncidentDetailPage() {
                       {a.findings?.incident_indicators?.length > 0 && (
                         <div className="flex flex-wrap gap-xs">
                           {a.findings.incident_indicators.map((ind: string, j: number) => (
-                            <span key={j} className="text-xs px-sm py-xs font-mono" style={{ background: "rgba(212,255,0,0.06)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--accent-ink)" }}>
+                            <span key={j} className="text-xs px-sm py-xs font-mono" style={{ background: "rgba(200,240,0,0.06)", border: "1px solid rgba(200,240,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--accent-ink)" }}>
                               {ind}
                             </span>
                           ))}

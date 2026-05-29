@@ -455,7 +455,7 @@ export default function ReportDetailPage() {
                 <h2 className="text-xs uppercase tracking-wide text-secondary">Visual Evidence Analysis</h2>
                 {visionAnalysis.analyses[0]?.corroboration && (
                   <span className="text-xs font-mono px-sm py-xs font-bold" style={{
-                    background: visionAnalysis.analyses[0].corroboration === "CONSISTENT" ? "rgba(212,255,0,0.12)" : visionAnalysis.analyses[0].corroboration === "CONTRADICTED" ? "rgba(255,60,60,0.12)" : "rgba(255,153,0,0.12)",
+                    background: visionAnalysis.analyses[0].corroboration === "CONSISTENT" ? "rgba(200,240,0,0.12)" : visionAnalysis.analyses[0].corroboration === "CONTRADICTED" ? "rgba(255,60,60,0.12)" : "rgba(255,153,0,0.12)",
                     color: visionAnalysis.analyses[0].corroboration === "CONSISTENT" ? "var(--brand-primary)" : visionAnalysis.analyses[0].corroboration === "CONTRADICTED" ? "var(--state-error)" : "var(--state-warning)",
                     borderRadius: "var(--radius-sm)",
                   }}>
@@ -473,7 +473,7 @@ export default function ReportDetailPage() {
                   {a.findings?.incident_indicators?.length > 0 && (
                     <div className="flex flex-wrap gap-xs mt-xs">
                       {a.findings.incident_indicators.map((ind: string, j: number) => (
-                        <span key={j} className="text-xs px-sm py-xs font-mono" style={{ background: "rgba(212,255,0,0.06)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--accent-ink)" }}>
+                        <span key={j} className="text-xs px-sm py-xs font-mono" style={{ background: "rgba(200,240,0,0.06)", border: "1px solid rgba(200,240,0,0.2)", borderRadius: "var(--radius-sm)", color: "var(--accent-ink)" }}>
                           {ind}
                         </span>
                       ))}

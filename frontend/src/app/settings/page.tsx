@@ -135,7 +135,7 @@ function ProfileTab({
   return (
     <div className="settings-section animate-fade-in">
       <div className="flex items-center gap-lg mb-xl">
-        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(212,255,0,0.1)", border: "2px solid var(--brand-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", fontWeight: 700, color: "var(--brand-primary)" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(200,240,0,0.1)", border: "2px solid var(--brand-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", fontWeight: 700, color: "var(--accent-ink)" }}>
           {trimmedName?.[0]?.toUpperCase() ?? "U"}
         </div>
         <div>

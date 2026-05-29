@@ -1095,7 +1095,7 @@ export default function RiskProfilePage() {
                   </div>
                 )}
                 {!isBroker && hasImprovementHeadroom && (
-                  <div className="mt-sm p-md" style={{ background: "rgba(212,255,0,0.05)", border: "1px solid rgba(212,255,0,0.2)", borderRadius: "var(--radius-sm)" }}>
+                  <div className="mt-sm p-md" style={{ background: "rgba(200,240,0,0.05)", border: "1px solid rgba(200,240,0,0.2)", borderRadius: "var(--radius-sm)" }}>
                     <p className="text-xs text-secondary" style={{ lineHeight: 1.6 }}>
                       <span style={{ color: "var(--accent-ink)", fontWeight: 600 }}>Improvement opportunity:</span> Moving up a tier typically reduces your annual premium. Address the factors flagged above and we'll provide a personalized estimate at renewal.
                     </p>

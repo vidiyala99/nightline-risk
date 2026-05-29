@@ -215,7 +215,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
                     : `Recommender suggests not filing. Override only with additional context.`}
                 </Text>
                 <Pressable
-                  style={[styles.actionBtn, { borderColor: rec.should_file ? Colors.accent : Colors.warning, backgroundColor: rec.should_file ? '#c8f00014' : 'transparent' }]}
+                  style={[styles.actionBtn, { borderColor: rec.should_file ? Colors.accent : Colors.warning, backgroundColor: rec.should_file ? Colors.accentWash : 'transparent' }]}
                   onPress={() => setProposeSheetVisible(true)}
                   disabled={submittingProposal}
                 >

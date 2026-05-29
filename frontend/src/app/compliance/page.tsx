@@ -249,7 +249,7 @@ function CompliancePageInner() {
               padding: "4px 10px",
               borderRadius: "14px",
               border: "1px solid var(--brand-primary)",
-              background: "rgba(212,255,0,0.08)",
+              background: "rgba(200,240,0,0.08)",
               color: "var(--accent-ink)",
               fontSize: "0.75rem",
               fontWeight: 600,
