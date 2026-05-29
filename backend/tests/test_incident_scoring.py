@@ -15,6 +15,9 @@ def test_incident_weight_full_severity_open():
 def test_incident_weight_resolved_is_discounted():
     assert _incident_weight(injury=False, police=False, ems=False, status="closed") == 0.4
 
+def test_incident_weight_closed_archived_is_discounted():
+    assert _incident_weight(injury=False, police=False, ems=False, status="closed_archived") == 0.4
+
 def test_under_review_counts_as_active():
     assert _incident_weight(injury=False, police=False, ems=False, status="under_review") == 1.0
 

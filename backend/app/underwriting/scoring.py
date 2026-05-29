@@ -312,9 +312,10 @@ def get_risk_score(
     """Compute a venue's risk score.
 
     When a DB session is provided AND the venue is on-book (not a prospect),
-    `incident_count` comes from a LIVE COUNT of `IncidentRecord` rows for the
-    venue — so the score matches what the user sees in the scoped Incidents
-    list, no decoupling, no drift.
+    the safety factor is driven by a LIVE, severity- and status-weighted load
+    over the venue's `IncidentRecord` rows (`incident_load`); `incident_count`
+    is also set to the live row count for display — so the score matches what
+    the user sees in the scoped Incidents list, no decoupling, no drift.
 
     Without a session (unit tests, headless callers) the engine falls back to
     the curated baseline in the venue dict + the in-memory `IncidentDeltaTracker`.
