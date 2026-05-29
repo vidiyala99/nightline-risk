@@ -8,9 +8,26 @@ Calculates venue risk scores based on:
 - Business profile (15%)
 """
 
+import math
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
+
+
+# Active incidents weigh full; resolved ones still count (history matters) but
+# far less — so closing a case measurably raises the safety score.
+_RESOLVED_STATUSES = {"closed", "closed_archived"}
+
+
+def _incident_weight(*, injury: bool, police: bool, ems: bool, status: str) -> float:
+    """Per-incident contribution to the weighted safety load.
+
+    severity = 1.0 + 0.5 each for injury / police / EMS  (range 1.0-2.5)
+    status   = 0.4 if resolved else 1.0
+    """
+    severity = 1.0 + 0.5 * bool(injury) + 0.5 * bool(police) + 0.5 * bool(ems)
+    status_factor = 0.4 if status in _RESOLVED_STATUSES else 1.0
+    return severity * status_factor
 
 
 @dataclass
@@ -85,25 +102,24 @@ class RiskScoringEngine:
         )
 
     def _score_incident_history(self, venue: dict) -> int:
-        """
-        Score based on incident history (0-100, higher is better).
-        
-        Factors:
-        - Fewer incidents = higher score
-        - More recent incidents = lower score
-        - Injury/police/ems calls = lower score
-        """
-        incident_count = venue.get("incident_count", 0)
+        """Score based on weighted incident load using an exponential decay curve.
 
-        # Base score: 0 incidents = 100, 10+ incidents = 0
-        if incident_count == 0:
-            base = 100
-        elif incident_count >= 10:
-            base = 0
-        else:
-            base = 100 - (incident_count * 10)
+        Uses `incident_load` (sum of per-incident weights from `_incident_weight`)
+        when available.  Falls back to raw `incident_count` so that session-less
+        callers (unit fixtures, delta-tracker path) remain fully functional.
 
-        return max(0, min(100, base))
+        Curve: score = round(100 × exp(−load / 9))
+          load=0   → 100  (clean record)
+          load=1   → 89   (one minor open incident)
+          load=2.5 → 76   (one max-severity open incident)
+          load=25  → 6    (heavy history)
+        Closing an incident reduces its weight from 1.0× to 0.4×, visibly
+        raising the score — keeping the UI promise honest.
+        """
+        load = venue.get("incident_load")
+        if load is None:
+            load = venue.get("incident_count", 0)
+        return max(0, min(100, round(100 * math.exp(-load / 9.0))))
 
     def _score_compliance(self, venue: dict) -> int:
         """
