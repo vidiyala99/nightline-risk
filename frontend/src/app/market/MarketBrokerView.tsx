@@ -14,7 +14,8 @@ import { authHeaders } from "@/lib/authFetch";
 import { money, venueTypeLabel, type MarketVenue } from "@/lib/market";
 import { TierBadge, type Tier as UiTier } from "@/components/ui/TierBadge";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
-import { Search, MapPin, List, ArrowUpRight } from "lucide-react";
+import { MapPin, List, ArrowUpRight } from "lucide-react";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 const MarketMap = dynamic(() => import("./MarketMap"), {
   ssr: false,
@@ -182,8 +183,6 @@ export function MarketBrokerView() {
         .mbk__kpi b { color:var(--text-primary); }
         .mbk__kpi .save { color:var(--accent-ink); font-weight:700; }
         .mbk__controls { display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center; margin-bottom:var(--space-lg); }
-        .mbk__search { display:flex; align-items:center; gap:6px; flex:1 1 220px; min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); background:var(--bg-elevated); }
-        .mbk__search input { flex:1; border:none; background:none; outline:none; color:var(--text-primary); font-size:0.875rem; }
         .mbk select { min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); background:var(--bg-elevated); color:var(--text-primary); font-size:0.85rem; }
         .mbk__viewtoggle { display:inline-flex; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); overflow:hidden; }
         .mbk__viewtoggle button { min-height:44px; padding:0 14px; background:var(--bg-elevated); border:none; color:var(--text-secondary); cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; }
@@ -219,15 +218,13 @@ export function MarketBrokerView() {
       </div>
 
       <div className="mbk__controls" role="group" aria-label="Filters">
-        <span className="mbk__search">
-          <Search size={14} aria-hidden />
-          <input
-            placeholder="Search prospects, types, addresses…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search prospects"
-          />
-        </span>
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder="Search prospects, types, addresses…"
+          ariaLabel="Search prospects"
+          style={{ flex: "1 1 220px" }}
+        />
         <select value={borough} onChange={(e) => setBorough(e.target.value)} aria-label="Borough">
           <option value="all">All boroughs</option>
           {boroughs.map((b) => (

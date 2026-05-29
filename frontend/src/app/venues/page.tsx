@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
-import { Building2, MapPin, Users, Plus, ArrowRight, X, Edit2, Check, Search } from "lucide-react";
+import { Building2, MapPin, Users, Plus, ArrowRight, X, Edit2, Check } from "lucide-react";
 import Link from "next/link";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { authHeaders } from "@/lib/authFetch";
 import { TierBadge, type Tier as UiTier } from "@/components/ui/TierBadge";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -352,14 +353,11 @@ export default function VenuesPage() {
 
       {isBroker && (
         <div className="vn-controls">
-          <div className="lc-search">
-            <Search size={14} />
-            <input
-              placeholder="Search venues, types, addresses…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search venues, types, addresses…"
+          />
           {boroughs.length > 0 && (
             <select value={borough} onChange={e => setBorough(e.target.value)} aria-label="Borough">
               <option value="all">All boroughs</option>

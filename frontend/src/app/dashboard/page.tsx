@@ -3,12 +3,13 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
-import { Building2, LogOut, ArrowUpRight, WifiOff, Search, AlertTriangle, CheckSquare, ArrowRight } from "lucide-react";
+import { Building2, LogOut, ArrowUpRight, WifiOff, AlertTriangle, CheckSquare, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Grid } from "@/components/layout/Grid";
 import { authHeaders } from "@/lib/authFetch";
 import { StatStrip } from "@/components/ui/StatStrip";
 import { StatTile } from "@/components/ui/StatTile";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { TierBadge, Tier as UiTier } from "@/components/ui/TierBadge";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { riskAttentionLine, FACTOR_TIER_COLOR, FACTOR_GLYPH } from "@/lib/risk";
@@ -768,14 +769,12 @@ function BrokerTriage({ venues, totalCount, searchQuery, onSearch }: BrokerTriag
           {counts.tonight > 0 && <> · <span className="lc-triage__kpi-hi">{counts.tonight} need eyes</span></>}
         </span>
 
-        <div className="lc-search" style={{ flex: "0 1 280px", marginLeft: 18 }}>
-          <Search size={14} />
-          <input
-            placeholder="Search venues, types, addresses…"
-            value={searchQuery}
-            onChange={e => onSearch(e.target.value)}
-          />
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={onSearch}
+          placeholder="Search venues, types, addresses…"
+          style={{ flex: "0 1 280px", marginLeft: 18 }}
+        />
 
         <div className="lc-triage__chips">
           <button className="lc-triage__chip" data-active={filter === "all"} onClick={() => setFilter("all")}>
