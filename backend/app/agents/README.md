@@ -4,9 +4,13 @@ This directory contains product runtime prompt contracts for the underwriting pa
 
 ## Current Runtime Status
 
-The contracts in this directory are loaded by `backend/app/agents/runtime.py` during the incident packet flow. The current execution mode is deterministic: each agent step runs Python logic over seeded sources and stream events.
+The contracts in this directory are loaded by `backend/app/agents/runtime.py` during the incident packet flow. Execution is **provider-backed with a deterministic fallback**, resolved per-process by which API key is set (`app/providers/__init__.py`): `ANTHROPIC_API_KEY` → Claude, else `GEMINI_API_KEY` → Gemini (`gemini-2.5-flash-lite`), else the deterministic template provider.
 
-No provider, model, prompt executor, or live LLM call has been wired into the request path. The runtime boundary exists so future provider-backed execution can replace or augment deterministic steps once evals exist.
+- The **risk-evaluator** and **underwriter-memo** steps route through the provider layer (`self._risk_classifier` / `self._memo_provider`). On any provider error they fall back to the deterministic provider, so a packet is never blocked by an LLM hiccup.
+- The **retrieval**, **customer-action**, and **claims-timeline** steps still run deterministic Python over seeded sources and stream events.
+- **Bulk startup backfill** (`app/main.py`) is pinned to the deterministic provider regardless of key, so booting never burns the LLM's free-tier quota in a burst. Live incident creation uses the configured provider, so a freshly submitted incident exercises the real LLM path.
+
+The provider-backed wiring is gated by a regression eval harness (`app/evals/`, deterministic baseline + CI `--compare-baseline` gate) — the precondition this README originally deferred to.
 
 ## Shared Principles
 
@@ -27,4 +31,4 @@ No provider, model, prompt executor, or live LLM call has been wired into the re
 
 ## Future Runtime Integration
 
-A future runtime may route each packet step through an LLM, deterministic fallback, or hybrid evaluator. That provider-backed wiring should come after provider setup, regression evals, and failure-mode tests exist for the current brawl scenario.
+Provider setup, the deterministic-fallback boundary, and regression evals now exist (done). Remaining work: route the still-deterministic steps (retrieval, customer-action, claims-timeline) through the provider layer where an LLM adds value, and fold the vision/corroboration agents into the same eval-gated contract. Any new provider-backed step should land behind the eval baseline gate, same as the memo and risk-evaluator steps.
