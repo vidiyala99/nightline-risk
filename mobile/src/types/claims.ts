@@ -14,6 +14,7 @@ export type ClaimState =
   | 'pending_broker_review'
   | 'approved'
   | 'rejected_by_broker'
+  | 'needs_more_info'
   | 'filed_with_carrier'
   | 'paid'
   | 'denied';
@@ -37,6 +38,11 @@ export interface ClaimProposal {
   broker_decided_by: string | null;
   broker_decided_at: string | null;
   broker_notes: string | null;
+  info_requested_by: string | null;
+  info_requested_at: string | null;
+  info_request_note: string | null;
+  operator_response_note: string | null;
+  operator_responded_at: string | null;
 }
 
 export interface OverrideStats {
@@ -57,6 +63,7 @@ export const STATE_LABEL: Record<ClaimState, string> = {
   pending_broker_review: 'Pending review',
   approved: 'Approved',
   rejected_by_broker: 'Rejected',
+  needs_more_info: 'Info requested',
   filed_with_carrier: 'Filed',
   paid: 'Paid',
   denied: 'Denied',
@@ -66,6 +73,7 @@ export const STATE_COLOR: Record<ClaimState, string> = {
   pending_broker_review: Colors.warning,
   approved: Colors.success,
   rejected_by_broker: Colors.error,
+  needs_more_info: Colors.warning,
   filed_with_carrier: Colors.info,
   paid: Colors.success,
   denied: Colors.error,

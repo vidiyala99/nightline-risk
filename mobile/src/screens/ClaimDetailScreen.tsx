@@ -25,12 +25,14 @@ export function ClaimDetailScreen({ route, navigation }: any) {
   const { user } = useAuth();
   const alert = useAlert();
   const isBroker = user?.role === 'broker' || user?.role === 'admin';
+  const isOperator = user?.role === 'venue_operator';
 
   const [packet, setPacket] = useState<any>(null);
   const [proposal, setProposal] = useState<ClaimProposal | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [rejectNotes, setRejectNotes] = useState('');
+  const [responseNote, setResponseNote] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -47,7 +49,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
     load();
   }, [packetId]);
 
-  async function submitBrokerDecision(dec: 'approved' | 'rejected') {
+  async function submitBrokerDecision(dec: 'approved' | 'rejected' | 'needs_more_info') {
     if (!proposal) return;
     setSubmitting(true);
     try {
@@ -56,7 +58,11 @@ export function ClaimDetailScreen({ route, navigation }: any) {
         body: JSON.stringify({
           broker_id: user?.id ?? 'unknown',
           decision: dec,
-          notes: dec === 'rejected' && rejectNotes.trim() ? rejectNotes.trim() : null,
+          // The note carries the rejection reason OR the info request.
+          notes:
+            (dec === 'rejected' || dec === 'needs_more_info') && rejectNotes.trim()
+              ? rejectNotes.trim()
+              : null,
         }),
       });
       setProposal(updated);
@@ -64,6 +70,24 @@ export function ClaimDetailScreen({ route, navigation }: any) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e: any) {
       alert.show({ title: 'Error', message: e.message ?? 'Failed to submit decision', variant: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function submitOperatorResponse() {
+    if (!proposal || !responseNote.trim()) return;
+    setSubmitting(true);
+    try {
+      const updated = await api.request<ClaimProposal>(`/api/claim-proposals/${proposal.id}/operator-response`, {
+        method: 'POST',
+        body: JSON.stringify({ operator_id: user?.id ?? 'unknown', response_note: responseNote.trim() }),
+      });
+      setProposal(updated);
+      setResponseNote('');
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e: any) {
+      alert.show({ title: 'Error', message: e.message ?? 'Failed to send response', variant: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -187,7 +211,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
           ) : (
             <View style={[s.lifecycle, { opacity: 0.4 }]}>
               <View style={[s.dot, { borderWidth: 1, borderColor: Colors.textMuted, backgroundColor: 'transparent' }]} />
-              <Text style={s.bodyText}>Awaiting broker decision</Text>
+              <Text style={s.bodyText}>{proposal.state === 'needs_more_info' ? 'Awaiting operator response' : 'Awaiting broker decision'}</Text>
             </View>
           )}
         </View>
@@ -199,7 +223,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
           <Text style={s.eyebrow}>BROKER DECISION</Text>
           <TextInput
             style={s.notesInput}
-            placeholder="Reject notes (optional)..."
+            placeholder="Notes (required to reject or request info)..."
             placeholderTextColor={Colors.textMuted}
             value={rejectNotes}
             onChangeText={setRejectNotes}
@@ -214,6 +238,13 @@ export function ClaimDetailScreen({ route, navigation }: any) {
             <Text style={[s.btnText, { color: Colors.text }]}>Approve & File</Text>
           </Pressable>
           <Pressable
+            style={[s.btn, { borderWidth: 1, borderColor: Colors.warning }, (submitting || !rejectNotes.trim()) && { opacity: 0.5 }]}
+            onPress={() => submitBrokerDecision('needs_more_info')}
+            disabled={submitting || !rejectNotes.trim()}
+          >
+            <Text style={[s.btnText, { color: Colors.warning }]}>Request more info</Text>
+          </Pressable>
+          <Pressable
             style={[s.btn, { borderWidth: 1, borderColor: Colors.error }, submitting && { opacity: 0.5 }]}
             onPress={() => submitBrokerDecision('rejected')}
             disabled={submitting}
@@ -223,10 +254,43 @@ export function ClaimDetailScreen({ route, navigation }: any) {
         </View>
       )}
 
+      {/* Operator responds to a broker info request → re-queues for broker */}
+      {isOperator && proposal?.state === 'needs_more_info' && (
+        <View style={[s.card, { borderColor: Colors.warning, borderWidth: 1 }]}>
+          <Text style={s.eyebrow}>BROKER REQUESTED MORE INFO</Text>
+          {proposal.info_request_note && (
+            <Text style={[s.bodyText, { fontStyle: 'italic' }]}>"{proposal.info_request_note}"</Text>
+          )}
+          <TextInput
+            style={s.notesInput}
+            placeholder="Answer the broker; attach evidence on the incident…"
+            placeholderTextColor={Colors.textMuted}
+            value={responseNote}
+            onChangeText={setResponseNote}
+            multiline
+            editable={!submitting}
+          />
+          <Pressable
+            style={[s.btn, { backgroundColor: Colors.accent }, (submitting || !responseNote.trim()) && { opacity: 0.5 }]}
+            onPress={submitOperatorResponse}
+            disabled={submitting || !responseNote.trim()}
+          >
+            <Text style={[s.btnText, { color: Colors.text }]}>Send response → re-queue</Text>
+          </Pressable>
+        </View>
+      )}
+
       {proposal?.broker_notes && (
         <View style={s.card}>
           <Text style={s.eyebrow}>BROKER NOTE</Text>
           <Text style={[s.bodyText, { fontStyle: 'italic' }]}>"{proposal.broker_notes}"</Text>
+        </View>
+      )}
+
+      {proposal?.operator_response_note && (
+        <View style={s.card}>
+          <Text style={s.eyebrow}>OPERATOR RESPONSE</Text>
+          <Text style={[s.bodyText, { fontStyle: 'italic' }]}>"{proposal.operator_response_note}"</Text>
         </View>
       )}
     </ScrollView>

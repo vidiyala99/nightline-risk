@@ -58,7 +58,7 @@ export function ClaimsListScreen({ navigation }: any) {
     ? `${proposals.length} proposals · ${pendingCount} pending · ${overrideCount} overrides`
     : `${proposals.length} proposals · ${pendingCount} awaiting review`;
 
-  const FILTERS: Filter[] = ['all', 'pending_broker_review', 'approved', 'rejected_by_broker', 'filed_with_carrier'];
+  const FILTERS: Filter[] = ['all', 'pending_broker_review', 'needs_more_info', 'approved', 'rejected_by_broker', 'filed_with_carrier'];
 
   return (
     <View style={s.root}>
