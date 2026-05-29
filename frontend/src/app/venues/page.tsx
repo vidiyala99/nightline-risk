@@ -9,6 +9,7 @@ import { toastSuccess, toastError } from "@/lib/toast";
 import { authHeaders } from "@/lib/authFetch";
 import { TierBadge, type Tier as UiTier } from "@/components/ui/TierBadge";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { FilterSelect } from "@/components/ui/FilterSelect";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -236,7 +237,6 @@ export default function VenuesPage() {
       <style>{`
         .vn-controls { display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center; margin-bottom:var(--space-md); }
         .vn-controls .lc-search { flex:1 1 220px; margin-bottom:0; }
-        .vn-controls select { min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); background:var(--bg-elevated); color:var(--text-primary); font-size:0.85rem; }
         .vn-card-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
         .vn-card-score { font-family:var(--font-mono); font-size:0.85rem; color:var(--text-secondary); }
       `}</style>
@@ -359,21 +359,30 @@ export default function VenuesPage() {
             placeholder="Search venues, types, addresses…"
           />
           {boroughs.length > 0 && (
-            <select value={borough} onChange={e => setBorough(e.target.value)} aria-label="Borough">
-              <option value="all">All boroughs</option>
-              {boroughs.map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
+            <FilterSelect
+              ariaLabel="Borough"
+              value={borough}
+              onChange={setBorough}
+              options={[{ value: "all", label: "All boroughs" }, ...boroughs.map(b => ({ value: b, label: b }))]}
+            />
           )}
-          <select value={vtype} onChange={e => setVtype(e.target.value)} aria-label="Venue type">
-            <option value="all">All types</option>
-            {types.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <select value={sort} onChange={e => setSort(e.target.value as VenueSort)} aria-label="Sort by">
-            <option value="tier">Sort: tier</option>
-            <option value="score">Sort: score</option>
-            <option value="renewal">Sort: renewal</option>
-            <option value="name">Sort: name</option>
-          </select>
+          <FilterSelect
+            ariaLabel="Venue type"
+            value={vtype}
+            onChange={setVtype}
+            options={[{ value: "all", label: "All types" }, ...types.map(t => ({ value: t, label: t }))]}
+          />
+          <FilterSelect
+            ariaLabel="Sort by"
+            value={sort}
+            onChange={(v) => setSort(v as VenueSort)}
+            options={[
+              { value: "tier", label: "Sort: tier" },
+              { value: "score", label: "Sort: score" },
+              { value: "renewal", label: "Sort: renewal" },
+              { value: "name", label: "Sort: name" },
+            ]}
+          />
         </div>
       )}
 

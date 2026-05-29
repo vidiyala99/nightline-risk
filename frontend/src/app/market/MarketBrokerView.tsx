@@ -16,6 +16,7 @@ import { TierBadge, type Tier as UiTier } from "@/components/ui/TierBadge";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { MapPin, List, ArrowUpRight } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { FilterSelect } from "@/components/ui/FilterSelect";
 
 const MarketMap = dynamic(() => import("./MarketMap"), {
   ssr: false,
@@ -183,7 +184,6 @@ export function MarketBrokerView() {
         .mbk__kpi b { color:var(--text-primary); }
         .mbk__kpi .save { color:var(--accent-ink); font-weight:700; }
         .mbk__controls { display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center; margin-bottom:var(--space-lg); }
-        .mbk select { min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); background:var(--bg-elevated); color:var(--text-primary); font-size:0.85rem; }
         .mbk__viewtoggle { display:inline-flex; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); overflow:hidden; }
         .mbk__viewtoggle button { min-height:44px; padding:0 14px; background:var(--bg-elevated); border:none; color:var(--text-secondary); cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; }
         .mbk__viewtoggle button[data-active="true"] { background:var(--brand-primary)22; color:var(--accent-ink); font-weight:700; }
@@ -225,27 +225,28 @@ export function MarketBrokerView() {
           ariaLabel="Search prospects"
           style={{ flex: "1 1 220px" }}
         />
-        <select value={borough} onChange={(e) => setBorough(e.target.value)} aria-label="Borough">
-          <option value="all">All boroughs</option>
-          {boroughs.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
-        <select value={vtype} onChange={(e) => setVtype(e.target.value)} aria-label="Venue type">
-          <option value="all">All types</option>
-          {types.map((t) => (
-            <option key={t} value={t}>
-              {venueTypeLabel(t)}
-            </option>
-          ))}
-        </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort by">
-          <option value="savings">Sort: savings</option>
-          <option value="tier">Sort: tier</option>
-          <option value="score">Sort: score</option>
-        </select>
+        <FilterSelect
+          ariaLabel="Borough"
+          value={borough}
+          onChange={setBorough}
+          options={[{ value: "all", label: "All boroughs" }, ...boroughs.map((b) => ({ value: b, label: b }))]}
+        />
+        <FilterSelect
+          ariaLabel="Venue type"
+          value={vtype}
+          onChange={setVtype}
+          options={[{ value: "all", label: "All types" }, ...types.map((t) => ({ value: t, label: venueTypeLabel(t) }))]}
+        />
+        <FilterSelect
+          ariaLabel="Sort by"
+          value={sort}
+          onChange={(v) => setSort(v as SortKey)}
+          options={[
+            { value: "savings", label: "Sort: savings" },
+            { value: "tier", label: "Sort: tier" },
+            { value: "score", label: "Sort: score" },
+          ]}
+        />
         {!isPhone && (
           <span className="mbk__viewtoggle" role="group" aria-label="View">
             <button type="button" data-active={view === "list"} onClick={() => setView("list")} aria-pressed={view === "list"}>
