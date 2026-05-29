@@ -42,7 +42,8 @@ from app.packet_core import (  # noqa: E402
     record_packet_opened,
     regenerate_packet_with_corroboration,
 )
-from app.agents.runtime import execute_underwriting_packet_agents  # noqa: E402
+from app.agents.runtime import UnderwritingPacketAgentRuntime  # noqa: E402
+from app.providers import DeterministicProvider, DeterministicRiskClassifier  # noqa: E402
 from app.underwriting import get_premium_quote, get_risk_score  # noqa: E402
 
 
@@ -99,6 +100,17 @@ def _backfill_incident_packets(session: Session) -> None:
     failed_ids: list[tuple[str, str]] = []
     consecutive_failures = 0
 
+    # Bulk backfill ALWAYS uses the deterministic provider, never the configured
+    # LLM. With ~50 seeded incidents this loop would otherwise fire 100+ Gemini
+    # calls in seconds — instantly tripping the free-tier RPM cap (10-15/min) and
+    # silently falling back anyway. Live incident creation
+    # (create_brawl_incident_flow) still uses the configured provider, so a
+    # freshly submitted incident exercises the real LLM path in a demo.
+    det_runtime = UnderwritingPacketAgentRuntime(
+        memo_provider=DeterministicProvider(),
+        risk_classifier=DeterministicRiskClassifier(),
+    )
+
     for record in pending:
         try:
             venue = VENUES.get(record.venue_id, fallback_venue)
@@ -111,7 +123,7 @@ def _backfill_incident_packets(session: Session) -> None:
                 police_called=record.police_called or False,
                 ems_called=record.ems_called or False,
             )
-            result = execute_underwriting_packet_agents(
+            result = det_runtime.execute(
                 venue_id=record.venue_id,
                 venue=venue,
                 incident=payload,

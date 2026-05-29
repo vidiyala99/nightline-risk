@@ -30,7 +30,9 @@ class GeminiProvider(MemoProvider):
     validator run independently and are not affected by this provider.
     """
 
-    MODEL = "gemini-2.5-flash"
+    # flash-lite: 4x the free-tier daily quota of 2.5-flash (RPD 1000 vs 250)
+    # and higher RPM (15 vs 10) — the right fit for free-tier demo traffic.
+    MODEL = "gemini-2.5-flash-lite"
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def __init__(self) -> None:
@@ -81,8 +83,10 @@ Return JSON with keys: summary (string), open_questions (list of strings)."""
             "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
             "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
             "generationConfig": {
-                # 2048 to leave headroom for Gemini 2.5 Flash's reasoning tokens —
-                # 512 was too tight and produced truncated JSON that failed to parse
+                # Thinking disabled (thinkingBudget=0): a schema-constrained
+                # underwriting memo needs no reasoning tokens, and on the free
+                # tier those tokens blow the 250k TPM cap. Also faster + cheaper.
+                "thinkingConfig": {"thinkingBudget": 0},
                 "maxOutputTokens": 2048,
                 "temperature": 0.2,
                 "responseMimeType": "application/json",
@@ -136,7 +140,8 @@ class GeminiRiskClassifier(RiskClassifierProvider):
     responseSchema for fixed-shape JSON returns).
     """
 
-    MODEL = "gemini-2.5-flash"
+    # flash-lite: 4x the free-tier daily quota of 2.5-flash — see GeminiProvider.
+    MODEL = "gemini-2.5-flash-lite"
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
     def __init__(self) -> None:
@@ -185,6 +190,8 @@ Return JSON with keys: risk_type, base_severity, base_confidence, rationale."""
             "systemInstruction": {"parts": [{"text": CLASSIFIER_SYSTEM_PROMPT}]},
             "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
             "generationConfig": {
+                # Thinking disabled — see GeminiProvider.draft_memo rationale.
+                "thinkingConfig": {"thinkingBudget": 0},
                 "maxOutputTokens": 1024,
                 "temperature": 0.1,
                 "responseMimeType": "application/json",
