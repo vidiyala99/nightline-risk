@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
-import { ArrowLeft, AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye, ClipboardCheck, Building2, Activity } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye, ClipboardCheck, Building2 } from "lucide-react";
 import { toastSuccess, toastError } from "@/lib/toast";
 
 interface IngestedSource {
@@ -390,9 +390,21 @@ export default function RiskProfilePage() {
   // estimates, so the operator/broker policy-ingestion tooling doesn't apply.
   const isProspect = venueId.startsWith("prospect-") || venueMeta?.source === "prospect";
 
-  const backHref = isProspect ? "/venues" : isBroker ? `/terminal/${venueId}` : "/dashboard";
+  // Brokers reach this page from several surfaces (Book, Market, Venues) and
+  // have no operator terminal to return to — /terminal is operator-only and
+  // redirects brokers right back here, so a `/terminal/{id}` back link is a
+  // no-op loop. Use history with a portfolio fallback; operators and prospects
+  // each have a single stable origin.
+  const backHref = isProspect || isBroker ? "/venues" : "/dashboard";
+  const backLabel = isProspect ? "Back to Venues" : isBroker ? "Back" : "Back to Dashboard";
 
-  const backLabel = isProspect ? "Back to Venues" : isBroker ? `Back to ${venueName}` : "Back to Dashboard";
+  const handleBack = () => {
+    if (isBroker && !isProspect && typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(backHref);
+    }
+  };
 
   const isPolicyEmpty = isBroker && !isProspect && ingestedSources.length === 0;
 
@@ -723,7 +735,7 @@ export default function RiskProfilePage() {
       <div className="rp-container">
         {/* Back nav — padded to meet 44pt minimum tap target */}
         <button
-          onClick={() => router.push(backHref)}
+          onClick={handleBack}
           className="rp-back"
           aria-label={backLabel}
         >
@@ -952,13 +964,6 @@ export default function RiskProfilePage() {
                   <Building2 size={18} className="rp-dossier-icon" aria-hidden="true" />
                   <span className="rp-dossier-body">
                     <span className="rp-dossier-label">Business profile</span>
-                  </span>
-                  <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
-                </Link>
-                <Link href={`/terminal/${encodeURIComponent(venueId)}`} className="rp-dossier-tile" aria-label="View live terminal">
-                  <Activity size={18} className="rp-dossier-icon" aria-hidden="true" />
-                  <span className="rp-dossier-body">
-                    <span className="rp-dossier-label">Live terminal</span>
                   </span>
                   <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
                 </Link>
