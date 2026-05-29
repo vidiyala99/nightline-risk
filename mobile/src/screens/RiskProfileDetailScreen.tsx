@@ -181,6 +181,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Back"
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 16 }}
         >
           <Text style={styles.backArrow}>←</Text>
           <Text style={styles.backLabel}>Back</Text>
@@ -415,8 +416,8 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
         const base = overrideStats.non_override_right_rate;
         const decided = overrideStats.override_approved + overrideStats.override_rejected;
         const rateColor = right == null ? Colors.textMuted
-          : base == null ? Colors.accent
-          : right >= base ? Colors.accent
+          : base == null ? Colors.accentInk
+          : right >= base ? Colors.accentInk
           : right >= base * 0.6 ? Colors.warning
           : Colors.error;
         const delta = right != null && base != null ? Math.round((right - base) * 100) : null;
@@ -447,7 +448,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
               </View>
               {delta != null && (
                 <View style={{ flex: 1, alignItems: 'center', padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, borderRadius: 10 }}>
-                  <Text style={{ color: delta >= 0 ? Colors.accent : Colors.error, fontSize: 24, fontFamily: 'SpaceMono_700Bold' }}>
+                  <Text style={{ color: delta >= 0 ? Colors.accentInk : Colors.error, fontSize: 24, fontFamily: 'SpaceMono_700Bold' }}>
                     {delta >= 0 ? '+' : ''}{delta}
                   </Text>
                   <Text style={styles.eyebrow}>DELTA PP</Text>
@@ -462,7 +463,7 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                   <Text style={{ color: Colors.textSecondary, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular', textTransform: 'capitalize' }}>
                     {reason.replace(/_/g, ' ')}
                   </Text>
-                  <Text style={{ color: rr == null ? Colors.textMuted : rr >= 70 ? Colors.accent : rr >= 40 ? Colors.warning : Colors.error, fontFamily: 'SpaceMono_700Bold', fontSize: 12 }}>
+                  <Text style={{ color: rr == null ? Colors.textMuted : rr >= 70 ? Colors.accentInk : rr >= 40 ? Colors.warning : Colors.error, fontFamily: 'SpaceMono_700Bold', fontSize: 12 }}>
                     {rr == null ? 'pending' : `${rr}%`}
                   </Text>
                 </View>

@@ -435,7 +435,7 @@ export default function RiskProfilePage() {
               <div key={s.id} role="listitem" className="p-sm" style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)" }}>
                 <div className="flex items-center gap-sm mb-xs">
                   <span className="text-xs font-mono" style={{
-                    color: s.source_type === "policy_exclusion" ? "var(--state-warning)" : "var(--brand-primary)",
+                    color: s.source_type === "policy_exclusion" ? "var(--state-warning)" : "var(--accent-ink)",
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
                   }}>
@@ -558,7 +558,7 @@ export default function RiskProfilePage() {
                 {previewChunks.slice(0, 12).map((c, i) => (
                   <div key={i} className="p-sm" style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)" }}>
                     <span className="text-xs font-mono" style={{
-                      color: c.is_exclusion ? "var(--state-warning)" : "var(--brand-primary)",
+                      color: c.is_exclusion ? "var(--state-warning)" : "var(--accent-ink)",
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
                     }}>
@@ -742,7 +742,7 @@ export default function RiskProfilePage() {
                 borderRadius: 999,
                 border: `1px solid ${isBroker ? "var(--brand-secondary)" : "var(--brand-primary)"}33`,
                 background: `${isBroker ? "var(--brand-secondary)" : "var(--brand-primary)"}14`,
-                color: isBroker ? "var(--brand-secondary)" : "var(--brand-primary)",
+                color: isBroker ? "var(--brand-secondary)" : "var(--accent-ink)",
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
                 fontSize: "0.65rem",
@@ -1160,9 +1160,9 @@ export default function RiskProfilePage() {
               right == null
                 ? "var(--text-secondary)"
                 : baseline == null
-                ? "var(--brand-primary)"
+                ? "var(--accent-ink)"
                 : right >= baseline
-                ? "var(--brand-primary)"
+                ? "var(--accent-ink)"
                 : right >= baseline * 0.6
                 ? "var(--state-warning)"
                 : "var(--state-error)";
@@ -1245,7 +1245,7 @@ export default function RiskProfilePage() {
                                       reasonRate == null
                                         ? "var(--text-secondary)"
                                         : reasonRate >= 0.7
-                                        ? "var(--brand-primary)"
+                                        ? "var(--accent-ink)"
                                         : reasonRate >= 0.4
                                         ? "var(--state-warning)"
                                         : "var(--state-error)",

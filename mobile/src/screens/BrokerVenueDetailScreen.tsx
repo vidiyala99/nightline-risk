@@ -91,6 +91,7 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
         onPress={() => navigation.goBack()}
         accessibilityRole="button"
         accessibilityLabel="Back"
+        hitSlop={{ top: 12, bottom: 12, left: 8, right: 16 }}
       >
         <Text style={styles.backArrow}>←</Text>
         <Text style={styles.backLabel}>Back</Text>
@@ -144,6 +145,8 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
         <Pressable
           style={({ pressed }) => [styles.card, { borderColor: `${tierColor}22` }, pressed && { opacity: 0.8 }]}
           onPress={() => navigation.navigate('RiskProfileDetail', { riskData: risk, quoteData: quote, venueName, isBroker: true, isProspect })}
+          accessibilityRole="button"
+          accessibilityLabel={`View full risk analysis${venueName ? ` for ${venueName}` : ''}`}
         >
           <View style={styles.riskHeader}>
             <Text style={styles.eyebrow}>RISK PROFILE{isProspect ? ' (EST.)' : ''}</Text>
@@ -252,7 +255,7 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
             return (
               <View key={key} style={styles.coverageRow}>
                 <Text style={styles.coverageName}>{label}</Text>
-                <Text style={[styles.coverageStatus, { color: isIncluded ? Colors.accent : Colors.textMuted }]}>{statusText}</Text>
+                <Text style={[styles.coverageStatus, { color: isIncluded ? Colors.accentInk : Colors.textMuted }]}>{statusText}</Text>
               </View>
             );
           })}

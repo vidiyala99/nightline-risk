@@ -292,6 +292,8 @@ export function DashboardScreen({ navigation }: any) {
         <Pressable
           style={({ pressed }) => [styles.emptyCard, pressed && { opacity: 0.8 }]}
           onPress={() => navigation.navigate('VenueSetup')}
+          accessibilityRole="button"
+          accessibilityLabel="Set up your venue"
         >
           <Text style={styles.emptyEyebrow}>NO VENUE DATA</Text>
           <Text style={styles.emptyHeading}>Set up your venue</Text>
@@ -318,6 +320,8 @@ export function DashboardScreen({ navigation }: any) {
             isBroker: false,
             isProspect: false,
           })}
+          accessibilityRole="button"
+          accessibilityLabel="View full risk analysis"
         >
           <Text style={styles.sectionEyebrow}>RISK PROFILE</Text>
 
@@ -488,6 +492,8 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
