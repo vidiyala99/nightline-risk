@@ -12,11 +12,10 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
-import { CapacityBar } from '../components/CapacityBar';
 import { StatCard } from '../components/StatCard';
 import { QuickActionTile } from '../components/QuickActionTile';
 import { tierColor as getTierColor } from '../theme/tiers';
-import { normalizeFactors } from '../lib/format';
+import { normalizeFactors, riskAttentionLine, factorGlyph } from '../lib/format';
 
 interface RiskScore {
   venue_id: string;
@@ -335,20 +334,18 @@ export function DashboardScreen({ navigation }: any) {
             </View>
           </View>
 
-          {/* Factor bars */}
-          {Object.keys(factors).length > 0 && (
-            <View style={styles.factorList}>
-              {Object.entries(factors).map(([key, val]) => (
-                <CapacityBar
-                  key={key}
-                  label={key.replace(/_/g, ' ').toUpperCase()}
-                  value={Number(val)}
-                  max={100}
-                  invertScale
-                />
-              ))}
-            </View>
-          )}
+          {/* One-line attention summary — the full factor breakdown lives on
+              the Risk Profile page, not here (glance vs detail). */}
+          {Object.keys(factors).length > 0 && (() => {
+            const attn = riskAttentionLine(factors);
+            const attnColor = attn.tier === 'poor' ? Colors.error : attn.tier === 'moderate' ? Colors.warning : Colors.tierA;
+            return (
+              <View style={styles.attentionRow}>
+                <Text style={[styles.attentionGlyph, { color: attnColor }]}>{factorGlyph(attn.tier)}</Text>
+                <Text style={[styles.attentionText, { color: attnColor }]}>{attn.text}</Text>
+              </View>
+            );
+          })()}
           <Text style={styles.tapHint}>Tap for full risk analysis →</Text>
         </Pressable>
       )}
@@ -691,7 +688,9 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     fontFamily: 'HankenGrotesk_500Medium',
   },
-  factorList: { gap: 16 },
+  attentionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  attentionGlyph: { fontSize: 13, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
+  attentionText: { fontSize: 13, fontFamily: 'SpaceMono_700Bold', letterSpacing: 0.2 },
   tapHint: { color: Colors.textMuted, fontSize: 11, fontFamily: 'SpaceMono_400Regular', marginTop: 4 },
 
   // Quote card

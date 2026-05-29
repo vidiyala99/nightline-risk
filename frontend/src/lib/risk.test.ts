@@ -1,0 +1,44 @@
+import { describe, it, expect } from "vitest";
+import { getFactorTier, factorLabel, riskAttentionLine } from "@/lib/risk";
+
+describe("getFactorTier", () => {
+  it("buckets scores at the 85 / 65 boundaries", () => {
+    expect(getFactorTier(85)).toBe("good");
+    expect(getFactorTier(84)).toBe("moderate");
+    expect(getFactorTier(65)).toBe("moderate");
+    expect(getFactorTier(64)).toBe("poor");
+  });
+});
+
+describe("factorLabel", () => {
+  it("maps known keys and humanizes unknown ones", () => {
+    expect(factorLabel("incident_history")).toBe("Safety record");
+    expect(factorLabel("operational")).toBe("Operational health");
+    expect(factorLabel("crowd_density")).toBe("Crowd density");
+  });
+});
+
+describe("riskAttentionLine", () => {
+  it("names the lowest-scoring poor factor, prioritizing poor over moderate", () => {
+    const r = riskAttentionLine({ incident_history: 100, operational: 24, business_profile: 70 });
+    expect(r).toEqual({ text: "Operational health needs attention", tier: "poor" });
+  });
+
+  it("counts additional factors sharing the worst tier", () => {
+    const r = riskAttentionLine({ operational: 24, compliance: 40, business_profile: 70 });
+    expect(r.text).toBe("Operational health needs attention · +1 more");
+  });
+
+  it("accepts the API's { score, weight } factor shape", () => {
+    const r = riskAttentionLine({
+      incident_history: { score: 100, weight: 0.4 },
+      business_profile: { score: 75, weight: 0.2 },
+    } as Record<string, { score: number; weight: number }>);
+    expect(r).toEqual({ text: "Business profile could be stronger", tier: "moderate" });
+  });
+
+  it("reports all-healthy and handles an empty map", () => {
+    expect(riskAttentionLine({ a: 90, b: 100 }).tier).toBe("good");
+    expect(riskAttentionLine({})).toEqual({ text: "No risk factors yet", tier: "good" });
+  });
+});

@@ -899,7 +899,6 @@ export default function RiskProfilePage() {
                         </p>
                       )
                     )}
-                    <p className="text-xs text-secondary mt-xs" style={{ lineHeight: 1.6 }}>{info?.[ft]?.[isBroker ? "broker" : "operator"]}</p>
                   </>
                 );
 

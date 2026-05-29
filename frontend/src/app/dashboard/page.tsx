@@ -11,6 +11,7 @@ import { StatStrip } from "@/components/ui/StatStrip";
 import { StatTile } from "@/components/ui/StatTile";
 import { TierBadge, Tier as UiTier } from "@/components/ui/TierBadge";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
+import { riskAttentionLine, FACTOR_TIER_COLOR, FACTOR_GLYPH } from "@/lib/risk";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -590,15 +591,17 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
                 <span className="lc-num-data lc-num-data--lg" style={{ color: TIER_COLOR[riskScore.tier] }}>{riskScore.total_score}</span>
                 <span className="text-muted" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>/ 100</span>
               </div>
-              <div className="flex flex-col gap-md">
-                {Object.entries(riskScore.factors).map(([key, data]) => (
-                  <div key={key} style={{ display: "grid", gridTemplateColumns: "minmax(0, 9rem) minmax(0, 1fr) 2.5rem", alignItems: "center", gap: 14 }}>
-                    <span className="lc-stat-label" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{key.replace(/_/g, " ")}</span>
-                    <div className="lc-bar"><div className="lc-bar__fill" style={{ width: `${data.score}%`, ['--bar-color' as string]: TIER_COLOR[riskScore.tier] }} /></div>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", textAlign: "right", color: "var(--text-secondary)" }}>{data.score}</span>
+              {/* One-line attention summary — full factor breakdown lives on
+                  the Risk Profile page, not duplicated on this glance card. */}
+              {(() => {
+                const attn = riskAttentionLine(riskScore.factors);
+                return (
+                  <div className="flex items-center gap-sm" style={{ color: FACTOR_TIER_COLOR[attn.tier], fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "0.85rem" }}>
+                    <span aria-hidden>{FACTOR_GLYPH[attn.tier]}</span>
+                    <span>{attn.text}</span>
                   </div>
-                ))}
-              </div>
+                );
+              })()}
               <span className="lc-link" style={{ marginTop: 22 }}>Full analysis <ArrowUpRight size={13} /></span>
             </div></div>
           </Link>

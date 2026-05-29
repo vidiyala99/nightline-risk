@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { api } from '../api/client';
 import { type OverrideStats } from '../types/claims';
-import { getFactorTier, factorGlyph, normalizeFactors } from '../lib/format';
+import { getFactorTier, normalizeFactors } from '../lib/format';
 import { tierColor as getTierColor } from '../theme/tiers';
 import { ChevronRight } from 'lucide-react-native';
 
@@ -92,8 +92,11 @@ const FACTOR_EXPLANATIONS: Record<string, {
   },
 };
 
+// Heat ramp, not brand lime — mirrors the web `getFactorColor`
+// (tier-a/warning/error). Colors.accent is reserved for brand accents; see
+// theme/tiers.ts. Keeps all factor meters on one green→amber→red ramp.
 function getFactorColor(score: number): string {
-  if (score >= 85) return Colors.accent;
+  if (score >= 85) return Colors.tierA;
   if (score >= 65) return Colors.warning;
   return Colors.error;
 }
@@ -290,17 +293,6 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                     </View>
                   )
                 )}
-                <View style={styles.factorExplainRow}>
-                  <Text
-                    style={[styles.factorGlyph, { color }]}
-                    accessibilityLabel={`${score} out of 100, ${tier}`}
-                  >
-                    {factorGlyph(tier)}
-                  </Text>
-                  <Text style={[styles.factorExplain, { color: color === Colors.accent ? Colors.textSecondary : color }]}>
-                    {info?.[tier]?.[isBroker ? 'broker' : 'operator'] ?? ''}
-                  </Text>
-                </View>
               </>
             );
 
@@ -545,9 +537,6 @@ const styles = StyleSheet.create({
   factorReconTotal: { color: Colors.text, fontSize: 13, fontFamily: 'SpaceMono_700Bold', letterSpacing: -0.2 },
   factorReconOpen: { color: Colors.warning, fontSize: 12, fontFamily: 'SpaceMono_700Bold' },
   factorReconEmpty: { color: Colors.textMuted, fontSize: 12, fontFamily: 'SpaceMono_400Regular', fontStyle: 'italic', marginTop: 2 },
-  factorExplainRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
-  factorGlyph: { fontSize: 12, lineHeight: 17, fontFamily: 'SpaceMono_700Bold', width: 14 },
-  factorExplain: { flex: 1, fontSize: 12, lineHeight: 17, fontFamily: 'HankenGrotesk_400Regular' },
 
   insightRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   insightIcon: { fontSize: 16, fontWeight: '700', color: Colors.accentInk, width: 16, fontFamily: 'SpaceMono_700Bold' },

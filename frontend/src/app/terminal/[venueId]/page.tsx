@@ -7,6 +7,7 @@ import { useAuth, useRole } from "@/contexts/AuthContext";
 import { Upload, AlertTriangle, ShieldCheck, TrendingUp, Calendar, Zap } from "lucide-react";
 import { toastLoading, toastSuccess, toastError, toastDismiss } from "@/lib/toast";
 import { authHeaders } from "@/lib/authFetch";
+import { riskAttentionLine, FACTOR_TIER_COLOR, FACTOR_GLYPH } from "@/lib/risk";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -368,17 +369,17 @@ export default function VenueTerminalPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-sm">
-                {Object.entries(riskScore.factors as Record<string, { score: number }>).map(([key, data]) => (
-                  <div key={key} className="flex items-center gap-md">
-                    <span className="text-xs uppercase tracking-wide text-secondary" style={{ flex: "0 0 auto", minWidth: "5.5rem", maxWidth: "9rem" }}>{key.replace(/_/g, " ")}</span>
-                    <div className="flex-1 capacity-bar bg-dark">
-                      <div className="capacity-fill" style={{ width: `${data.score}%`, background: TIER_COLOR[riskScore.tier] ?? "var(--text-muted)" }} />
-                    </div>
-                    <span className="text-xs font-mono text-secondary" style={{ width: "32px", textAlign: "right" }}>{data.score}</span>
+              {/* One-line attention summary — the full factor breakdown lives
+                  on the Risk Profile page this card links to, not here. */}
+              {(() => {
+                const attn = riskAttentionLine(riskScore.factors);
+                return (
+                  <div className="flex items-center gap-sm font-mono font-bold" style={{ color: FACTOR_TIER_COLOR[attn.tier] }}>
+                    <span aria-hidden>{FACTOR_GLYPH[attn.tier]}</span>
+                    <span className="text-sm">{attn.text}</span>
                   </div>
-                ))}
-              </div>
+                );
+              })()}
               <p className="text-xs text-secondary mt-md font-mono">→ View full risk analysis</p>
             </div>
             </Link>

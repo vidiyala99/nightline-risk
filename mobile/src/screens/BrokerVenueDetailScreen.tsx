@@ -12,31 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api/client';
 import { CapacityBar } from '../components/CapacityBar';
 import { tierColor as getTierColor } from '../theme/tiers';
-import { getFactorTier, normalizeFactors } from '../lib/format';
-
-// Tier-label shown in the factor-row chip. The 0-100 score is inverted from
-// risk (higher score = lower risk, like a credit score). Pairing with risk
-// language ("LOW RISK · 95/100") makes the row read direction-correctly for
-// an insurance audience and stops the score from being misread as a count.
-const FACTOR_TIER_LABEL: Record<'good' | 'moderate' | 'poor', string> = {
-  good: 'LOW RISK',
-  moderate: 'MODERATE',
-  poor: 'HIGH RISK',
-};
-const FACTOR_TIER_COLOR: Record<'good' | 'moderate' | 'poor', string> = {
-  good: Colors.accent,
-  moderate: Colors.warning,
-  poor: Colors.error,
-};
-// Display labels for the factor keys returned by the risk-score API. We
-// rename the count-shaped ones to direction-bearing nouns so users don't
-// read "Incident History 70" as "70 incidents".
-const FACTOR_DISPLAY_LABEL: Record<string, string> = {
-  incident_history: 'SAFETY RECORD',
-  compliance: 'COMPLIANCE',
-  operational: 'OPERATIONAL HEALTH',
-  business_profile: 'BUSINESS PROFILE',
-};
+import { normalizeFactors, riskAttentionLine, factorGlyph } from '../lib/format';
 
 const STATUS_DOT: Record<string, string> = {
   operational: Colors.accent, active: Colors.accent, degraded: Colors.warning, down: Colors.error,
@@ -48,23 +24,15 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
   const [live, setLive] = useState<any>(null);
   const [risk, setRisk] = useState<any>(null);
   const [quote, setQuote] = useState<any>(null);
-  // Status-bucketed counts power the "4 incidents · 2 open" line under the
-  // Incident History factor. The total here MUST equal what IncidentList
-  // shows when no filter is applied — guarded by backend reconciliation test.
-  const [incidentCounts, setIncidentCounts] = useState<{ total: number; open: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [liveRaw, riskData, quoteData, countsData] = await Promise.all([
+      const [liveRaw, riskData, quoteData] = await Promise.all([
         api.request<any>(`/api/venues/${venueId}/live`),
         api.request<any>(`/api/venues/${venueId}/risk-score`).catch(() => null),
         api.request<any>(`/api/venues/${venueId}/quote`).catch(() => null),
-        api.request<{ total: number; open: number }>(`/api/venues/${venueId}/incidents/counts`).catch(() => null),
       ]);
-      if (countsData) {
-        setIncidentCounts({ total: countsData.total ?? 0, open: countsData.open ?? 0 });
-      }
 
       let infra: { name: string; status: string; detail?: string; is_degraded?: boolean }[] = [];
       if (Array.isArray(liveRaw.infrastructure)) {
@@ -187,52 +155,19 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
             <Text style={[styles.scoreBig, { color: tierColor }]}>{risk.total_score}</Text>
             <Text style={styles.scoreMax}> / 100</Text>
           </View>
-          {Object.keys(factors).length > 0 && (
-            <View style={styles.factorList}>
-              {Object.entries(factors).map(([key, val]) => {
-                const s = Number(val);
-                const ft = getFactorTier(s);
-                const fcolor = FACTOR_TIER_COLOR[ft];
-                const pct = Math.min(s / 100, 1);
-                const label = FACTOR_DISPLAY_LABEL[key] ?? key.replace(/_/g, ' ').toUpperCase();
-                // For incident_history we have a real count we can show. Other
-                // factors don't have a clean numeric count, so we leave them
-                // chip-only — truth over symmetry.
-                const showCount = key === 'incident_history' && incidentCounts !== null;
-                return (
-                  <View key={key} style={styles.factorRow}>
-                    <View style={styles.factorHeader}>
-                      <Text style={styles.factorLabel}>{label}</Text>
-                      <View style={[styles.factorChip, { borderColor: `${fcolor}55`, backgroundColor: `${fcolor}14` }]}>
-                        <Text style={[styles.factorChipText, { color: fcolor }]}>
-                          {FACTOR_TIER_LABEL[ft]} · {Math.round(s)}/100
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.factorTrack}>
-                      <View style={[styles.factorFill, { width: `${pct * 100}%` as any, backgroundColor: fcolor }]} />
-                    </View>
-                    {showCount && (
-                      incidentCounts!.total === 0 ? (
-                        <Text style={styles.factorCountEmpty}>No incidents on file</Text>
-                      ) : (
-                        <Text style={styles.factorCount} accessibilityLabel={`${incidentCounts!.total} incidents total${incidentCounts!.open > 0 ? `, ${incidentCounts!.open} still open` : ''}`}>
-                          <Text style={styles.factorCountStrong}>
-                            {incidentCounts!.total} {incidentCounts!.total === 1 ? 'incident' : 'incidents'}
-                          </Text>
-                          {incidentCounts!.open > 0 && (
-                            <Text style={[styles.factorCountOpen, { color: Colors.warning }]}>
-                              {' '}· {incidentCounts!.open} open
-                            </Text>
-                          )}
-                        </Text>
-                      )
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          )}
+          {/* One-line attention summary — the full factor breakdown (meters,
+              per-factor scores, incident counts, advice) lives on the Risk
+              Profile page this card links to, not duplicated here. */}
+          {Object.keys(factors).length > 0 && (() => {
+            const attn = riskAttentionLine(factors);
+            const attnColor = attn.tier === 'poor' ? Colors.error : attn.tier === 'moderate' ? Colors.warning : Colors.tierA;
+            return (
+              <View style={styles.attentionRow}>
+                <Text style={[styles.attentionGlyph, { color: attnColor }]}>{factorGlyph(attn.tier)}</Text>
+                <Text style={[styles.attentionText, { color: attnColor }]}>{attn.text}</Text>
+              </View>
+            );
+          })()}
           <Text style={styles.tapHint}>→ View full risk analysis</Text>
         </Pressable>
       )}
@@ -375,21 +310,9 @@ const styles = StyleSheet.create({
   scoreRow: { flexDirection: 'row', alignItems: 'baseline' },
   scoreBig: { fontSize: 48, fontWeight: '800', letterSpacing: -2, fontFamily: 'SpaceMono_700Bold' },
   scoreMax: { color: Colors.textMuted, fontSize: 18, fontFamily: 'HankenGrotesk_400Regular' },
-  factorList: { gap: 14 },
-  factorRow: { gap: 6 },
-  factorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  factorLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, fontFamily: 'SpaceMono_700Bold' },
-  factorChip: {
-    borderWidth: StyleSheet.hairlineWidth, borderRadius: 6,
-    paddingHorizontal: 8, paddingVertical: 3,
-  },
-  factorChipText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, fontFamily: 'SpaceMono_700Bold' },
-  factorTrack: { height: 3, backgroundColor: Colors.borderSubtle, borderRadius: 2, overflow: 'hidden' },
-  factorFill: { height: '100%', borderRadius: 2 },
-  factorCount: { fontSize: 13, fontFamily: 'SpaceMono_400Regular', color: Colors.textSecondary, marginTop: 2 },
-  factorCountEmpty: { fontSize: 12, fontFamily: 'SpaceMono_400Regular', color: Colors.textMuted, marginTop: 2, fontStyle: 'italic' },
-  factorCountStrong: { color: Colors.text, fontFamily: 'SpaceMono_700Bold', letterSpacing: -0.2 },
-  factorCountOpen: { fontFamily: 'SpaceMono_700Bold' },
+  attentionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  attentionGlyph: { fontSize: 13, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
+  attentionText: { fontSize: 13, fontFamily: 'SpaceMono_700Bold', letterSpacing: 0.2 },
   tapHint: { color: Colors.textMuted, fontSize: 11, fontFamily: 'SpaceMono_400Regular' },
 
   premiumAmount: { color: Colors.text, fontSize: 36, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
