@@ -54,10 +54,19 @@ function plus60Iso(): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function NewSubmissionScreen({ navigation }: any) {
+export function NewSubmissionScreen({ navigation, route }: any) {
+  // Seeded from the Market broker tool ("Start submission" on a prospect):
+  // preselect the venue so the broker lands on a ready-to-submit form. The
+  // venue can still be changed via the picker. Submitting against a
+  // `prospect-...` id converts it to the book on bind (backend-side).
+  const prospectId: string | undefined = route?.params?.prospectId;
+  const prospectName: string | undefined = route?.params?.prospectName;
+
   const [venues, setVenues] = useState<VenueLite[] | null>(null);
   const [picking, setPicking] = useState(false);
-  const [venue, setVenue] = useState<VenueLite | null>(null);
+  const [venue, setVenue] = useState<VenueLite | null>(
+    prospectId ? { id: prospectId, name: prospectName ?? prospectId } : null,
+  );
   const [effectiveDate, setEffectiveDate] = useState(plus60Iso);
   const [lines, setLines] = useState<Set<string>>(
     new Set(COVERAGE_LINE_OPTIONS.filter((l) => l.required).map((l) => l.id)),

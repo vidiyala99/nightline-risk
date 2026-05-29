@@ -107,6 +107,66 @@ def test_portfolio_operator_rejected():
     assert resp.status_code == 403
 
 
+# ── Prospect pitch fields (Market broker tool) ──────────────────────────────────
+
+# Fields the broker Market tool needs on each prospect row so it can filter by
+# borough, render carrier chips, and plot live map pins from the list alone —
+# the single source of truth for the broker surface (vs. the public static map).
+_PROSPECT_PITCH_FIELDS = {"borough", "license_class", "lat", "lng", "likely_carriers"}
+
+
+def test_market_venue_data_carries_portfolio_pitch_fields():
+    """Drift guard: the prospect mapper must keep emitting every pitch field the
+    portfolio endpoint serializes, so the public static map and the live broker
+    tool can't diverge (both derive from the same nyc_market snapshot)."""
+    from app.prospects import market_venue_to_venue_data
+
+    mv = {
+        "id": "abc123",
+        "name": "Test Lounge",
+        "address": "1 Test St",
+        "borough": "Brooklyn",
+        "lat": 40.7,
+        "lng": -73.9,
+        "license_class": "OP",
+        "venue_type": "lounge",
+        "market_premium": "42000.00",
+        "savings_low": "5000.00",
+        "savings_high": "9000.00",
+        "savings_mid": "7000.00",
+        "likely_carriers": [{"id": "c1", "name": "Acme E&S", "market_type": "e&s"}],
+    }
+    data = market_venue_to_venue_data(mv)
+    assert _PROSPECT_PITCH_FIELDS.issubset(data.keys())
+    assert data["borough"] == "Brooklyn"
+    assert data["likely_carriers"][0]["name"] == "Acme E&S"
+
+
+def test_portfolio_prospect_rows_include_geo_and_carriers():
+    """Prospect rows must carry geo + carrier fields so the broker Market list,
+    map toggle, and carrier chips work from the live API alone."""
+    with TestClient(app) as client:
+        data = client.get("/api/portfolio?source=prospect", headers=_broker_headers()).json()
+    prospects = [v for v in data if v.get("source") == "prospect"]
+    assert prospects, "expected seeded prospects in the portfolio"
+    row = prospects[0]
+    assert _PROSPECT_PITCH_FIELDS.issubset(row.keys()), (
+        f"prospect row missing pitch fields: {_PROSPECT_PITCH_FIELDS - set(row.keys())}"
+    )
+    assert isinstance(row["likely_carriers"], list)
+
+
+def test_portfolio_book_rows_tolerate_missing_pitch_fields():
+    """Book venues have no market estimate — the new fields are present but
+    null/empty, never absent, so the UI can read them uniformly."""
+    with TestClient(app) as client:
+        data = client.get("/api/portfolio?source=book", headers=_broker_headers()).json()
+    assert data, "expected book venues"
+    for venue in data:
+        assert _PROSPECT_PITCH_FIELDS.issubset(venue.keys())
+        assert venue["likely_carriers"] == [] or isinstance(venue["likely_carriers"], list)
+
+
 # ── Live state role-gating ────────────────────────────────────────────────────
 
 def test_live_state_strips_floor_for_anonymous():

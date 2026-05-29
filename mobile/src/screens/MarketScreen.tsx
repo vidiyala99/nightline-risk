@@ -14,6 +14,12 @@ import { Colors } from '../theme/colors';
 import { api } from '../api/client';
 import { money, venueTypeLabel as typeLabel } from '../lib/format';
 
+interface LikelyCarrier {
+  id: string;
+  name: string;
+  market_type: string;
+}
+
 interface Prospect {
   id: string;
   name: string;
@@ -25,10 +31,26 @@ interface Prospect {
   savings_low: string | null;
   savings_high: string | null;
   market_premium: string | null;
+  borough: string | null;
+  license_class: string | null;
+  likely_carriers: LikelyCarrier[];
 }
 
 const TIER_COLOR: Record<string, string> = {
   A: Colors.tierA, B: Colors.tierB, C: Colors.tierC, D: Colors.tierD,
+};
+
+const TIER_ORDER: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+type SortKey = 'savings' | 'tier' | 'score';
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'savings', label: 'Savings' },
+  { key: 'tier', label: 'Tier' },
+  { key: 'score', label: 'Score' },
+];
+
+const num = (s: string | null | undefined): number => {
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
 };
 
 export function MarketScreen() {
@@ -38,6 +60,8 @@ export function MarketScreen() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [vtype, setVtype] = useState('all');
+  const [borough, setBorough] = useState('all');
+  const [sort, setSort] = useState<SortKey>('savings');
 
   const load = useCallback(async () => {
     setError(null);
@@ -58,13 +82,28 @@ export function MarketScreen() {
     return Array.from(new Set(prospects.map((p) => p.venue_type))).sort();
   }, [prospects]);
 
+  const boroughs = useMemo(() => {
+    if (!prospects) return [];
+    return Array.from(new Set(prospects.map((p) => p.borough).filter(Boolean))).sort() as string[];
+  }, [prospects]);
+
   const visible = useMemo(() => {
     if (!prospects) return [];
-    return vtype === 'all' ? prospects : prospects.filter((p) => p.venue_type === vtype);
-  }, [prospects, vtype]);
+    const filtered = prospects.filter(
+      (p) =>
+        (vtype === 'all' || p.venue_type === vtype) &&
+        (borough === 'all' || p.borough === borough),
+    );
+    return [...filtered].sort((a, b) => {
+      if (sort === 'savings') return num(b.savings_high) - num(a.savings_high);
+      if (sort === 'score') return b.total_score - a.total_score;
+      const t = (TIER_ORDER[a.tier] ?? 9) - (TIER_ORDER[b.tier] ?? 9);
+      return t !== 0 ? t : b.total_score - a.total_score;
+    });
+  }, [prospects, vtype, borough, sort]);
 
   const totalSavingsLow = useMemo(
-    () => visible.reduce((sum, p) => sum + (Number(p.savings_low) || 0), 0),
+    () => visible.reduce((sum, p) => sum + num(p.savings_low), 0),
     [visible],
   );
 
@@ -117,27 +156,76 @@ export function MarketScreen() {
           </View>
 
           {types.length > 0 && (
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              data={['all', ...types]}
-              keyExtractor={(t) => t}
-              contentContainerStyle={styles.chipsRow}
-              renderItem={({ item }) => {
-                const active = vtype === item;
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterLabel}>TYPE</Text>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={['all', ...types]}
+                keyExtractor={(t) => t}
+                contentContainerStyle={styles.chipsRow}
+                renderItem={({ item }) => {
+                  const active = vtype === item;
+                  return (
+                    <Pressable
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setVtype(item)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {item === 'all' ? 'All types' : typeLabel(item)}
+                      </Text>
+                    </Pressable>
+                  );
+                }}
+              />
+            </View>
+          )}
+
+          {boroughs.length > 0 && (
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterLabel}>BOROUGH</Text>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={['all', ...boroughs]}
+                keyExtractor={(b) => b}
+                contentContainerStyle={styles.chipsRow}
+                renderItem={({ item }) => {
+                  const active = borough === item;
+                  return (
+                    <Pressable
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setBorough(item)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {item === 'all' ? 'All boroughs' : item}
+                      </Text>
+                    </Pressable>
+                  );
+                }}
+              />
+            </View>
+          )}
+
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterLabel}>SORT</Text>
+            <View style={styles.sortRow}>
+              {SORT_OPTIONS.map((opt) => {
+                const active = sort === opt.key;
                 return (
                   <Pressable
+                    key={opt.key}
                     style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => setVtype(item)}
+                    onPress={() => setSort(opt.key)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
                   >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                      {item === 'all' ? 'All types' : typeLabel(item)}
-                    </Text>
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
                   </Pressable>
                 );
-              }}
-            />
-          )}
+              })}
+            </View>
+          </View>
         </View>
       }
       ListEmptyComponent={
@@ -166,7 +254,26 @@ export function MarketScreen() {
               </View>
             </View>
             <Text style={styles.cardName}>{item.name}</Text>
-            {!!item.address && <Text style={styles.cardAddr} numberOfLines={1}>{item.address}</Text>}
+            {(!!item.address || !!item.borough) && (
+              <Text style={styles.cardAddr} numberOfLines={1}>
+                {[item.address, item.borough].filter(Boolean).join(' · ')}
+              </Text>
+            )}
+            {item.likely_carriers?.length > 0 && (
+              <View style={styles.carrierChips}>
+                {item.likely_carriers.slice(0, 3).map((c) => (
+                  <Text
+                    key={c.id}
+                    style={[
+                      styles.carrierChip,
+                      c.market_type === 'admitted' ? styles.carrierAdmitted : styles.carrierEs,
+                    ]}
+                  >
+                    {c.name}
+                  </Text>
+                ))}
+              </View>
+            )}
 
             <View style={styles.numsRow}>
               <View style={styles.numCol}>
@@ -211,6 +318,12 @@ const styles = StyleSheet.create({
   statNum: { color: Colors.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'SpaceMono_700Bold' },
   statLabel: { color: Colors.textMuted, fontSize: 9, letterSpacing: 1, marginTop: 4, fontFamily: 'SpaceMono_700Bold' },
 
+  filterGroup: { marginBottom: 2 },
+  filterLabel: {
+    color: Colors.textMuted, fontSize: 9, letterSpacing: 1.5,
+    fontFamily: 'SpaceMono_700Bold', paddingHorizontal: 16, marginBottom: 6,
+  },
+  sortRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 14 },
   chipsRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 14 },
   chip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
@@ -238,6 +351,14 @@ const styles = StyleSheet.create({
   tierPill: { fontSize: 12, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
   cardName: { color: Colors.text, fontSize: 18, fontWeight: '700', fontFamily: 'HankenGrotesk_700Bold' },
   cardAddr: { color: Colors.textMuted, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular' },
+  carrierChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  carrierChip: {
+    fontSize: 10, fontFamily: 'SpaceMono_700Bold', letterSpacing: 0.3,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden',
+  },
+  carrierAdmitted: { color: Colors.success, borderColor: 'rgba(31,143,78,0.35)', backgroundColor: 'rgba(31,143,78,0.10)' },
+  carrierEs: { color: Colors.info, borderColor: 'rgba(67,56,202,0.35)', backgroundColor: 'rgba(67,56,202,0.10)' },
   numsRow: {
     flexDirection: 'row', gap: 16, marginTop: 8, paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)',

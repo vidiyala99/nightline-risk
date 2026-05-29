@@ -355,9 +355,17 @@ def get_portfolio(
             "compliance_actions": compliance_actions,
             "has_degraded_infra": has_degraded,
             "source": vsource,
-            # Pitch fields — only present on prospects (estimated savings).
+            # Pitch fields — populated on prospects (estimated savings), null/[]
+            # on book venues. The broker Market tool filters by borough, renders
+            # carrier chips, and plots map pins from these, so they ship on every
+            # row uniformly (book venues just carry empty values).
             "savings_low": venue_data.get("savings_low"),
             "savings_high": venue_data.get("savings_high"),
             "market_premium": venue_data.get("market_premium"),
+            "borough": venue_data.get("borough"),
+            "license_class": venue_data.get("license_class"),
+            "lat": venue_data.get("lat"),
+            "lng": venue_data.get("lng"),
+            "likely_carriers": venue_data.get("likely_carriers", []),
         })
     return result

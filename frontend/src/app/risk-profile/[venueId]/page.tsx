@@ -1004,7 +1004,7 @@ export default function RiskProfilePage() {
                   </div>
                 </div>
               )}
-              <Link href="/submissions/new" className="btn btn-primary" style={{ textAlign: "center", textDecoration: "none" }}>
+              <Link href={`/submissions/new?prospect=${encodeURIComponent(venueId)}`} className="btn btn-primary" style={{ textAlign: "center", textDecoration: "none" }}>
                 Get a quote →
               </Link>
             </div>

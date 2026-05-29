@@ -9,7 +9,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/ui/PageHeader";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, useRole } from "@/contexts/AuthContext";
+import { MarketBrokerView } from "./MarketBrokerView";
 import {
   loadMarket,
   money,
@@ -23,7 +24,16 @@ const MarketMap = dynamic(() => import("./MarketMap"), {
   loading: () => <div className="market__map-loading">Loading map…</div>,
 });
 
+// Default export branches by role so each view owns its own hooks (the public
+// view fetches the static snapshot; the broker view hits the live API). Brokers
+// and admins get the prospecting tool; everyone else gets the marketing map.
 export default function MarketPage() {
+  const role = useRole();
+  if (role === "broker" || role === "admin") return <MarketBrokerView />;
+  return <MarketPublicView />;
+}
+
+function MarketPublicView() {
   const { user } = useAuth();
   const [data, setData] = useState<MarketData | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -126,6 +126,22 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
         )}
       </View>
 
+      {/* Prospect payoff — start a submission seeded from this lead. Binding a
+          resulting quote converts the prospect → book (backend-side). */}
+      {isProspect && (
+        <Pressable
+          onPress={() => navigation.navigate('Submissions', {
+            screen: 'NewSubmission',
+            params: { prospectId: venueId, prospectName: venueName },
+          })}
+          accessibilityRole="button"
+          accessibilityLabel={`Start a submission for ${venueName ?? 'this prospect'}`}
+          style={({ pressed }) => [styles.startSubmissionBtn, pressed && { opacity: 0.85 }]}
+        >
+          <Text style={styles.startSubmissionText}>Start submission →</Text>
+        </Pressable>
+      )}
+
       {/* Live Occupancy — operator-only floor data; the /live endpoint zeros it
           for brokers, so this card stays hidden on the broker surface. */}
       {live && live.current_capacity > 0 && (
@@ -295,6 +311,12 @@ const styles = StyleSheet.create({
   },
   estBadgeText: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
   prospectNote: { color: Colors.textMuted, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular', marginTop: 10, lineHeight: 16 },
+
+  startSubmissionBtn: {
+    backgroundColor: Colors.accent, borderRadius: 12,
+    paddingVertical: 14, alignItems: 'center', marginBottom: 12,
+  },
+  startSubmissionText: { color: Colors.text, fontSize: 15, fontWeight: '800', fontFamily: 'HankenGrotesk_700Bold' },
 
   card: {
     backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth,
