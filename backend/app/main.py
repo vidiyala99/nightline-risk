@@ -719,6 +719,11 @@ def _claim_proposal_to_dict(proposal: ClaimProposal) -> dict:
         "broker_decided_by": proposal.broker_decided_by,
         "broker_decided_at": proposal.broker_decided_at.isoformat() if proposal.broker_decided_at else None,
         "broker_notes": proposal.broker_notes,
+        "info_requested_by": proposal.info_requested_by,
+        "info_requested_at": proposal.info_requested_at.isoformat() if proposal.info_requested_at else None,
+        "info_request_note": proposal.info_request_note,
+        "operator_response_note": proposal.operator_response_note,
+        "operator_responded_at": proposal.operator_responded_at.isoformat() if proposal.operator_responded_at else None,
     }
 
 

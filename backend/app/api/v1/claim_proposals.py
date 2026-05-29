@@ -32,6 +32,7 @@ from app.claim_proposals import (
     compute_override_stats,
     create_proposal as create_claim_proposal,
     record_broker_decision as record_claim_broker_decision,
+    record_operator_info_response as record_claim_operator_info_response,
     stats_to_dict as override_stats_to_dict,
 )
 from app.database import get_session
@@ -53,6 +54,11 @@ class _BrokerDecisionCreate(BaseModel):
     broker_id: str
     decision: str
     notes: str | None = None
+
+
+class _OperatorInfoResponseCreate(BaseModel):
+    operator_id: str
+    response_note: str
 
 
 def _proposal_to_dict(proposal) -> dict[str, Any]:
@@ -118,6 +124,30 @@ def broker_decision_on_proposal(
         message = str(e)
         status = 404 if "Proposal not found" in message else 400
         # Same legacy-contract caveat as the create endpoint above.
+        from fastapi import HTTPException
+        raise HTTPException(status_code=status, detail=message) from e
+    return _proposal_to_dict(proposal)
+
+
+@router.post("/claim-proposals/{proposal_id}/operator-response")
+def operator_info_response_on_proposal(
+    proposal_id: str,
+    payload: _OperatorInfoResponseCreate,
+    session: Session = Depends(get_session),
+) -> dict:
+    """Operator answers a broker's 'request more info', re-queueing the proposal
+    for broker review. Ungated like the sibling proposal routes — the UI gates
+    who can respond; service validation is the contract guarantee."""
+    try:
+        proposal = record_claim_operator_info_response(
+            session=session,
+            proposal_id=proposal_id,
+            operator_id=payload.operator_id,
+            response_note=payload.response_note,
+        )
+    except ClaimProposalValidationError as e:
+        message = str(e)
+        status = 404 if "Proposal not found" in message else 400
         from fastapi import HTTPException
         raise HTTPException(status_code=status, detail=message) from e
     return _proposal_to_dict(proposal)

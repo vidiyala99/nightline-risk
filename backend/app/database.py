@@ -46,6 +46,14 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     ("incidentrecord", "injury_detail", "TEXT", ""),
     # Ingestion rejection-reason observability — added 2026-05-27.
     ("ingestionrun", "rejected_reasons", "TEXT", ""),
+    # Claim-proposal request-more-info round-trip — added 2026-05-29. Datetime
+    # columns use TEXT to match the project's existing migration convention
+    # (e.g. evidencefile.captured_at); SQLModel binds/parses ISO strings on read.
+    ("claimproposal", "info_requested_by", "TEXT", ""),
+    ("claimproposal", "info_requested_at", "TEXT", ""),
+    ("claimproposal", "info_request_note", "TEXT", ""),
+    ("claimproposal", "operator_response_note", "TEXT", ""),
+    ("claimproposal", "operator_responded_at", "TEXT", ""),
 ]
 
 

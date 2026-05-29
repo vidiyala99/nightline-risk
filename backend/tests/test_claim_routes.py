@@ -297,3 +297,91 @@ def test_packet_response_embeds_latest_claim_proposal_after_creation():
     assert body["claim_proposal"]["state"] == "pending_broker_review"
     assert body["claim_proposal"]["override_recommendation"] is True
     assert body["claim_proposal"]["override_reason"] == "legal_counsel"
+
+
+# ---------- needs_more_info round-trip (HTTP) ----------
+
+
+def _pending_proposal_id(client: TestClient, packet_id: str) -> str:
+    return client.post(
+        f"/api/packets/{packet_id}/claim-proposal",
+        json={"operator_id": "op-1", "override_recommendation": False},
+    ).json()["id"]
+
+
+def test_broker_request_more_info_returns_needs_more_info():
+    client = TestClient(app)
+    packet_id = _create_packet(client)
+    pid = _pending_proposal_id(client, packet_id)
+
+    response = client.post(
+        f"/api/claim-proposals/{pid}/broker-decision",
+        json={"broker_id": "br-1", "decision": "needs_more_info", "notes": "Upload the door footage."},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["state"] == "needs_more_info"
+    assert body["info_request_note"] == "Upload the door footage."
+    assert body["broker_decided_by"] is None
+
+
+def test_request_more_info_without_notes_returns_400():
+    client = TestClient(app)
+    packet_id = _create_packet(client)
+    pid = _pending_proposal_id(client, packet_id)
+
+    response = client.post(
+        f"/api/claim-proposals/{pid}/broker-decision",
+        json={"broker_id": "br-1", "decision": "needs_more_info"},
+    )
+
+    assert response.status_code == 400
+    assert "notes are required" in response.json()["detail"]
+
+
+def test_operator_response_requeues_then_broker_approves():
+    client = TestClient(app)
+    packet_id = _create_packet(client)
+    pid = _pending_proposal_id(client, packet_id)
+    client.post(
+        f"/api/claim-proposals/{pid}/broker-decision",
+        json={"broker_id": "br-1", "decision": "needs_more_info", "notes": "Need the report."},
+    )
+
+    resp = client.post(
+        f"/api/claim-proposals/{pid}/operator-response",
+        json={"operator_id": "op-1", "response_note": "Report attached."},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["state"] == "pending_broker_review"
+    assert resp.json()["operator_response_note"] == "Report attached."
+
+    approved = client.post(
+        f"/api/claim-proposals/{pid}/broker-decision",
+        json={"broker_id": "br-1", "decision": "approved"},
+    )
+    assert approved.status_code == 200
+    assert approved.json()["state"] == "approved"
+
+
+def test_operator_response_on_unknown_proposal_returns_404():
+    client = TestClient(app)
+    response = client.post(
+        "/api/claim-proposals/prop-does-not-exist/operator-response",
+        json={"operator_id": "op-1", "response_note": "x"},
+    )
+    assert response.status_code == 404
+
+
+def test_operator_response_on_pending_proposal_returns_400():
+    client = TestClient(app)
+    packet_id = _create_packet(client)
+    pid = _pending_proposal_id(client, packet_id)  # still pending, no info requested
+
+    response = client.post(
+        f"/api/claim-proposals/{pid}/operator-response",
+        json={"operator_id": "op-1", "response_note": "unsolicited"},
+    )
+    assert response.status_code == 400
+    assert "not awaiting more info" in response.json()["detail"]

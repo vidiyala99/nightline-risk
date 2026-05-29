@@ -21,8 +21,10 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from app.models import AuditEvent, ClaimProposal, UnderwritingPacket
 from app.claim_proposals import (
     ClaimProposalValidationError,
+    compute_override_stats,
     create_proposal,
     record_broker_decision,
+    record_operator_info_response,
 )
 from app.packet_core import create_packet_snapshot
 from app.schemas import Citation, IncidentCreate
@@ -363,3 +365,179 @@ def test_record_broker_decision_emits_audit_event():
         types = [e.event_type for e in events]
         assert "claim.proposed" in types
         assert "claim.approved" in types
+
+
+# ---------- needs_more_info round-trip (broker ↔ operator) ----------
+
+
+def _pending_proposal(session, override=False, reason=None):
+    packet = _seed_packet(session)
+    return create_proposal(
+        session=session,
+        packet_id=packet.id,
+        operator_id="op-1",
+        override_recommendation=override,
+        override_reason=reason,
+        override_freetext=None,
+    )
+
+
+def test_request_more_info_sets_needs_more_info_and_leaves_decision_unset():
+    with make_session() as session:
+        proposal = _pending_proposal(session)
+
+        updated = record_broker_decision(
+            session=session,
+            proposal_id=proposal.id,
+            broker_id="br-1",
+            decision="needs_more_info",
+            notes="Please upload the door-camera footage from 11pm-midnight.",
+        )
+
+        assert updated.state == "needs_more_info"
+        assert updated.info_requested_by == "br-1"
+        assert updated.info_requested_at is not None
+        assert updated.info_request_note is not None and "door-camera" in updated.info_request_note
+        # NOT a terminal decision — broker_decided_* must stay unset.
+        assert updated.broker_decided_by is None
+        assert updated.broker_decided_at is None
+
+
+def test_request_more_info_without_notes_raises():
+    with make_session() as session:
+        proposal = _pending_proposal(session)
+        try:
+            record_broker_decision(
+                session=session, proposal_id=proposal.id, broker_id="br-1",
+                decision="needs_more_info", notes="   ",
+            )
+        except ClaimProposalValidationError as error:
+            assert "notes are required" in str(error)
+        else:
+            raise AssertionError("Expected blank-notes info request to raise")
+
+
+def test_needs_more_info_round_trip_then_approve():
+    """The core re-entry guarantee: request info → operator responds →
+    proposal re-queues → broker can decide again."""
+    with make_session() as session:
+        proposal = _pending_proposal(session)
+
+        record_broker_decision(
+            session=session, proposal_id=proposal.id, broker_id="br-1",
+            decision="needs_more_info", notes="Need the incident report.",
+        )
+        responded = record_operator_info_response(
+            session=session, proposal_id=proposal.id, operator_id="op-1",
+            response_note="Report attached to the incident.",
+        )
+        assert responded.state == "pending_broker_review"
+        assert responded.operator_response_note == "Report attached to the incident."
+        assert responded.operator_responded_at is not None
+
+        decided = record_broker_decision(
+            session=session, proposal_id=proposal.id, broker_id="br-1",
+            decision="approved", notes=None,
+        )
+        assert decided.state == "approved"
+        assert decided.broker_decided_by == "br-1"
+
+
+def test_cannot_decide_while_awaiting_operator_response():
+    with make_session() as session:
+        proposal = _pending_proposal(session)
+        record_broker_decision(
+            session=session, proposal_id=proposal.id, broker_id="br-1",
+            decision="needs_more_info", notes="Need more.",
+        )
+        try:
+            record_broker_decision(
+                session=session, proposal_id=proposal.id, broker_id="br-1",
+                decision="approved", notes=None,
+            )
+        except ClaimProposalValidationError as error:
+            assert "awaiting an operator response" in str(error)
+        else:
+            raise AssertionError("Broker must not decide a proposal parked on the operator")
+
+
+def test_cannot_request_info_on_already_decided_proposal():
+    with make_session() as session:
+        proposal = _pending_proposal(session)
+        record_broker_decision(
+            session=session, proposal_id=proposal.id, broker_id="br-1",
+            decision="approved", notes=None,
+        )
+        try:
+            record_broker_decision(
+                session=session, proposal_id=proposal.id, broker_id="br-1",
+                decision="needs_more_info", notes="?",
+            )
+        except ClaimProposalValidationError as error:
+            assert "already decided" in str(error)
+        else:
+            raise AssertionError("Expected info request on terminal proposal to raise")
+
+
+def test_operator_response_on_non_info_proposal_raises():
+    with make_session() as session:
+        proposal = _pending_proposal(session)  # still pending_broker_review
+        try:
+            record_operator_info_response(
+                session=session, proposal_id=proposal.id, operator_id="op-1",
+                response_note="here you go",
+            )
+        except ClaimProposalValidationError as error:
+            assert "not awaiting more info" in str(error)
+        else:
+            raise AssertionError("Operator response only valid from needs_more_info")
+
+
+def test_operator_response_without_note_raises():
+    with make_session() as session:
+        proposal = _pending_proposal(session)
+        record_broker_decision(
+            session=session, proposal_id=proposal.id, broker_id="br-1",
+            decision="needs_more_info", notes="Need more.",
+        )
+        try:
+            record_operator_info_response(
+                session=session, proposal_id=proposal.id, operator_id="op-1",
+                response_note="  ",
+            )
+        except ClaimProposalValidationError as error:
+            assert "response_note is required" in str(error)
+        else:
+            raise AssertionError("Expected blank operator response to raise")
+
+
+def test_needs_more_info_round_trip_emits_audit_events():
+    with make_session() as session:
+        proposal = _pending_proposal(session)
+        record_broker_decision(
+            session=session, proposal_id=proposal.id, broker_id="br-1",
+            decision="needs_more_info", notes="Need more.",
+        )
+        record_operator_info_response(
+            session=session, proposal_id=proposal.id, operator_id="op-1",
+            response_note="Done.",
+        )
+        events = session.exec(
+            select(AuditEvent).where(AuditEvent.entity_id == proposal.id)
+        ).all()
+        types = [e.event_type for e in events]
+        assert "claim.needs_more_info" in types
+        assert "claim.info_responded" in types
+
+
+def test_override_stats_counts_needs_more_info_as_pending():
+    with make_session() as session:
+        proposal = _pending_proposal(session, override=True, reason="additional_evidence")
+        record_broker_decision(
+            session=session, proposal_id=proposal.id, broker_id="br-1",
+            decision="needs_more_info", notes="Need the footage.",
+        )
+        stats = compute_override_stats(session=session, venue_id=proposal.venue_id)
+        assert stats.override_pending == 1
+        assert stats.override_approved == 0
+        assert stats.override_rejected == 0

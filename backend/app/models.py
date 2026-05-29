@@ -188,6 +188,12 @@ class ClaimProposal(SQLModel, table=True):
     State machine:
         pending_broker_review → approved → filed_with_carrier → paid | denied
                               → rejected_by_broker
+                              → needs_more_info → pending_broker_review
+
+    `needs_more_info` is a non-terminal round-trip: the broker bounces the
+    proposal back to the operator for more evidence; the operator responds,
+    which re-queues it at `pending_broker_review`. The broker cannot approve
+    or reject while it sits in `needs_more_info` (it's parked on the operator).
 
     `filed_with_carrier` and below are reserved for the carrier-integration
     phase; the demo terminates at approved/rejected_by_broker.
@@ -204,6 +210,13 @@ class ClaimProposal(SQLModel, table=True):
     broker_decided_by: Optional[str] = None
     broker_decided_at: Optional[datetime] = None
     broker_notes: Optional[str] = None
+    # Request-more-info round-trip (broker asks → operator responds). All
+    # nullable/additive; only populated when the broker requests more info.
+    info_requested_by: Optional[str] = None
+    info_requested_at: Optional[datetime] = None
+    info_request_note: Optional[str] = None
+    operator_response_note: Optional[str] = None
+    operator_responded_at: Optional[datetime] = None
 
 
 class EvidenceAnalysis(SQLModel, table=True):

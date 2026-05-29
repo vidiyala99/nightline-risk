@@ -53,6 +53,7 @@ const STATE_LABEL: Record<ClaimProposal["state"], string> = {
   pending_broker_review: "Pending broker review",
   approved: "Approved · ready to file",
   rejected_by_broker: "Rejected",
+  needs_more_info: "Info requested · awaiting operator",
   filed_with_carrier: "Filed with carrier",
   paid: "Paid",
   denied: "Denied",
@@ -62,6 +63,7 @@ const STATE_COLOR: Record<ClaimProposal["state"], string> = {
   pending_broker_review: "var(--state-warning)",
   approved: "var(--brand-primary)",
   rejected_by_broker: "var(--state-error)",
+  needs_more_info: "var(--state-warning)",
   filed_with_carrier: "var(--brand-primary)",
   paid: "var(--brand-primary)",
   denied: "var(--state-error)",
@@ -106,7 +108,7 @@ export default function ClaimDetailPage() {
     if (packetId) load();
   }, [packetId]);
 
-  async function submitBrokerDecision(decision: "approved" | "rejected") {
+  async function submitBrokerDecision(decision: "approved" | "rejected" | "needs_more_info") {
     if (!proposal) return;
     setSubmitting(true);
     setError(null);
@@ -119,8 +121,11 @@ export default function ClaimDetailPage() {
           body: JSON.stringify({
             broker_id: user?.id ?? "unknown",
             decision,
+            // The note carries the rejection reason OR the info request.
             notes:
-              decision === "rejected" && rejectNotes.trim() ? rejectNotes.trim() : null,
+              (decision === "rejected" || decision === "needs_more_info") && rejectNotes.trim()
+                ? rejectNotes.trim()
+                : null,
           }),
         }
       );
@@ -393,7 +398,7 @@ export default function ClaimDetailPage() {
                 <textarea
                   className="w-full text-sm p-sm"
                   rows={3}
-                  placeholder="Reject notes (optional for approve)…"
+                  placeholder="Notes — required to reject or request info…"
                   value={rejectNotes}
                   onChange={(e) => setRejectNotes(e.target.value)}
                   disabled={submitting}
@@ -406,6 +411,15 @@ export default function ClaimDetailPage() {
                 >
                   <ShieldCheck size={16} />
                   Approve & File
+                </button>
+                <button
+                  className="btn w-full flex items-center justify-center gap-sm"
+                  onClick={() => submitBrokerDecision("needs_more_info")}
+                  disabled={submitting || !rejectNotes.trim()}
+                  title={!rejectNotes.trim() ? "Add a note describing what you need" : undefined}
+                  style={{ border: "1px solid var(--state-warning)", color: "var(--state-warning)", background: "none" }}
+                >
+                  Request more info
                 </button>
                 <button
                   className="btn w-full flex items-center justify-center gap-sm"

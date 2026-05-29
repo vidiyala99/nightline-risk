@@ -39,10 +39,14 @@ ALLOWED_OVERRIDE_REASONS: frozenset[str] = frozenset(
     {"additional_evidence", "legal_counsel", "prior_pattern", "other"}
 )
 
-# Broker decision vocabulary. `filed_with_carrier` is a downstream transition
-# (post-approval) that the carrier-integration phase will own; it is not a
-# valid input here.
-ALLOWED_BROKER_DECISIONS: frozenset[str] = frozenset({"approved", "rejected"})
+# Broker decision vocabulary. `approved`/`rejected` are terminal; `needs_more_info`
+# is a non-terminal round-trip — the broker bounces the proposal back to the
+# operator for more evidence (what a real adjuster does most). `filed_with_carrier`
+# is a downstream transition (post-approval) the carrier-integration phase owns;
+# it is not a valid input here.
+ALLOWED_BROKER_DECISIONS: frozenset[str] = frozenset(
+    {"approved", "rejected", "needs_more_info"}
+)
 
 
 class ClaimProposalValidationError(ValueError):
@@ -138,15 +142,36 @@ def record_broker_decision(
     if proposal is None:
         raise ClaimProposalValidationError(f"Proposal not found: {proposal_id}")
 
+    # A proposal is broker-actionable only while pending. `needs_more_info` is
+    # parked on the operator — the broker can't approve/reject/re-ask until the
+    # operator responds and re-queues it. Terminal states are already decided.
+    if proposal.state == "needs_more_info":
+        raise ClaimProposalValidationError(
+            f"Proposal {proposal_id} is awaiting an operator response, not broker review"
+        )
     if proposal.state != "pending_broker_review":
         raise ClaimProposalValidationError(
             f"Proposal {proposal_id} already decided (state={proposal.state})"
         )
 
-    proposal.state = "approved" if normalized == "approved" else "rejected_by_broker"
-    proposal.broker_decided_by = broker_id
-    proposal.broker_decided_at = datetime.utcnow()
-    proposal.broker_notes = notes
+    if normalized == "needs_more_info":
+        # Bounce back to the operator for evidence. The note is the broker's
+        # question — required, since an empty info request is useless. NOT a
+        # terminal decision, so broker_decided_* deliberately stays unset.
+        if not (notes and notes.strip()):
+            raise ClaimProposalValidationError(
+                "notes are required when requesting more info (state the question)"
+            )
+        proposal.state = "needs_more_info"
+        proposal.info_requested_by = broker_id
+        proposal.info_requested_at = datetime.utcnow()
+        proposal.info_request_note = notes
+    else:
+        proposal.state = "approved" if normalized == "approved" else "rejected_by_broker"
+        proposal.broker_decided_by = broker_id
+        proposal.broker_decided_at = datetime.utcnow()
+        proposal.broker_notes = notes
+
     session.add(proposal)
     _add_audit_event(
         session=session,
@@ -158,6 +183,54 @@ def record_broker_decision(
             "packet_id": proposal.packet_id,
             "venue_id": proposal.venue_id,
             "notes": notes,
+        },
+    )
+    session.commit()
+    session.refresh(proposal)
+    return proposal
+
+
+def record_operator_info_response(
+    *,
+    session: Session,
+    proposal_id: str,
+    operator_id: str,
+    response_note: str,
+) -> ClaimProposal:
+    """Operator answers a broker's request for more info, re-queueing the proposal.
+
+    Only valid when the proposal is in `needs_more_info`; flips it back to
+    `pending_broker_review` so the broker can decide again. Raises
+    ClaimProposalValidationError otherwise.
+    """
+    if not (response_note and response_note.strip()):
+        raise ClaimProposalValidationError("response_note is required")
+
+    proposal = session.get(ClaimProposal, proposal_id)
+    if proposal is None:
+        raise ClaimProposalValidationError(f"Proposal not found: {proposal_id}")
+    if proposal.state != "needs_more_info":
+        raise ClaimProposalValidationError(
+            f"Proposal {proposal_id} is not awaiting more info (state={proposal.state})"
+        )
+
+    proposal.state = "pending_broker_review"
+    proposal.operator_response_note = response_note
+    proposal.operator_responded_at = datetime.utcnow()
+    session.add(proposal)
+    # Audit name deviates from `{entity}.{to_state}` (which would be
+    # `claim.pending_broker_review`) for readability — this is specifically the
+    # operator's info response, not a generic re-queue.
+    _add_audit_event(
+        session=session,
+        actor_id=operator_id,
+        actor_type="venue_operator",
+        entity_id=proposal.id,
+        event_type="claim.info_responded",
+        event_metadata={
+            "packet_id": proposal.packet_id,
+            "venue_id": proposal.venue_id,
+            "response_note": response_note,
         },
     )
     session.commit()

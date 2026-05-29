@@ -196,6 +196,9 @@ export default function RiskProfilePage() {
   // `total` here MUST equal the unfiltered list at /incidents?venue=... and
   // the scoring engine's `incident_count` input — same `IncidentRecord` COUNT(*).
   const [incidentCounts, setIncidentCounts] = useState<{ total: number; open: number } | null>(null);
+  // Broker action-hub: this venue's pending/needs-info proposals + open claims.
+  const [hubDecisions, setHubDecisions] = useState<any[]>([]);
+  const [hubClaims, setHubClaims] = useState<any[]>([]);
 
   // Master policy ingestion (broker-only) — see backend POST /api/venues/{id}/policy-docs
   const [policyText, setPolicyText] = useState("");
@@ -339,6 +342,22 @@ export default function RiskProfilePage() {
         if (countsRes.ok) {
           const c = await countsRes.json();
           setIncidentCounts({ total: c.total ?? 0, open: c.open ?? 0 });
+        }
+        // Broker action-hub data — pending/needs-info proposals + open claims
+        // for this venue. Broker-only (the claims endpoint is broker-gated) and
+        // skipped for prospects (no claims/proposals exist yet).
+        if (isBroker && !venueId.startsWith("prospect-")) {
+          const [propRes, claimsRes] = await Promise.all([
+            fetch(`${API_URL}/api/claim-proposals?venue_id=${encodeURIComponent(venueId)}`, { headers: authH }),
+            fetch(`${API_URL}/api/claims?venue_id=${encodeURIComponent(venueId)}&open_only=true`, { headers: authH }),
+          ]);
+          if (propRes.ok) {
+            const all = await propRes.json();
+            setHubDecisions(
+              all.filter((p: any) => p.state === "pending_broker_review" || p.state === "needs_more_info"),
+            );
+          }
+          if (claimsRes.ok) setHubClaims(await claimsRes.json());
         }
       } catch {
         // non-fatal
@@ -928,6 +947,65 @@ export default function RiskProfilePage() {
               })}
             </div>
           </div>
+
+          {/* Decisions awaiting you — the broker's action surface for this
+              venue. Pending/needs-info proposals + open claims, each linking to
+              the existing decision UI. Turns the Risk Profile from a read-only
+              hub into the place a broker acts. Broker-only, non-prospect. */}
+          {isBroker && !isProspect && (
+            <div className="card">
+              <div className="flex items-center gap-sm mb-md">
+                <ClipboardCheck size={16} className="text-secondary" aria-hidden="true" />
+                <h3 className="rp-section-title text-xs uppercase tracking-wide text-secondary">Decisions awaiting you</h3>
+              </div>
+              {hubDecisions.length === 0 && hubClaims.length === 0 ? (
+                <p className="text-xs text-secondary" style={{ lineHeight: 1.6 }}>
+                  No proposals or open claims for this venue right now.
+                </p>
+              ) : (
+                <div className="rp-dossier-grid" style={{ gridTemplateColumns: "1fr" }}>
+                  {hubDecisions.map((p) => {
+                    const awaiting = p.state === "needs_more_info";
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/claim-proposals/${p.packet_id}`}
+                        className="rp-dossier-tile"
+                        aria-label={`Review claim proposal — ${awaiting ? "info requested, awaiting operator" : "pending your review"}`}
+                      >
+                        <FileText size={18} className="rp-dossier-icon" aria-hidden="true" />
+                        <span className="rp-dossier-body">
+                          <span className="rp-dossier-label">Claim proposal</span>
+                          <span
+                            className="rp-dossier-meta font-mono"
+                            style={{ color: awaiting ? "var(--state-warning)" : "var(--accent-ink)" }}
+                          >
+                            {awaiting ? "Info requested · awaiting operator" : "Pending your review"}
+                          </span>
+                        </span>
+                        <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
+                      </Link>
+                    );
+                  })}
+                  {hubClaims.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/claims/${c.id}`}
+                      className="rp-dossier-tile"
+                      aria-label={`Open claim ${c.id}`}
+                    >
+                      <DollarSign size={18} className="rp-dossier-icon" aria-hidden="true" />
+                      <span className="rp-dossier-body">
+                        <span className="rp-dossier-label">Open claim</span>
+                        <span className="rp-dossier-meta font-mono">{(c.status ?? "").replace(/_/g, " ")}</span>
+                      </span>
+                      <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Records & evidence — connective hub. Complements the diagnostic
               factor rows above by giving the broker one launchpad into the

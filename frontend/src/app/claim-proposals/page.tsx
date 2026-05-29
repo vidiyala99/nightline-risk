@@ -13,6 +13,7 @@ const STATE_LABEL: Record<ClaimProposal["state"], string> = {
   pending_broker_review: "Pending",
   approved: "Approved",
   rejected_by_broker: "Rejected",
+  needs_more_info: "Info requested",
   filed_with_carrier: "Filed",
   paid: "Paid",
   denied: "Denied",
@@ -22,6 +23,7 @@ const STATE_COLOR: Record<ClaimProposal["state"], string> = {
   pending_broker_review: "var(--state-warning)",
   approved: "var(--brand-primary)",
   rejected_by_broker: "var(--state-error)",
+  needs_more_info: "var(--state-warning)",
   filed_with_carrier: "var(--brand-primary)",
   paid: "var(--brand-primary)",
   denied: "var(--state-error)",
@@ -238,6 +240,7 @@ export default function ClaimsPortfolioPage() {
             >
               <option value="all">All</option>
               <option value="pending_broker_review">Pending</option>
+              <option value="needs_more_info">Info requested</option>
               <option value="approved">Approved</option>
               <option value="rejected_by_broker">Rejected</option>
               <option value="filed_with_carrier">Filed</option>

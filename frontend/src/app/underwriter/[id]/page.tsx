@@ -35,12 +35,18 @@ export interface ClaimProposal {
     | "pending_broker_review"
     | "approved"
     | "rejected_by_broker"
+    | "needs_more_info"
     | "filed_with_carrier"
     | "paid"
     | "denied";
   broker_decided_by: string | null;
   broker_decided_at: string | null;
   broker_notes: string | null;
+  info_requested_by: string | null;
+  info_requested_at: string | null;
+  info_request_note: string | null;
+  operator_response_note: string | null;
+  operator_responded_at: string | null;
 }
 
 interface Packet {
@@ -115,6 +121,8 @@ export default function ReportDetailPage() {
   const [submittingBrokerDecision, setSubmittingBrokerDecision] = useState(false);
   const [brokerRejectNotes, setBrokerRejectNotes] = useState("");
   const [proposalError, setProposalError] = useState<string | null>(null);
+  const [operatorResponseNote, setOperatorResponseNote] = useState("");
+  const [submittingResponse, setSubmittingResponse] = useState(false);
 
   const isOperator = user?.role === "venue_operator";
   const isBroker = user?.role === "broker" || user?.role === "admin";
@@ -184,7 +192,7 @@ export default function ReportDetailPage() {
     }
   }
 
-  async function submitBrokerDecision(dec: "approved" | "rejected") {
+  async function submitBrokerDecision(dec: "approved" | "rejected" | "needs_more_info") {
     if (!proposal) return;
     setSubmittingBrokerDecision(true);
     setProposalError(null);
@@ -197,7 +205,11 @@ export default function ReportDetailPage() {
           body: JSON.stringify({
             broker_id: user?.id ?? "unknown",
             decision: dec,
-            notes: dec === "rejected" && brokerRejectNotes.trim() ? brokerRejectNotes.trim() : null,
+            // The shared note carries the rejection reason OR the info request.
+            notes:
+              (dec === "rejected" || dec === "needs_more_info") && brokerRejectNotes.trim()
+                ? brokerRejectNotes.trim()
+                : null,
           }),
         }
       );
@@ -211,6 +223,35 @@ export default function ReportDetailPage() {
       setBrokerRejectNotes("");
     } finally {
       setSubmittingBrokerDecision(false);
+    }
+  }
+
+  async function submitOperatorResponse() {
+    if (!proposal || !operatorResponseNote.trim()) return;
+    setSubmittingResponse(true);
+    setProposalError(null);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/claim-proposals/${proposal.id}/operator-response`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            operator_id: user?.id ?? "unknown",
+            response_note: operatorResponseNote.trim(),
+          }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setProposalError(err.detail ?? `Request failed (${res.status})`);
+        return;
+      }
+      const updated: ClaimProposal = await res.json();
+      setProposal(updated);
+      setOperatorResponseNote("");
+    } finally {
+      setSubmittingResponse(false);
     }
   }
 
@@ -694,6 +735,7 @@ export default function ReportDetailPage() {
                   pending_broker_review: "Pending broker review",
                   approved: "Approved · ready to file",
                   rejected_by_broker: "Rejected",
+                  needs_more_info: "Info requested · awaiting operator",
                   filed_with_carrier: "Filed with carrier",
                   paid: "Paid",
                   denied: "Denied",
@@ -702,6 +744,7 @@ export default function ReportDetailPage() {
                   pending_broker_review: "var(--state-warning)",
                   approved: "var(--brand-primary)",
                   rejected_by_broker: "var(--state-error)",
+                  needs_more_info: "var(--state-warning)",
                   filed_with_carrier: "var(--brand-primary)",
                   paid: "var(--brand-primary)",
                   denied: "var(--state-error)",
@@ -751,16 +794,25 @@ export default function ReportDetailPage() {
                       </div>
                     )}
 
-                    {/* Broker inline approve/reject when pending */}
+                    {proposal.operator_response_note && (
+                      <div className="text-xs">
+                        <span className="text-secondary uppercase tracking-wide">Operator response: </span>
+                        <p className="text-secondary mt-xs" style={{ fontStyle: "italic" }}>
+                          “{proposal.operator_response_note}”
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Broker inline approve / request-info / reject when pending */}
                     {proposal.state === "pending_broker_review" && isBroker && (
                       <div className="flex flex-col gap-sm" style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "var(--space-md)" }}>
                         <label className="text-xs uppercase tracking-wide text-secondary block">
-                          Reject notes (optional for approve)
+                          Notes (required to reject or request info)
                         </label>
                         <textarea
                           className="w-full text-sm p-sm"
                           rows={2}
-                          placeholder="Why this should not be filed…"
+                          placeholder="Why this shouldn't be filed, or what evidence you need…"
                           value={brokerRejectNotes}
                           onChange={(e) => setBrokerRejectNotes(e.target.value)}
                           disabled={submittingBrokerDecision}
@@ -785,6 +837,43 @@ export default function ReportDetailPage() {
                             Reject
                           </button>
                         </div>
+                        <button
+                          className="btn w-full flex items-center justify-center gap-sm"
+                          onClick={() => submitBrokerDecision("needs_more_info")}
+                          disabled={submittingBrokerDecision || !brokerRejectNotes.trim()}
+                          title={!brokerRejectNotes.trim() ? "Add a note describing what you need" : undefined}
+                          style={{ border: "1px solid var(--state-warning)", color: "var(--state-warning)", background: "none" }}
+                        >
+                          Request more info
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Operator responds to a broker's info request → re-queues */}
+                    {proposal.state === "needs_more_info" && isOperator && (
+                      <div className="flex flex-col gap-sm" style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "var(--space-md)" }}>
+                        {proposal.info_request_note && (
+                          <p className="text-xs text-secondary" style={{ margin: 0 }}>
+                            Your broker asked:{" "}
+                            <span style={{ fontStyle: "italic" }}>“{proposal.info_request_note}”</span>
+                          </p>
+                        )}
+                        <textarea
+                          className="w-full text-sm p-sm"
+                          rows={2}
+                          placeholder="Answer the broker, and attach any evidence to the incident above…"
+                          value={operatorResponseNote}
+                          onChange={(e) => setOperatorResponseNote(e.target.value)}
+                          disabled={submittingResponse}
+                          style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)", color: "var(--text-primary)", resize: "none" }}
+                        />
+                        <button
+                          className="btn btn-primary w-full flex items-center justify-center gap-sm"
+                          onClick={submitOperatorResponse}
+                          disabled={submittingResponse || !operatorResponseNote.trim()}
+                        >
+                          Send response → re-queue for broker
+                        </button>
                       </div>
                     )}
 
