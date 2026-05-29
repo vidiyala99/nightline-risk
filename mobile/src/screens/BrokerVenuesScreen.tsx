@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
 import {
@@ -23,7 +23,23 @@ interface Venue {
   capacity?: number;
   renewal_date?: string;
   current_carrier?: string;
+  // From /api/portfolio — live risk posture for the roster.
+  tier?: string;
+  total_score?: number;
+  borough?: string;
 }
+
+const TIER_COLOR: Record<string, string> = {
+  A: Colors.tierA, B: Colors.tierB, C: Colors.tierC, D: Colors.tierD,
+};
+const TIER_ORDER: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+type SortKey = 'tier' | 'score' | 'renewal' | 'name';
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'tier', label: 'Tier' },
+  { key: 'score', label: 'Score' },
+  { key: 'renewal', label: 'Renewal' },
+  { key: 'name', label: 'Name' },
+];
 
 export function BrokerVenuesScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -31,18 +47,44 @@ export function BrokerVenuesScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [vtype, setVtype] = useState('all');
+  const [borough, setBorough] = useState('all');
+  const [sort, setSort] = useState<SortKey>('tier');
 
-  const filteredVenues = venues.filter(v => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return v.name.toLowerCase().includes(q)
-      || (v.address?.toLowerCase().includes(q) ?? false)
-      || (v.venue_type?.toLowerCase().includes(q) ?? false);
-  });
+  const types = useMemo(
+    () => Array.from(new Set(venues.map(v => v.venue_type).filter(Boolean))).sort() as string[],
+    [venues],
+  );
+  const boroughs = useMemo(
+    () => Array.from(new Set(venues.map(v => v.borough).filter(Boolean))).sort() as string[],
+    [venues],
+  );
+
+  const filteredVenues = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const out = venues.filter(v => {
+      if (vtype !== 'all' && v.venue_type !== vtype) return false;
+      if (borough !== 'all' && v.borough !== borough) return false;
+      if (q) {
+        const hay = `${v.name} ${v.address ?? ''} ${v.venue_type ?? ''} ${v.borough ?? ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    return [...out].sort((a, b) => {
+      if (sort === 'score') return (b.total_score ?? 0) - (a.total_score ?? 0);
+      if (sort === 'name') return a.name.localeCompare(b.name);
+      if (sort === 'renewal') return (a.renewal_date || '9999').localeCompare(b.renewal_date || '9999');
+      const t = (TIER_ORDER[a.tier ?? ''] ?? 9) - (TIER_ORDER[b.tier ?? ''] ?? 9);
+      return t !== 0 ? t : (b.total_score ?? 0) - (a.total_score ?? 0);
+    });
+  }, [venues, searchQuery, vtype, borough, sort]);
 
   const fetchVenues = useCallback(async () => {
     try {
-      const data = await api.request<Venue[]>('/api/venues?source=book');
+      // Portfolio rollup carries tier/score/borough so the roster can sort and
+      // filter on risk posture (parity with the dashboard Book + Market).
+      const data = await api.request<Venue[]>('/api/portfolio?source=book');
       setVenues(Array.isArray(data) ? data : []);
     } catch {
       // keep stale
@@ -57,6 +99,8 @@ export function BrokerVenuesScreen({ navigation }: any) {
   if (loading) {
     return <View style={styles.centered}><ActivityIndicator color={Colors.accentInk} /></View>;
   }
+
+  const filtersActive = searchQuery.trim() !== '' || vtype !== 'all' || borough !== 'all';
 
   return (
     <View style={styles.root}>
@@ -79,8 +123,74 @@ export function BrokerVenuesScreen({ navigation }: any) {
         />
       </View>
 
+      {types.length > 0 && (
+        <View style={styles.filterGroup}>
+          <Text style={styles.filterLabel}>TYPE</Text>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={['all', ...types]}
+            keyExtractor={(t) => t}
+            contentContainerStyle={styles.chipsRow}
+            renderItem={({ item }) => {
+              const active = vtype === item;
+              return (
+                <Pressable style={[styles.chip, active && styles.chipActive]} onPress={() => setVtype(item)}>
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {item === 'all' ? 'All types' : item}
+                  </Text>
+                </Pressable>
+              );
+            }}
+          />
+        </View>
+      )}
+
+      {boroughs.length > 0 && (
+        <View style={styles.filterGroup}>
+          <Text style={styles.filterLabel}>BOROUGH</Text>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={['all', ...boroughs]}
+            keyExtractor={(b) => b}
+            contentContainerStyle={styles.chipsRow}
+            renderItem={({ item }) => {
+              const active = borough === item;
+              return (
+                <Pressable style={[styles.chip, active && styles.chipActive]} onPress={() => setBorough(item)}>
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {item === 'all' ? 'All boroughs' : item}
+                  </Text>
+                </Pressable>
+              );
+            }}
+          />
+        </View>
+      )}
+
+      <View style={styles.filterGroup}>
+        <Text style={styles.filterLabel}>SORT</Text>
+        <View style={styles.sortRow}>
+          {SORT_OPTIONS.map((opt) => {
+            const active = sort === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setSort(opt.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
       <Text style={styles.sectionEyebrow}>
-        {searchQuery.trim()
+        {filtersActive
           ? `${filteredVenues.length} OF ${venues.length} VENUES`
           : `${filteredVenues.length} VENUES`}
       </Text>
@@ -96,19 +206,30 @@ export function BrokerVenuesScreen({ navigation }: any) {
             tintColor={Colors.accent}
           />
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const tierColor = TIER_COLOR[item.tier ?? ''] ?? Colors.textMuted;
+          return (
           <Pressable
             style={({ pressed }) => [styles.card, pressed && { opacity: 0.75 }]}
             onPress={() => navigation.navigate('VenueDetail', { venueId: item.id, venueName: item.name, isProspect: false })}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.name}${item.tier ? `, Tier ${item.tier}` : ''}`}
           >
             <View style={styles.cardTopRow}>
               {item.venue_type ? (
                 <Text style={styles.venueType} numberOfLines={1}>{item.venue_type.toUpperCase()}</Text>
               ) : <View />}
+              {!!item.tier && (
+                <Text style={[styles.tierPill, { color: tierColor }]}>
+                  Tier {item.tier}{item.total_score != null ? ` · ${item.total_score}` : ''}
+                </Text>
+              )}
             </View>
             <Text style={styles.venueName}>{item.name}</Text>
-            {!!item.address && (
-              <Text style={styles.venueAddress} numberOfLines={1}>{item.address}</Text>
+            {(!!item.address || !!item.borough) && (
+              <Text style={styles.venueAddress} numberOfLines={1}>
+                {[item.address, item.borough].filter(Boolean).join(' · ')}
+              </Text>
             )}
             <View style={styles.metaRow}>
               {!!item.capacity && (
@@ -120,15 +241,16 @@ export function BrokerVenuesScreen({ navigation }: any) {
             </View>
             <Text style={styles.viewDetail}>View details →</Text>
           </Pressable>
-        )}
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>
-              {searchQuery.trim() ? 'No matches' : 'No venues'}
+              {filtersActive ? 'No matches' : 'No venues'}
             </Text>
             <Text style={styles.emptySub}>
-              {searchQuery.trim()
-                ? `No venues match "${searchQuery}".`
+              {filtersActive
+                ? 'No venues match this view.'
                 : 'Portfolio is empty.'}
             </Text>
           </View>
@@ -148,7 +270,7 @@ const styles = StyleSheet.create({
 
   searchWrap: {
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 14,
     backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle,
@@ -168,6 +290,21 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
+  filterGroup: { marginBottom: 2 },
+  filterLabel: {
+    color: Colors.textMuted, fontSize: 9, letterSpacing: 1.5,
+    fontFamily: 'SpaceMono_700Bold', paddingHorizontal: 20, marginBottom: 6,
+  },
+  chipsRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
+  sortRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 12, flexWrap: 'wrap' },
+  chip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, backgroundColor: Colors.surface,
+  },
+  chipActive: { backgroundColor: Colors.accentWash, borderColor: Colors.accent },
+  chipText: { color: Colors.textSecondary, fontSize: 12, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
+  chipTextActive: { color: Colors.accentInk },
+
   sectionEyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, paddingHorizontal: 20, marginBottom: 12, fontFamily: 'SpaceMono_700Bold' },
 
   list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
@@ -180,6 +317,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   venueType: { color: Colors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
+  tierPill: { fontSize: 11, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
   venueName: { color: Colors.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.3, fontFamily: 'HankenGrotesk_600SemiBold' },
   venueAddress: { color: Colors.textMuted, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
 

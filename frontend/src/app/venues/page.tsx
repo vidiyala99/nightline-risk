@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
 import { Building2, MapPin, Users, Plus, ArrowRight, X, Edit2, Check, Search } from "lucide-react";
 import Link from "next/link";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { authHeaders } from "@/lib/authFetch";
+import { TierBadge, type Tier as UiTier } from "@/components/ui/TierBadge";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -18,6 +19,10 @@ interface Venue {
   venue_type?: string;
   renewal_date?: string;
   years_in_operation?: number;
+  // Broker roster reads /api/portfolio, which carries live risk posture.
+  tier?: string;
+  total_score?: number;
+  borough?: string;
 }
 
 const VENUE_TYPES = [
@@ -27,6 +32,9 @@ const VENUE_TYPES = [
 ];
 
 const EMPTY_FORM = { name: "", address: "", capacity: "", venue_type: "bar", renewal_date: "", years_in_operation: "" };
+
+const TIER_ORDER: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+type VenueSort = "tier" | "score" | "renewal" | "name";
 
 export default function VenuesPage() {
   const router = useRouter();
@@ -44,17 +52,44 @@ export default function VenuesPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [searchQuery, setSearchQuery] = useState("");
+  // Broker roster controls (operators have ≤ a few venues — no need to filter/sort).
+  const [vtype, setVtype] = useState("all");
+  const [borough, setBorough] = useState("all");
+  const [sort, setSort] = useState<VenueSort>("tier");
 
   const isBroker = role === "broker" || role === "admin";
   const isOperator = role === "venue_operator";
 
-  const filteredVenues = venues.filter(v => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return v.name.toLowerCase().includes(q)
-      || (v.address?.toLowerCase().includes(q) ?? false)
-      || (v.venue_type?.toLowerCase().includes(q) ?? false);
-  });
+  const types = useMemo(
+    () => Array.from(new Set(venues.map(v => v.venue_type).filter(Boolean))).sort() as string[],
+    [venues],
+  );
+  const boroughs = useMemo(
+    () => Array.from(new Set(venues.map(v => v.borough).filter(Boolean))).sort() as string[],
+    [venues],
+  );
+
+  const filteredVenues = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const out = venues.filter(v => {
+      if (isBroker && vtype !== "all" && v.venue_type !== vtype) return false;
+      if (isBroker && borough !== "all" && v.borough !== borough) return false;
+      if (q) {
+        const hay = `${v.name} ${v.address ?? ""} ${v.venue_type ?? ""} ${v.borough ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    if (!isBroker) return out;
+    return [...out].sort((a, b) => {
+      if (sort === "score") return (b.total_score ?? 0) - (a.total_score ?? 0);
+      if (sort === "name") return a.name.localeCompare(b.name);
+      if (sort === "renewal") return (a.renewal_date || "9999").localeCompare(b.renewal_date || "9999");
+      // tier A→D, then score desc as tiebreaker
+      const t = (TIER_ORDER[a.tier ?? ""] ?? 9) - (TIER_ORDER[b.tier ?? ""] ?? 9);
+      return t !== 0 ? t : (b.total_score ?? 0) - (a.total_score ?? 0);
+    });
+  }, [venues, searchQuery, isBroker, vtype, borough, sort]);
 
   useEffect(() => {
     // Wait for auth to hydrate before redirecting — otherwise a cold load /
@@ -64,8 +99,10 @@ export default function VenuesPage() {
 
   useEffect(() => {
     async function fetchVenues() {
+      // Brokers read the portfolio rollup so the roster carries live risk
+      // posture (tier/score/borough) — same source as the dashboard Book.
       try {
-        const res = await fetch(`${API_URL}/api/venues?source=book`);
+        const res = await fetch(`${API_URL}/api/portfolio?source=book`, { headers: authHeaders() });
         const data = await res.json();
         setVenues(Array.isArray(data) ? data : []);
       } catch {
@@ -132,7 +169,7 @@ export default function VenuesPage() {
       const newVenue = await res.json();
 
       // Operator extras must be linked to the user so they show up cross-device
-      // and on subsequent loads. Brokers see all venues via /api/venues already.
+      // and on subsequent loads. Brokers see all venues via /api/portfolio already.
       if (isOperator && !isFirstOperatorVenue) {
         const token = localStorage.getItem("auth_token");
         if (token) {
@@ -195,6 +232,13 @@ export default function VenuesPage() {
 
   return (
     <div className="lc-shell min-h-screen theme-venue" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
+      <style>{`
+        .vn-controls { display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center; margin-bottom:var(--space-md); }
+        .vn-controls .lc-search { flex:1 1 220px; margin-bottom:0; }
+        .vn-controls select { min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); background:var(--bg-elevated); color:var(--text-primary); font-size:0.85rem; }
+        .vn-card-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+        .vn-card-score { font-family:var(--font-mono); font-size:0.85rem; color:var(--text-secondary); }
+      `}</style>
       <section className="lc-hero">
         <div>
           <span className="lc-eyebrow">
@@ -217,7 +261,7 @@ export default function VenuesPage() {
             <span className="lc-stat-label">Total</span>
             <strong>{venueCount.toString().padStart(2, "0")}</strong>
           </div>
-          {isBroker && searchQuery.trim() && (
+          {isBroker && (searchQuery.trim() || vtype !== "all" || borough !== "all") && (
             <div className="lc-meta-cell">
               <span className="lc-stat-label">Showing</span>
               <strong>{filteredCount.toString().padStart(2, "0")}</strong>
@@ -307,26 +351,48 @@ export default function VenuesPage() {
       )}
 
       {isBroker && (
-        <div className="lc-search" style={{ marginBottom: "var(--space-md)" }}>
-          <Search size={14} />
-          <input
-            placeholder="Search venues, types, addresses…"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
+        <div className="vn-controls">
+          <div className="lc-search">
+            <Search size={14} />
+            <input
+              placeholder="Search venues, types, addresses…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {boroughs.length > 0 && (
+            <select value={borough} onChange={e => setBorough(e.target.value)} aria-label="Borough">
+              <option value="all">All boroughs</option>
+              {boroughs.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+          )}
+          <select value={vtype} onChange={e => setVtype(e.target.value)} aria-label="Venue type">
+            <option value="all">All types</option>
+            {types.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select value={sort} onChange={e => setSort(e.target.value as VenueSort)} aria-label="Sort by">
+            <option value="tier">Sort: tier</option>
+            <option value="score">Sort: score</option>
+            <option value="renewal">Sort: renewal</option>
+            <option value="name">Sort: name</option>
+          </select>
         </div>
       )}
 
       <div className="lc-rule">
         <span className="lc-rule__label">Roster</span>
         <span className="lc-rule__count">
-          {searchQuery.trim() ? `${filteredCount} / ${venueCount}` : String(venueCount).padStart(2, "0")} venues
+          {searchQuery.trim() || vtype !== "all" || borough !== "all" ? `${filteredCount} / ${venueCount}` : String(venueCount).padStart(2, "0")} venues
         </span>
         <div className="lc-rule__line" />
       </div>
 
       <div className="venues-grid">
-        {filteredVenues.map((venue) => (
+        {filteredVenues.map((venue) => {
+          // Brokers drill into the risk profile (their working surface); operators
+          // open their live terminal.
+          const detailHref = isBroker ? `/risk-profile/${venue.id}` : `/terminal/${venue.id}`;
+          return (
           <div key={venue.id} className="venue-card" style={{ textDecoration: "none", display: "block" }}>
             {editingId === venue.id ? (
               /* Inline edit form */
@@ -373,13 +439,13 @@ export default function VenuesPage() {
             ) : (
               /* Read view */
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", gap: "8px" }}>
-                <Link href={`/terminal/${venue.id}`} style={{ textDecoration: "none", display: "flex", gap: "12px", alignItems: "flex-start", flex: 1, color: "inherit" }}>
+                <Link href={detailHref} style={{ textDecoration: "none", display: "flex", gap: "12px", alignItems: "flex-start", flex: 1, color: "inherit" }}>
                   <div className="venue-icon"><Building2 size={24} /></div>
                   <div className="venue-info">
                     <h3>{venue.name}</h3>
                     {venue.venue_type && (
                       <p className="venue-address" style={{ color: "var(--text-tertiary)", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: "0.05em" }}>
-                        {venue.venue_type}
+                        {venue.venue_type}{venue.borough ? ` · ${venue.borough}` : ""}
                       </p>
                     )}
                     {venue.address && <p className="venue-address"><MapPin size={12} />{venue.address}</p>}
@@ -393,6 +459,12 @@ export default function VenuesPage() {
                   </div>
                 </Link>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+                  {isBroker && venue.tier && (
+                    <div className="vn-card-meta">
+                      <TierBadge tier={venue.tier as UiTier} />
+                      {venue.total_score != null && <span className="vn-card-score">{venue.total_score}</span>}
+                    </div>
+                  )}
                   {!isBroker && (
                     <button
                       onClick={() => startEdit(venue)}
@@ -401,21 +473,22 @@ export default function VenuesPage() {
                       <Edit2 size={12} /> Edit
                     </button>
                   )}
-                  <Link href={`/terminal/${venue.id}`} style={{ color: "inherit" }} title="Open terminal">
+                  <Link href={detailHref} style={{ color: "inherit" }} title={isBroker ? "Open risk profile" : "Open terminal"}>
                     <ArrowRight size={20} className="venue-arrow" />
                   </Link>
                 </div>
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {filteredVenues.length === 0 && !loading && (
         <div className="page-empty">
           <Building2 size={48} />
           <h3>No Venues Yet</h3>
-          <p>{searchQuery.trim() ? `No venues match "${searchQuery}"` : isBroker ? "No venues on record yet" : "Set up your venue to generate a risk profile and premium quote"}</p>
+          <p>{searchQuery.trim() || vtype !== "all" || borough !== "all" ? "No venues match this view" : isBroker ? "No venues on record yet" : "Set up your venue to generate a risk profile and premium quote"}</p>
           {!isBroker && (
             <button className="btn btn-primary" style={{ marginTop: "16px" }} onClick={() => setShowForm(true)}>
               <Plus size={16} /> Add Your Venue
