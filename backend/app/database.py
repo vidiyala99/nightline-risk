@@ -92,12 +92,21 @@ def _backfill_compliance_signals():
     only way to reach a partial set is manual row deletion, which this backfill
     intentionally does not try to repair (re-seeding a venue is a manual op)."""
     from sqlmodel import Session, select
-    from app.models import ComplianceSignal
+    from app.models import ComplianceSignal, Venue
     from app.seed_data import VENUES
     with Session(engine) as session:
         for venue_id, data in VENUES.items():
             n = int(data.get("compliance_items", 0) or 0)
             if n == 0:
+                continue
+            # FK safety: skip venues whose Venue row doesn't exist yet. On first
+            # boot this backfill runs (via get_session) BEFORE the lifespan seeds
+            # venues, so inserting a ComplianceSignal with a dangling venue_id FK
+            # would crash on Postgres (SQLite doesn't enforce FKs, which is why
+            # the test suite couldn't catch it). A later backfill run — once the
+            # venues are seeded — picks these up, so it's idempotent and
+            # self-healing. See memory: SQLAlchemy FK ordering on Postgres.
+            if session.get(Venue, venue_id) is None:
                 continue
             existing = session.exec(
                 select(ComplianceSignal).where(ComplianceSignal.venue_id == venue_id)
