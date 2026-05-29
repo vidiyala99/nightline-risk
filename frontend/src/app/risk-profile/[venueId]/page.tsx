@@ -671,6 +671,7 @@ export default function RiskProfilePage() {
           onClick={handleUploadPolicy}
           disabled={uploadingPolicy || !policyText.trim() || hasNoHeadings}
           aria-disabled={uploadingPolicy || !policyText.trim() || hasNoHeadings}
+          aria-describedby="rp-ingest-hint"
           className="btn btn-secondary"
           style={{
             cursor: uploadingPolicy || !policyText.trim() || hasNoHeadings ? "not-allowed" : "pointer",
@@ -684,6 +685,24 @@ export default function RiskProfilePage() {
             <><Upload size={14} aria-hidden="true" />Ingest Policy</>
           )}
         </button>
+
+        {/* Say why the button is disabled (or, once valid, how many clauses
+            are queued). Without this, a greyed-out button reads as "broken"
+            — the no-headings case otherwise only surfaces in a post-click toast. */}
+        <span
+          id="rp-ingest-hint"
+          className="text-xs text-tertiary"
+          aria-live="polite"
+          style={{ lineHeight: 1.5 }}
+        >
+          {uploadingPolicy
+            ? "Uploading…"
+            : !policyText.trim()
+            ? "Paste policy markdown above to enable."
+            : hasNoHeadings
+            ? "Add ## Section or ### Clause headings — no clauses detected yet."
+            : `${previewChunks.length} clause${previewChunks.length === 1 ? "" : "s"} ready to ingest.`}
+        </span>
       </div>
     </div>
   ) : null;
