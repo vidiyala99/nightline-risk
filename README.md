@@ -5,9 +5,9 @@
 
 Evidence-first underwriting infrastructure for nightlife venues.
 
-**Live demo:** https://frontend-mu-ebon-n3x8uw2rpx.vercel.app  
+**Live demo:** https://nightline-app.vercel.app  
 **Mobile walkthrough:** https://drive.google.com/file/d/1UaMGv5HxK811FAFx8cNE9l1x2IPFVuuI/view?usp=sharing  
-**Eval dashboard:** [`/evals`](https://frontend-mu-ebon-n3x8uw2rpx.vercel.app/evals) — committed baseline, scorer breakdown, stack signature  
+**Eval dashboard:** [`/evals`](https://nightline-app.vercel.app/evals) — committed baseline, scorer breakdown, stack signature  
 **Architecture:**
 - [Agent pipeline, LLM integration points, and roadmap](docs/superpowers/specs/2026-05-07-architecture-v2.md) — evidence layer (incidents → packets → claim proposals)
 - [Broker platform — Phases 1–3](docs/superpowers/specs/2026-05-21-broker-platform-phases-1-3.md) — placement, policy lifecycle, carrier-side claims
@@ -98,7 +98,7 @@ Or create a new account via **Sign Up / Create Account** on the login screen (we
   - **Policy lifecycle (Phase 2):** atomic `bind_quote` (6-effect savepoint), endorsements with Pydantic-validated `terms_diff` discriminated unions, pro-rata vs. short-rate cancellation refund math, and Certificates of Insurance with audit-preserving superseding to the same holder
   - **Claims integration (Phase 3):** carrier-side `Claim` with FNOL → reserved → settling → closed lifecycle, `ClaimPayment` ledger across indemnity/expense/recovery, `ReserveChange` audit rows, `ON DELETE RESTRICT` FK from claim to its frozen defense packet — distinct from the `ClaimProposal` recommendation surface ([see ADR-0004](docs/adr/0004-broker-platform-and-claim-vocabulary-split.md))
   - All money is `Decimal`/`Numeric(12,2)`, all timestamps UTC via `app.time.now_utc`, all lifecycle transitions go through `app.lifecycles.assert_valid_transition`, all state changes emit `AuditEvent` rows, and `Policy`/`Claim` carry SHA-256 `snapshot_hash` columns so archived defense packages keep their referent
-- **Load-bearing eval harness** — 15 research-grounded scenarios across 7 exposure classes + adversarial gold set, 5 scorers (structural, severity_match, citation_coverage, review_status_match, factor_recognition) plus retrieval and safety scorers, signature-keyed `baseline.json` regression gate wired into CI, nightly LLM provider matrix; see [`/evals` dashboard](https://frontend-mu-ebon-n3x8uw2rpx.vercel.app/evals) and [`docs/evals/README.md`](docs/evals/README.md)
+- **Load-bearing eval harness** — 15 research-grounded scenarios across 7 exposure classes + adversarial gold set, 5 scorers (structural, severity_match, citation_coverage, review_status_match, factor_recognition) plus retrieval and safety scorers, signature-keyed `baseline.json` regression gate wired into CI, nightly LLM provider matrix; see [`/evals` dashboard](https://nightline-app.vercel.app/evals) and [`docs/evals/README.md`](docs/evals/README.md)
 
 ---
 
