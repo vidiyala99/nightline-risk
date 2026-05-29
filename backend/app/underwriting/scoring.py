@@ -124,11 +124,14 @@ class RiskScoringEngine:
     def _score_compliance(self, venue: dict) -> int:
         """
         Score based on compliance status (0-100, higher is better).
-        
+
         Factors:
         - Outstanding compliance items = lower score
         - More items = significantly lower score
         """
+        precomputed = venue.get("compliance_score")
+        if precomputed is not None:
+            return int(precomputed)
         compliance_items = venue.get("compliance_items", 0)
 
         if compliance_items == 0:
@@ -306,7 +309,7 @@ def get_risk_score(
     venue_id: str,
     venues: dict,
     session: Any | None = None,
-    live_state_manager: Any | None = None,  # accepted for API symmetry; live_state's compliance_queue is the operator queue, not the underwriter view, so it's intentionally not consulted here
+    live_state_manager: Any | None = None,  # when provided, drives the compliance factor from the live compliance_queue (single source of truth with the operator's Compliance screen)
     delta_tracker: "IncidentDeltaTracker | None" = None,
 ) -> dict:
     """Compute a venue's risk score.
@@ -322,13 +325,14 @@ def get_risk_score(
     Prospects always use the dict-baseline path (no real IncidentRecord rows
     exist for them).
 
-    LiveStateManager.compliance_queue is intentionally NOT consulted here:
-    that queue is the *operator's* active floor view (including auto-generated
-    items from camera anomalies), which is a different concept from the
-    underwriter's curated compliance count. Auto-generated items that should
-    affect scoring must explicitly bump `delta_tracker.bump_compliance()`.
+    Likewise, when a `live_state_manager` is provided the compliance factor is
+    driven by the LIVE `compliance_queue` length — the same outstanding-item
+    count the operator sees on their Compliance screen — so the factor and its
+    drill-down can't disagree, and clearing a queued item raises the score
+    (the loop the UI promises). Without a manager (unit fixtures, headless
+    callers) it falls back to the curated `compliance_items` baseline + the
+    in-memory `IncidentDeltaTracker`.
     """
-    _ = (live_state_manager,)  # accepted but unused; see docstring
     base_venue = venues.get(venue_id, {})
     is_prospect = base_venue.get("source") == "prospect"
     tracker = delta_tracker if delta_tracker is not None else incident_delta_tracker
@@ -368,9 +372,29 @@ def get_risk_score(
         if incident_delta > 0:
             overrides["incident_count"] = base_venue.get("incident_count", 0) + incident_delta
 
-    compliance_delta = tracker.compliance_delta(venue_id)
-    if compliance_delta > 0:
-        overrides["compliance_items"] = base_venue.get("compliance_items", 0) + compliance_delta
+    # Live compliance load (mirrors the incident path above). When a session is
+    # available the compliance factor is fused over the venue's ComplianceSignal
+    # rows — the SAME rows the operator's Compliance queue shows — so factor and
+    # queue can't disagree, and resolving an item raises the score. Falls back to
+    # the curated `compliance_items` baseline + delta tracker for session-less
+    # callers (unit fixtures, headless).
+    live_compliance_score = None
+    if session is not None and not is_prospect:
+        try:
+            from app.services.compliance_signals import compliance_signals_for  # local: avoid cycle
+            from app.underwriting.fusion import fuse, COMPLIANCE_K
+            live_compliance_score = fuse(
+                compliance_signals_for(venue_id, session), COMPLIANCE_K
+            )
+        except Exception:
+            live_compliance_score = None
+
+    if live_compliance_score is not None:
+        overrides["compliance_score"] = live_compliance_score
+    else:
+        compliance_delta = tracker.compliance_delta(venue_id)
+        if compliance_delta > 0:
+            overrides["compliance_items"] = base_venue.get("compliance_items", 0) + compliance_delta
 
     effective_venues = {**venues, venue_id: {**base_venue, **overrides}} if overrides else venues
 

@@ -44,6 +44,9 @@ def test_score_drops_when_compliance_grows():
     assert after["delta"]["compliance_delta"] == 2
 
 
+# Compliance factor sourcing moved from the live in-memory queue to persisted
+# ComplianceSignal rows + the fusion engine. See test_compliance_signal_scoring.py.
+
 def test_seed_baseline_preserved_after_delta():
     """The curated VENUES["incident_count"] must not be mutated by deltas."""
     incident_delta_tracker.reset()
