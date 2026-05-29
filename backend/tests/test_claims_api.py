@@ -184,3 +184,62 @@ def test_get_claims_does_not_shadow_claim_detail(client):
     detail = client.get(f"/api/claims/{a}", headers=_broker_headers())
     assert detail.status_code == 200
     assert detail.json()["id"] == a
+
+
+# ─── Operator closed loop: GET /api/venues/{venue_id}/claims ─────────────
+
+
+def test_venue_claims_requires_auth(client):
+    """The closed-loop read still demands a token — no anonymous peek."""
+    r = client.get(f"/api/venues/{VENUE_A}/claims")
+    assert r.status_code == 401
+
+
+def test_venue_claims_operator_reads_own_venue(client):
+    """The black-box kill: an operator sees the carrier claim filed for
+    their own venue (and only their venue's claim)."""
+    a, b = _seed_two_policies_with_claims()
+    r = client.get(f"/api/venues/{VENUE_A}/claims", headers=_operator_headers())
+    assert r.status_code == 200
+    ids = {row["id"] for row in r.json()}
+    assert a in ids          # their venue's claim is visible
+    assert b not in ids      # a different venue's claim is not
+
+
+def test_venue_claims_operator_denied_other_venue(client):
+    """Tenant isolation: VENUE_A's operator cannot read VENUE_B's claims."""
+    _seed_two_policies_with_claims()
+    r = client.get(f"/api/venues/{VENUE_B}/claims", headers=_operator_headers())
+    assert r.status_code == 403
+
+
+def test_venue_claims_broker_reads_any_venue(client):
+    """Brokers keep cross-venue access through the same window."""
+    _, b = _seed_two_policies_with_claims()
+    r = client.get(f"/api/venues/{VENUE_B}/claims", headers=_broker_headers())
+    assert r.status_code == 200
+    assert b in {row["id"] for row in r.json()}
+
+
+def test_venue_claims_open_only_excludes_closed(client):
+    """open_only filter works on the venue-scoped read too."""
+    a, _ = _seed_two_policies_with_claims()
+    session = next(get_session())
+    try:
+        record_carrier_reserve(
+            session, a, new_reserve=Decimal("100"),
+            change_reason="initial", received_from="adj",
+            received_at=datetime(2026, 3, 5, tzinfo=timezone.utc),
+            recorded_by=USER_ID,
+        )
+        close_claim(session, a, disposition="denied", closed_by=USER_ID)
+        session.commit()
+    finally:
+        session.close()
+
+    r = client.get(
+        f"/api/venues/{VENUE_A}/claims?open_only=true",
+        headers=_operator_headers(),
+    )
+    assert r.status_code == 200
+    assert a not in {row["id"] for row in r.json()}

@@ -16,6 +16,7 @@ type IncidentStatus = "open" | "under_review" | "closed";
 
 interface Incident {
   id: string;
+  venue_id: string;
   occurred_at: string;
   location: string;
   summary: string;
@@ -63,6 +64,16 @@ const PROPOSAL_BADGE: Record<string, { label: string; color: string }> = {
   denied: { label: "Proposal · denied", color: "var(--state-error)" },
 };
 
+// The closed loop: did this incident become a real carrier claim?
+interface IncidentClaim {
+  id: string;
+  incident_id: string | null;
+  carrier_claim_number: string | null;
+  coverage_line: string;
+  status: string;
+  current_reserve: string;
+}
+
 const statusLabel: Record<IncidentStatus, string> = {
   open: "Open",
   under_review: "Under Review",
@@ -79,6 +90,7 @@ export default function IncidentDetailPage() {
   const [incident, setIncident] = useState<Incident | null>(null);
   const [packets, setPackets] = useState<Packet[]>([]);
   const [proposalByPacket, setProposalByPacket] = useState<Record<string, string>>({});
+  const [claim, setClaim] = useState<IncidentClaim | null>(null);
   const [evidence, setEvidence] = useState<Array<{ id: string; filename: string; content_type: string; file_size: number; uploaded_at: string }>>([]);
   const [visionAnalysis, setVisionAnalysis] = useState<{ status: string; processed: number; total_files: number; analyses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,6 +140,28 @@ export default function IncidentDetailPage() {
     }
     load();
   }, [id]);
+
+  // Closed loop: once we know the venue, pull its claims and find the one
+  // filed off this incident. Uses the venue-scoped read, so it resolves for
+  // the operator (own venue) as well as the broker — killing the
+  // post-incident black box on the operator's own surface.
+  useEffect(() => {
+    const venueId = incident?.venue_id;
+    if (!venueId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`${API_URL}/api/venues/${venueId}/claims`, { headers: authHeaders() });
+        if (!r.ok) return;
+        const rows: IncidentClaim[] = await r.json();
+        const match = rows.find((c) => c.incident_id === id) ?? null;
+        if (!cancelled) setClaim(match);
+      } catch {
+        // non-fatal
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [incident?.venue_id, id]);
 
   const handleStatusUpdate = async (newStatus: IncidentStatus) => {
     setUpdatingStatus(true);
@@ -183,6 +217,39 @@ export default function IncidentDetailPage() {
           <div className="incident-detail-grid">
             {/* Main content */}
             <div className="flex flex-col gap-xl">
+
+              {/* Closed loop: this incident became a real carrier claim */}
+              {claim && (() => {
+                const reserve = Number(claim.current_reserve);
+                const isClosed = claim.status === "closed";
+                const claimCard = (
+                  <div className="flex items-center gap-md p-lg" style={{
+                    border: `1px solid ${isClosed ? "var(--border-subtle)" : "var(--accent-ink)"}`,
+                    borderRadius: "var(--radius-md)",
+                    background: "rgba(200,240,0,0.05)",
+                  }}>
+                    <Shield size={20} style={{ color: "var(--accent-ink)", flexShrink: 0 }} aria-hidden="true" />
+                    <div className="flex-1" style={{ minWidth: 0 }}>
+                      <div className="text-xs uppercase tracking-wide" style={{ color: "var(--accent-ink)" }}>
+                        Filed as a carrier claim
+                      </div>
+                      <div className="text-sm mt-xs">
+                        {claim.carrier_claim_number ? `Claim ${claim.carrier_claim_number}` : "Claim opened"}
+                        {" · "}{claim.coverage_line.toUpperCase()}
+                        {" · "}<span style={{ textTransform: "capitalize" }}>{claim.status.replace(/_/g, " ")}</span>
+                        {reserve > 0 && ` · reserved $${reserve.toLocaleString()}`}
+                      </div>
+                    </div>
+                    {!isOperator && <ChevronRight size={16} className="text-secondary" aria-hidden="true" />}
+                  </div>
+                );
+                // Operators get a read-only window; brokers can open the claim file.
+                return isOperator ? claimCard : (
+                  <Link href={`/claims/${claim.id}`} style={{ textDecoration: "none" }} aria-label="Open claim file">
+                    {claimCard}
+                  </Link>
+                );
+              })()}
 
               {/* Description */}
               <div className="card">

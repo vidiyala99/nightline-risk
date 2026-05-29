@@ -53,6 +53,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [proposal, setProposal] = useState<ClaimProposal | null>(null);
+  const [claim, setClaim] = useState<any>(null);
   const [proposeSheetVisible, setProposeSheetVisible] = useState(false);
   const [submittingProposal, setSubmittingProposal] = useState(false);
 
@@ -71,6 +72,18 @@ export function IncidentDetailScreen({ route, navigation }: any) {
         if (pktList.length > 0) setProposal(pktList[0].claim_proposal ?? null);
         setEvidence(Array.isArray(evs) ? evs : []);
         setVisionAnalysis(vision);
+        // Closed loop: did this incident become a real carrier claim? The
+        // venue-scoped read resolves for the operator (own venue) too, so
+        // the operator finally sees the outcome of what they reported.
+        if (inc?.venue_id) {
+          try {
+            const claims = await api.request<any[]>(`/api/venues/${inc.venue_id}/claims`);
+            const match = Array.isArray(claims) ? claims.find((c) => c.incident_id === incidentId) : null;
+            setClaim(match ?? null);
+          } catch {
+            // non-fatal
+          }
+        }
       } catch {
         // non-fatal
       } finally {
@@ -225,6 +238,22 @@ export function IncidentDetailScreen({ route, navigation }: any) {
                 </Pressable>
               </>
             )}
+          </View>
+        );
+      })()}
+
+      {/* Closed loop: this incident became a real carrier claim */}
+      {claim && (() => {
+        const reserve = Number(claim.current_reserve);
+        return (
+          <View style={[styles.card, { borderColor: Colors.accentInk, borderWidth: 1, backgroundColor: Colors.accentWash }]}>
+            <Text style={[styles.eyebrow, { color: Colors.accentInk }]}>FILED AS A CARRIER CLAIM</Text>
+            <Text style={styles.summary}>
+              {claim.carrier_claim_number ? `Claim ${claim.carrier_claim_number}` : 'Claim opened'}
+              {' · '}{String(claim.coverage_line).toUpperCase()}
+              {' · '}{String(claim.status).replace(/_/g, ' ')}
+              {reserve > 0 ? ` · reserved $${reserve.toLocaleString()}` : ''}
+            </Text>
           </View>
         );
       })()}

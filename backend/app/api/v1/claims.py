@@ -13,12 +13,12 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import NoReturn, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from app.api.v1.placement import _broker_user_id
-from app.auth import require_broker
+from app.auth import require_broker, require_venue_access
 from app.database import get_session
 from app.lifecycles import InvalidTransitionError
 from app.models import Claim, ClaimPayment, Policy, ReserveChange
@@ -236,6 +236,33 @@ def api_list_claims(
         )
     except ClaimsError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    return [_claim_to_dict(c) for c in rows]
+
+
+@router.get("/venues/{venue_id}/claims")
+def api_list_venue_claims(
+    venue_id: str,
+    open_only: bool = False,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> list[dict]:
+    """Venue-scoped, read-only carrier-claim list — the operator's
+    closed-loop view.
+
+    Kills the post-incident black box: an operator reports an incident,
+    a broker files it as a Claim, and *this* is where the operator sees
+    that it became a real claim (status + reserve + carrier claim #).
+
+    Auth is the broad venue gate (`require_venue_access`), so it admits:
+      - the venue's own operator (their tenant or an extra_venue_ids row),
+      - any broker/admin (cross-venue portfolio access).
+    Anonymous → 401, other-venue operator → 403.
+
+    Read-only by design: every claim *mutation* stays on the
+    broker-gated /claims* routes. This is purely a window.
+    """
+    require_venue_access(venue_id, authorization, session)
+    rows = list_claims(session, venue_id=venue_id, open_only=open_only)
     return [_claim_to_dict(c) for c in rows]
 
 
