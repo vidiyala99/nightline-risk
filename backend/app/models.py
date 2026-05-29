@@ -57,6 +57,22 @@ class IncidentEvaluation(SQLModel, table=True):
     incident: IncidentRecord = Relationship(back_populates="evaluation")
 
 
+class ComplianceSignal(SQLModel, table=True):
+    """Persisted compliance item — the system of record the operator queue and
+    the compliance risk factor both read. Replaces the transient in-memory
+    ComplianceItem queue. Mirrors IncidentRecord."""
+    id: str = Field(primary_key=True)
+    venue_id: str = Field(index=True, foreign_key="venue.id")
+    title: str
+    description: str
+    provenance: str  # auto_generated|operator_reported|underwriter_verified|ingested
+    severity: str    # low|medium|high|urgent
+    status: str = Field(default="open")  # open|resolved
+    created_at: datetime = Field(default_factory=now_utc)
+    resolved_at: Optional[datetime] = Field(default=None)
+    evidence_ref: Optional[str] = Field(default=None)
+
+
 class WorkflowExecution(SQLModel, table=True):
     id: str = Field(primary_key=True)
     workflow_name: str

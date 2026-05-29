@@ -175,6 +175,27 @@ POLICY_REQUEST_TERMINAL_STATES: frozenset[str] = frozenset(
 )
 
 
+# ─── ComplianceSignal lifecycle ──────────────────────────────────────────
+
+ComplianceSignalStatus = Literal[
+    "open",      # outstanding compliance item
+    "resolved",  # cleared (evidence uploaded or broker waiver)
+]
+
+COMPLIANCE_SIGNAL_TRANSITIONS: dict[str, set[str]] = {
+    "open":     {"resolved"},
+    "resolved": {"open"},  # reopen if a waiver/evidence is retracted
+}
+
+COMPLIANCE_SIGNAL_TERMINAL_STATES: frozenset[str] = frozenset(
+    s for s, nexts in COMPLIANCE_SIGNAL_TRANSITIONS.items() if not nexts
+)
+# Intentionally empty — like CLAIM_TERMINAL_STATES, a compliance signal is never
+# truly terminal: a 'resolved' item can reopen if its waiver/evidence is
+# retracted. Declared for parity with the other lifecycles; callers should not
+# treat any status as a dead end.
+
+
 # ─── Errors ──────────────────────────────────────────────────────────────
 
 class InvalidTransitionError(ValueError):
