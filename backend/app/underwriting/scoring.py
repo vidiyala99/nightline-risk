@@ -309,7 +309,7 @@ def get_risk_score(
     venue_id: str,
     venues: dict,
     session: Any | None = None,
-    live_state_manager: Any | None = None,  # when provided, drives the compliance factor from the live compliance_queue (single source of truth with the operator's Compliance screen)
+    live_state_manager: Any | None = None,  # legacy parameter; no longer used for compliance (kept for call-site compatibility)
     delta_tracker: "IncidentDeltaTracker | None" = None,
 ) -> dict:
     """Compute a venue's risk score.
@@ -325,13 +325,14 @@ def get_risk_score(
     Prospects always use the dict-baseline path (no real IncidentRecord rows
     exist for them).
 
-    Likewise, when a `live_state_manager` is provided the compliance factor is
-    driven by the LIVE `compliance_queue` length — the same outstanding-item
-    count the operator sees on their Compliance screen — so the factor and its
-    drill-down can't disagree, and clearing a queued item raises the score
-    (the loop the UI promises). Without a manager (unit fixtures, headless
-    callers) it falls back to the curated `compliance_items` baseline + the
-    in-memory `IncidentDeltaTracker`.
+    The compliance factor follows the same pattern: with a session, it is fused
+    over the venue's persisted `ComplianceSignal` rows (via
+    `compliance_signals_for` + `fuse`), so the factor and the operator's
+    Compliance queue read the same data and cannot disagree. Resolving a signal
+    immediately raises the factor. Without a session the engine falls back to
+    the curated `compliance_items` baseline + the in-memory
+    `IncidentDeltaTracker` (delta tracking still works for session-less
+    fixtures and headless callers).
     """
     base_venue = venues.get(venue_id, {})
     is_prospect = base_venue.get("source") == "prospect"
