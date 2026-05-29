@@ -660,14 +660,18 @@ export default function RiskProfilePage() {
            space. This keeps the narrative order while preventing the right
            column from looking empty when there are fewer right-side cards. */
         @media (min-width: 1024px) {
-          .rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); align-items: start; }
-          /* Two INDEPENDENT flex columns. Previously the columns used
-             display:contents + grid-auto-flow:row-dense, dissolving them into one
-             grid so card rows shared a height — a tall card (e.g. Master Policy)
-             left a void beside a short one (Whats Working). Letting each rp-col
-             stack its own cards removes the cross-column coupling; columns may end
-             at different heights (trailing space at the bottom), never mid-content. */
-          .rp-grid > .rp-col { display: flex; flex-direction: column; gap: var(--space-lg); }
+          /* Balanced two-column masonry. A fixed 1fr-1fr grid coupled card-row
+             heights (tall card left a void beside a short one); two independent
+             flex columns then left a long trailing gap when one column had more
+             content. CSS multi-column lets the browser height-balance ALL cards
+             across two columns, so neither a mid-content void nor a long trailing
+             gap can form — robust to the conditional cards on this page. The
+             rp-col wrappers dissolve (display:contents) so every card flows into
+             the columns; break-inside keeps cards intact; margin spaces them
+             (multi-column ignores flex/grid gap for intra-column spacing). */
+          .rp-grid { display: block; column-count: 2; column-gap: var(--space-xl); }
+          .rp-grid > .rp-col { display: contents; }
+          .rp-grid > .rp-col > * { break-inside: avoid; margin-bottom: var(--space-lg); }
         }
         .rp-back { display: inline-flex; align-items: center; gap: var(--space-xs); background: none; border: none; cursor: pointer;
                    padding: var(--space-sm) var(--space-md) var(--space-sm) 0; margin: 0 0 var(--space-lg); min-height: 44px;
