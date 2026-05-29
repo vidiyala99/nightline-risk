@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAlert } from '../components/ThemedAlert';
 import { ClaimProposeBottomSheet } from '../components/ClaimProposeBottomSheet';
+import { downloadDefensePackagePdf } from '../api/claims';
 import { STATE_LABEL, STATE_COLOR, type ClaimProposal, type OverrideReason } from '../types/claims';
 
 const SEVERITY_COLOR: Record<string, string> = {
@@ -56,6 +57,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
   const [claim, setClaim] = useState<any>(null);
   const [proposeSheetVisible, setProposeSheetVisible] = useState(false);
   const [submittingProposal, setSubmittingProposal] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -124,6 +126,19 @@ export function IncidentDetailScreen({ route, navigation }: any) {
       alert.show({ title: 'Error', message: e.message ?? 'Status update failed', variant: 'error' });
     } finally {
       setUpdatingStatus(false);
+    }
+  }
+
+  async function downloadPdf(packetId: string) {
+    // The defense PDF is venue-gated + keyed by packet id, so this resolves
+    // for the operator (own venue) too — their "evidence defends you" artifact.
+    setDownloadingPdf(true);
+    try {
+      await downloadDefensePackagePdf(packetId);
+    } catch (e: any) {
+      alert.show({ title: 'Download failed', message: e?.message ?? 'Could not download the defense package.', variant: 'error' });
+    } finally {
+      setDownloadingPdf(false);
     }
   }
 
@@ -327,6 +342,18 @@ export function IncidentDetailScreen({ route, navigation }: any) {
               ))}
             </>
           )}
+
+          <Pressable
+            style={({ pressed }) => [styles.pdfBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => downloadPdf(packet.id)}
+            disabled={downloadingPdf}
+            accessibilityRole="button"
+            accessibilityLabel="Download defense package PDF"
+          >
+            {downloadingPdf
+              ? <ActivityIndicator size="small" color={Colors.accentInk} />
+              : <Text style={styles.pdfBtnText}>↓ Download defense package (PDF)</Text>}
+          </Pressable>
         </View>
       )}
 
@@ -491,6 +518,12 @@ const styles = StyleSheet.create({
   confidenceNum: { fontSize: 11, fontWeight: '700', width: 32, textAlign: 'right', fontFamily: 'SpaceMono_700Bold' },
 
   explanation: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'HankenGrotesk_400Regular' },
+
+  pdfBtn: {
+    marginTop: 6, minHeight: 44, borderWidth: 1, borderColor: Colors.accentInk, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', paddingVertical: 11,
+  },
+  pdfBtnText: { color: Colors.accentInk, fontSize: 12, fontWeight: '700', letterSpacing: 0.3, fontFamily: 'HankenGrotesk_700Bold' },
 
   questionRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   questionDot: { color: Colors.accentInk, fontSize: 16, lineHeight: 20, fontFamily: 'HankenGrotesk_400Regular' },

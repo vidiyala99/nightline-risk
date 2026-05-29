@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
+import { downloadDefensePackagePdf } from "@/lib/claims";
 import {
   AlertTriangle, ArrowLeft, Calendar, MapPin, User,
-  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight,
+  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -95,6 +96,7 @@ export default function IncidentDetailPage() {
   const [visionAnalysis, setVisionAnalysis] = useState<{ status: string; processed: number; total_files: number; analyses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) router.push("/login");
@@ -174,6 +176,20 @@ export default function IncidentDetailPage() {
       if (res.ok) setIncident((prev) => prev ? { ...prev, status: newStatus } : prev);
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  // The defense PDF is the operator's tangible "your evidence defends you"
+  // artifact. The endpoint is venue-gated and keyed by packet id, so this
+  // works for the operator (own venue) as well as the broker.
+  const handleDownloadPdf = async (packetId: string) => {
+    setDownloadingPdf(packetId);
+    try {
+      await downloadDefensePackagePdf(packetId);
+    } catch {
+      // non-fatal — helper throws on non-200; surface nothing destructive
+    } finally {
+      setDownloadingPdf(null);
     }
   };
 
@@ -394,6 +410,16 @@ export default function IncidentDetailPage() {
                           <p className="text-sm mb-lg" style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
                             {pkt.risk_signals.explanation}
                           </p>
+
+                          <button
+                            className="btn btn-ghost btn-sm text-xs mb-lg"
+                            onClick={() => handleDownloadPdf(pkt.id)}
+                            disabled={downloadingPdf === pkt.id}
+                            aria-label="Download defense package PDF"
+                          >
+                            <Download size={13} aria-hidden="true" />
+                            {downloadingPdf === pkt.id ? "Preparing PDF…" : "Download defense package (PDF)"}
+                          </button>
 
                           {pkt.risk_signals.citations?.length > 0 && (
                             <>
