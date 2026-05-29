@@ -26,6 +26,25 @@ export function getFactorTier(score: number): FactorTier {
 }
 
 /**
+ * Reduce a risk-score `factors` payload to a flat number map.
+ *
+ * The backend returns each factor as a `{ score, weight }` object; some legacy
+ * payloads send plain numbers. Always run this before tiering — `Number({score})`
+ * is NaN, and getFactorTier(NaN) falls through to 'poor'/HIGH RISK, which is how
+ * an un-normalized screen renders EVERY factor as high risk.
+ */
+export function normalizeFactors(
+  raw: Record<string, unknown> | null | undefined,
+): Record<string, number> {
+  if (!raw) return {};
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    out[k] = typeof v === 'object' && v !== null ? Number((v as any).score ?? 0) : Number(v);
+  }
+  return out;
+}
+
+/**
  * Glyph mirroring the web FactorTierIcon so the good/moderate/poor signal isn't
  * carried by color alone (a11y: color-not-only).
  */

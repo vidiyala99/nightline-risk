@@ -318,11 +318,13 @@ def get_risk_score(
 
     overrides: dict = {}
 
-    # Live incident count (book venues only, when DB session available AND
-    # there are real IncidentRecord rows). Falls back to dict-baseline + delta
-    # tracker for prospects, test fixtures with no rows, or any path that
-    # doesn't pass a session. The `live_count > 0` guard keeps unit tests
-    # using only the venues dict working without seeding the DB.
+    # Live incident count (book venues only, when a DB session is available).
+    # A successful query is authoritative — including a genuine 0, so the
+    # safety factor reconciles with the live incident list ("No incidents on
+    # file" → safety scored as zero incidents, not the seeded baseline).
+    # Only when there was NO live query (no session, prospect, or a DB error →
+    # live_count is None) do we fall back to the dict baseline + delta tracker;
+    # that keeps session-less unit fixtures working off the venues dict.
     live_count: int | None = None
     if session is not None and not is_prospect:
         try:
@@ -341,7 +343,10 @@ def get_risk_score(
         except Exception:
             live_count = None  # any DB issue → fall through to baseline path
 
-    if live_count is not None and live_count > 0:
+    if live_count is not None:
+        # DB query succeeded — authoritative, including a genuine 0. (Was
+        # `and live_count > 0`, which made a real zero fall back to the seeded
+        # baseline and contradict the live incident list.)
         overrides["incident_count"] = live_count
     else:
         incident_delta = tracker.incident_delta(venue_id)

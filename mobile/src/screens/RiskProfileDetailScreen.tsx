@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { api } from '../api/client';
 import { type OverrideStats } from '../types/claims';
-import { getFactorTier, factorGlyph } from '../lib/format';
+import { getFactorTier, factorGlyph, normalizeFactors } from '../lib/format';
 import { tierColor as getTierColor } from '../theme/tiers';
 import { ChevronRight } from 'lucide-react-native';
 
@@ -122,7 +122,9 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
   const tier = riskData?.tier ?? '—';
   const score = riskData?.total_score ?? 0;
   const tierColor = getTierColor(tier);
-  const factors: Record<string, number> = riskData?.factors ?? {};
+  // Backend sends factors as { score, weight } objects — normalize to numbers
+  // before tiering, else getFactorTier(NaN) renders every factor as HIGH RISK.
+  const factors: Record<string, number> = normalizeFactors(riskData?.factors);
   const isProspect = isProspectParam ?? riskData?.source === 'prospect';
 
   // Each factor drills into the evidence behind it. Only return an action when

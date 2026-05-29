@@ -16,6 +16,7 @@ import { CapacityBar } from '../components/CapacityBar';
 import { StatCard } from '../components/StatCard';
 import { QuickActionTile } from '../components/QuickActionTile';
 import { tierColor as getTierColor } from '../theme/tiers';
+import { normalizeFactors } from '../lib/format';
 
 interface RiskScore {
   venue_id: string;
@@ -100,14 +101,7 @@ export function DashboardScreen({ navigation }: any) {
 
       // Normalize factors to plain numbers so they never reach JSX as objects
       if (risk?.factors) {
-        const normalized: Record<string, number> = {};
-        for (const [k, v] of Object.entries(risk.factors)) {
-          normalized[k] =
-            typeof v === 'object' && v !== null
-              ? Number((v as any).score ?? 0)
-              : Number(v);
-        }
-        risk.factors = normalized;
+        risk.factors = normalizeFactors(risk.factors);
       }
 
       setRiskData(risk);

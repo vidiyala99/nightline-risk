@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api/client';
 import { CapacityBar } from '../components/CapacityBar';
 import { tierColor as getTierColor } from '../theme/tiers';
-import { getFactorTier } from '../lib/format';
+import { getFactorTier, normalizeFactors } from '../lib/format';
 
 // Tier-label shown in the factor-row chip. The 0-100 score is inverted from
 // risk (higher score = lower risk, like a credit score). Pairing with risk
@@ -82,11 +82,7 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
       }
 
       if (riskData?.factors) {
-        const norm: Record<string, number> = {};
-        for (const [k, v] of Object.entries(riskData.factors)) {
-          norm[k] = typeof v === 'object' && v !== null ? Number((v as any).score ?? 0) : Number(v);
-        }
-        riskData.factors = norm;
+        riskData.factors = normalizeFactors(riskData.factors);
       }
 
       const queue = (liveRaw.compliance_queue ?? []).map((item: any) => ({
