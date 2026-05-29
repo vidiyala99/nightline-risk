@@ -211,7 +211,7 @@ export default function LoginPage() {
 
         <div className="lc-login__quote">
           <p>&ldquo;Keep cultural businesses alive.&rdquo;</p>
-          <span>Nightline · Backed by a16z SpeedRun &amp; Dorm Room Fund</span>
+          <span>Nightline · Evidence-first underwriting for nightlife</span>
         </div>
       </div>
     </div>

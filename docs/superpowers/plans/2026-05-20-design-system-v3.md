@@ -1072,7 +1072,7 @@ The page should render with this structure (adapt to existing form logic):
   </div>
   <div className="login-shell__quote">
     <p>"Keep cultural businesses alive."</p>
-    <span>Nightline · Backed by a16z SpeedRun &amp; Dorm Room Fund</span>
+    <span>Nightline · Evidence-first underwriting for nightlife</span>
   </div>
 </div>
 ```
