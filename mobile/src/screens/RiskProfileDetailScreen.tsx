@@ -350,9 +350,21 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
                 <View style={styles.insightContent}>
                   <Text style={styles.insightLabel}>{info?.label ?? key.replace(/_/g, ' ')}</Text>
                   <Text style={styles.insightText}>{info?.[tier]?.operator ?? ''}</Text>
-                  {info?.action && (
-                    <Text style={[styles.insightAction, { color }]}>{info.action}</Text>
-                  )}
+                  {info?.action && (() => {
+                    // The next-step is a real deep-link to the fix, mirroring web.
+                    const go = factorAction(key);
+                    if (!go) return <Text style={[styles.insightAction, { color }]}>{info.action}</Text>;
+                    return (
+                      <Pressable
+                        onPress={go}
+                        accessibilityRole="link"
+                        accessibilityLabel={`Fix ${info?.label ?? key}: ${info.action}`}
+                        style={({ pressed }) => [{ paddingVertical: 6 }, pressed && { opacity: 0.6 }]}
+                      >
+                        <Text style={[styles.insightAction, { color }]}>→ {info.action}</Text>
+                      </Pressable>
+                    );
+                  })()}
                 </View>
               </View>
             );

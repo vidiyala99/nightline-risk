@@ -145,6 +145,19 @@ function getFactorColor(score: number): string {
   return "var(--state-error)";
 }
 
+/** Where a factor's fix lives. Shared by the Factor Breakdown rows and the
+ *  "What to Improve" advice so the operator's next-step text is a real
+ *  deep-link, not just a sentence. Returns null when no surface exists
+ *  (e.g. brokers don't get the operator-only floor terminal). */
+function factorHref(key: string, venueId: string, isBroker: boolean): string | null {
+  const v = encodeURIComponent(venueId);
+  if (key === "incident_history") return `/incidents?venue=${v}`;
+  if (key === "compliance") return `/compliance?venue=${v}`;
+  if (key === "operational" && !isBroker) return `/terminal/${v}#infrastructure`;
+  if (key === "business_profile") return `/venues/${v}`;
+  return null;
+}
+
 /** Icon paired with the score tier — supplements color so tier is conveyed twice (a11y: color-not-only). */
 function FactorTierIcon({ tier, color }: { tier: "good" | "moderate" | "poor"; color: string }) {
   const props = { size: 14, style: { color }, "aria-hidden": true as const };
@@ -728,6 +741,15 @@ export default function RiskProfilePage() {
         .rp-factor-row:hover .rp-factor-chevron,
         .rp-factor-row:focus-visible .rp-factor-chevron { color: var(--accent-ink); transform: translateX(2px); }
 
+        /* "What to Improve" advice → deep-link to the fix. Inline, underlined
+           on hover, with a chevron that nudges — reads as an action, not prose. */
+        .rp-fix-link { display: inline-flex; align-items: center; gap: 2px; text-decoration: none;
+          cursor: pointer; border-radius: var(--radius-sm); }
+        .rp-fix-link:hover { text-decoration: underline; }
+        .rp-fix-link:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
+        .rp-fix-link:hover .rp-factor-chevron,
+        .rp-fix-link:focus-visible .rp-factor-chevron { transform: translateX(2px); }
+
         /* Records & evidence — connective hub link tiles. */
         .rp-dossier-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-sm); }
         @media (min-width: 640px) { .rp-dossier-grid { grid-template-columns: 1fr 1fr; } }
@@ -865,11 +887,7 @@ export default function RiskProfilePage() {
                 const label = info?.label ?? key.replace(/_/g, " ");
                 // Drill into the evidence behind each factor. Only link rows with
                 // a real destination — others stay static (no chevron, no cursor).
-                let href: string | null = null;
-                if (key === "incident_history") href = `/incidents?venue=${encodeURIComponent(venueId)}`;
-                else if (key === "compliance") href = `/compliance?venue=${encodeURIComponent(venueId)}`;
-                else if (key === "operational" && !isBroker) href = `/terminal/${encodeURIComponent(venueId)}#infrastructure`;
-                else if (key === "business_profile") href = `/venues/${encodeURIComponent(venueId)}`;
+                const href = factorHref(key, venueId, isBroker);
 
                 const showIncidentCounts = key === "incident_history" && incidentCounts !== null;
                 // Risk-language chip: the 0-100 score is inverted from risk
@@ -1145,9 +1163,24 @@ export default function RiskProfilePage() {
                         </span>
                       </div>
                       <p className="text-sm text-secondary mb-xs" style={{ lineHeight: 1.6 }}>{info?.[ft]?.[isBroker ? "broker" : "operator"]}</p>
-                      {!isBroker && info?.action && (
-                        <p className="text-xs font-mono" style={{ color }}>→ {info.action}</p>
-                      )}
+                      {!isBroker && info?.action && (() => {
+                        // Make the next-step a real deep-link to where the fix
+                        // lives, not just advice text. Falls back to static text
+                        // when the factor has no actionable surface.
+                        const fixHref = factorHref(key, venueId, isBroker);
+                        if (!fixHref) return <p className="text-xs font-mono" style={{ color }}>→ {info.action}</p>;
+                        return (
+                          <Link
+                            href={fixHref}
+                            className="rp-fix-link text-xs font-mono"
+                            style={{ color }}
+                            aria-label={`Fix ${info?.label ?? key}: ${info.action}`}
+                          >
+                            → {info.action}
+                            <ChevronRight size={12} className="rp-factor-chevron" aria-hidden="true" />
+                          </Link>
+                        );
+                      })()}
                     </div>
                   );
                 })}
