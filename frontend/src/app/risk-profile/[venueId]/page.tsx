@@ -660,8 +660,14 @@ export default function RiskProfilePage() {
            space. This keeps the narrative order while preventing the right
            column from looking empty when there are fewer right-side cards. */
         @media (min-width: 1024px) {
-          .rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); grid-auto-flow: row dense; align-items: start; }
-          .rp-grid > .rp-col { display: contents; }
+          .rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); align-items: start; }
+          /* Two INDEPENDENT flex columns. Previously the columns used
+             display:contents + grid-auto-flow:row-dense, dissolving them into one
+             grid so card rows shared a height — a tall card (e.g. Master Policy)
+             left a void beside a short one (Whats Working). Letting each rp-col
+             stack its own cards removes the cross-column coupling; columns may end
+             at different heights (trailing space at the bottom), never mid-content. */
+          .rp-grid > .rp-col { display: flex; flex-direction: column; gap: var(--space-lg); }
         }
         .rp-back { display: inline-flex; align-items: center; gap: var(--space-xs); background: none; border: none; cursor: pointer;
                    padding: var(--space-sm) var(--space-md) var(--space-sm) 0; margin: 0 0 var(--space-lg); min-height: 44px;
