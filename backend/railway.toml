@@ -6,6 +6,9 @@
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
+# No startCommand: it would override the Dockerfile CMD and run in exec form,
+# which does NOT expand shell vars — uvicorn would receive the literal "$PORT"
+# and crash-loop. The Dockerfile CMD uses `sh -c ... ${PORT:-8080}` so Railway's
+# injected $PORT expands correctly. Let the image's CMD own startup.
 [deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 restartPolicyType = "on_failure"
