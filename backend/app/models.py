@@ -673,6 +673,30 @@ class PolicyRequest(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=now_utc)
 
 
+class BrokerTask(SQLModel, table=True):
+    """Persisted overlay on the broker to-do feed (see app/api/v1/tasks.py).
+
+    The feed itself is computed each request from renewals + pending
+    PolicyRequests. This row layers per-item broker intent on top —
+    dismiss / snooze / done — keyed by the feed item's stable id (`task_key`).
+    A `manual` task is broker-authored and owns its own key (task_key == id).
+    Lifecycle: see app.lifecycles.BrokerTaskStatus / BROKER_TASK_TRANSITIONS."""
+    id: str = Field(primary_key=True)                   # "btask-<uuid12>"
+    task_key: str = Field(index=True)                   # feed item id, or == id for manual tasks
+    kind: str                                            # renewal | request | manual
+    status: str = Field(default="open", index=True)
+    ref_id: Optional[str] = None                        # underlying policy/request id (overlays)
+    venue_id: Optional[str] = Field(default=None, index=True)
+    title: str = ""
+    note: str = ""
+    due_date: Optional[date] = None
+    snoozed_until: Optional[date] = None                 # set when status == "snoozed"
+    created_by: str = ""                                 # broker user id (token sub)
+
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
+
+
 class VenueOperationalEvent(SQLModel, table=True):
     """A single normalized operational signal ingested for a venue.
 

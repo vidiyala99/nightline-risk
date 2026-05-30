@@ -175,6 +175,31 @@ POLICY_REQUEST_TERMINAL_STATES: frozenset[str] = frozenset(
 )
 
 
+# ─── BrokerTask lifecycle ────────────────────────────────────────────────
+# Persisted overlay on the broker to-do feed (app/api/v1/tasks.py). A task is
+# "open" until the broker snoozes it (hidden until snoozed_until), dismisses it
+# (hidden), or marks it done. Any state can reopen — nothing is truly terminal,
+# matching the claim/compliance "always reversible" stance.
+
+BrokerTaskStatus = Literal[
+    "open",       # needs attention (default)
+    "snoozed",    # hidden until snoozed_until
+    "dismissed",  # hidden; broker chose to ignore
+    "done",       # completed
+]
+
+BROKER_TASK_TRANSITIONS: dict[str, set[str]] = {
+    "open":      {"snoozed", "dismissed", "done"},
+    "snoozed":   {"open", "dismissed", "done"},
+    "dismissed": {"open"},
+    "done":      {"open"},
+}
+
+BROKER_TASK_TERMINAL_STATES: frozenset[str] = frozenset(
+    s for s, nexts in BROKER_TASK_TRANSITIONS.items() if not nexts
+)
+
+
 # ─── ComplianceSignal lifecycle ──────────────────────────────────────────
 
 ComplianceSignalStatus = Literal[
