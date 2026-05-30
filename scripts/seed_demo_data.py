@@ -15,7 +15,7 @@ import sys
 import urllib.request
 import urllib.error
 
-BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "https://nightline-risk-api-production-355c.up.railway.app"
+BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "https://nightline-risk-api-production.up.railway.app"
 VENUE = "elsewhere-brooklyn"
 OP_EMAIL = "venue@elsewhere.com"
 BR_EMAIL = "broker@thirdspace.risk"

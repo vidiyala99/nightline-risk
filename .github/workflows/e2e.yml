@@ -46,8 +46,8 @@ jobs:
         run: |
           set -u
           # Railway-assigned public domain for the nightline-risk-api service
-          # (fresh project created 2026-05-30; the "-355c" suffix is Railway's).
-          BACKEND="https://nightline-risk-api-production-355c.up.railway.app"
+          # (project "bountiful-unity", created 2026-05-30).
+          BACKEND="https://nightline-risk-api-production.up.railway.app"
           # Must match the Playwright baseURL (frontend/playwright.config.ts) so
           # warm-up actually verifies the deployment under test — not a stale,
           # always-up per-deployment URL.

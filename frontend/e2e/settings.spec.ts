@@ -15,7 +15,7 @@
 
 import { test, expect, request } from "@playwright/test";
 
-const BACKEND_URL = "https://nightline-risk-api-production-355c.up.railway.app";
+const BACKEND_URL = "https://nightline-risk-api-production.up.railway.app";
 
 function uniqueEmail(): string {
   return `settings+${Date.now()}@e2e.test`;

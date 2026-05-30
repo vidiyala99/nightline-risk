@@ -3,9 +3,8 @@
 The backend (FastAPI) runs on **Railway** (Hobby $5 plan, always-on); Postgres is
 **Neon** (free tier, permanent). Frontend stays on Vercel.
 
-Service: **`nightline-risk-api`** (project `cheerful-gentleness`) →
-`https://nightline-risk-api-production-355c.up.railway.app`
-(Railway assigns the `-355c` suffix; it's tied to the project, not the repo name.)
+Service: **`nightline-risk-api`** (project `bountiful-unity`) →
+`https://nightline-risk-api-production.up.railway.app`
 
 > Why Railway over the free Render tier: Render's free web service sleeps after
 > ~15min idle (~50s cold start), which made demos feel unreliable. The $5 Hobby
@@ -35,7 +34,7 @@ Railway auto-injects `PORT` and `RAILWAY_ENVIRONMENT` (the latter drives
 its deterministic provider without it.
 
 ## Point the frontend + mobile at Railway
-- **Vercel** (frontend): set `NEXT_PUBLIC_API_URL = https://nightline-risk-api-production-355c.up.railway.app`
+- **Vercel** (frontend): set `NEXT_PUBLIC_API_URL = https://nightline-risk-api-production.up.railway.app`
   for **Production AND Preview**, then redeploy (NEXT_PUBLIC vars are baked at build
   time — a redeploy is required, and watch for stray trailing whitespace/dots).
 - **Mobile** (Expo): set `EXPO_PUBLIC_API_URL` the same way for builds.
@@ -56,5 +55,7 @@ DATABASE_URL="<neon-connection-string>" python -m scripts.seed_defense_demo
 - **Ephemeral storage:** local-disk evidence files are lost on redeploy. Fix is
   `STORAGE_BACKEND=s3`.
 - The old Render Blueprint (`render.yaml`) and Fly config (`backend/fly.toml`) are
-  left in the repo for rollback. The retired `thirdspacerisk-production` Railway
-  project (with its own Postgres) can be deleted once this one is confirmed.
+  left in the repo for rollback. Two retired Railway projects should be deleted to
+  avoid redundant usage: `thirdspacerisk-production` (the original, with its own
+  Postgres) and `cheerful-gentleness` (a duplicate of this one created during
+  setup; `bountiful-unity` is canonical).
