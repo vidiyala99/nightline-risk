@@ -33,3 +33,25 @@ def test_venue_persists_coverage_profile_columns():
         assert v.renewal_date == "2026-09-01"
         assert v.coverage_interest == '["gl","liquor"]'
         assert v.onboarding_complete is True
+
+
+def test_resolve_venue_overlays_profile_columns():
+    from app.api.v1.venues import VENUES, _resolve_venue
+    from app.services.coverage_profile import set_coverage_profile
+
+    create_db_and_tables()
+    with Session(engine) as s:
+        if not s.get(Venue, "ovl-1"):
+            s.add(Venue(id="ovl-1", name="Overlay", venue_data='{"capacity": 200}'))
+            s.commit()
+        v = s.get(Venue, "ovl-1")
+        set_coverage_profile(s, v, current_carrier="Chubb",
+                             renewal_date="2026-10-01", coverage_interest=["gl"])
+        s.commit()
+    VENUES.pop("ovl-1", None)  # force a DB rehydrate, not a cache hit
+    with Session(engine) as s:
+        d = _resolve_venue("ovl-1", s)
+        assert d["current_carrier"] == "Chubb"
+        assert d["renewal_date"] == "2026-10-01"
+        assert d["coverage_interest"] == ["gl"]
+        assert d["onboarding_complete"] is True

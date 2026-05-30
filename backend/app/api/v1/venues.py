@@ -90,6 +90,18 @@ def _resolve_venue(venue_id: str, session: Session) -> dict:
     except (ValueError, TypeError):
         data = {}
     venue_data = {"name": db_venue.name, **data}
+    # Overlay the structured onboarding columns onto the dict so scoring/quote/
+    # display readers see authoritative values without reading venue_data copies.
+    if db_venue.current_carrier is not None:
+        venue_data["current_carrier"] = db_venue.current_carrier
+    if db_venue.renewal_date is not None:
+        venue_data["renewal_date"] = db_venue.renewal_date
+    if db_venue.coverage_interest is not None:
+        try:
+            venue_data["coverage_interest"] = _json.loads(db_venue.coverage_interest)
+        except (ValueError, TypeError):
+            venue_data["coverage_interest"] = []
+    venue_data["onboarding_complete"] = bool(db_venue.onboarding_complete)
     VENUES[venue_id] = venue_data
     return venue_data
 
