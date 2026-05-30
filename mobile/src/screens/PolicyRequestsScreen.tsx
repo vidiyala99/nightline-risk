@@ -31,29 +31,10 @@ import {
   type PolicyRequestStatus,
 } from '../api/policyRequests';
 import { Fonts } from '../theme/typography';
+import { detailLine, resultLabel } from '../lib/policyRequestView';
 
 type Filter = 'pending' | 'approved' | 'declined' | 'all';
 const FILTERS: Filter[] = ['pending', 'approved', 'declined', 'all'];
-
-function detailLine(r: PolicyRequest): string | null {
-  const p = r.payload || {};
-  if (r.request_type === 'cancellation' && p.cancellation_date) return `Out by ${p.cancellation_date}`;
-  if (r.request_type === 'coi' && p.certificate_holder) return `Holder: ${p.certificate_holder}`;
-  return null;
-}
-
-/** What an approval produced (execute-on-approval). Shown as confirmation text:
- *  the detail screens live in other navigators, so we surface the outcome here
- *  rather than risk a cross-stack deep-link (web has the live link). */
-function resultLabel(r: PolicyRequest): string | null {
-  if (r.status !== 'approved' || !r.result_entity_type) return null;
-  switch (r.result_entity_type) {
-    case 'submission': return '✓ Renewal submission created';
-    case 'certificate': return '✓ Certificate issued';
-    case 'policy': return '✓ Policy cancelled';
-    default: return null;
-  }
-}
 
 export function PolicyRequestsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
