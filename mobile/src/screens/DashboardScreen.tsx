@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
 import { StatCard } from '../components/StatCard';
 import { QuickActionTile } from '../components/QuickActionTile';
+import { OnboardingCard } from '../components/OnboardingCard';
 import { tierColor as getTierColor } from '../theme/tiers';
 import { normalizeFactors, riskAttentionLine, factorGlyph } from '../lib/format';
 
@@ -264,6 +265,9 @@ export function DashboardScreen({ navigation }: any) {
           })}
         />
       </View>
+
+      {/* Onboarding nudge — capture insurance knowns so a broker can shop coverage */}
+      {selectedVenueId && <OnboardingCard venueId={selectedVenueId} />}
 
       {/* Error state — venue exists but data failed to load */}
       {!riskData && !quoteData && fetchError && (
