@@ -24,6 +24,9 @@ export interface PolicyRequest {
   decided_by: string | null;
   decision_note: string | null;
   decided_at: string | null;
+  // What an approval created, for deep-linking (execute-on-approval).
+  result_entity_type?: 'submission' | 'certificate' | 'policy' | null;
+  result_entity_id?: string | null;
   created_at: string;
   updated_at: string;
 }

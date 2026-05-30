@@ -32,6 +32,27 @@ function payloadSummary(r: PolicyRequest): string | null {
   return null;
 }
 
+/**
+ * Where an approved request's downstream entity lives. The broker approval now
+ * executes the action (renewal->Submission, COI->certificate, cancellation->
+ * cancelled Policy); this surfaces a deep-link to what was created. A
+ * certificate has no standalone page, so it links to the policy detail (which
+ * lists COIs with a PDF download).
+ */
+function approvalResultLink(r: PolicyRequest): { href: string; label: string } | null {
+  if (r.status !== "approved" || !r.result_entity_type || !r.result_entity_id) return null;
+  switch (r.result_entity_type) {
+    case "submission":
+      return { href: `/submissions/${r.result_entity_id}`, label: "View renewal" };
+    case "certificate":
+      return { href: `/policies/${r.policy_id}`, label: "View certificate" };
+    case "policy":
+      return { href: `/policies/${r.result_entity_id}`, label: "View policy" };
+    default:
+      return null;
+  }
+}
+
 export default function PolicyRequestsPage() {
   const router = useRouter();
   const { user, isLoaded } = useAuth();
@@ -193,7 +214,23 @@ export default function PolicyRequestsPage() {
                           </button>
                         </div>
                       ) : (
-                        <span className="preq-decided-by">{r.decided_by ? `by ${r.decided_by}` : ""}</span>
+                        <div className="preq-decided">
+                          {r.decided_by && (
+                            <span className="preq-decided-by">by {r.decided_by}</span>
+                          )}
+                          {(() => {
+                            const link = approvalResultLink(r);
+                            return link ? (
+                              <button
+                                type="button"
+                                className="link-button preq-result-link"
+                                onClick={() => router.push(link.href)}
+                              >
+                                {link.label}
+                              </button>
+                            ) : null;
+                          })()}
+                        </div>
                       )}
                     </td>
                   </tr>

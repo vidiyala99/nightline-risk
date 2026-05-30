@@ -6244,6 +6244,8 @@ html, body { overflow-x: clip; }
 .preq-decided-by { font-size: 0.72rem; color: var(--text-tertiary); }
 .preq-detail-sub { color: var(--text-tertiary); }
 .preq-policy-link { display: inline-block; margin-left: 10px; font-size: 0.75rem; }
+.preq-decided { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.preq-result-link { font-size: 0.75rem; }
 
 @media (prefers-reduced-motion: reduce) {
   .coverage-card { animation: none; }

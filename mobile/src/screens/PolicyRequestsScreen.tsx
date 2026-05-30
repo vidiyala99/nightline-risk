@@ -42,6 +42,19 @@ function detailLine(r: PolicyRequest): string | null {
   return null;
 }
 
+/** What an approval produced (execute-on-approval). Shown as confirmation text:
+ *  the detail screens live in other navigators, so we surface the outcome here
+ *  rather than risk a cross-stack deep-link (web has the live link). */
+function resultLabel(r: PolicyRequest): string | null {
+  if (r.status !== 'approved' || !r.result_entity_type) return null;
+  switch (r.result_entity_type) {
+    case 'submission': return '✓ Renewal submission created';
+    case 'certificate': return '✓ Certificate issued';
+    case 'policy': return '✓ Policy cancelled';
+    default: return null;
+  }
+}
+
 export function PolicyRequestsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
@@ -183,7 +196,10 @@ export function PolicyRequestsScreen({ navigation }: any) {
                   </Pressable>
                 </View>
               ) : (
-                item.decided_by ? <Text style={styles.decidedBy}>by {item.decided_by}</Text> : null
+                <View style={styles.decidedWrap}>
+                  {item.decided_by ? <Text style={styles.decidedBy}>by {item.decided_by}</Text> : null}
+                  {resultLabel(item) ? <Text style={styles.resultLabel}>{resultLabel(item)}</Text> : null}
+                </View>
               )}
             </View>
           );
@@ -231,7 +247,9 @@ const styles = StyleSheet.create({
   approveBtn: { backgroundColor: Colors.accent },
   approveText: { color: Colors.text, fontFamily: Fonts.sansBold, fontSize: 13 },
   btnBusy: { opacity: 0.5 },
+  decidedWrap: { alignItems: 'flex-end', gap: 2 },
   decidedBy: { color: Colors.textMuted, fontFamily: Fonts.monoRegular, fontSize: 11, textAlign: 'right' },
+  resultLabel: { color: Colors.accentInk, fontFamily: Fonts.sansMedium, fontSize: 11, textAlign: 'right' },
 
   empty: { padding: 32, alignItems: 'center' },
   emptyText: { color: Colors.textSecondary, textAlign: 'center', fontFamily: Fonts.sansRegular, fontSize: 13, lineHeight: 18 },
