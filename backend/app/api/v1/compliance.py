@@ -103,8 +103,15 @@ async def upload_compliance_evidence(
 
     # Transition the ComplianceSignal to resolved if it exists in the DB.
     # Best-effort: if the row isn't found (e.g. legacy item_id), skip silently.
+    # Idempotent: an already-resolved item stays resolved — re-uploading
+    # evidence must not 500 on the lifecycle guard (resolved→resolved is not a
+    # legal transition). The evidence row above is still persisted either way.
     signal_row = session.get(ComplianceSignal, item_id)
-    if signal_row is not None and signal_row.venue_id == venue_id:
+    if (
+        signal_row is not None
+        and signal_row.venue_id == venue_id
+        and signal_row.status != "resolved"
+    ):
         transition_compliance_signal(
             session, signal_row, to="resolved",
             actor_id=uploaded_by, evidence_ref=file_ref,
@@ -145,11 +152,14 @@ def resolve_compliance_item_as_broker(
             f"Compliance item {item_id!r} not found for venue {venue_id!r}.",
             status_code=404,
         )
-    transition_compliance_signal(
-        session, row, to="resolved", actor_id=user["sub"],
-        metadata={"reason": (body or {}).get("reason")},
-    )
-    session.commit()
+    # Idempotent: waiving an already-resolved item is a no-op, not a 500.
+    # 'resolved' is the desired end-state, so a repeat click just succeeds.
+    if row.status != "resolved":
+        transition_compliance_signal(
+            session, row, to="resolved", actor_id=user["sub"],
+            metadata={"reason": (body or {}).get("reason")},
+        )
+        session.commit()
     return {"status": "resolved", "item_id": item_id}
 
 

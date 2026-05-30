@@ -661,6 +661,14 @@ class PolicyRequest(SQLModel, table=True):
     decision_note: Optional[str] = None
     decided_at: Optional[datetime] = None
 
+    # What an *approval* actually created, so the UI can deep-link from the
+    # decided request to its result. Populated only on approval that executes
+    # an underlying action: "submission" (renewal), "certificate" (coi),
+    # "policy" (cancellation). Null for coverage_change (decision-only) and
+    # for declined/cancelled requests.
+    result_entity_type: Optional[str] = None
+    result_entity_id: Optional[str] = None
+
     created_at: datetime = Field(default_factory=now_utc)
     updated_at: datetime = Field(default_factory=now_utc)
 

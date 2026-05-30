@@ -16,6 +16,7 @@ broker-platform conventions:
 """
 from __future__ import annotations
 
+from datetime import date
 from typing import Optional
 from uuid import uuid4
 
@@ -121,6 +122,100 @@ def create_policy_request(
 # ─── decide (broker) ──────────────────────────────────────────────────────
 
 
+# COI is the only request type that can't fall back to a default — it needs
+# the holder + operations detail to render a real certificate. We validate
+# this BEFORE the lifecycle transition so a malformed approval leaves the
+# request untouched (the post-transition executor relies on router rollback).
+_COI_REQUIRED_KEYS = (
+    "certificate_holder",
+    "certificate_holder_address",
+    "description_of_operations",
+    "expires_on",
+)
+
+
+def _validate_executable(req: PolicyRequest) -> None:
+    """Cheap precondition check run before transitioning to 'approved'."""
+    if req.request_type == "coi":
+        payload = req.payload or {}
+        missing = [k for k in _COI_REQUIRED_KEYS if not payload.get(k)]
+        if missing:
+            raise PolicyRequestError(
+                f"Cannot approve COI request {req.id!r}: payload missing {missing}"
+            )
+
+
+def _execute_approved_request(
+    session: Session, req: PolicyRequest, *, actor_id: str
+) -> tuple[Optional[str], Optional[str]]:
+    """Perform the real lifecycle action behind an approved request.
+
+    Returns (result_entity_type, result_entity_id) for deep-linking. Runs
+    AFTER the transition; underlying service errors are re-raised as
+    PolicyRequestError so the router rolls back the transition + side effect
+    as one atomic unit. coverage_change is decision-only (no deterministic
+    mid-term endorsement service exists) and returns (None, None).
+    """
+    # Local imports avoid a circular at module load (services import each other).
+    from app.services.policies import (
+        PoliciesError,
+        cancel_policy,
+        issue_certificate,
+    )
+    from app.services.renewals import RenewalsError, create_renewal
+
+    payload = req.payload or {}
+    try:
+        if req.request_type == "renewal":
+            policy = session.get(Policy, req.policy_id)
+            if policy is None:
+                raise PolicyRequestError(f"Policy {req.policy_id!r} not found")
+            eff = payload.get("effective_date")
+            effective_date = (
+                date.fromisoformat(eff) if eff else policy.expiration_date
+            )
+            sub = create_renewal(
+                session, req.policy_id,
+                effective_date=effective_date, actor_id=actor_id,
+            )
+            return "submission", sub.id
+
+        if req.request_type == "coi":
+            coi = issue_certificate(
+                session, req.policy_id,
+                certificate_holder=payload["certificate_holder"],
+                certificate_holder_address=payload["certificate_holder_address"],
+                description_of_operations=payload["description_of_operations"],
+                expires_on=date.fromisoformat(payload["expires_on"]),
+                additional_insured=bool(payload.get("additional_insured", False)),
+                additional_insured_scope=payload.get("additional_insured_scope"),
+                issued_by=actor_id,
+            )
+            return "certificate", coi.id
+
+        if req.request_type == "cancellation":
+            cdate = payload.get("cancellation_date")
+            cancellation_date = (
+                date.fromisoformat(cdate) if cdate else now_utc().date()
+            )
+            policy = cancel_policy(
+                session, req.policy_id,
+                reason=payload.get("reason") or req.note
+                or "Operator-requested cancellation",
+                method=payload.get("method", "pro_rata"),
+                cancellation_date=cancellation_date,
+                cancelled_by=actor_id,
+            )
+            return "policy", policy.id
+
+        # coverage_change → decision-only.
+        return None, None
+    except (RenewalsError, PoliciesError) as e:
+        raise PolicyRequestError(
+            f"Cannot execute approved {req.request_type} request {req.id!r}: {e}"
+        ) from e
+
+
 def decide_policy_request(
     session: Session,
     *,
@@ -129,7 +224,14 @@ def decide_policy_request(
     decided_by: str,
     decision_note: Optional[str] = None,
 ) -> PolicyRequest:
-    """Broker approves or declines a pending request."""
+    """Broker approves or declines a pending request.
+
+    On approval, the underlying broker action is executed (renewal →
+    Submission, coi → CertificateOfInsurance, cancellation → cancelled
+    Policy) so the decision isn't a hollow status flip. coverage_change is
+    decision-only. The caller (router) owns commit/rollback — an execution
+    failure raises PolicyRequestError so the whole unit rolls back.
+    """
     if decision not in VALID_DECISIONS:
         raise PolicyRequestError(
             f"Invalid decision {decision!r}. Must be one of: {sorted(VALID_DECISIONS)}"
@@ -138,6 +240,10 @@ def decide_policy_request(
     if req is None:
         raise PolicyRequestError(f"PolicyRequest {request_id!r} not found")
 
+    # Precondition check before the transition keeps a bad approval idempotent.
+    if decision == "approved":
+        _validate_executable(req)
+
     _transition_policy_request(
         session, req, to=decision, actor_id=decided_by,
         metadata={"decision_note": decision_note} if decision_note else None,
@@ -145,6 +251,25 @@ def decide_policy_request(
     req.decided_by = decided_by
     req.decision_note = decision_note
     req.decided_at = now_utc()
+
+    if decision == "approved":
+        result_type, result_id = _execute_approved_request(
+            session, req, actor_id=decided_by
+        )
+        req.result_entity_type = result_type
+        req.result_entity_id = result_id
+        _add_audit_event(
+            session=session,
+            actor_id=decided_by, actor_type="user",
+            entity_type="policy_request", entity_id=req.id,
+            event_type="policy_request.executed",
+            event_metadata={
+                "request_type": req.request_type,
+                "result_entity_type": result_type,
+                "result_entity_id": result_id,
+            },
+        )
+
     session.add(req)
     return req
 

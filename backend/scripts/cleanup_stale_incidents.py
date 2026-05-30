@@ -27,41 +27,15 @@ from __future__ import annotations
 import argparse
 import sys
 from collections import defaultdict
-from datetime import datetime
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.database import engine
-from app.models import IncidentRecord
-from app.packet_core import _add_audit_event
-from app.time import as_utc, now_utc
-
-_OPEN_STATUSES = {"open", "under_review"}
-
-
-def _parse_dt(value) -> datetime | None:
-    """See scripts/audit_incidents._parse_dt — same parse, kept local so each
-    script stands alone."""
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        return as_utc(value)
-    s = str(value).strip()
-    if not s:
-        return None
-    if s.endswith("Z"):
-        s = s[:-1] + "+00:00"
-    try:
-        return as_utc(datetime.fromisoformat(s))
-    except ValueError:
-        return None
-
-
-def _age_days(occurred_at, now: datetime) -> float | None:
-    when = _parse_dt(occurred_at)
-    if when is None:
-        return None
-    return max(0.0, (now - when).total_seconds() / 86400.0)
+from app.services.incident_maintenance import (
+    archive_stale_incidents,
+    find_stale_incidents,
+)
+from app.time import now_utc
 
 
 def main() -> int:
@@ -72,30 +46,18 @@ def main() -> int:
                         help="archive open incidents older than N days by occurred_at (default 60)")
     args = parser.parse_args()
     now = now_utc()
+    venue = args.venue or None
 
     with Session(engine) as session:
-        stmt = select(IncidentRecord).where(IncidentRecord.status.in_(_OPEN_STATUSES))  # type: ignore[attr-defined]
-        if args.venue:
-            stmt = stmt.where(IncidentRecord.venue_id == args.venue)
-        open_rows = session.exec(stmt).all()
-
-        targets: list[tuple[IncidentRecord, float]] = []
-        skipped_seed = skipped_undated = 0
-        for r in open_rows:
-            if (r.id or "").startswith("seed-"):
-                skipped_seed += 1
-                continue
-            age = _age_days(r.occurred_at, now)
-            if age is None:
-                skipped_undated += 1
-                continue
-            if age <= args.days:
-                continue
-            targets.append((r, age))
+        # Reuse the service's selection logic so the script and the runtime
+        # cap stay in lock-step (single source of truth).
+        targets = find_stale_incidents(
+            session, venue_id=venue, older_than_days=args.days, now=now,
+        )
 
         if not targets:
             print(f"No stale app-generated open incidents older than {args.days}d to archive. "
-                  f"Nothing to do. (skipped {skipped_seed} seed, {skipped_undated} undated)")
+                  f"Nothing to do.")
             return 0
 
         per_venue: dict[str, int] = defaultdict(int)
@@ -103,30 +65,16 @@ def main() -> int:
             per_venue[r.venue_id] += 1
 
         print(f"Found {len(targets)} stale open incident(s) older than {args.days}d "
-              f"across {len(per_venue)} venue(s)  (preserving {skipped_seed} seed rows):")
+              f"across {len(per_venue)} venue(s)  (seed rows preserved):")
         for venue_id in sorted(per_venue):
             print(f"  {venue_id:28} {per_venue[venue_id]:>4} -> closed_archived")
 
         if args.apply:
-            for r, age in targets:
-                r.status = "closed_archived"
-                session.add(r)
-                _add_audit_event(
-                    session=session,
-                    actor_id="cleanup_stale_incidents",
-                    actor_type="system",
-                    entity_type="incident",
-                    entity_id=r.id,
-                    event_type="incident.closed_archived",
-                    event_metadata={
-                        "reason": "stale_auto_archive",
-                        "age_days": round(age, 1),
-                        "venue_id": r.venue_id,
-                        "threshold_days": args.days,
-                    },
-                )
+            archived = archive_stale_incidents(
+                session, venue_id=venue, older_than_days=args.days, now=now,
+            )
             session.commit()
-            print(f"\nApplied. Archived {len(targets)} incident(s). The next risk-score read "
+            print(f"\nApplied. Archived {len(archived)} incident(s). The next risk-score read "
                   f"reflects the change (no restart needed).")
         else:
             print("\nDry-run only. Re-run with --apply to archive.")

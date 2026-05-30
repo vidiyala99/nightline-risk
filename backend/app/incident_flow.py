@@ -11,6 +11,7 @@ from app.models import IncidentRecord, IncidentEvaluation
 from app.packet_core import create_packet_snapshot
 from app.seed_data import STREAM_EVENTS, VENUES
 from app.services.compliance_signals import spawn_incident_followup
+from app.services.incident_maintenance import enforce_open_incident_cap
 from app.knowledge_sources import load_knowledge_sources_for_venue
 from app.underwriting.scoring import incident_delta_tracker
 
@@ -85,6 +86,12 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
     # baseline in VENUES is preserved; new incidents accumulate on top of it
     # until the next quote cycle.
     incident_delta_tracker.bump_incident(venue_id)
+
+    # Bound the venue's open app-generated backlog so a long-running demo can't
+    # accumulate unbounded open incidents that saturate the Safety Record
+    # (backlog #37). Archives the oldest beyond the cap; no-op under the cap.
+    if enforce_open_incident_cap(session, venue_id, protect_ids={incident.id}):
+        session.commit()
 
     return IncidentFlowResponse(
         incident=incident,

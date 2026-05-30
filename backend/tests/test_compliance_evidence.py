@@ -93,6 +93,42 @@ def test_compliance_evidence_listing_returns_persisted_files(client_and_engine):
     assert {r["filename"] for r in rows} == {"photo-0.jpg", "photo-1.jpg"}
 
 
+def test_reupload_to_resolved_signal_is_idempotent_not_500(client_and_engine):
+    """Re-uploading evidence to an item whose ComplianceSignal is already
+    resolved must not 500 (regression #38). The first upload resolves the
+    signal; the second must not crash on the resolved→resolved lifecycle
+    guard. The evidence row is still persisted on the second upload."""
+    from app.models import ComplianceSignal
+
+    client, engine = client_and_engine
+    with Session(engine) as s:
+        s.add(ComplianceSignal(
+            id="SIG_REUP_001", venue_id="elsewhere-brooklyn",
+            title="Footage gap", description="Upload footage.",
+            provenance="underwriter_verified", severity="medium", status="open",
+        ))
+        s.commit()
+
+    def _upload():
+        return client.post(
+            "/api/venues/elsewhere-brooklyn/compliance/SIG_REUP_001/upload",
+            files={"file": ("f.jpg", io.BytesIO(b"data"), "image/jpeg")},
+        )
+
+    first = _upload()
+    assert first.status_code == 200, first.text
+    second = _upload()   # signal already resolved — must be a no-op, not a 500
+    assert second.status_code == 200, second.text
+
+    with Session(engine) as s:
+        assert s.get(ComplianceSignal, "SIG_REUP_001").status == "resolved"
+        rows = s.exec(
+            select(ComplianceEvidence)
+            .where(ComplianceEvidence.compliance_item_id == "SIG_REUP_001")
+        ).all()
+        assert len(rows) == 2   # both uploads persisted
+
+
 def test_compliance_upload_rejects_oversized_file(client_and_engine):
     client, _ = client_and_engine
 

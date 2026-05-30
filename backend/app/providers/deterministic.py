@@ -91,6 +91,18 @@ _KEYWORD_LADDER = [
 
 _SEVERITY_ORDER = ("low", "medium", "high", "critical")
 
+# Explicit no-incident declarations — a strong off-topic signal. A genuine
+# incident report never states there was no incident, so these phrases reliably
+# mark a misrouted note (positive shift log, supply request, general comment).
+# Detected BEFORE the keyword ladder so a decoy word ("crowd was well-behaved")
+# can't false-match a real exposure. See eval ADV-005 / ADV-006.
+_NO_INCIDENT_DECLARATIONS = (
+    "no incident",        # also matches "no incidents"
+    "nothing to report",
+    "no issues to report",
+    "no issues to log",
+)
+
 
 def _has_all(text: str, *needles: str) -> bool:
     return all(n in text for n in needles)
@@ -202,6 +214,24 @@ class DeterministicRiskClassifier(RiskClassifierProvider):
         citation_excerpts: list[str],
     ) -> RiskClassification:
         summary = (incident_summary or "").lower()
+
+        # Off-topic guard: a misrouted non-incident note classifies as
+        # general_incident (→ never auto-approved) before the keyword ladder
+        # can false-match a decoy word. Keeps a "no incidents to report" note
+        # from becoming a high-severity liability packet (eval ADV-006).
+        if _has_any(summary, *_NO_INCIDENT_DECLARATIONS):
+            return RiskClassification(
+                risk_type="general_incident",
+                base_severity="low",
+                base_confidence=0.70,
+                rationale=(
+                    "Off-topic / non-incident note (explicit no-incident "
+                    "declaration) — routed to review, not auto-approved."
+                ),
+                provider=self.provider_name,
+                mode=self.mode,
+            )
+
         for keywords, risk_type, base_severity, confidence in _KEYWORD_LADDER:
             if any(k in summary for k in keywords):
                 matched = next(k for k in keywords if k in summary)

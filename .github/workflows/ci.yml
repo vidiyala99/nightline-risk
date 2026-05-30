@@ -58,6 +58,10 @@ jobs:
         working-directory: backend
         run: python -m app.evals.runner --compare-baseline
 
+      - name: Run calibration gate against committed baseline
+        working-directory: backend
+        run: python -m scripts.run_calibration --compare-baseline
+
       - name: Upload eval results
         if: always()
         uses: actions/upload-artifact@v4

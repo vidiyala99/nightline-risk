@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from app.auth import create_token
 from app.database import get_session
 from app.main import app
-from app.models import Policy, UserRecord, Venue
+from app.models import Policy, Submission, UserRecord, Venue
 
 
 VENUE_A = "elsewhere-brooklyn"
@@ -52,6 +52,13 @@ def _seed():
         for vid, vname in [(VENUE_A, "Elsewhere"), (VENUE_OTHER, "House of Yes")]:
             if not session.get(Venue, vid):
                 session.add(Venue(id=vid, name=vname))
+        # A prior bound submission so an approved renewal can carry its terms.
+        if not session.get(Submission, "sub-preq"):
+            session.add(Submission(
+                id="sub-preq", venue_id=VENUE_A, status="bound",
+                effective_date=date(2026, 1, 1), coverage_lines=["gl"],
+                requested_limits={"gl": {"per_occurrence": "1000000"}},
+            ))
         if not session.get(Policy, POLICY_ID):
             session.add(Policy(
                 id=POLICY_ID, policy_number="POL-PREQ", submission_id="sub-preq",
@@ -154,6 +161,124 @@ def test_decide_twice_is_invalid_transition_422(client):
     )
     assert r.status_code == 422
     assert r.json()["detail"]["error"] == "invalid_transition"
+
+
+# ─── approval EXECUTES the underlying action (over HTTP) ─────────────────────
+
+
+_COI_PAYLOAD = {
+    "certificate_holder": "Wythe Landlord LLC",
+    "certificate_holder_address": "123 Wythe Ave, Brooklyn, NY",
+    "description_of_operations": "GL proof for landlord.",
+    "expires_on": "2026-12-31",
+}
+
+
+def _make_dedicated_active_policy(pid: str) -> str:
+    """A throwaway active policy+submission so destructive approvals (e.g.
+    cancellation) don't contaminate the shared seeded POLICY_ID."""
+    session = next(get_session())
+    try:
+        sub_id = f"sub-{pid}"
+        if not session.get(Submission, sub_id):
+            session.add(Submission(
+                id=sub_id, venue_id=VENUE_A, status="bound",
+                effective_date=date(2026, 1, 1), coverage_lines=["gl"],
+                requested_limits={"gl": {"per_occurrence": "1000000"}},
+            ))
+        existing = session.get(Policy, pid)
+        if existing is None:
+            session.add(Policy(
+                id=pid, policy_number=f"POL-{pid}", submission_id=sub_id,
+                bound_quote_id=f"q-{pid}", venue_id=VENUE_A,
+                carrier_id="markel-specialty", status="active",
+                effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
+                annual_premium=Decimal("5000.00"),
+                commission_amount=Decimal("750.00"), commission_rate=Decimal("0.15"),
+                coverage_lines=["gl"],
+            ))
+        else:
+            # Persistent DB across runs: reset to active so a prior cancellation
+            # doesn't poison this run.
+            existing.status = "active"
+            existing.cancelled_at = None
+            existing.cancellation_method = None
+            existing.refund_amount = None
+            session.add(existing)
+        session.commit()
+    finally:
+        session.close()
+    return pid
+
+
+def test_broker_approve_renewal_creates_submission(client):
+    rid = _create(client, request_type="renewal").json()["id"]
+    r = client.post(
+        f"/api/policy-requests/{rid}/decide",
+        json={"decision": "approved"}, headers=_broker_headers(),
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["result_entity_type"] == "submission"
+    # the created renewal submission is real and fetchable
+    sub = client.get(
+        f"/api/submissions/{body['result_entity_id']}", headers=_broker_headers(),
+    )
+    assert sub.status_code == 200, sub.text
+    assert sub.json()["prior_policy_id"] == POLICY_ID
+
+
+def test_broker_approve_coi_issues_certificate(client):
+    rid = _create(client, request_type="coi", payload=_COI_PAYLOAD).json()["id"]
+    r = client.post(
+        f"/api/policy-requests/{rid}/decide",
+        json={"decision": "approved"}, headers=_broker_headers(),
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["result_entity_type"] == "certificate"
+    cois = client.get(
+        f"/api/policies/{POLICY_ID}/certificates", headers=_broker_headers(),
+    ).json()
+    assert body["result_entity_id"] in {c["id"] for c in cois}
+
+
+def test_approve_coi_missing_payload_400_and_stays_pending(client):
+    rid = _create(client, request_type="coi", payload={}).json()["id"]
+    r = client.post(
+        f"/api/policy-requests/{rid}/decide",
+        json={"decision": "approved"}, headers=_broker_headers(),
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"]["error"] == "policy_request_error"
+    # rolled back: the request is still pending and undecided
+    after = client.get(f"/api/policies/{POLICY_ID}/requests", headers=_operator_headers())
+    row = next(x for x in after.json() if x["id"] == rid)
+    assert row["status"] == "pending"
+    assert row["decided_at"] is None
+
+
+def test_broker_approve_cancellation_cancels_policy(client):
+    pid = _make_dedicated_active_policy("pol-preq-cancel")
+    create = client.post(
+        f"/api/policies/{pid}/requests",
+        json={"request_type": "cancellation",
+              "payload": {"cancellation_date": "2026-06-01", "method": "pro_rata"}},
+        headers=_operator_headers(),
+    )
+    rid = create.json()["id"]
+    r = client.post(
+        f"/api/policy-requests/{rid}/decide",
+        json={"decision": "approved"}, headers=_broker_headers(),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["result_entity_type"] == "policy"
+    # the policy is now cancelled
+    session = next(get_session())
+    try:
+        assert session.get(Policy, pid).status == "cancelled"
+    finally:
+        session.close()
 
 
 # ─── cancel + reads ──────────────────────────────────────────────────────────

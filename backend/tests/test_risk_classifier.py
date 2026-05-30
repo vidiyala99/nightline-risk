@@ -39,6 +39,42 @@ def test_deterministic_classifier_preserves_keyword_ladder(summary, expected_typ
     assert result.mode == ProviderMode.DETERMINISTIC
 
 
+# ─── Off-topic detection (eval ADV-005 / ADV-006) ─────────────────────────
+#
+# A non-incident note misrouted into the incident form must classify as
+# general_incident (→ never auto-approved), NOT get false-matched to a real
+# exposure by an incidental keyword. ADV-006 reads "...crowd was well-behaved
+# ... No incidents to report" — without this guard the bare word "crowd"
+# lands it as crowd_management/high, polluting the risk signal and passing the
+# safety scorer only by the accident of high→needs_review.
+
+
+@pytest.mark.parametrize("summary", [
+    # ADV-006: positive end-of-night note (note the "crowd" decoy word)
+    "Great night, crowd was well-behaved, security ran a tight ship. "
+    "No incidents to report. Just wanted to log a positive shift.",
+    # explicit no-incident declarations
+    "Quiet evening, nothing to report.",
+    "All good tonight, no incident at all.",
+])
+def test_off_topic_no_incident_notes_classify_general(summary):
+    result = DeterministicRiskClassifier().classify(
+        incident_summary=summary, incident_location="venue", citation_excerpts=[],
+    )
+    assert result.risk_type == "general_incident"
+    assert result.base_severity != "high"
+
+
+def test_real_crowd_incident_still_classifies_crowd_management():
+    # Guard: the off-topic check must not swallow a genuine crowd incident.
+    result = DeterministicRiskClassifier().classify(
+        incident_summary="Crowd surge near the stage; two patrons fainted.",
+        incident_location="floor", citation_excerpts=[],
+    )
+    assert result.risk_type == "crowd_management"
+    assert result.base_severity == "high"
+
+
 # ─── Severity modifiers: deterministic aggravator/mitigator reasoning ─────
 #
 # The keyword ladder picks a coarse base severity from the incident *type*.

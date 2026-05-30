@@ -65,6 +65,8 @@ def _request_to_dict(r: PolicyRequest) -> dict:
         "decided_by": r.decided_by,
         "decision_note": r.decision_note,
         "decided_at": r.decided_at.isoformat() if r.decided_at else None,
+        "result_entity_type": r.result_entity_type,
+        "result_entity_id": r.result_entity_id,
         "created_at": r.created_at.isoformat(),
         "updated_at": r.updated_at.isoformat(),
     }

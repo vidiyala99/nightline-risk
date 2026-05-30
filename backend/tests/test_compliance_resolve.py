@@ -81,6 +81,23 @@ def test_broker_can_resolve_and_item_disappears(client_with_signal):
     assert item_id not in remaining
 
 
+def test_double_resolve_is_idempotent_not_500(client_with_signal):
+    """Resolving an already-resolved item must not 500 (regression #38).
+    'resolved' is the desired end-state, so a redundant resolve is a no-op
+    that returns success rather than blowing up on the lifecycle guard."""
+    client = client_with_signal
+    item_id = _first_item_id(client)
+    first = client.patch(
+        f"/api/venues/{VENUE}/compliance/{item_id}/resolve", headers=_broker(), json={},
+    )
+    assert first.status_code == 200, first.text
+    second = client.patch(
+        f"/api/venues/{VENUE}/compliance/{item_id}/resolve", headers=_broker(), json={},
+    )
+    assert second.status_code == 200, second.text
+    assert second.json() == {"status": "resolved", "item_id": item_id}
+
+
 def test_resolve_unknown_item_404(client_with_signal):
     client = client_with_signal
     resp = client.patch(
