@@ -148,8 +148,8 @@ export default function ReportDetailPage() {
         setPacket(pkt);
         setProposal(pkt.claim_proposal ?? null);
         const [incRes, analysisRes] = await Promise.all([
-          fetch(`${API_URL}/api/incidents/${pkt.incident_id}`),
-          fetch(`${API_URL}/api/incidents/${pkt.incident_id}/evidence-analysis`),
+          fetch(`${API_URL}/api/incidents/${pkt.incident_id}`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/incidents/${pkt.incident_id}/evidence-analysis`, { headers: authHeaders() }),
         ]);
         if (incRes.ok) setIncident(await incRes.json());
         if (analysisRes.ok) setVisionAnalysis(await analysisRes.json());

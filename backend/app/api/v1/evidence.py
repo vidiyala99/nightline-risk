@@ -109,8 +109,17 @@ async def upload_evidence(
 @router.get("/incidents/{incident_id}/evidence")
 def list_evidence(
     incident_id: str,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> list[dict]:
+    incident = session.get(IncidentRecord, incident_id)
+    if incident is None:
+        raise error_response(
+            "incident_not_found",
+            f"Incident {incident_id!r} not found",
+            status_code=404,
+        )
+    require_venue_access(incident.venue_id, authorization, session)
     files = session.exec(
         select(EvidenceFile)
         .where(EvidenceFile.incident_id == incident_id)
@@ -132,9 +141,18 @@ def list_evidence(
 @router.get("/incidents/{incident_id}/evidence-analysis")
 def get_evidence_analysis(
     incident_id: str,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
     """Aggregated vision analysis status for all evidence on an incident."""
+    incident = session.get(IncidentRecord, incident_id)
+    if incident is None:
+        raise error_response(
+            "incident_not_found",
+            f"Incident {incident_id!r} not found",
+            status_code=404,
+        )
+    require_venue_access(incident.venue_id, authorization, session)
     analyses = session.exec(
         select(EvidenceAnalysis).where(EvidenceAnalysis.incident_id == incident_id)
     ).all()
@@ -169,6 +187,7 @@ def get_evidence_analysis(
 @router.get("/evidence/{evidence_id}/file")
 def serve_evidence(
     evidence_id: str,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ):
     ev = session.get(EvidenceFile, evidence_id)
@@ -178,6 +197,16 @@ def serve_evidence(
             f"Evidence {evidence_id!r} not found",
             status_code=404,
         )
+    # Gate the raw bytes on the owning incident's venue — these are injury
+    # photos / police reports, the most sensitive surface in the system.
+    incident = session.get(IncidentRecord, ev.incident_id)
+    if incident is None:
+        raise error_response(
+            "incident_not_found",
+            f"Incident {ev.incident_id!r} not found",
+            status_code=404,
+        )
+    require_venue_access(incident.venue_id, authorization, session)
     storage = get_storage()
     if not storage.exists(ev.file_path):
         raise error_response(

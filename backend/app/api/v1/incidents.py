@@ -12,10 +12,10 @@ lands and the legacy main.py is fully drained.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlmodel import Session, func, select
 
-from app.auth import require_venue_access
+from app.auth import can_access_venue, require_venue_access, verify_token
 from app.database import get_session
 from app.incident_flow import create_brawl_incident_flow
 from app.lifecycles import (
@@ -102,15 +102,39 @@ def incident_counts_by_venue(
 @router.get("/incidents", response_model=list[Incident])
 def list_all_incidents(
     limit: int = 100,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> list[Incident]:
     """Cross-venue incident list, newest first. Used by broker dashboards.
-    Caps at `limit` (default 100). No auth gate at the list level — the
-    response is read-only metadata; cross-tenant rows are visible to
-    brokers/admins by design and the frontend filters for operators."""
+    Caps at `limit` (default 100).
+
+    Role-aware: brokers/admins see the whole portfolio; a venue_operator sees
+    only rows for venues they own (`tenant_id` + `extra_venue_ids`). Anonymous
+    callers are rejected. This is the server-side counterpart to the frontend's
+    client-side filtering — defense in depth so a hand-crafted operator request
+    can't read other venues' incident metadata.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail={
+            "error": "auth_required",
+            "message": "Authentication required",
+        })
+    user = verify_token(authorization.split(" ")[1])
+    if not user:
+        raise HTTPException(status_code=401, detail={
+            "error": "auth_invalid",
+            "message": "Invalid or expired token",
+        })
     records = session.exec(
         select(IncidentRecord).order_by(IncidentRecord.occurred_at.desc()).limit(limit)
     ).all()
+    if user.get("role") not in ("broker", "admin"):
+        # Operator scoping. Filter post-query against the audited helper rather
+        # than reimplementing the extra_venue_ids lookup; at demo scale the only
+        # cost is that an operator whose rows sit beyond the `limit` newest
+        # cross-venue rows may see fewer — acceptable for a metadata list the
+        # operator UI reaches via the venue-scoped endpoint anyway.
+        records = [r for r in records if can_access_venue(user, r.venue_id, session)]
     return [_incident_to_response(r) for r in records]
 
 

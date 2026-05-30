@@ -13,6 +13,66 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+interface EvidenceItem {
+  id: string;
+  filename: string;
+  content_type: string;
+  file_size: number;
+  uploaded_at: string;
+}
+
+/** Evidence bytes are auth-gated (cross-tenant safe), so a bare <img src> / <a href>
+ * can't reach them — the browser won't attach the bearer token. Fetch the blob with
+ * authHeaders() and render an object URL instead (same pattern as the gated PDF
+ * downloads in lib/claims.ts). */
+function AuthedEvidenceRow({ ev }: { ev: EvidenceItem }) {
+  const isImage = ev.content_type.startsWith("image/");
+  const isVideo = ev.content_type.startsWith("video/");
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isImage) return;
+    let cancelled = false;
+    let url: string | null = null;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/evidence/${ev.id}/file`, { headers: authHeaders() });
+        if (!res.ok || cancelled) return;
+        url = URL.createObjectURL(await res.blob());
+        if (cancelled) { URL.revokeObjectURL(url); return; }
+        setThumbUrl(url);
+      } catch { /* leave the placeholder tile */ }
+    })();
+    return () => { cancelled = true; if (url) URL.revokeObjectURL(url); };
+  }, [ev.id, isImage]);
+
+  async function view() {
+    try {
+      const res = await fetch(`${API_URL}/api/evidence/${ev.id}/file`, { headers: authHeaders() });
+      if (!res.ok) return;
+      // The opened tab keeps reading this URL, so it can't be revoked synchronously.
+      window.open(URL.createObjectURL(await res.blob()), "_blank", "noreferrer");
+    } catch { /* ignore */ }
+  }
+
+  return (
+    <div className="flex items-center gap-md p-sm" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
+      {isImage && thumbUrl ? (
+        <img src={thumbUrl} alt={ev.filename} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: "var(--radius-sm)", flexShrink: 0 }} />
+      ) : (
+        <div style={{ width: 56, height: 56, background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <span className="text-xs text-secondary">{isVideo ? "VID" : isImage ? "IMG" : "FILE"}</span>
+        </div>
+      )}
+      <div className="flex-1" style={{ minWidth: 0, overflow: "hidden" }}>
+        <p className="text-sm truncate">{ev.filename}</p>
+        <p className="text-xs text-secondary">{(ev.file_size / 1024).toFixed(1)} KB · {new Date(ev.uploaded_at).toLocaleString()}</p>
+      </div>
+      <button type="button" onClick={view} className="btn btn-ghost btn-sm text-xs">View</button>
+    </div>
+  );
+}
+
 type IncidentStatus = "open" | "under_review" | "closed";
 
 interface Incident {
@@ -283,28 +343,9 @@ export default function IncidentDetailPage() {
                 <div className="card">
                   <div className="text-xs uppercase tracking-wide text-secondary mb-md">Attached Evidence</div>
                   <div className="flex flex-col gap-sm">
-                    {evidence.map((ev) => {
-                      const isImage = ev.content_type.startsWith("image/");
-                      const isVideo = ev.content_type.startsWith("video/");
-                      const fileUrl = `${API_URL}/api/evidence/${ev.id}/file`;
-                      return (
-                        <div key={ev.id} className="flex items-center gap-md p-sm" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
-                          {isImage && (
-                            <img src={fileUrl} alt={ev.filename} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: "var(--radius-sm)", flexShrink: 0 }} />
-                          )}
-                          {!isImage && (
-                            <div style={{ width: 56, height: 56, background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                              <span className="text-xs text-secondary">{isVideo ? "VID" : "FILE"}</span>
-                            </div>
-                          )}
-                          <div className="flex-1" style={{ minWidth: 0, overflow: "hidden" }}>
-                            <p className="text-sm truncate">{ev.filename}</p>
-                            <p className="text-xs text-secondary">{(ev.file_size / 1024).toFixed(1)} KB · {new Date(ev.uploaded_at).toLocaleString()}</p>
-                          </div>
-                          <a href={fileUrl} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm text-xs">View</a>
-                        </div>
-                      );
-                    })}
+                    {evidence.map((ev) => (
+                      <AuthedEvidenceRow key={ev.id} ev={ev} />
+                    ))}
                   </div>
                 </div>
               )}
