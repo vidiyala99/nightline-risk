@@ -61,7 +61,11 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     ("venue", "current_carrier", "TEXT", ""),
     ("venue", "renewal_date", "TEXT", ""),
     ("venue", "coverage_interest", "TEXT", ""),
-    ("venue", "onboarding_complete", "BOOLEAN", "NOT NULL DEFAULT 0"),
+    # Nullable, NO default: Postgres rejects an integer boolean default (DEFAULT 0)
+    # and the swallowed ALTER would leave the column absent → select(Venue) crash-
+    # loop → 502. Mirrors the proven incidentrecord.weapon_involved BOOLEAN row.
+    # Existing rows read NULL; the hydration overlay coerces via bool(...).
+    ("venue", "onboarding_complete", "BOOLEAN", ""),
 ]
 
 

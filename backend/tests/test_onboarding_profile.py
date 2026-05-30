@@ -58,6 +58,26 @@ def test_resolve_venue_overlays_profile_columns():
         assert d["onboarding_complete"] is True
 
 
+def test_boolean_migrations_have_no_integer_default():
+    """Postgres rejects an integer literal as a BOOLEAN default ('column is of type
+    boolean but default expression is of type integer'). The migration loop swallows
+    the failed ALTER, leaving the column absent on Postgres so every select(Venue)
+    crashes — a 502 boot-loop that SQLite never reveals. Guard the whole table."""
+    import re
+
+    from app.database import _COLUMN_MIGRATIONS
+
+    offenders = [
+        (t, c, d)
+        for (t, c, typ, d) in _COLUMN_MIGRATIONS
+        if typ.upper() == "BOOLEAN" and d and re.search(r"\bDEFAULT\s+\d", d, re.IGNORECASE)
+    ]
+    assert not offenders, (
+        f"BOOLEAN migrations with an integer default (Postgres-incompatible — use "
+        f"false/true or no default): {offenders}"
+    )
+
+
 def _bp(venue):
     from app.underwriting.scoring import RiskScoringEngine
     return RiskScoringEngine({"v": venue})._score_business_profile(venue)
