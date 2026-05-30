@@ -1,4 +1,5 @@
 import os
+import weakref
 from sqlmodel import create_engine, Session, SQLModel
 from dotenv import load_dotenv
 
@@ -78,85 +79,93 @@ def _existing_columns(conn, table: str) -> set[str]:
         return set()
 
 
-_schema_ready = False
+# Engines whose schema bootstrap has already run. Keyed PER ENGINE (not a single
+# bool) because the test suite swaps app.database.engine to fresh in-memory DBs —
+# a global flag would mark "ready" for whichever engine ran first and wrongly skip
+# every other engine ("no such table"). A WeakSet drops entries when test engines
+# are GC'd. Identity-based membership (Engine uses default __hash__/__eq__).
+_bootstrapped_engines: "weakref.WeakSet" = weakref.WeakSet()
 
 
 def create_db_and_tables():
-    # Idempotent but EXPENSIVE: create_all does a catalog existence check per
-    # table, the migration loop inspects ~30 columns, and the backfill loops
-    # session.get(Venue, ...) over ~291 venues — hundreds of DB round-trips.
-    # get_session() calls this on every request; that was invisible when compute
-    # was co-located with the DB (~1ms hops) but adds ~30s/request when the DB is
-    # a region away (Railway compute -> Neon us-east-1). Run the full bootstrap
-    # once per process — the FastAPI lifespan and the first request funnel here —
-    # and short-circuit afterward. On any failure _schema_ready stays False, so
-    # the next call retries.
-    global _schema_ready
-    if _schema_ready:
-        return
-    SQLModel.metadata.create_all(engine)
-    # Add missing nullable columns to existing tables. create_all only adds
-    # missing TABLES, not missing COLUMNS — so without this loop, a stale
-    # database.db keeps the pre-migration schema and inserts fail with
-    # "table foo has no column named bar".
-    from sqlalchemy import text
-    with engine.connect() as conn:
-        conn.execution_options(isolation_level="AUTOCOMMIT")
-        for table, column, coltype, default_clause in _COLUMN_MIGRATIONS:
-            if column in _existing_columns(conn, table):
-                continue
-            ddl = f"ALTER TABLE {table} ADD COLUMN {column} {coltype}"
-            if default_clause:
-                ddl = f"{ddl} {default_clause}"
-            try:
-                conn.execute(text(ddl))
-            except Exception:
-                pass
+    # get_session() calls this on every request. The expensive, one-time part —
+    # create_all's per-table catalog check + the ~30-column migration loop — used
+    # to re-run every request; invisible when compute was co-located with the DB
+    # (~1ms hops) but ~tens of seconds when the DB is a region away (Railway ->
+    # Neon us-east-1). So that DDL block is guarded to run once per engine (keyed
+    # per engine, not a global flag, because tests swap app.database.engine). On
+    # failure the engine isn't recorded, so the next call retries.
+    if engine not in _bootstrapped_engines:
+        SQLModel.metadata.create_all(engine)
+        # Add missing nullable columns to existing tables. create_all only adds
+        # missing TABLES, not missing COLUMNS — so without this loop, a stale
+        # database.db keeps the pre-migration schema and inserts fail with
+        # "table foo has no column named bar".
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execution_options(isolation_level="AUTOCOMMIT")
+            for table, column, coltype, default_clause in _COLUMN_MIGRATIONS:
+                if column in _existing_columns(conn, table):
+                    continue
+                ddl = f"ALTER TABLE {table} ADD COLUMN {column} {coltype}"
+                if default_clause:
+                    ddl = f"{ddl} {default_clause}"
+                try:
+                    conn.execute(text(ddl))
+                except Exception:
+                    pass
+        _bootstrapped_engines.add(engine)
+    # The backfill runs on EVERY call (NOT guarded) so it self-heals: the lifespan
+    # calls create_db_and_tables before venues are seeded (backfill skips them),
+    # then a later get_session call seeds them once they exist. Kept to ~2 queries
+    # (bulk) below so the per-request cost stays low even cross-region.
     _backfill_compliance_signals()
-    _schema_ready = True
 
 
 def _backfill_compliance_signals():
     """Idempotent: seed ComplianceSignal rows from each venue's curated
     compliance_items count, so the operator queue + compliance factor are
-    populated.
+    populated. Runs on every create_db_and_tables() call so it self-heals: the
+    lifespan creates the schema before venues are seeded, then a later call
+    seeds them once the Venue rows exist.
 
-    Idempotency is venue-level: if a venue already has ANY signal, it is left
+    Idempotency is venue-level: a venue that already has ANY signal is left
     untouched (we never clobber live operator state — resolved items, auto-
-    generated camera items, etc.). The single commit at the end of the loop
-    makes seeding atomic, so a crash can't leave a venue partially seeded; the
-    only way to reach a partial set is manual row deletion, which this backfill
-    intentionally does not try to repair (re-seeding a venue is a manual op)."""
+    generated camera items, etc.).
+
+    Bulk-queried — two SELECTs (existing venue ids; venues that already have a
+    signal) instead of a per-venue session.get() over ~291 venues — so the
+    per-request cost stays low (~2 round-trips) even when the DB is a region
+    away. See memory: SQLAlchemy FK ordering on Postgres."""
     from sqlmodel import Session, select
     from app.models import ComplianceSignal, Venue
     from app.seed_data import VENUES
     with Session(engine) as session:
+        existing_venue_ids = set(session.exec(select(Venue.id)).all())
+        if not existing_venue_ids:
+            return  # venues not seeded yet — a later call self-heals
+        venues_with_signals = set(
+            session.exec(select(ComplianceSignal.venue_id).distinct()).all()
+        )
+        new_signals = []
         for venue_id, data in VENUES.items():
             n = int(data.get("compliance_items", 0) or 0)
             if n == 0:
                 continue
-            # FK safety: skip venues whose Venue row doesn't exist yet. On first
-            # boot this backfill runs (via get_session) BEFORE the lifespan seeds
-            # venues, so inserting a ComplianceSignal with a dangling venue_id FK
-            # would crash on Postgres (SQLite doesn't enforce FKs, which is why
-            # the test suite couldn't catch it). A later backfill run — once the
-            # venues are seeded — picks these up, so it's idempotent and
-            # self-healing. See memory: SQLAlchemy FK ordering on Postgres.
-            if session.get(Venue, venue_id) is None:
-                continue
-            existing = session.exec(
-                select(ComplianceSignal).where(ComplianceSignal.venue_id == venue_id)
-            ).first()
-            if existing is not None:
+            # FK safety: skip venues whose Venue row doesn't exist yet (a dangling
+            # FK crashes on Postgres). Skip venues that already have a signal.
+            if venue_id not in existing_venue_ids or venue_id in venues_with_signals:
                 continue
             for i in range(n):
-                session.add(ComplianceSignal(
+                new_signals.append(ComplianceSignal(
                     id=f"seed-cmp-{venue_id}-{i}", venue_id=venue_id,
                     title="Outstanding compliance item",
                     description="Curated underwriter compliance item.",
                     provenance="underwriter_verified", severity="medium", status="open",
                 ))
-        session.commit()
+        if new_signals:
+            session.add_all(new_signals)
+            session.commit()
 
 
 def get_session():
