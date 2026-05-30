@@ -20,6 +20,13 @@ class Venue(SQLModel, table=True):
     id: str = Field(primary_key=True)
     name: str
     venue_data: Optional[str] = Field(default=None)  # JSON-encoded full venue dict
+    # Onboarding "knowns" — structured source of truth, overlaid onto venue_data
+    # at hydration (see app/api/v1/venues.py:_resolve_venue). Dates/JSON stored as
+    # TEXT per the project's migration convention.
+    current_carrier: Optional[str] = Field(default=None)    # carrier name OR "uninsured"/"unsure"
+    renewal_date: Optional[str] = Field(default=None)       # ISO date string
+    coverage_interest: Optional[str] = Field(default=None)  # JSON-encoded list of CoverageLine ids
+    onboarding_complete: bool = Field(default=False)
 
 class IncidentRecord(SQLModel, table=True):
     id: str = Field(primary_key=True)

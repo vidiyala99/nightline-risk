@@ -57,6 +57,11 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     # PolicyRequest execute-on-approval result deep-link — added 2026-05-29.
     ("policyrequest", "result_entity_type", "TEXT", ""),
     ("policyrequest", "result_entity_id", "TEXT", ""),
+    # Onboarding data capture — added 2026-05-29. Dates/JSON as TEXT per convention.
+    ("venue", "current_carrier", "TEXT", ""),
+    ("venue", "renewal_date", "TEXT", ""),
+    ("venue", "coverage_interest", "TEXT", ""),
+    ("venue", "onboarding_complete", "BOOLEAN", "NOT NULL DEFAULT 0"),
 ]
 
 
