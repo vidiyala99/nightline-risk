@@ -238,6 +238,17 @@ def get_venue(
     return {"id": venue_id, **venue}
 
 
+@router.get("/coverage-lines")
+def list_coverage_lines() -> list[dict]:
+    """The CoverageLine catalog for the onboarding coverage-interest checklist."""
+    from app.seed_carriers import COVERAGE_LINES
+    return [
+        {"id": l["id"], "name": l["name"], "description": l["description"],
+         "is_required_by_default": l["is_required_by_default"]}
+        for l in COVERAGE_LINES
+    ]
+
+
 @router.patch("/venues/{venue_id}")
 def update_venue(
     venue_id: str,
@@ -264,6 +275,24 @@ def update_venue(
         db_venue.name = venue.get("name", db_venue.name)
         db_venue.venue_data = _json.dumps(venue)
         session.add(db_venue)
+
+    # Coverage-profile capture (onboarding knowns). Validated + completion-computed
+    # by the service; CoverageProfileError → 400 with a specific error code.
+    profile_keys = ("current_carrier", "renewal_date", "coverage_interest")
+    if db_venue is not None and any(k in payload for k in profile_keys):
+        from app.services.coverage_profile import CoverageProfileError, set_coverage_profile
+        current_lines = _json.loads(db_venue.coverage_interest) if db_venue.coverage_interest else []
+        try:
+            set_coverage_profile(
+                session, db_venue,
+                current_carrier=payload.get("current_carrier", db_venue.current_carrier),
+                renewal_date=payload.get("renewal_date", db_venue.renewal_date),
+                coverage_interest=payload.get("coverage_interest", current_lines),
+            )
+        except CoverageProfileError as e:
+            code = "renewal_date_required" if "renewal_date" in str(e) else "invalid_coverage_line"
+            raise error_response(code, str(e), status_code=400)
+
     if changed:
         _add_audit_event(
             session=session,
@@ -273,6 +302,12 @@ def update_venue(
             event_metadata={"changed_fields": list(changed.keys())},
         )
     session.commit()
+    # Re-hydrate so the response carries the overlaid profile columns
+    # (onboarding_complete, current_carrier, …). Guard on a DB row so seed-only/
+    # prospect venues (no Venue row) don't 404 on re-resolve.
+    if db_venue is not None:
+        VENUES.pop(venue_id, None)
+        venue = _resolve_venue(venue_id, session)
     return {"id": venue_id, **venue}
 
 
