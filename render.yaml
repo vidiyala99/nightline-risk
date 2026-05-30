@@ -1,0 +1,21 @@
+# Render Blueprint — Nightline Risk backend (FastAPI), migrated off Railway.
+# Free web service built from backend/Dockerfile. Postgres is external (Neon free
+# tier) so it survives Render free-Postgres 90-day expiry; set DATABASE_URL below.
+services:
+  - type: web
+    name: nightline-risk-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free                      # 512MB RAM; spins down after ~15min idle
+    healthCheckPath: /api/coverage-lines
+    autoDeploy: true                # redeploy on push to the default branch
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: STORAGE_BACKEND
+        value: local                # ephemeral on Render too — S3 is the real fix
+      - key: APP_SECRET
+        generateValue: true         # Render generates a strong secret (boot requires it)
+      - key: DATABASE_URL
+        sync: false                 # set manually in the dashboard to the Neon connection string

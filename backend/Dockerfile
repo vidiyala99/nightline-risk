@@ -1,6 +1,5 @@
-# FastAPI backend image for Fly.io (replaces Railway/nixpacks).
-# Build context is backend/ (where fly.toml lives). Mirrors the Railway start
-# command: uvicorn app.main:app.
+# FastAPI backend image for Render (replaces Railway/nixpacks).
+# Build context is backend/. Mirrors the Railway start command: uvicorn app.main:app.
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -18,7 +17,6 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-# Fly routes to this internal port (see fly.toml [http_service].internal_port).
-# Fly does not inject $PORT, so default to 8080.
+# Render injects $PORT and auto-detects the open port; default to 8080 if unset.
 EXPOSE 8080
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

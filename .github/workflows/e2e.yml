@@ -49,7 +49,7 @@ jobs:
           # repo name — it kept the original "thirdspacerisk" slug after
           # the 2026-05-21 repo rename to nightline-risk. Renaming the
           # Railway service to match is a follow-up.
-          BACKEND="https://nightline-risk-api.fly.dev"
+          BACKEND="https://nightline-risk-api.onrender.com"
           # Must match the Playwright baseURL (frontend/playwright.config.ts) so
           # warm-up actually verifies the deployment under test — not a stale,
           # always-up per-deployment URL.

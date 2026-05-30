@@ -1,7 +1,7 @@
 /**
  * E2E tests — Renewals page
  * Target: https://nightline-app.vercel.app
- * Backend API: https://nightline-risk-api.fly.dev
+ * Backend API: https://nightline-risk-api.onrender.com
  *
  * Journey: broker logs in → visits /renewals → asserts due-list heading →
  * if a Renew button is present, clicks it and asserts the YoY result panel.
