@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
+import OnboardingCard from "@/components/OnboardingCard";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
 import { Building2, LogOut, ArrowUpRight, WifiOff, AlertTriangle, CheckSquare, ArrowRight } from "lucide-react";
@@ -274,6 +275,11 @@ function DashboardPageInner() {
 
   return (
     <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
+      {!isBroker && tenantId && (
+        <div style={{ paddingTop: "var(--space-lg)" }}>
+          <OnboardingCard venueId={tenantId} />
+        </div>
+      )}
       {showMobileBroker && (
         <section className="lc-book-mobile">
           <div className="lc-book-mobile__identity">
