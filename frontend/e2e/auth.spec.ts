@@ -1,7 +1,7 @@
 /**
  * E2E tests — Authentication flows
  * Target: https://nightline-app.vercel.app
- * Backend API: https://thirdspacerisk-production.up.railway.app
+ * Backend API: https://nightline-risk-api.fly.dev
  *
  * Tests are kept independent: each test navigates to /login fresh
  * and does not rely on state from a previous test.
@@ -12,7 +12,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { VenuesPage } from "./pages/VenuesPage";
 
-const BACKEND_URL = "https://thirdspacerisk-production.up.railway.app";
+const BACKEND_URL = "https://nightline-risk-api.fly.dev";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,16 @@
+# Keep the image lean + never ship local state or secrets to Fly.
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+tests/
+*.db
+database.db
+evidence_uploads/
+.env
+.env.*
+.venv/
+venv/
+*.md
