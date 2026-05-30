@@ -78,7 +78,22 @@ def _existing_columns(conn, table: str) -> set[str]:
         return set()
 
 
+_schema_ready = False
+
+
 def create_db_and_tables():
+    # Idempotent but EXPENSIVE: create_all does a catalog existence check per
+    # table, the migration loop inspects ~30 columns, and the backfill loops
+    # session.get(Venue, ...) over ~291 venues — hundreds of DB round-trips.
+    # get_session() calls this on every request; that was invisible when compute
+    # was co-located with the DB (~1ms hops) but adds ~30s/request when the DB is
+    # a region away (Railway compute -> Neon us-east-1). Run the full bootstrap
+    # once per process — the FastAPI lifespan and the first request funnel here —
+    # and short-circuit afterward. On any failure _schema_ready stays False, so
+    # the next call retries.
+    global _schema_ready
+    if _schema_ready:
+        return
     SQLModel.metadata.create_all(engine)
     # Add missing nullable columns to existing tables. create_all only adds
     # missing TABLES, not missing COLUMNS — so without this loop, a stale
@@ -98,6 +113,7 @@ def create_db_and_tables():
             except Exception:
                 pass
     _backfill_compliance_signals()
+    _schema_ready = True
 
 
 def _backfill_compliance_signals():
