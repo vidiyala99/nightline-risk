@@ -39,6 +39,29 @@ export interface PolicyRequest {
   updated_at: string;
 }
 
+/**
+ * Where an approved request's downstream entity lives, for deep-linking. The
+ * broker approval executes the action (renewal->Submission, COI->certificate,
+ * cancellation->cancelled Policy); this maps the result to a route + label. A
+ * certificate has no standalone page, so it links to the policy detail (which
+ * lists COIs with a PDF download). Returns null when there's nothing to link.
+ */
+export function approvalResultLink(
+  r: Pick<PolicyRequest, "status" | "result_entity_type" | "result_entity_id" | "policy_id">,
+): { href: string; label: string } | null {
+  if (r.status !== "approved" || !r.result_entity_type || !r.result_entity_id) return null;
+  switch (r.result_entity_type) {
+    case "submission":
+      return { href: `/submissions/${r.result_entity_id}`, label: "View renewal" };
+    case "certificate":
+      return { href: `/policies/${r.policy_id}`, label: "View certificate" };
+    case "policy":
+      return { href: `/policies/${r.result_entity_id}`, label: "View policy" };
+    default:
+      return null;
+  }
+}
+
 /** Subset of the policy shape the coverage view needs (GET /venues/{id}/policies). */
 export interface CoveragePolicy {
   id: string;

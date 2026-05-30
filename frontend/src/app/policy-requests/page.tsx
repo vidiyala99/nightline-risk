@@ -19,6 +19,7 @@ import {
   REQUEST_STATUS_LABEL,
   REQUEST_STATUS_TONE,
   REQUEST_TYPE_LABEL,
+  approvalResultLink,
   policyRequestsApi,
 } from "@/lib/policyRequests";
 
@@ -30,27 +31,6 @@ function payloadSummary(r: PolicyRequest): string | null {
   if (r.request_type === "cancellation" && p.cancellation_date) return `Wants out by ${p.cancellation_date}`;
   if (r.request_type === "coi" && p.certificate_holder) return `Holder: ${p.certificate_holder}`;
   return null;
-}
-
-/**
- * Where an approved request's downstream entity lives. The broker approval now
- * executes the action (renewal->Submission, COI->certificate, cancellation->
- * cancelled Policy); this surfaces a deep-link to what was created. A
- * certificate has no standalone page, so it links to the policy detail (which
- * lists COIs with a PDF download).
- */
-function approvalResultLink(r: PolicyRequest): { href: string; label: string } | null {
-  if (r.status !== "approved" || !r.result_entity_type || !r.result_entity_id) return null;
-  switch (r.result_entity_type) {
-    case "submission":
-      return { href: `/submissions/${r.result_entity_id}`, label: "View renewal" };
-    case "certificate":
-      return { href: `/policies/${r.policy_id}`, label: "View certificate" };
-    case "policy":
-      return { href: `/policies/${r.result_entity_id}`, label: "View policy" };
-    default:
-      return null;
-  }
 }
 
 export default function PolicyRequestsPage() {
