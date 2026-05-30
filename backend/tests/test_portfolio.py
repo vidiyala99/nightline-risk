@@ -2,6 +2,8 @@
 Tests for portfolio, review decisions, audit trail, source registry, and incident status.
 Uses the real SQLite database via TestClient (same pattern as test_brawl_incident_flow.py).
 """
+from datetime import datetime, timezone
+
 from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import create_token
@@ -58,12 +60,16 @@ def test_portfolio_all_tiers_valid():
         assert venue["tier"] in ("A", "B", "C", "D"), f"{venue['id']} has invalid tier"
 
 
-def test_portfolio_elsewhere_reflects_live_incident_count():
-    """Risk score now reads the LIVE count of IncidentRecord rows for each
-    venue (so the Risk Profile factor matches what the scoped Incidents list
-    shows). Elsewhere has 6 SEED_INCIDENTS rows → incident_history factor 40
-    → blended total lands in the C band. This pins the new live-count
-    behavior; if Elsewhere's seeded incident rows change, update this."""
+def test_portfolio_elsewhere_reflects_live_incident_count(monkeypatch):
+    """Risk score reads the LIVE IncidentRecord rows (so the Risk Profile factor
+    matches the scoped Incidents list). Elsewhere has 6 SEED_INCIDENTS rows →
+    incident_history factor lands the blended total in the B/C band.
+
+    The safety factor is now recency-decayed, so it drifts up as the seeded
+    incidents age — pin the clock to a fixed reference near the seed dates to
+    keep this deterministic. If Elsewhere's seeded rows change, update this."""
+    import app.underwriting.scoring as scoring
+    monkeypatch.setattr(scoring, "now_utc", lambda: datetime(2026, 6, 1, tzinfo=timezone.utc))
     with TestClient(app) as client:
         data = client.get("/api/portfolio", headers=_broker_headers()).json()
     elsewhere = next(v for v in data if v["id"] == "elsewhere-brooklyn")
@@ -218,7 +224,7 @@ def test_live_state_strips_floor_for_other_operator():
 def test_incidents_status_filter_open_vs_closed():
     h = _operator_headers()
     with TestClient(app) as client:
-        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_broker_headers())
         all_resp = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=h)
         open_resp = client.get("/api/venues/elsewhere-brooklyn/incidents?status=open", headers=h)
 
@@ -230,7 +236,7 @@ def test_incidents_status_filter_open_vs_closed():
 def test_incident_status_patch():
     h = _operator_headers()
     with TestClient(app) as client:
-        create = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+        create = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_broker_headers())
         incident_id = create.json()["incident"]["id"]
         patch = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "closed"}, headers=h)
         assert patch.status_code == 200
@@ -252,9 +258,9 @@ def test_incident_counts_reconcile_with_list_and_score():
     venue_id = "elsewhere-brooklyn"
     with TestClient(app) as client:
         # Create one fresh incident, close another to ensure status mix.
-        create_a = client.post(f"/api/venues/{venue_id}/incidents", json=DEMO_INCIDENT)
+        create_a = client.post(f"/api/venues/{venue_id}/incidents", json=DEMO_INCIDENT, headers=_broker_headers())
         assert create_a.status_code == 201
-        create_b = client.post(f"/api/venues/{venue_id}/incidents", json=DEMO_INCIDENT)
+        create_b = client.post(f"/api/venues/{venue_id}/incidents", json=DEMO_INCIDENT, headers=_broker_headers())
         client.patch(
             f"/api/incidents/{create_b.json()['incident']['id']}/status",
             json={"status": "closed"},
@@ -278,7 +284,7 @@ def test_incident_counts_reconcile_with_list_and_score():
 def test_incident_status_invalid_value_rejected():
     h = _operator_headers()
     with TestClient(app) as client:
-        create = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+        create = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_broker_headers())
         incident_id = create.json()["incident"]["id"]
         resp = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "invalid_value"}, headers=h)
     # Phase A: untyped status strings now rejected via the lifecycle matrix at 422,
@@ -293,7 +299,7 @@ def test_incident_status_invalid_value_rejected():
 def test_review_decision_approve_changes_packet_status():
     h = _operator_headers()
     with TestClient(app) as client:
-        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_broker_headers())
         incidents = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=h).json()
         incident_id = incidents[0]["id"]
         packets = client.get(f"/api/incidents/{incident_id}/packets").json()
@@ -315,7 +321,7 @@ def test_review_decision_approve_changes_packet_status():
 def test_audit_events_include_packet_generated():
     h = _operator_headers()
     with TestClient(app) as client:
-        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_broker_headers())
         incidents = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=h).json()
         incident_id = incidents[0]["id"]
         packets = client.get(f"/api/incidents/{incident_id}/packets").json()
@@ -329,7 +335,7 @@ def test_audit_events_include_packet_generated():
 def test_audit_events_include_decision_after_review():
     h = _operator_headers()
     with TestClient(app) as client:
-        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_broker_headers())
         incidents = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=h).json()
         incident_id = incidents[0]["id"]
         packets = client.get(f"/api/incidents/{incident_id}/packets").json()
@@ -348,7 +354,7 @@ def test_audit_events_include_decision_after_review():
 
 def test_source_registry_populated_after_incident():
     with TestClient(app) as client:
-        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+        client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_broker_headers())
         resp = client.get("/api/venues/elsewhere-brooklyn/sources")
 
     assert resp.status_code == 200

@@ -6,9 +6,15 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 
+from app.auth import create_token
 from app.database import get_session
 from app.main import app
 from app.models import EvidenceFile, IncidentRecord
+
+
+def _h():
+    # evidence upload is venue-access gated; a broker token passes for any venue.
+    return {"Authorization": f"Bearer {create_token('u-ev-hash', 'b@e.com', 'broker', None)}"}
 
 
 @pytest.fixture
@@ -44,6 +50,7 @@ def test_upload_hashes_content_and_falls_back_capture_time(client_engine):
     r = client.post(
         "/api/incidents/inc-hash-test/evidence",
         files={"file": ("photo.bin", io.BytesIO(payload), "application/octet-stream")},
+        headers=_h(),
     )
     assert r.status_code == 201, r.text
     body = r.json()
@@ -61,6 +68,7 @@ def test_upload_uses_supplied_capture_time(client_engine):
     r = client.post(
         "/api/incidents/inc-hash-test/evidence?captured_at=2026-05-01T23:14:00Z",
         files={"file": ("p.bin", io.BytesIO(b"x"), "application/octet-stream")},
+        headers=_h(),
     )
     assert r.status_code == 201, r.text
     assert r.json()["captured_at"] == "2026-05-01T23:14:00Z"

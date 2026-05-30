@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import hashlib
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlmodel import Session, select
 
+from app.auth import require_venue_access
 from app.database import get_session
 from app.models import EvidenceAnalysis, EvidenceFile, IncidentRecord
 from app.schemas.errors import error_response
@@ -36,6 +37,7 @@ async def upload_evidence(
     file: UploadFile = File(...),
     uploaded_by: str = "operator",
     captured_at: str | None = None,   # client-supplied capture time; falls back to upload time
+    authorization: str = Header(None),
     background_tasks: BackgroundTasks = None,
     session: Session = Depends(get_session),
 ) -> dict:
@@ -46,6 +48,9 @@ async def upload_evidence(
             f"Incident {incident_id!r} not found",
             status_code=404,
         )
+    # Operator-write gate: resolve the venue from the incident, then require
+    # access. Entity-404 precedes auth (matches GET /incidents/{id}).
+    require_venue_access(record.venue_id, authorization, session)
     from uuid import uuid4
     from app.main import _process_evidence_sync
     from app.storage import get_storage

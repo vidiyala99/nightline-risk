@@ -24,7 +24,7 @@ DEMO_INCIDENT = {
 def test_frontend_can_list_created_incidents():
     client = TestClient(app)
 
-    created = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+    created = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_op_headers())
     assert created.status_code == 201
 
     response = client.get("/api/venues/elsewhere-brooklyn/incidents", headers=_op_headers())
@@ -46,6 +46,7 @@ def test_frontend_can_read_live_state_and_upload_compliance_evidence():
     upload_response = client.post(
         "/api/venues/elsewhere-brooklyn/compliance/INCIDENT_99A8B1/upload",
         files={"file": ("evidence.txt", b"placeholder evidence", "text/plain")},
+        headers=_op_headers(),
     )
 
     assert upload_response.status_code == 200
@@ -55,8 +56,8 @@ def test_frontend_can_read_live_state_and_upload_compliance_evidence():
 def test_frontend_can_read_dashboard_underwriting_metrics():
     client = TestClient(app)
 
-    risk_response = client.get("/api/venues/elsewhere-brooklyn/risk-score")
-    quote_response = client.get("/api/venues/elsewhere-brooklyn/quote")
+    risk_response = client.get("/api/venues/elsewhere-brooklyn/risk-score", headers=_op_headers())
+    quote_response = client.get("/api/venues/elsewhere-brooklyn/quote", headers=_op_headers())
 
     assert risk_response.status_code == 200
     assert risk_response.json()["venue_id"] == "elsewhere-brooklyn"
@@ -67,10 +68,25 @@ def test_frontend_can_read_dashboard_underwriting_metrics():
     assert "annual_premium" in quote_response.json()
 
 
+def test_risk_score_and_quote_require_venue_access():
+    """Score + premium are private underwriting data: anonymous reads are 401,
+    an operator scoped to a different venue is 403, the owning operator passes."""
+    client = TestClient(app)
+    other = create_token("u-other", "o@example.com", "venue_operator", "nowadays")
+    other_headers = {"Authorization": f"Bearer {other}"}
+    for path in (
+        "/api/venues/elsewhere-brooklyn/risk-score",
+        "/api/venues/elsewhere-brooklyn/quote",
+    ):
+        assert client.get(path).status_code == 401, f"{path} leaked to anonymous"
+        assert client.get(path, headers=other_headers).status_code == 403, f"{path} leaked cross-venue"
+        assert client.get(path, headers=_op_headers()).status_code == 200, f"{path} blocked the owner"
+
+
 def test_frontend_can_retrieve_packet_record_decision_and_read_audit_events():
     client = TestClient(app)
 
-    created = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+    created = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_op_headers())
     assert created.status_code == 201
     incident_id = created.json()["incident"]["id"]
 

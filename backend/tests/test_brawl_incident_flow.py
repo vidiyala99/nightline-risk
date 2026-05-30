@@ -1,6 +1,13 @@
 from fastapi.testclient import TestClient
 
+from app.auth import create_token
 from app.main import app
+
+
+def _op_headers():
+    # incident-create is now venue-access gated; file as the owning operator.
+    token = create_token("user-brawl-op", "op@example.com", "venue_operator", "elsewhere-brooklyn")
+    return {"Authorization": f"Bearer {token}"}
 
 
 DEMO_INCIDENT = {
@@ -20,6 +27,7 @@ def test_brawl_incident_flow_creates_cited_review_packet():
     response = client.post(
         "/api/venues/elsewhere-brooklyn/incidents",
         json=DEMO_INCIDENT,
+        headers=_op_headers(),
     )
 
     assert response.status_code == 201
@@ -39,8 +47,8 @@ def test_brawl_incident_flow_creates_cited_review_packet():
 def test_brawl_incident_flow_can_log_same_demo_incident_more_than_once():
     client = TestClient(app)
 
-    first_response = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
-    second_response = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+    first_response = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_op_headers())
+    second_response = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT, headers=_op_headers())
 
     assert first_response.status_code == 201
     assert second_response.status_code == 201

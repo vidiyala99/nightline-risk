@@ -195,14 +195,13 @@ def update_incident_status(
 def create_incident(
     venue_id: str,
     payload: IncidentCreate,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> IncidentFlowResponse:
-    # NOTE: no auth gate here — the incident-create flow is the operator's
-    # primary write surface and currently relies on payload.reported_by
-    # for actor attribution rather than a JWT claim. Adding `require_*`
-    # here would silently break the existing flow's test fixtures (none
-    # of which pass tokens). When operator login + service auth lands,
-    # gate this with `require_venue_access(venue_id, authorization, session)`.
+    # Operator-write gate: only the owning operator + brokers/admins may file
+    # an incident for a venue (401 unauth, 403 wrong venue). Actor attribution
+    # still rides in payload.reported_by — the token is purely the access gate.
+    require_venue_access(venue_id, authorization, session)
     from app.main import _resolve_venue
     _resolve_venue(venue_id, session)
     return create_brawl_incident_flow(venue_id, payload, session)

@@ -205,6 +205,12 @@ def create_venue(
             "venue_type": venue_data["venue_type"],
         },
     )
+    # First-run: give a brand-new venue ONE starter compliance task so the
+    # operator's queue isn't empty and the resolve-to-raise-score loop is
+    # demonstrable. Excluded from scoring, so it doesn't dent the A-tier start.
+    if not is_upsert:
+        from app.services.compliance_signals import seed_starter_compliance_item
+        seed_starter_compliance_item(session, venue_id)
     session.commit()
     return {"id": venue_id, **venue_data}
 

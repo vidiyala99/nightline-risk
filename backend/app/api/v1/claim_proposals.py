@@ -23,10 +23,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from app.auth import require_venue_access
 from app.claim_proposals import (
     ClaimProposalValidationError,
     compute_override_stats,
@@ -36,7 +37,7 @@ from app.claim_proposals import (
     stats_to_dict as override_stats_to_dict,
 )
 from app.database import get_session
-from app.models import ClaimProposal
+from app.models import ClaimProposal, UnderwritingPacket
 
 
 # Mirror the Pydantic shapes that currently live in main.py. Keeping a
@@ -77,14 +78,18 @@ router = APIRouter()
 def create_claim_proposal_route(
     packet_id: str,
     payload: _ClaimProposalCreate,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
     """Operator proposes a claim against a packet.
 
-    Existing behavior: actor ID rides in the body, no token gate. The
-    UI enforces who-can-do-what; service validation is the only
-    contract-level guarantee (override requires reason, etc.).
+    Actor ID rides in the body for attribution; the token is the access gate.
+    The venue is resolved from the packet — an unknown packet falls through to
+    the service's legacy 404 (entity-404 precedes auth).
     """
+    packet = session.get(UnderwritingPacket, packet_id)
+    if packet is not None:
+        require_venue_access(packet.venue_id, authorization, session)
     try:
         proposal = create_claim_proposal(
             session=session,
@@ -133,11 +138,15 @@ def broker_decision_on_proposal(
 def operator_info_response_on_proposal(
     proposal_id: str,
     payload: _OperatorInfoResponseCreate,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
     """Operator answers a broker's 'request more info', re-queueing the proposal
-    for broker review. Ungated like the sibling proposal routes — the UI gates
-    who can respond; service validation is the contract guarantee."""
+    for broker review. Gated on the proposal's venue; an unknown proposal falls
+    through to the service's legacy 404 (entity-404 precedes auth)."""
+    proposal = session.get(ClaimProposal, proposal_id)
+    if proposal is not None:
+        require_venue_access(proposal.venue_id, authorization, session)
     try:
         proposal = record_claim_operator_info_response(
             session=session,

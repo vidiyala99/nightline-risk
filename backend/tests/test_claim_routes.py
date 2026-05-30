@@ -46,7 +46,7 @@ def _create_packet(client: TestClient) -> str:
 
 
 def test_operator_can_create_claim_proposal_without_override():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
 
     response = client.post(
@@ -67,7 +67,7 @@ def test_operator_can_create_claim_proposal_without_override():
 
 
 def test_operator_can_create_proposal_with_structured_override_reason():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
 
     response = client.post(
@@ -84,7 +84,7 @@ def test_operator_can_create_proposal_with_structured_override_reason():
 
 
 def test_proposal_with_override_but_no_reason_returns_400():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
 
     response = client.post(
@@ -100,7 +100,7 @@ def test_proposal_with_override_but_no_reason_returns_400():
 
 
 def test_proposal_with_other_reason_but_no_freetext_returns_400():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
 
     response = client.post(
@@ -117,7 +117,7 @@ def test_proposal_with_other_reason_but_no_freetext_returns_400():
 
 
 def test_proposal_for_unknown_packet_returns_404():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
 
     response = client.post(
         "/api/packets/pkt-does-not-exist/claim-proposal",
@@ -134,7 +134,7 @@ def test_proposal_for_unknown_packet_returns_404():
 
 
 def test_broker_can_approve_pending_proposal():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     proposal_id = client.post(
         f"/api/packets/{packet_id}/claim-proposal",
@@ -153,7 +153,7 @@ def test_broker_can_approve_pending_proposal():
 
 
 def test_broker_can_reject_with_notes():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     proposal_id = client.post(
         f"/api/packets/{packet_id}/claim-proposal",
@@ -176,7 +176,7 @@ def test_broker_can_reject_with_notes():
 
 
 def test_double_decision_returns_400():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     proposal_id = client.post(
         f"/api/packets/{packet_id}/claim-proposal",
@@ -197,7 +197,7 @@ def test_double_decision_returns_400():
 
 
 def test_broker_decision_on_unknown_proposal_returns_404():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
 
     response = client.post(
         "/api/claim-proposals/prop-does-not-exist/broker-decision",
@@ -211,7 +211,7 @@ def test_broker_decision_on_unknown_proposal_returns_404():
 
 
 def test_get_claims_lists_proposals_newest_first():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     client.post(
         f"/api/packets/{packet_id}/claim-proposal",
@@ -227,7 +227,7 @@ def test_get_claims_lists_proposals_newest_first():
 
 
 def test_get_claims_filters_by_venue_id():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     client.post(
         f"/api/packets/{packet_id}/claim-proposal",
@@ -242,7 +242,7 @@ def test_get_claims_filters_by_venue_id():
 
 
 def test_get_claim_by_packet_id_returns_latest_proposal():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     proposal_id = client.post(
         f"/api/packets/{packet_id}/claim-proposal",
@@ -256,7 +256,7 @@ def test_get_claim_by_packet_id_returns_latest_proposal():
 
 
 def test_get_claim_by_packet_id_returns_404_when_no_proposal():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
 
     response = client.get(f"/api/claim-proposals/by-packet/{packet_id}")
@@ -268,7 +268,7 @@ def test_get_claim_by_packet_id_returns_404_when_no_proposal():
 
 
 def test_packet_response_has_null_claim_proposal_before_any_proposal():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
 
     body = client.get(f"/api/packets/{packet_id}", headers=_op_headers()).json()
@@ -279,7 +279,7 @@ def test_packet_response_has_null_claim_proposal_before_any_proposal():
 
 
 def test_packet_response_embeds_latest_claim_proposal_after_creation():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     proposal_id = client.post(
         f"/api/packets/{packet_id}/claim-proposal",
@@ -310,7 +310,7 @@ def _pending_proposal_id(client: TestClient, packet_id: str) -> str:
 
 
 def test_broker_request_more_info_returns_needs_more_info():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     pid = _pending_proposal_id(client, packet_id)
 
@@ -327,7 +327,7 @@ def test_broker_request_more_info_returns_needs_more_info():
 
 
 def test_request_more_info_without_notes_returns_400():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     pid = _pending_proposal_id(client, packet_id)
 
@@ -341,7 +341,7 @@ def test_request_more_info_without_notes_returns_400():
 
 
 def test_operator_response_requeues_then_broker_approves():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     pid = _pending_proposal_id(client, packet_id)
     client.post(
@@ -366,7 +366,7 @@ def test_operator_response_requeues_then_broker_approves():
 
 
 def test_operator_response_on_unknown_proposal_returns_404():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     response = client.post(
         "/api/claim-proposals/prop-does-not-exist/operator-response",
         json={"operator_id": "op-1", "response_note": "x"},
@@ -375,7 +375,7 @@ def test_operator_response_on_unknown_proposal_returns_404():
 
 
 def test_operator_response_on_pending_proposal_returns_400():
-    client = TestClient(app)
+    client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
     pid = _pending_proposal_id(client, packet_id)  # still pending, no info requested
 

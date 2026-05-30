@@ -11,7 +11,14 @@ pattern from /api/venues/{venue_id}/risk-score.
 
 from fastapi.testclient import TestClient
 
+from app.auth import create_token
 from app.main import app
+
+
+def _broker():
+    # incident-create + claim-proposal are venue-access gated; these helpers span
+    # multiple venues, so use a broker token (passes any venue).
+    return {"Authorization": f"Bearer {create_token('u-ovr-brk', 'b@e.com', 'broker', None)}"}
 
 
 DEMO_INCIDENT = {
@@ -26,7 +33,7 @@ DEMO_INCIDENT = {
 
 
 def _create_packet_for_venue(client: TestClient, venue_id: str) -> str:
-    inc = client.post(f"/api/venues/{venue_id}/incidents", json=DEMO_INCIDENT)
+    inc = client.post(f"/api/venues/{venue_id}/incidents", json=DEMO_INCIDENT, headers=_broker())
     assert inc.status_code == 201, inc.text
     incident_id = inc.json()["incident"]["id"]
     packets = client.get(f"/api/incidents/{incident_id}/packets").json()
@@ -37,7 +44,7 @@ def _propose(client: TestClient, packet_id: str, *, override: bool, reason: str 
     body = {"operator_id": "op-1", "override_recommendation": override}
     if reason:
         body["override_reason"] = reason
-    return client.post(f"/api/packets/{packet_id}/claim-proposal", json=body).json()["id"]
+    return client.post(f"/api/packets/{packet_id}/claim-proposal", json=body, headers=_broker()).json()["id"]
 
 
 def _decide(client: TestClient, proposal_id: str, decision: str) -> None:

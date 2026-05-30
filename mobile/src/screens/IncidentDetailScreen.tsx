@@ -16,6 +16,15 @@ import { useAlert } from '../components/ThemedAlert';
 import { ClaimProposeBottomSheet } from '../components/ClaimProposeBottomSheet';
 import { downloadDefensePackagePdf } from '../api/claims';
 import { STATE_LABEL, STATE_COLOR, type ClaimProposal, type OverrideReason } from '../types/claims';
+import { STATUS_TRANSITIONS, type TransitionColor } from '../lib/incidentTransitions';
+
+// Resolve the pure-data transition color keys to theme tokens.
+const TRANSITION_COLOR: Record<TransitionColor, string> = {
+  info: Colors.info,
+  success: Colors.success,
+  warning: Colors.warning,
+  muted: Colors.textMuted,
+};
 
 const SEVERITY_COLOR: Record<string, string> = {
   critical: Colors.error,
@@ -32,14 +41,6 @@ const CORROBORATION_COLOR: Record<string, string> = {
   INCONCLUSIVE: Colors.textMuted,
 };
 
-const STATUS_TRANSITIONS: Record<string, { label: string; next: string; color: string }[]> = {
-  open: [{ label: 'Move to Review', next: 'under_review', color: Colors.info }],
-  under_review: [
-    { label: 'Close Incident', next: 'closed', color: Colors.success },
-    { label: 'Reopen', next: 'open', color: Colors.warning },
-  ],
-  closed: [{ label: 'Reopen', next: 'open', color: Colors.warning }],
-};
 
 export function IncidentDetailScreen({ route, navigation }: any) {
   const { incidentId } = route.params;
@@ -193,13 +194,13 @@ export function IncidentDetailScreen({ route, navigation }: any) {
           {transitions.map(t => (
             <Pressable
               key={t.next}
-              style={({ pressed }) => [styles.actionBtn, { borderColor: t.color }, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.actionBtn, { borderColor: TRANSITION_COLOR[t.color] }, pressed && { opacity: 0.7 }]}
               onPress={() => updateStatus(t.next)}
               disabled={updatingStatus}
             >
               {updatingStatus
-                ? <ActivityIndicator size="small" color={t.color} />
-                : <Text style={[styles.actionBtnText, { color: t.color }]}>{t.label}</Text>
+                ? <ActivityIndicator size="small" color={TRANSITION_COLOR[t.color]} />
+                : <Text style={[styles.actionBtnText, { color: TRANSITION_COLOR[t.color] }]}>{t.label}</Text>
               }
             </Pressable>
           ))}

@@ -114,6 +114,7 @@ def test_incident_detail_inherits_tenant_check(client):
             "police_called": False,
             "ems_called": False,
         },
+        headers=h,
     )
     incident_id = inc.json()["incident"]["id"]
 
@@ -146,6 +147,7 @@ def test_incident_status_rejects_unknown_value(client):
             "police_called": False,
             "ems_called": False,
         },
+        headers=h,
     )
     incident_id = inc.json()["incident"]["id"]
 
@@ -173,6 +175,7 @@ def test_incident_status_rejects_missing_field(client):
             "police_called": False,
             "ems_called": False,
         },
+        headers=h,
     )
     incident_id = inc.json()["incident"]["id"]
 
@@ -198,6 +201,7 @@ def test_incident_status_allows_valid_transition(client):
             "police_called": False,
             "ems_called": False,
         },
+        headers=h,
     )
     incident_id = inc.json()["incident"]["id"]
 

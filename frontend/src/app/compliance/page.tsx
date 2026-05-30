@@ -283,6 +283,18 @@ function CompliancePageInner() {
                 <div className="compliance-header">
                   <AlertCircle size={18} />
                   <span>{item.title || item.id.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</span>
+                  {item.id.startsWith("STARTER_") && (
+                    <span
+                      title="Onboarding task — not a risk flag"
+                      style={{
+                        fontFamily: "var(--font-mono)", fontSize: "0.6rem", fontWeight: 700,
+                        letterSpacing: "0.05em", padding: "1px 6px", color: "var(--text-secondary)",
+                        background: "var(--bg-surface)", border: "1px solid var(--border-default)",
+                      }}
+                    >
+                      STARTER
+                    </span>
+                  )}
                 </div>
                 <p className="compliance-desc">{item.description}</p>
                 <div className="compliance-meta">

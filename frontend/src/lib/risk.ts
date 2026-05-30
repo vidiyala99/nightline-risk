@@ -43,6 +43,24 @@ export function factorLabel(key: string): string {
   return FACTOR_LABEL[key] ?? key.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
+/**
+ * Estimate the annual-premium saving from raising one factor to 100, given the
+ * current composite score, the projected composite score if that factor were
+ * fixed, and the current annual premium. Premium scales inversely with score,
+ * so the saving is the premium share the score lift represents. Clamped >= 0 (a
+ * fix never costs more) and rounded. Returns 0 when the premium or current score
+ * is unknown — callers should treat 0 as "no estimate" and hide the line.
+ */
+export function estimatePremiumDeltaForFix(
+  currentScore: number,
+  projectedScore: number,
+  annualPremium: number,
+): number {
+  if (!annualPremium || currentScore <= 0) return 0;
+  const delta = (annualPremium * (projectedScore - currentScore)) / currentScore;
+  return Math.max(0, Math.round(delta));
+}
+
 type FactorValue = number | { score: number };
 
 function toScore(v: FactorValue): number {

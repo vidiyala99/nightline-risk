@@ -91,6 +91,9 @@ export default function VenueTerminalPage() {
   const isOperator = role === "venue_operator";
 
   const [liveState, setLiveState] = useState(makeFallback(venueId));
+  // The fallback's 0/500 is a placeholder, not real occupancy — track whether a
+  // /live read has actually succeeded so we never render it as live data.
+  const [liveLoaded, setLiveLoaded] = useState(false);
   const [venueInfo, setVenueInfo] = useState<{ name: string } | null>(null);
   const [riskScore, setRiskScore] = useState<any>(null);
   const [quote, setQuote] = useState<any>(null);
@@ -162,7 +165,7 @@ export default function VenueTerminalPage() {
       }
       // Refresh live state panel
       const live = await fetch(`${API_URL}/api/venues/${venueId}/live`, { headers: authHeaders() });
-      if (live.ok) setLiveState(await live.json());
+      if (live.ok) { setLiveState(await live.json()); setLiveLoaded(true); }
     } catch {
       toastDismiss();
       toastError("Network error — backend may be down.");
@@ -176,8 +179,9 @@ export default function VenueTerminalPage() {
     setInsightLoading(true);
     Promise.all([
       fetch(`${API_URL}/api/venues/${venueId}`),
-      fetch(`${API_URL}/api/venues/${venueId}/risk-score`),
-      fetch(`${API_URL}/api/venues/${venueId}/quote`),
+      // risk-score + quote are venue-access gated — send the operator/broker token.
+      fetch(`${API_URL}/api/venues/${venueId}/risk-score`, { headers: authHeaders() }),
+      fetch(`${API_URL}/api/venues/${venueId}/quote`, { headers: authHeaders() }),
     ]).then(async ([venueRes, riskRes, quoteRes]) => {
       if (venueRes.status === 404) {
         setVenueNotFound(true);
@@ -194,7 +198,7 @@ export default function VenueTerminalPage() {
     const fetchState = async () => {
       try {
         const res = await fetch(`${API_URL}/api/venues/${venueId}/live`, { headers: authHeaders() });
-        if (res.ok) setLiveState(await res.json());
+        if (res.ok) { setLiveState(await res.json()); setLiveLoaded(true); }
       } catch {
         // fallback stays
       }
@@ -309,14 +313,20 @@ export default function VenueTerminalPage() {
             <span className="text-xs uppercase tracking-wide text-secondary font-mono">
               Live Occupancy
             </span>
-            <span className="lc-num-data" style={{ color: capacityColor, fontSize: "1.5rem" }}>
-              {liveState.current_capacity}
-              <span className="text-lg font-normal text-secondary" style={{ fontWeight: 400 }}> / {liveState.max_capacity}</span>
-            </span>
+            {liveLoaded ? (
+              <span className="lc-num-data" style={{ color: capacityColor, fontSize: "1.5rem" }}>
+                {liveState.current_capacity}
+                <span className="text-lg font-normal text-secondary" style={{ fontWeight: 400 }}> / {liveState.max_capacity}</span>
+              </span>
+            ) : (
+              <span className="text-xs font-mono text-secondary">Awaiting telemetry…</span>
+            )}
           </div>
-          <div className="capacity-bar">
-            <div className="capacity-fill" style={{ width: `${capacityPercent}%`, background: capacityColor }} />
-          </div>
+          {liveLoaded && (
+            <div className="capacity-bar">
+              <div className="capacity-fill" style={{ width: `${capacityPercent}%`, background: capacityColor }} />
+            </div>
+          )}
         </div>
 
         {/* Insurance Overview — skeleton while loading */}

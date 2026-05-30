@@ -131,7 +131,7 @@ def test_resolving_signal_raises_compliance_factor(client_and_engine):
     client, engine = client_and_engine
     _seed_signal(engine, item_id="cs-it-score-test")
 
-    before = client.get(f"/api/venues/{VENUE}/risk-score").json()["factors"]["compliance"]["score"]
+    before = client.get(f"/api/venues/{VENUE}/risk-score", headers=_broker_headers()).json()["factors"]["compliance"]["score"]
 
     r = client.patch(
         f"/api/venues/{VENUE}/compliance/cs-it-score-test/resolve",
@@ -140,7 +140,7 @@ def test_resolving_signal_raises_compliance_factor(client_and_engine):
     )
     assert r.status_code == 200
 
-    after = client.get(f"/api/venues/{VENUE}/risk-score").json()["factors"]["compliance"]["score"]
+    after = client.get(f"/api/venues/{VENUE}/risk-score", headers=_broker_headers()).json()["factors"]["compliance"]["score"]
     assert after > before, (
         f"Expected compliance score to improve after resolve, but got {before} -> {after}"
     )
@@ -160,5 +160,5 @@ def test_nowadays_seeds_two_verified_signals_consistent_with_score():
         live = client.get("/api/venues/nowadays/live").json()
         seeded = [c for c in live["compliance_queue"] if c["id"].startswith("seed-cmp-nowadays")]
         assert len(seeded) == 2
-        score = client.get("/api/venues/nowadays/risk-score").json()["factors"]["compliance"]["score"]
+        score = client.get("/api/venues/nowadays/risk-score", headers=_broker_headers()).json()["factors"]["compliance"]["score"]
         assert score == 49  # 2 verified open -> ~49

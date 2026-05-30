@@ -105,6 +105,7 @@ def test_evidence_upload_stamps_citation_link(client_and_engine):
     response = client.post(
         "/api/venues/elsewhere-brooklyn/compliance/COMP_CAMERA_REAR_001/upload",
         files={"file": ("rear-cam-fixed.jpg", io.BytesIO(payload), "image/jpeg")},
+        headers={"Authorization": f"Bearer {_broker_token()}"},
     )
     assert response.status_code == 200, response.text
     body = response.json()

@@ -1,5 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { getFactorTier, factorLabel, riskAttentionLine } from "@/lib/risk";
+import { getFactorTier, factorLabel, riskAttentionLine, estimatePremiumDeltaForFix } from "@/lib/risk";
+
+describe("estimatePremiumDeltaForFix", () => {
+  it("scales the annual premium by the score lift", () => {
+    // 57 -> 80 on an $18,000 premium: 18000 * 23/57 ≈ 7263
+    expect(estimatePremiumDeltaForFix(57, 80, 18000)).toBe(7263);
+  });
+  it("clamps a negative delta to 0 (a fix never costs more)", () => {
+    expect(estimatePremiumDeltaForFix(80, 57, 18000)).toBe(0);
+  });
+  it("returns 0 when the premium is unknown/0", () => {
+    expect(estimatePremiumDeltaForFix(57, 80, 0)).toBe(0);
+  });
+  it("returns 0 when the current score is 0 (avoids divide-by-zero)", () => {
+    expect(estimatePremiumDeltaForFix(0, 80, 18000)).toBe(0);
+  });
+});
 
 describe("getFactorTier", () => {
   it("buckets scores at the 85 / 65 boundaries", () => {

@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
-import { ArrowLeft, AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye, ClipboardCheck, Building2 } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye, ClipboardCheck, Building2, Lock, TrendingDown } from "lucide-react";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { estimatePremiumDeltaForFix } from "@/lib/risk";
 
 interface IngestedSource {
   id: string;
@@ -191,6 +192,8 @@ export default function RiskProfilePage() {
   const [venueName, setVenueName] = useState<string>("");
   const [venueMeta, setVenueMeta] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [error, setError] = useState(false);
   // Override-calibration aggregates for this venue. Null until first fetch
   // settles; absent fields rendered as "no signal yet" rather than zero.
   const [overrideStats, setOverrideStats] = useState<{
@@ -337,17 +340,30 @@ export default function RiskProfilePage() {
   useEffect(() => {
     async function load() {
       try {
-        // The venue-detail + override-stats endpoints are access-gated, so
-        // they need the bearer token (risk-score/quote are open reads).
+        // All of these endpoints are venue-access gated — the bearer token is
+        // required for the owning operator + brokers; anonymous is already
+        // bounced to /login above.
         const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
         const authH: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
         const [riskRes, quoteRes, venueRes, statsRes, countsRes] = await Promise.all([
-          fetch(`${API_URL}/api/venues/${venueId}/risk-score`),
-          fetch(`${API_URL}/api/venues/${venueId}/quote`),
+          fetch(`${API_URL}/api/venues/${venueId}/risk-score`, { headers: authH }),
+          fetch(`${API_URL}/api/venues/${venueId}/quote`, { headers: authH }),
           fetch(`${API_URL}/api/venues/${venueId}`, { headers: authH }),
           fetch(`${API_URL}/api/venues/${venueId}/override-stats`, { headers: authH }),
           fetch(`${API_URL}/api/venues/${venueId}/incidents/counts`, { headers: authH }),
         ]);
+        // A signed-in user reading a venue they don't own gets 403 — don't render
+        // a misleading empty "—/0" profile; surface an explicit access-denied state.
+        if (riskRes.status === 403) {
+          setAccessDenied(true);
+          return;
+        }
+        // A network/server failure on the primary read must not silently render
+        // an empty "—/0" profile — surface an honest, retryable error instead.
+        if (!riskRes.ok) {
+          setError(true);
+          return;
+        }
         if (riskRes.ok) setRiskData(await riskRes.json());
         if (quoteRes.ok) setQuoteData(await quoteRes.json());
         if (venueRes.ok) { const v = await venueRes.json(); setVenueName(v.name ?? venueId); setVenueMeta(v); }
@@ -373,7 +389,7 @@ export default function RiskProfilePage() {
           if (claimsRes.ok) setHubClaims(await claimsRes.json());
         }
       } catch {
-        // non-fatal
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -386,6 +402,116 @@ export default function RiskProfilePage() {
       <div className="page-loading" role="status" aria-live="polite">
         <div className="loading-spinner" aria-hidden="true" />
         <span style={SR_ONLY_STYLE}>Loading risk profile…</span>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    // Signed-in, but this venue isn't theirs (backend 403). A permissions
+    // boundary, not an error — calm ink treatment, no tier-d red, one primary
+    // CTA back to their own surface.
+    return (
+      <div
+        className="page-loading"
+        role="alert"
+        style={{ flexDirection: "column", gap: "var(--space-lg)", padding: "var(--space-xl)", textAlign: "center" }}
+      >
+        <div
+          aria-hidden="true"
+          style={{
+            width: 60,
+            height: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--bg-elevated)",
+            border: "1.5px solid var(--border-strong)",
+            boxShadow: "var(--shadow-md)",
+            color: "var(--text-secondary)",
+          }}
+        >
+          <Lock size={26} strokeWidth={1.75} aria-hidden="true" />
+        </div>
+        <div style={{ maxWidth: 440, display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 700, color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em" }}>
+            Not your venue
+          </h1>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", lineHeight: 1.6, color: "var(--text-secondary)", margin: 0 }}>
+            You can only open the risk profile for venues you operate. If you manage this one, ask a broker to grant you access.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap", justifyContent: "center" }}>
+          <Link
+            href="/dashboard"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "0.4rem",
+              padding: "0.6rem 1.1rem",
+              fontFamily: "var(--font-body)", fontWeight: 600, fontSize: "0.9rem",
+              color: "var(--text-inverse)", background: "var(--brand-primary)",
+              border: "1.5px solid var(--border-strong)", boxShadow: "var(--shadow-md)",
+              textDecoration: "none",
+            }}
+          >
+            Go to my dashboard
+          </Link>
+          <Link
+            href="/incidents"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "0.4rem",
+              padding: "0.6rem 1.1rem",
+              fontFamily: "var(--font-body)", fontWeight: 600, fontSize: "0.9rem",
+              color: "var(--text-primary)", background: "var(--bg-elevated)",
+              border: "1.5px solid var(--border-strong)",
+              textDecoration: "none",
+            }}
+          >
+            Back to incidents
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    // Honest, retryable failure — separate from the 403 access-denied state
+    // above, and never a misleading empty "—/0" profile.
+    return (
+      <div
+        className="page-loading"
+        role="alert"
+        style={{ flexDirection: "column", gap: "var(--space-lg)", padding: "var(--space-xl)", textAlign: "center" }}
+      >
+        <div
+          aria-hidden="true"
+          style={{
+            width: 60, height: 60, display: "flex", alignItems: "center", justifyContent: "center",
+            background: "var(--bg-elevated)", border: "1.5px solid var(--border-strong)",
+            boxShadow: "var(--shadow-md)", color: "var(--state-warning)",
+          }}
+        >
+          <AlertTriangle size={26} strokeWidth={1.75} aria-hidden="true" />
+        </div>
+        <div style={{ maxWidth: 440, display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 700, color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em" }}>
+            Couldn&apos;t load this risk profile
+          </h1>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", lineHeight: 1.6, color: "var(--text-secondary)", margin: 0 }}>
+            The score didn&apos;t come back. This is usually a temporary connection issue — try again.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "0.4rem",
+            padding: "0.6rem 1.1rem", cursor: "pointer",
+            fontFamily: "var(--font-body)", fontWeight: 600, fontSize: "0.9rem",
+            color: "var(--text-inverse)", background: "var(--brand-primary)",
+            border: "1.5px solid var(--border-strong)", boxShadow: "var(--shadow-md)",
+          }}
+        >
+          Try again
+        </button>
       </div>
     );
   }
@@ -1181,6 +1307,21 @@ export default function RiskProfilePage() {
                           {weightPct != null && <> · weighted {weightPct}%</>}
                         </span>
                       </div>
+                      {(() => {
+                        // Turn the abstract score lift into a concrete incentive:
+                        // estimate the annual-premium saving from fixing this factor.
+                        // Hidden for prospects (estimated venues) and when unknown.
+                        const saving = isProspect
+                          ? 0
+                          : estimatePremiumDeltaForFix(Number(score), projected, Number(quoteData?.annual_premium ?? 0));
+                        return saving > 0 ? (
+                          <p className="text-xs font-mono mb-xs" style={{ color: "var(--accent-ink)", display: "flex", alignItems: "center", gap: "0.3rem", margin: "0 0 var(--space-xs)" }}>
+                            <TrendingDown size={12} aria-hidden="true" />
+                            Resolve to save ~${saving.toLocaleString()}/yr
+                            <span style={{ color: "var(--text-tertiary)" }}>· est.</span>
+                          </p>
+                        ) : null;
+                      })()}
                       <p className="text-sm text-secondary mb-xs" style={{ lineHeight: 1.6 }}>{info?.[ft]?.[isBroker ? "broker" : "operator"]}</p>
                       {!isBroker && info?.action && (() => {
                         // Make the next-step a real deep-link to where the fix

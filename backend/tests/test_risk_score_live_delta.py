@@ -80,10 +80,13 @@ def test_http_post_incident_moves_risk_score():
     the new delta. This is the test that proves the demo claim end-to-end."""
     from fastapi.testclient import TestClient
     from app.main import app
+    from app.auth import create_token
 
+    # /risk-score is now venue-access gated; read it as a broker.
+    headers = {"Authorization": f"Bearer {create_token('u-b-delta', 'b@example.com', 'broker', 'tenant-1')}"}
     incident_delta_tracker.reset()
     with TestClient(app) as client:
-        before = client.get(f"/api/venues/{VENUE}/risk-score").json()
+        before = client.get(f"/api/venues/{VENUE}/risk-score", headers=headers).json()
         assert before["delta"]["incident_delta"] == 0
 
         post = client.post(
@@ -97,10 +100,11 @@ def test_http_post_incident_moves_risk_score():
                 "police_called": False,
                 "ems_called": False,
             },
+            headers=headers,
         )
         assert post.status_code == 201
 
-        after = client.get(f"/api/venues/{VENUE}/risk-score").json()
+        after = client.get(f"/api/venues/{VENUE}/risk-score", headers=headers).json()
         assert after["delta"]["incident_delta"] == 1
         assert after["total_score"] <= before["total_score"]
 

@@ -436,6 +436,31 @@ function DashboardPageInner() {
         </Link>
       )}
 
+      {/* OPERATOR: first-run nudge — venue exists but no incidents logged yet */}
+      {!isBroker && (riskScore || quote) && stats.incidents === 0 && (
+        <>
+          <div className="lc-rule"><span className="lc-rule__label">First run</span><div className="lc-rule__line" /></div>
+          <div className="lc-card"><div className="lc-card__inner" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <span className="lc-stat-label">Your venue is set up</span>
+            <p className="text-muted" style={{ maxWidth: 480, margin: 0 }}>
+              Log your first incident to see how evidence shapes your risk score and premium.
+            </p>
+            <Link
+              href="/incidents"
+              style={{
+                alignSelf: "flex-start", marginTop: 6,
+                display: "inline-flex", alignItems: "center", gap: "0.4rem",
+                padding: "0.55rem 1rem", fontWeight: 600, fontSize: "0.9rem",
+                color: "var(--text-inverse)", background: "var(--brand-primary)",
+                border: "1.5px solid var(--border-strong)", boxShadow: "var(--shadow-md)", textDecoration: "none",
+              }}
+            >
+              Log your first incident <ArrowUpRight size={14} aria-hidden="true" />
+            </Link>
+          </div></div>
+        </>
+      )}
+
       {/* OPERATOR: "On The Floor" — live state is hero, policy is secondary */}
       {!isBroker && (riskScore || quote || liveState) && (
         <OperatorFloor

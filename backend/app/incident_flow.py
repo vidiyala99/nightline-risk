@@ -10,6 +10,7 @@ from app.schemas import (
 from app.models import IncidentRecord, IncidentEvaluation
 from app.packet_core import create_packet_snapshot
 from app.seed_data import STREAM_EVENTS, VENUES
+from app.services.compliance_signals import spawn_incident_followup
 from app.knowledge_sources import load_knowledge_sources_for_venue
 from app.underwriting.scoring import incident_delta_tracker
 
@@ -68,6 +69,15 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
         citations=agent_result.citations,
         rubric_version="demo-rubric-v1",
     )
+
+    # Open a compliance follow-up for the incident the operator just filed, so
+    # it surfaces in their compliance queue and dents the compliance factor
+    # until they document it — resolving it then visibly raises the score
+    # (closing the operator loop). After the snapshot (which commits) so a
+    # snapshot failure leaves no orphan task; its own commit persists the row.
+    # Idempotent + capped; see the service.
+    if spawn_incident_followup(session, venue_id, incident.id, summary=payload.summary) is not None:
+        session.commit()
 
     # Bump the live risk delta AFTER the packet snapshot succeeds, so a
     # citation-validation failure (or any other downstream error) does NOT

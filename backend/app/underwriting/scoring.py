@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
 
+from app.time import as_utc, now_utc
+
 
 # Active incidents weigh full; resolved ones still count (history matters) but
 # far less — so closing a case measurably raises the safety score.
@@ -28,6 +30,73 @@ def _incident_weight(*, injury: bool, police: bool, ems: bool, status: str) -> f
     severity = 1.0 + 0.5 * bool(injury) + 0.5 * bool(police) + 0.5 * bool(ems)
     status_factor = 0.4 if status in _RESOLVED_STATUSES else 1.0
     return severity * status_factor
+
+
+# ─── Recency + exposure shaping of the safety load ──────────────────────────
+# Two venues with the same raw incident history should NOT score identically if
+# one is years stale or an order of magnitude larger: old incidents decay, and
+# a bigger room carries more exposure so a given raw count weighs less. Folding
+# both into the *load* keeps the exp(-load/9) curve (and its unit tests)
+# untouched, while pulling high-count venues out of the saturated zone — so
+# closing a fresh case visibly moves the score again instead of nudging 1→2.
+RECENCY_HALF_LIFE_DAYS = 365.0  # a 1-year-old incident contributes half its weight
+REF_CAPACITY = 800.0            # reference room size; divisor == 1.0 at this capacity
+EXPOSURE_POWER = 0.5            # sqrt dampening — large venues get relief, not erasure
+_LN2 = math.log(2)
+
+
+def _recency_factor(occurred_at: str | None, now: datetime) -> float:
+    """Exponential time decay in (0, 1]; 1.0 when the date is missing/unparseable.
+
+    Uses `occurred_at` (when it happened), not `created_at` (row insert). The
+    string is naive-UTC on SQLite; `as_utc` re-attaches tzinfo so subtracting it
+    from a tz-aware `now` doesn't raise. Unknown/garbage dates degrade to 1.0
+    (no decay) rather than dropping the incident.
+    """
+    if not occurred_at:
+        return 1.0
+    raw = occurred_at.strip()
+    if raw.endswith("Z"):  # fromisoformat predates 'Z' support on older runtimes
+        raw = raw[:-1] + "+00:00"
+    try:
+        when = as_utc(datetime.fromisoformat(raw))
+    except (TypeError, ValueError):
+        return 1.0
+    if when is None:
+        return 1.0
+    age_days = max(0.0, (now - when).total_seconds() / 86400.0)
+    return math.exp(-_LN2 * age_days / RECENCY_HALF_LIFE_DAYS)
+
+
+def _exposure_divisor(capacity: Any) -> float:
+    """Venue-size normalizer >= 1.0; 1.0 when capacity is missing/non-positive.
+
+    sqrt dampening: a 5000-cap venue divides load by ~2.5 (not 6.25), so real
+    history still counts — large rooms just aren't punished like a tiny bar with
+    the same raw count.
+    """
+    try:
+        cap = float(capacity)
+    except (TypeError, ValueError):
+        return 1.0
+    if cap <= 0:
+        return 1.0
+    return max(1.0, (cap / REF_CAPACITY) ** EXPOSURE_POWER)
+
+
+def _effective_incident_load(rows, *, capacity: Any, now: datetime) -> float:
+    """Weighted, recency-decayed, exposure-normalized incident load.
+
+    `rows` are (injury, police, ems, status, occurred_at) tuples from the live
+    IncidentRecord query. Severity/status come from `_incident_weight` (so its
+    direct unit tests stay valid); recency and exposure layer on top.
+    """
+    raw = sum(
+        _incident_weight(injury=r[0], police=r[1], ems=r[2], status=r[3])
+        * _recency_factor(r[4], now)
+        for r in rows
+    )
+    return raw / _exposure_divisor(capacity)
 
 
 @dataclass
@@ -311,13 +380,16 @@ def get_risk_score(
     session: Any | None = None,
     live_state_manager: Any | None = None,  # legacy parameter; no longer used for compliance (kept for call-site compatibility)
     delta_tracker: "IncidentDeltaTracker | None" = None,
+    now: "datetime | None" = None,
 ) -> dict:
     """Compute a venue's risk score.
 
     When a DB session is provided AND the venue is on-book (not a prospect),
-    the safety factor is driven by a LIVE, severity- and status-weighted load
-    over the venue's `IncidentRecord` rows (`incident_load`); `incident_count`
-    is also set to the live row count for display — so the score matches what
+    the safety factor is driven by a LIVE load over the venue's `IncidentRecord`
+    rows: each incident is weighted by severity and status (`_incident_weight`),
+    then decayed by age (`_recency_factor`) and normalized by venue exposure
+    (`_exposure_divisor`) — see `_effective_incident_load`. `incident_count` is
+    still set to the raw live row count for display, so the score matches what
     the user sees in the scoped Incidents list, no decoupling, no drift.
 
     Without a session (unit tests, headless callers) the engine falls back to
@@ -337,6 +409,10 @@ def get_risk_score(
     base_venue = venues.get(venue_id, {})
     is_prospect = base_venue.get("source") == "prospect"
     tracker = delta_tracker if delta_tracker is not None else incident_delta_tracker
+    # Recency decay is relative to "now". Default to wall-clock UTC; tests pin it
+    # so the time-dependent safety factor stays deterministic.
+    if now is None:
+        now = now_utc()
 
     overrides: dict = {}
 
@@ -357,16 +433,18 @@ def get_risk_score(
                     IncidentRecord.police_called,
                     IncidentRecord.ems_called,
                     IncidentRecord.status,
+                    IncidentRecord.occurred_at,
                 ).where(IncidentRecord.venue_id == venue_id)
             ).all()
         except Exception:
             live_rows = None  # any DB issue -> fall through to baseline path
 
     if live_rows is not None:
+        # `incident_count` stays the raw row count (display + Incidents-list
+        # reconciliation contract); the *load* is recency- and exposure-shaped.
         overrides["incident_count"] = len(live_rows)
-        overrides["incident_load"] = sum(
-            _incident_weight(injury=r[0], police=r[1], ems=r[2], status=r[3])
-            for r in live_rows
+        overrides["incident_load"] = _effective_incident_load(
+            live_rows, capacity=base_venue.get("capacity"), now=now
         )
     else:
         incident_delta = tracker.incident_delta(venue_id)

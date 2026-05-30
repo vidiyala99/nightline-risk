@@ -384,6 +384,9 @@ app.include_router(tasks_router, prefix="/api", tags=["tasks"])
 from app.api.v1.ingestion_runs import router as ingestion_runs_router  # noqa: E402
 app.include_router(ingestion_runs_router, prefix="/api", tags=["ingestion-runs"])
 
+from app.api.v1.alerts import router as alerts_router  # noqa: E402
+app.include_router(alerts_router, prefix="/api", tags=["alerts"])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

@@ -7,10 +7,16 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, create_engine, select
 
+from app.auth import create_token
 from app.database import get_session
 from app.main import app
 from app.models import ComplianceEvidence, Venue
 from app.seed_data import VENUES
+
+
+def _h():
+    # compliance upload is venue-access gated; a broker token passes any venue.
+    return {"Authorization": f"Bearer {create_token('u-cmp-ev', 'b@e.com', 'broker', None)}"}
 
 
 @pytest.fixture
@@ -36,7 +42,7 @@ def client_and_engine(tmp_path, monkeypatch):
             yield session
 
     app.dependency_overrides[get_session] = override_get_session
-    with TestClient(app) as client:
+    with TestClient(app, headers=_h()) as client:
         yield client, engine
     app.dependency_overrides.clear()
 

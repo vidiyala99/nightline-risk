@@ -11,10 +11,10 @@ imported from main.py to avoid the circular at module load.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Header, UploadFile
 from sqlmodel import Session, select
 
-from app.auth import require_broker
+from app.auth import require_broker, require_venue_access
 from app.database import get_session
 from app.models import ComplianceEvidence
 from app.schemas.errors import error_response
@@ -46,9 +46,12 @@ async def upload_compliance_evidence(
     item_id: str,
     file: UploadFile = File(...),
     uploaded_by: str = "operator",
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
     """Persist the uploaded file and link it to (venue_id, item_id)."""
+    # Operator-write gate: only the owning operator + brokers/admins.
+    require_venue_access(venue_id, authorization, session)
     from uuid import uuid4
     from app.main import (
         COMPLIANCE_EVIDENCE_MAX_BYTES,

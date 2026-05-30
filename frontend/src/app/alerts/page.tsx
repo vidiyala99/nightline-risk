@@ -318,10 +318,7 @@ function AlertsPageInner() {
     else setRefreshing(true);
 
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      const res = await fetch(`${API_URL}/api/venues/${selectedVenueId}/alerts`, { headers });
+      const res = await fetch(`${API_URL}/api/venues/${selectedVenueId}/alerts`, { headers: authHeaders() });
       setAlerts(res.ok ? (await res.json()) : []);
     } catch {
       setAlerts([]);
@@ -344,12 +341,10 @@ function AlertsPageInner() {
     alertId: string,
     feedback: "confirmed" | "false_alarm",
   ): Promise<boolean> => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
     try {
       const res = await fetch(`${API_URL}/api/alerts/${alertId}/feedback`, {
-        method: "POST", headers,
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ feedback }),
       });
       if (res.ok) {

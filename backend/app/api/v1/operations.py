@@ -10,10 +10,10 @@ URLs preserved:
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Header
 from sqlmodel import Session
 
-from app.auth import can_read_venue_floor, current_user_optional
+from app.auth import can_read_venue_floor, current_user_optional, require_venue_access
 from app.database import get_session
 from app.live_state import live_state_manager
 from app.schemas import LiveVenueState, StreamEvent
@@ -96,8 +96,12 @@ def get_live_state(
 @router.get("/venues/{venue_id}/risk-score")
 def get_venue_risk_score(
     venue_id: str,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
+    # A venue's score (and premium below) is private underwriting data — only the
+    # owning operator + brokers/admins may read it. 401 unauth, 403 wrong venue.
+    require_venue_access(venue_id, authorization, session)
     from app.main import _resolve_venue
     _resolve_venue(venue_id, session)
     return get_risk_score(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
@@ -106,8 +110,10 @@ def get_venue_risk_score(
 @router.get("/venues/{venue_id}/quote")
 def get_venue_quote(
     venue_id: str,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
+    require_venue_access(venue_id, authorization, session)
     from app.main import _resolve_venue
     _resolve_venue(venue_id, session)
     return get_premium_quote(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
