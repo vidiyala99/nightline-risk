@@ -294,12 +294,13 @@ class RiskScoringEngine:
         else:
             year_score = 50
 
-        # Prior carrier bonus
-        prior = venue.get("prior_carrier")
-        if prior and prior != "None":
-            carrier_bonus = 15
-        else:
-            carrier_bonus = 0
+        # Carrier-history bonus — honest: a *named* incumbent (operator-supplied
+        # current_carrier, falling back to prior_carrier) earns it; the onboarding
+        # sentinels ("uninsured"/"unsure") and the legacy "None" string do not.
+        from app.services.coverage_profile import CARRIER_SENTINELS
+        carrier = venue.get("current_carrier") or venue.get("prior_carrier")
+        has_real_carrier = bool(carrier) and carrier not in CARRIER_SENTINELS and carrier != "None"
+        carrier_bonus = 15 if has_real_carrier else 0
 
         # Venue type risk
         vtype = venue.get("venue_type", "dive_bar")

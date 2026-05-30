@@ -185,7 +185,7 @@ async def lifespan(app: FastAPI):
         for venue_id, venue_data in VENUES.items():
             existing = session.get(Venue, venue_id)
             if not existing:
-                session.add(Venue(id=venue_id, name=venue_data["name"], venue_data=_json.dumps(venue_data)))
+                session.add(Venue(id=venue_id, name=venue_data.get("name", venue_id), venue_data=_json.dumps(venue_data)))
             elif not existing.venue_data:
                 existing.venue_data = _json.dumps(venue_data)
                 session.add(existing)
@@ -240,7 +240,14 @@ async def lifespan(app: FastAPI):
         for v in db_venues:
             if v.id not in VENUES and v.venue_data:
                 try:
-                    VENUES[v.id] = _json.loads(v.venue_data)
+                    from app.services.coverage_profile import overlay_profile_columns
+                    data = _json.loads(v.venue_data)
+                    # The `name` column is authoritative; venue_data may predate it
+                    # or (in tests) omit it. Then overlay the onboarding columns so
+                    # a rehydrated venue is consistent with a freshly-resolved one.
+                    data.setdefault("name", v.name)
+                    overlay_profile_columns(data, v)
+                    VENUES[v.id] = data
                     rehydrated += 1
                 except Exception:
                     pass

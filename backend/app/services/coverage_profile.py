@@ -54,6 +54,26 @@ def assert_onboarding_complete(venue: dict) -> None:
         raise OnboardingIncompleteError(missing)
 
 
+def overlay_profile_columns(data: dict, venue) -> dict:
+    """Overlay the structured onboarding columns onto a venue dict — the columns
+    are authoritative over any stale venue_data copy. Mutates and returns `data`.
+    Used by every venue→dict hydration site (_resolve_venue + the startup
+    rehydrate) so readers see consistent, current values."""
+    import json as _json
+
+    if venue.current_carrier is not None:
+        data["current_carrier"] = venue.current_carrier
+    if venue.renewal_date is not None:
+        data["renewal_date"] = venue.renewal_date
+    if venue.coverage_interest is not None:
+        try:
+            data["coverage_interest"] = _json.loads(venue.coverage_interest)
+        except (ValueError, TypeError):
+            data["coverage_interest"] = []
+    data["onboarding_complete"] = bool(venue.onboarding_complete)
+    return data
+
+
 def set_coverage_profile(session, venue, *, current_carrier, renewal_date, coverage_interest):
     """Validate + write the four onboarding columns onto a Venue row (no commit —
     the caller owns the transaction). Raises CoverageProfileError on bad input."""

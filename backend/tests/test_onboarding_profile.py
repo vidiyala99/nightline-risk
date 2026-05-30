@@ -42,7 +42,8 @@ def test_resolve_venue_overlays_profile_columns():
     create_db_and_tables()
     with Session(engine) as s:
         if not s.get(Venue, "ovl-1"):
-            s.add(Venue(id="ovl-1", name="Overlay", venue_data='{"capacity": 200}'))
+            s.add(Venue(id="ovl-1", name="Overlay",
+                        venue_data='{"name": "Overlay", "capacity": 200}'))
             s.commit()
         v = s.get(Venue, "ovl-1")
         set_coverage_profile(s, v, current_carrier="Chubb",
@@ -55,3 +56,20 @@ def test_resolve_venue_overlays_profile_columns():
         assert d["renewal_date"] == "2026-10-01"
         assert d["coverage_interest"] == ["gl"]
         assert d["onboarding_complete"] is True
+
+
+def _bp(venue):
+    from app.underwriting.scoring import RiskScoringEngine
+    return RiskScoringEngine({"v": venue})._score_business_profile(venue)
+
+
+def test_real_carrier_earns_bonus():
+    base = {"years_in_operation": 1, "venue_type": "bar"}
+    assert _bp({**base, "current_carrier": "Hiscox"}) > _bp({**base, "current_carrier": None})
+
+
+def test_sentinel_carrier_earns_no_bonus():
+    base = {"years_in_operation": 1, "venue_type": "bar"}
+    none_score = _bp({**base, "current_carrier": None})
+    assert _bp({**base, "current_carrier": "uninsured"}) == none_score
+    assert _bp({**base, "current_carrier": "unsure"}) == none_score

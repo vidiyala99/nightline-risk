@@ -92,16 +92,8 @@ def _resolve_venue(venue_id: str, session: Session) -> dict:
     venue_data = {"name": db_venue.name, **data}
     # Overlay the structured onboarding columns onto the dict so scoring/quote/
     # display readers see authoritative values without reading venue_data copies.
-    if db_venue.current_carrier is not None:
-        venue_data["current_carrier"] = db_venue.current_carrier
-    if db_venue.renewal_date is not None:
-        venue_data["renewal_date"] = db_venue.renewal_date
-    if db_venue.coverage_interest is not None:
-        try:
-            venue_data["coverage_interest"] = _json.loads(db_venue.coverage_interest)
-        except (ValueError, TypeError):
-            venue_data["coverage_interest"] = []
-    venue_data["onboarding_complete"] = bool(db_venue.onboarding_complete)
+    from app.services.coverage_profile import overlay_profile_columns
+    overlay_profile_columns(venue_data, db_venue)
     VENUES[venue_id] = venue_data
     return venue_data
 
@@ -187,13 +179,15 @@ def create_venue(
         "capacity": int(payload.get("capacity", 300)),
         "venue_type": payload.get("venue_type", "bar"),
         "address": payload.get("address", ""),
-        "current_carrier": "Surplus Lines",
-        "renewal_date": payload.get("renewal_date", "2027-01-01"),
+        # No fake incumbent — onboarding capture (PATCH) sets these for real, and
+        # the carrier-history bonus only credits a named carrier (see scoring).
+        "current_carrier": payload.get("current_carrier"),
+        "renewal_date": payload.get("renewal_date"),
         "incident_count": 0,
         "compliance_items": 0,
         "security_level": "medium",
         "years_in_operation": int(payload.get("years_in_operation", 1)),
-        "prior_carrier": "Surplus Lines",
+        "prior_carrier": None,
         "infrastructure": [],
     }
     VENUES[venue_id] = venue_data
