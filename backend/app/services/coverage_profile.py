@@ -52,3 +52,22 @@ def assert_onboarding_complete(venue: dict) -> None:
         missing.append("coverage_interest")
     if missing:
         raise OnboardingIncompleteError(missing)
+
+
+def set_coverage_profile(session, venue, *, current_carrier, renewal_date, coverage_interest):
+    """Validate + write the four onboarding columns onto a Venue row (no commit —
+    the caller owns the transaction). Raises CoverageProfileError on bad input."""
+    import json as _json
+
+    carrier = (current_carrier or "").strip() or None
+    lines = validate_coverage_interest(list(coverage_interest or []))
+
+    is_real_carrier = carrier is not None and carrier not in CARRIER_SENTINELS
+    if is_real_carrier and not renewal_date:
+        raise CoverageProfileError("renewal_date is required when a current carrier is given")
+
+    venue.current_carrier = carrier
+    venue.renewal_date = renewal_date or None
+    venue.coverage_interest = _json.dumps(lines)
+    venue.onboarding_complete = compute_onboarding_complete(carrier, lines)
+    session.add(venue)

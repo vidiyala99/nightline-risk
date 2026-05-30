@@ -47,3 +47,55 @@ def test_assert_guard_raises_when_incomplete():
 
 def test_assert_guard_passes_when_complete():
     assert_onboarding_complete({"current_carrier": "Hiscox", "coverage_interest": ["gl"]})
+
+
+# ─── set_coverage_profile (DB write) ─────────────────────────────────────
+
+from sqlmodel import Session  # noqa: E402
+
+from app.database import create_db_and_tables, engine  # noqa: E402
+from app.models import Venue  # noqa: E402
+from app.services.coverage_profile import set_coverage_profile  # noqa: E402
+
+
+def _fresh_venue(vid):
+    create_db_and_tables()
+    with Session(engine) as s:
+        existing = s.get(Venue, vid)
+        if existing:
+            s.delete(existing)
+            s.commit()
+        s.add(Venue(id=vid, name=vid))
+        s.commit()
+
+
+def test_set_profile_real_carrier_persists_and_completes():
+    _fresh_venue("scp-1")
+    with Session(engine) as s:
+        v = s.get(Venue, "scp-1")
+        set_coverage_profile(s, v, current_carrier="Hiscox",
+                             renewal_date="2026-09-01", coverage_interest=["gl", "liquor"])
+        s.commit()
+        v = s.get(Venue, "scp-1")
+        assert v.current_carrier == "Hiscox"
+        assert v.renewal_date == "2026-09-01"
+        assert v.coverage_interest == '["gl", "liquor"]'
+        assert v.onboarding_complete is True
+
+
+def test_set_profile_uninsured_completes_without_renewal():
+    _fresh_venue("scp-2")
+    with Session(engine) as s:
+        v = s.get(Venue, "scp-2")
+        set_coverage_profile(s, v, current_carrier="uninsured",
+                             renewal_date=None, coverage_interest=["gl"])
+        assert v.onboarding_complete is True
+
+
+def test_set_profile_real_carrier_without_renewal_raises():
+    _fresh_venue("scp-3")
+    with Session(engine) as s:
+        v = s.get(Venue, "scp-3")
+        with pytest.raises(CoverageProfileError):
+            set_coverage_profile(s, v, current_carrier="Hiscox",
+                                 renewal_date=None, coverage_interest=["gl"])
