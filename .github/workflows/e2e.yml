@@ -59,8 +59,12 @@ jobs:
           sleep 30
 
           while [ $SECONDS -lt $DEADLINE ]; do
+            # Probe an UNAUTHENTICATED 200 endpoint. /api/venues is now
+            # tenant-scoped (401 for anonymous), so it can't be the liveness
+            # probe; /api/health is always-anonymous-200. The login smoke below
+            # is the real "seeded + auth mounted" check.
             backend_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
-              "$BACKEND/api/venues" 2>/dev/null || echo "000")
+              "$BACKEND/api/health" 2>/dev/null || echo "000")
             frontend_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
               "$FRONTEND/login" 2>/dev/null || echo "000")
 
