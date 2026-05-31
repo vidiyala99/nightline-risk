@@ -237,7 +237,26 @@ export default function IncidentsPage() {
 
   const statusLabel: Record<IncidentStatus, string> = { open: "Open", under_review: "Under Review", closed: "Closed" };
 
-  const filteredIncidents = statusFilter === "all" ? incidents : incidents.filter((i) => i.status === statusFilter);
+  const _base = statusFilter === "all" ? incidents : incidents.filter((i) => i.status === statusFilter);
+  // Broker view = decisions across the book: surface incidents most likely to
+  // need a filing decision first (open/under-review + injury/police/EMS signals;
+  // already-filed claims sink). Operators keep the server's chronological order
+  // (their own venue — a status feed, not a decision queue). Recency breaks ties.
+  const incidentUrgency = (i: Incident): number => {
+    let score = 0;
+    if (i.status === "open") score += 100;
+    else if (i.status === "under_review") score += 60;
+    if (claimByIncident[i.id]) score -= 50;
+    if (i.injury_observed) score += 8;
+    if (i.police_called) score += 4;
+    if (i.ems_called) score += 4;
+    return score;
+  };
+  const filteredIncidents = isBroker
+    ? [..._base].sort((a, b) =>
+        (incidentUrgency(b) - incidentUrgency(a)) ||
+        (new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime()))
+    : _base;
 
   if (!isSignedIn || loading) {
     return <div className="page-loading"><div className="loading-spinner" /></div>;
