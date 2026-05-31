@@ -18,7 +18,13 @@ secrets). Work items are ordered by go-live impact.
 
 ## Hard blockers remaining
 
-- [ ] 🔒 **Object storage (S3/GCS).** `LocalStorage` writes to `backend/evidence_uploads/` — **ephemeral on Railway**, so evidence + the tamper-evident defense packets vanish on redeploy. Implement `S3Storage` behind the existing `Storage` protocol and set `STORAGE_BACKEND=s3`. *Deferred: no blob subscription yet.*
+- [x] **Object storage — `S3Storage` implemented.** `app/storage.py` now ships an
+  S3-compatible backend (boto3) selected by `STORAGE_BACKEND=s3`; call sites and the
+  serve endpoint already handle the remote path (`local_path → None → StreamingResponse`).
+  Tested via botocore Stubber (`tests/test_s3_storage.py`, no network). **Remaining to go
+  live:** create a bucket on any S3-compatible store (Cloudflare R2 free tier — 10 GB,
+  zero egress) and set `S3_ENDPOINT_URL` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` /
+  `S3_SECRET_ACCESS_KEY` on Railway. Until then `LocalStorage` (ephemeral) is the default.
 - [ ] 🔒 **Email provider account.** The flow is built and env-gated; create a Resend (or SendGrid/SES) account, set `RESEND_API_KEY` + `FRONTEND_URL`, verify a sending domain.
 
 ## Deliver the core promise (simulated today)

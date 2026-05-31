@@ -39,9 +39,10 @@ def test_get_storage_defaults_to_local(monkeypatch):
 
 
 def test_get_storage_rejects_unimplemented_backend(monkeypatch):
-    monkeypatch.setenv("STORAGE_BACKEND", "s3")
+    # "local" and "s3" are supported; anything else must fail loudly.
+    monkeypatch.setenv("STORAGE_BACKEND", "gcs")
     import app.storage as storage_mod
     storage_mod._storage = None
-    with pytest.raises(NotImplementedError, match="s3"):
+    with pytest.raises(NotImplementedError, match="gcs"):
         get_storage()
     storage_mod._storage = None  # don't leak state to other tests
