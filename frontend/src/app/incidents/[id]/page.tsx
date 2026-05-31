@@ -8,7 +8,7 @@ import { authHeaders } from "@/lib/authFetch";
 import { downloadDefensePackagePdf } from "@/lib/claims";
 import {
   AlertTriangle, ArrowLeft, Calendar, MapPin, User,
-  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download, Circle, Archive,
+  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download, Archive,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -249,21 +249,8 @@ export default function IncidentDetailPage() {
         carrier_payout: number; deductible: number | null; pay_out_of_pocket_cost: number;
         expected_premium_impact: { annual_delta_usd: number; duration_years: number; cumulative_usd: number } }
     | undefined;
-  const routingStatus = primaryPacket?.routing_status as
-    | "auto_routed" | "borderline" | "not_routed"
-    | undefined;
   const isBroker = role === "broker" || role === "admin";
   const proposalState = primaryPacket ? proposalByPacket[primaryPacket.id] : undefined;
-
-  const sendToBroker = async () => {
-    if (!primaryPacket) return;
-    const res = await fetch(`${API_URL}/api/packets/${primaryPacket.id}/claim-proposal`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ operator_id: "operator", override_recommendation: false }),
-    });
-    if (res.ok) { location.reload(); }
-  };
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleStatusUpdate = async (newStatus: IncidentStatus) => {
@@ -461,122 +448,28 @@ export default function IncidentDetailPage() {
               )}
 
               {/* ── Recommendation card ───────────────────────────────────────────
-                  Persona-aware framing: the operator decides ("Worth filing?");
-                  the broker sees it as a reference recommendation to act on. */}
-              {rec && (
+                  Broker: full recommendation card (unchanged).
+                  Operator: compact link to the dedicated /decision screen. */}
+              {rec && (isBroker ? (
                 <div className="card">
-                  <h2 className="card-title">{isBroker ? "Claim recommendation" : "Worth filing?"}</h2>
-
-                  {/* Verdict badge — text + color, never color alone */}
+                  <h2 className="card-title">Claim recommendation</h2>
                   <div className="mb-md">
                     {rec.should_file
-                      ? <span className="badge badge-success">{isBroker ? "Recommendation: File" : "Recommended: File"}</span>
-                      : <span className="badge badge-warning">{isBroker ? "Recommendation: hold" : rec.deductible == null ? "No active policy" : "Recommended: pay out of pocket"}</span>}
+                      ? <span className="badge badge-success">Recommendation: File</span>
+                      : <span className="badge badge-warning">Recommendation: hold</span>}
                   </div>
-
-                  {/* Operator: two-path file-vs-pay-out-of-pocket decision explainer */}
-                  {isOperator && (() => {
-                    if (rec.deductible == null) {
-                      // No active policy — only show pay-out-of-pocket panel + note
-                      return (
-                        <div className="mb-md">
-                          <div style={{
-                            flex: 1, minWidth: 220, padding: "var(--space-md)",
-                            border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)",
-                          }}>
-                            <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--space-xs)" }}>Pay out of pocket</div>
-                            <div className="font-mono" style={{ fontSize: "1.05rem", fontWeight: 600 }}>
-                              Absorb ~${(rec.pay_out_of_pocket_cost || 0).toLocaleString()}
-                            </div>
-                            <div className="text-muted" style={{ fontSize: "0.78rem", marginTop: "var(--space-xs)" }}>
-                              no premium hike · no loss-run mark
-                            </div>
-                          </div>
-                          <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: "var(--space-sm)" }}>
-                            No active policy on file — talk to your broker about coverage.
-                          </p>
-                        </div>
-                      );
-                    }
-                    // Has policy — show both panels
-                    const fileIsRecommended = rec.should_file;
-                    const cumulative = rec.expected_premium_impact?.cumulative_usd ?? 0;
-                    const deductible = rec.deductible ?? 0;
-                    const carrierPayout = rec.carrier_payout ?? 0;
-                    const netEv = rec.net_expected_value_usd ?? 0;
-                    const popCost = rec.pay_out_of_pocket_cost ?? 0;
-                    const filePanel = (
-                      <div style={{
-                        flex: 1, minWidth: 220, padding: "var(--space-md)",
-                        border: fileIsRecommended ? "1px solid var(--accent-ink)" : "1px solid var(--border-subtle)",
-                        borderRadius: "var(--radius-sm)",
-                        background: fileIsRecommended ? "rgba(200,240,0,0.05)" : undefined,
-                      }}>
-                        {fileIsRecommended && (
-                          <div style={{ fontSize: "0.7rem", color: "var(--accent-ink)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-xs)" }}>
-                            Recommended
-                          </div>
-                        )}
-                        <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--space-xs)" }}>File the claim</div>
-                        <div className="font-mono" style={{ fontSize: "1.05rem", fontWeight: 600 }}>
-                          Carrier covers ~${carrierPayout.toLocaleString()}
-                        </div>
-                        <div className="text-muted" style={{ fontSize: "0.78rem", marginTop: "var(--space-xs)" }}>
-                          your cost: ${deductible.toLocaleString()} deductible + ${cumulative.toLocaleString()} / {rec.expected_premium_impact?.duration_years ?? 3} yrs
-                        </div>
-                        <div className="font-mono" style={{ fontSize: "0.92rem", fontWeight: 600, marginTop: "var(--space-xs)" }}>
-                          net {netEv >= 0 ? "+" : "−"}${Math.abs(netEv).toLocaleString()}
-                        </div>
-                      </div>
-                    );
-                    const popPanel = (
-                      <div style={{
-                        flex: 1, minWidth: 220, padding: "var(--space-md)",
-                        border: !fileIsRecommended ? "1px solid var(--accent-ink)" : "1px solid var(--border-subtle)",
-                        borderRadius: "var(--radius-sm)",
-                        background: !fileIsRecommended ? "rgba(200,240,0,0.05)" : undefined,
-                      }}>
-                        {!fileIsRecommended && (
-                          <div style={{ fontSize: "0.7rem", color: "var(--accent-ink)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-xs)" }}>
-                            Recommended
-                          </div>
-                        )}
-                        <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--space-xs)" }}>Pay out of pocket</div>
-                        <div className="font-mono" style={{ fontSize: "1.05rem", fontWeight: 600 }}>
-                          Absorb ~${popCost.toLocaleString()}
-                        </div>
-                        <div className="text-muted" style={{ fontSize: "0.78rem", marginTop: "var(--space-xs)" }}>
-                          no premium hike · no loss-run mark
-                        </div>
-                      </div>
-                    );
-                    return (
-                      <div className="flex gap-md mb-md" style={{ flexWrap: "wrap" }}>
-                        {filePanel}
-                        {popPanel}
-                      </div>
-                    );
-                  })()}
-
-                  {/* Broker: two-stat row (unchanged) */}
-                  {isBroker && (
-                    <div className="flex gap-lg flex-wrap mb-md">
-                      <div>
-                        <div className="text-muted" style={{ fontSize: "0.75rem" }}>Net expected value</div>
-                        <div className="font-mono" style={{ fontSize: "1.1rem" }}>
-                          {rec.net_expected_value_usd >= 0 ? "+" : "−"}${Math.abs(rec.net_expected_value_usd).toLocaleString()}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-muted" style={{ fontSize: "0.75rem" }}>Confidence</div>
-                        <div className="font-mono" style={{ fontSize: "1.1rem" }}>
-                          {Math.round(rec.confidence * 100)}%
-                        </div>
+                  <div className="flex gap-lg flex-wrap mb-md">
+                    <div>
+                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>Net expected value</div>
+                      <div className="font-mono" style={{ fontSize: "1.1rem" }}>
+                        {rec.net_expected_value_usd >= 0 ? "+" : "−"}${Math.abs(rec.net_expected_value_usd).toLocaleString()}
                       </div>
                     </div>
-                  )}
-
-                  {/* Reasons */}
+                    <div>
+                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>Confidence</div>
+                      <div className="font-mono" style={{ fontSize: "1.1rem" }}>{Math.round(rec.confidence * 100)}%</div>
+                    </div>
+                  </div>
                   {rec.reasons.length > 0 && (
                     <ul style={{ margin: "0 0 var(--space-md) var(--space-md)", padding: 0, fontSize: "0.82rem" }}>
                       {rec.reasons.map((r, i) => (
@@ -584,121 +477,57 @@ export default function IncidentDetailPage() {
                       ))}
                     </ul>
                   )}
-
-                  {/* Venue risk snapshot */}
                   {riskScore && (
                     <div className="text-muted mb-md" style={{ fontSize: "0.82rem" }}>
                       Venue risk{" "}
                       <span className="font-mono">{riskScore.total_score}/100</span>
                       {" · "}tier{" "}
-                      <span
-                        className="font-mono"
-                        style={{ color: `var(--tier-${riskScore.tier.toLowerCase()})`, fontWeight: 700 }}
-                      >
-                        {riskScore.tier}
-                      </span>
+                      <span className="font-mono" style={{ color: `var(--tier-${riskScore.tier.toLowerCase()})`, fontWeight: 700 }}>{riskScore.tier}</span>
                       {" · "}
                       <a href={`/incidents?venue=${incident?.venue_id}`}>recent incidents</a>
                     </div>
                   )}
-
-                  {/* Routing footer — persona-aware. The broker is the reviewer,
-                      so they get the decision action; the operator gets the
-                      send/sent status. */}
-                  {isBroker ? (
-                    proposalState ? (
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => router.push(`/underwriter/${primaryPacket.id}`)}
-                        aria-label="Review this claim proposal"
-                        style={{ minHeight: 44 }}
-                      >
-                        Review proposal →
-                      </button>
-                    ) : (
-                      <span className="text-muted">No claim proposal to review yet.</span>
-                    )
+                  {proposalState ? (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => router.push(`/underwriter/${primaryPacket.id}`)}
+                      aria-label="Review this claim proposal"
+                      style={{ minHeight: 44 }}
+                    >
+                      Review proposal →
+                    </button>
                   ) : (
-                    <>
-                      {routingStatus === "borderline" && (
-                        <button
-                          className="btn btn-primary"
-                          onClick={sendToBroker}
-                          aria-label="Send this incident to the broker for review"
-                          style={{ minHeight: 44 }}
-                        >
-                          Send to broker
-                        </button>
-                      )}
-                      {routingStatus === "auto_routed" && (
-                        <span className="badge badge-info">Sent to broker for review</span>
-                      )}
-                      {routingStatus === "not_routed" && (
-                        <span className="text-muted">Logged — below the filing threshold.</span>
-                      )}
-                    </>
+                    <span className="text-muted">No claim proposal to review yet.</span>
                   )}
                 </div>
-              )}
+              ) : (
+                <Link
+                  href={`/incidents/${id}/decision`}
+                  className="wq-row"
+                  aria-label="View filing decision"
+                  style={{ textDecoration: "none" }}
+                >
+                  <span style={{ flex: 1 }} className="text-sm">
+                    {rec.should_file ? "Worth filing" : rec.deductible == null ? "No active policy" : "Pay out of pocket"}
+                    {" · "}
+                    <span className="font-mono">net {rec.net_expected_value_usd >= 0 ? "+" : "−"}${Math.abs(rec.net_expected_value_usd).toLocaleString()}</span>
+                  </span>
+                  <span className="text-xs text-muted">View decision →</span>
+                </Link>
+              ))}
               {/* ─────────────────────────────────────────────────────────────────── */}
 
-              {/* ── Claim status stepper (operator only) ─────────────────────────── */}
+              {/* ── Claim status link (operator only) ───────────────────────────── */}
               {isOperator && claimStatus && (() => {
                 const ps = claimStatus.proposal.state;
-                const litReported = true;
-                const litSent = claimStatus.proposal.exists;
-                const litApproved = !!ps && ["approved", "filed_with_carrier", "paid", "denied"].includes(ps);
-                const litFiled = (!!ps && ["filed_with_carrier", "paid", "denied"].includes(ps)) || claimStatus.claim.exists;
-                const litResolved = (!!ps && ["paid", "denied"].includes(ps)) ||
-                  (!!claimStatus.claim.status && ["closed_paid", "closed_denied", "closed_dropped"].includes(claimStatus.claim.status));
-
-                const steps: { label: string; lit: boolean }[] = [
-                  { label: "Reported", lit: litReported },
-                  { label: "Sent to broker", lit: litSent },
-                  { label: "Approved", lit: litApproved },
-                  { label: "Filed", lit: litFiled },
-                  { label: "Resolved", lit: litResolved },
-                ];
-
+                const filed = claimStatus.claim.exists || (!!ps && ["filed_with_carrier", "paid", "denied"].includes(ps));
+                const resolved = (!!ps && ["paid", "denied"].includes(ps)) || (!!claimStatus.claim.status && ["closed_paid", "closed_denied", "closed_dropped"].includes(claimStatus.claim.status));
+                const current = resolved ? "Resolved" : filed ? "Filed" : (ps === "approved") ? "Approved" : claimStatus.proposal.exists ? "Sent to broker" : "Not filed";
                 return (
-                  <div className="card">
-                    <div className="text-xs uppercase tracking-wide text-secondary mb-md">Claim status</div>
-                    <div
-                      role="list"
-                      aria-label="Claim status"
-                      className="flex gap-sm"
-                      style={{ flexWrap: "wrap", alignItems: "center" }}
-                    >
-                      {steps.map((step) => (
-                        <div
-                          key={step.label}
-                          role="listitem"
-                          className="flex items-center gap-xs"
-                          style={{ padding: "4px 10px", borderRadius: "var(--radius-sm)", background: "var(--bg-elevated)" }}
-                        >
-                          {step.lit
-                            ? <CheckCircle2 size={13} style={{ color: "var(--accent-ink)", flexShrink: 0 }} aria-hidden="true" />
-                            : <Circle size={13} className="text-muted" style={{ flexShrink: 0 }} aria-hidden="true" />}
-                          <span
-                            className="text-xs"
-                            style={{ color: step.lit ? "var(--accent-ink)" : undefined }}
-                          >
-                            {step.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {ps === "rejected_by_broker" && (
-                      <p className="text-xs mt-sm flex items-center gap-xs" style={{ color: "var(--state-error)" }}>
-                        <AlertTriangle size={12} aria-hidden="true" />Declined by broker
-                      </p>
-                    )}
-                    {ps === "needs_more_info" && (
-                      <p className="text-xs mt-sm flex items-center gap-xs" style={{ color: "var(--state-warning)" }}>
-                        <Clock size={12} aria-hidden="true" />Info requested
-                      </p>
-                    )}
-                  </div>
+                  <Link href={`/incidents/${id}/claim-status`} className="wq-row" aria-label="View claim status" style={{ textDecoration: "none" }}>
+                    <span style={{ flex: 1 }} className="text-sm">Claim status: <span style={{ color: "var(--accent-ink)" }}>{current}</span></span>
+                    <span className="text-xs text-muted">View →</span>
+                  </Link>
                 );
               })()}
               {/* ─────────────────────────────────────────────────────────────────── */}
