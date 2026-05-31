@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
@@ -93,7 +94,7 @@ export default function DecisionPage() {
       {!rec ? (
         <div className="lc-card"><div className="lc-card__inner"><p className="text-sm text-muted" style={{ margin: 0 }}>No recommendation available for this incident yet.</p></div></div>
       ) : (
-        <>
+        <div className="lc-card"><div className="lc-card__inner">
           <div className="mb-md">
             {rec.should_file
               ? <span className="badge badge-success">Recommended: File</span>
@@ -194,7 +195,7 @@ export default function DecisionPage() {
             <div className="text-muted mb-md" style={{ fontSize: "0.82rem" }}>
               Venue risk <span className="font-mono">{riskScore.total_score}/100</span>
               {" · "}tier <span className="font-mono" style={{ color: `var(--tier-${riskScore.tier.toLowerCase()})`, fontWeight: 700 }}>{riskScore.tier}</span>
-              {venueId && <>{" · "}<a href={`/incidents?venue=${venueId}`}>recent incidents</a></>}
+              {venueId && <>{" · "}<Link href={`/incidents?venue=${venueId}`}>recent incidents</Link></>}
             </div>
           )}
 
@@ -203,7 +204,7 @@ export default function DecisionPage() {
           )}
           {routingStatus === "auto_routed" && <span className="badge badge-info">Sent to broker for review</span>}
           {routingStatus === "not_routed" && <span className="text-muted">Logged — below the filing threshold.</span>}
-        </>
+        </div></div>
       )}
     </div>
   );
