@@ -380,6 +380,33 @@ a:hover { color: var(--text-primary); }
   color: var(--text-muted);
 }
 
+/* Work Queue decision row — hover + focus-visible feedback (mirrors the
+   triage-row interaction treatment) so keyboard + pointer users get a clear
+   affordance. Tokens only. */
+.wq-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  text-align: left;
+  min-height: 44px;
+  cursor: pointer;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px var(--space-md);
+  color: var(--text-primary);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.wq-row:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+}
+.wq-row:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
 /* ============================================
    LOADING STATES
    ============================================ */

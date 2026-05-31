@@ -40,22 +40,9 @@ function Row({ p, onOpen }: { p: Proposal; onOpen: (id: string) => void }) {
   return (
     <button
       type="button"
+      className="wq-row"
       onClick={() => onOpen(p.packet_id)}
       aria-label={`Review proposal for ${p.venue_id}${conf != null ? `, confidence ${conf} percent` : ""}`}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-md)",
-        width: "100%",
-        textAlign: "left",
-        minHeight: 44,
-        cursor: "pointer",
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "var(--radius-md)",
-        padding: "10px var(--space-md)",
-        color: "var(--text-primary)",
-      }}
     >
       <span
         className="font-display"
@@ -91,9 +78,12 @@ interface SectionProps {
   hint: string;
   rows: Proposal[];
   onOpen: (id: string) => void;
+  tone?: "urgent" | "neutral";
 }
 
-function Section({ title, hint, rows, onOpen }: SectionProps) {
+function Section({ title, hint, rows, onOpen, tone = "neutral" }: SectionProps) {
+  const chipColor = tone === "urgent" ? "var(--state-warning)" : "var(--text-muted)";
+  const chipBorder = tone === "urgent" ? "var(--state-warning)" : "var(--border-subtle)";
   return (
     <div className="lc-card mb-xl">
       <div className="lc-card__inner">
@@ -111,8 +101,8 @@ function Section({ title, hint, rows, onOpen }: SectionProps) {
             <span
               className="text-xs font-mono"
               style={{
-                color: "var(--state-warning)",
-                border: "1px solid var(--state-warning)",
+                color: chipColor,
+                border: `1px solid ${chipBorder}`,
                 borderRadius: "var(--radius-sm)",
                 padding: "2px 8px",
               }}
@@ -220,24 +210,35 @@ export default function WorkQueuePage() {
         </div>
       </section>
 
-      <Section
-        title="To decide"
-        hint="pending broker review · value + urgency"
-        rows={toDecide}
-        onOpen={open}
-      />
-      <Section
-        title="Awaiting info"
-        hint="you asked the operator · oldest first"
-        rows={awaiting}
-        onOpen={open}
-      />
-      <Section
-        title="Ready to file"
-        hint="approved · confirm FNOL"
-        rows={ready}
-        onOpen={open}
-      />
+      {toDecide.length === 0 && awaiting.length === 0 && ready.length === 0 ? (
+        <div className="lc-card">
+          <div className="lc-card__inner" style={{ textAlign: "center", padding: "var(--space-xl)" }}>
+            <p className="text-sm text-muted" style={{ margin: 0 }}>Queue clear — nothing to decide right now.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Section
+            title="To decide"
+            hint="pending broker review · value + urgency"
+            rows={toDecide}
+            onOpen={open}
+            tone="urgent"
+          />
+          <Section
+            title="Awaiting info"
+            hint="you asked the operator · oldest first"
+            rows={awaiting}
+            onOpen={open}
+          />
+          <Section
+            title="Ready to file"
+            hint="approved · confirm FNOL"
+            rows={ready}
+            onOpen={open}
+          />
+        </>
+      )}
     </div>
   );
 }

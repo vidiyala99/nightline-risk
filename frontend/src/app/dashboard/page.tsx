@@ -97,13 +97,21 @@ function ReportFeedRow({ r }: { r: FeedRow }) {
   const steps = reportSteps(r);
   const branch = r.proposal_state === "rejected_by_broker" ? "Declined by broker"
     : r.proposal_state === "needs_more_info" ? "Info requested" : null;
+  // Current step = the furthest-along lit step. Spoken to screen readers via the
+  // row's aria-label; the ●/○ glyph row is decorative (aria-hidden).
+  const current = [...steps].reverse().find((s) => s.lit)?.label ?? "Reported";
   return (
-    <Link href={`/incidents/${r.incident_id}`} className="lc-card" style={{ textDecoration: "none", display: "block" }}>
+    <Link
+      href={`/incidents/${r.incident_id}`}
+      className="lc-card"
+      style={{ textDecoration: "none", display: "block" }}
+      aria-label={`${r.summary} — status: ${current}${branch ? `, ${branch}` : ""}`}
+    >
       <div className="lc-card__inner" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <span className="text-sm" style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span className="text-sm" title={r.summary} style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {r.summary}
         </span>
-        <div className="flex items-center" style={{ gap: 8, flexWrap: "wrap" }}>
+        <div className="flex items-center" aria-hidden="true" style={{ gap: 8, flexWrap: "wrap" }}>
           {steps.map((s) => (
             <span key={s.label} className="text-xs" style={{ color: s.lit ? "var(--accent-ink)" : "var(--text-muted)" }}>
               {s.lit ? "● " : "○ "}{s.label}
@@ -162,6 +170,11 @@ function OperatorReportFeed({ venueId, complianceDue }: { venueId: string; compl
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
             {rows.slice(0, 8).map((r) => <ReportFeedRow key={r.incident_id} r={r} />)}
           </div>
+          {rows.length > 8 && (
+            <Link href="/incidents" className="text-xs" style={{ display: "inline-block", marginTop: "var(--space-sm)", color: "var(--accent-ink)", textDecoration: "none" }}>
+              +{rows.length - 8} more in Incidents →
+            </Link>
+          )}
         </section>
       )}
     </>
