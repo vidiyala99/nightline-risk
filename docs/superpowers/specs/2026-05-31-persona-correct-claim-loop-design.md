@@ -10,7 +10,7 @@
 The operator→broker→claim loop is **open at the seam and persona-blurred**:
 
 1. **Approval goes nowhere.** A broker can approve a claim proposal, but nothing creates the carrier `Claim` (FNOL). The proposal sits at `approved` forever; `services/claims.py::file_fnol` exists but is never reached from the approval flow.
-2. **The operator's loop is write-only.** Operators log incidents but have **no screen** showing what happened next — proposal state, claim status. The `/claims` page is broker-only.
+2. **The operator gets no real decision support, and the loop is write-only.** The "Worth filing?" card shows a net number but never explains the actual choice — *file vs. pay out of pocket* — and **ignores the deductible**, the one input that makes small claims not worth filing. After logging, operators also have **no screen** showing what happened next (proposal state, claim status); `/claims` is broker-only.
 3. **Shared surfaces are persona-blurred.** The incident detail screen showed an operator-framed *"Sent to broker for review"* to brokers (fixed by hand 2026-05-31). The broker's *decide-on-a-claim* journey is smeared across four nav items (Incidents → Claim Proposals → Reports/`underwriter` → Claims) with two duplicate decision surfaces.
 
 ## Principle: persona-correctness
@@ -31,18 +31,33 @@ Reuses `services/claims.py::file_fnol(...)` (creates the `Claim`, takes `policy_
 - **Feedback loop:** in the claim-close service (`services/claims.py` close path), when the closing `Claim.proposal_id` is set, advance the proposal: `closed_paid → paid`, `closed_denied|closed_dropped → denied`. Emits the matching audit events. (`ClaimProposal` already declares `filed_with_carrier`, `paid`, `denied`.)
 - **Broker UI:** on the broker decision surface (Part D), after **Approve**, reveal a **pre-filled "Confirm & file FNOL"** form (policy / coverage line / date of loss, editable). `blockers` disable confirm with the reason shown. Confirm → `Claim` created; the row moves to "filed".
 
-## B. Operator status spine (operator)
+## B. Operator decision screen — "File or pay out of pocket?" (operator)
 
-- **`GET /incidents/{id}/claim-status`** (new, venue-gated): resolves incident → latest packet → latest `ClaimProposal` (state) → linked `Claim` (via `proposal_id`/`incident_id`) → claim status. Returns:
-  ```json
-  { "incident_status": "open",
-    "proposal": { "exists": true, "state": "filed_with_carrier" },
-    "claim":    { "exists": true, "status": "reserved" } }
-  ```
-  Operators see only their own venue's chain (no exposure of the broker `/claims` list).
-- **UI — status timeline** on the incident detail (operator view): a horizontal stepper
-  `Reported → Sent to broker → Under review → Approved → Filed → Reserved → Settling → Closed`,
-  steps lit by the resolved state; rejected/needs-info render as a branch label. Answers "what happened to my report?"
+The operator's incident screen answers the real question a venue has: *should I file this, or absorb it myself?* "Pay out of pocket" = **don't file**; the venue covers the loss directly. Filing wins only when the carrier covers more than the future premium hit. Three parts: a deductible-aware recommendation, the decision explainer, and the status spine.
+
+### B1 — Deductible-aware recommendation (backend, `claim_recommendation.py`)
+
+The engine currently ignores the deductible — the single thing that makes small claims not worth filing. Fix it:
+- Resolve the venue's **active policy** (same logic as `services/fnol.py::resolve_fnol_defaults`) and read its **deductible** for the coverage line from `Policy.terms_snapshot[line]["deductible"]`.
+- `carrier_payout = max(0, expected_loss_median − deductible)` — below the deductible, the carrier covers ~$0.
+- `net_ev_file = carrier_payout × probability − cumulative_premium_impact` (the gain from filing vs. paying yourself).
+- `should_file = net_ev_file > 0 AND carrier_payout > 0`.
+- The recommendation payload exposes the **breakdown** the card needs: `expected_loss`, `deductible`, `carrier_payout`, `premium_impact_annual`, `premium_impact_cumulative`, `net_ev_file`, `pay_out_of_pocket_cost` (= `expected_loss`), `probability`, `confidence`, `reasons`.
+- No active policy → `deductible`/`carrier_payout` null + a `no_active_policy` flag (the file path can't be priced).
+
+### B2 — Decision explainer (operator UI — the incident context screen)
+
+Replace the bare "Worth filing?" verdict with a **two-path comparison**:
+- **File the claim** → carrier covers ~`$carrier_payout`; *your* cost = deductible + premium over ~3 yrs; **net `$net_ev_file`**.
+- **Pay out of pocket** (don't file) → you absorb ~`$expected_loss` now, but **no** premium hike and **no** loss-run mark.
+- A plain-English **recommendation + why** — e.g. *"Pay it yourself: the ~$3k loss is near your $5k deductible, so the carrier pays little and filing would mark your loss run and raise your renewal."*
+- The **send-to-broker** action (existing routing) when filing is recommended/borderline.
+- `no_active_policy` → show only the pay-out-of-pocket estimate + a note to talk to the broker about coverage.
+
+### B3 — Status spine (operator UI)
+
+- **`GET /incidents/{id}/claim-status`** (new, venue-gated): resolves incident → latest packet → latest `ClaimProposal` (state) → linked `Claim` (via `proposal_id`/`incident_id`) → claim status. Returns `{ "incident_status": "open", "proposal": {"exists": true, "state": "filed_with_carrier"}, "claim": {"exists": true, "status": "reserved"} }`. Operators see only their own venue's chain (no exposure of the broker `/claims` list).
+- **Status timeline** below the decision card: a horizontal stepper `Reported → Sent to broker → Under review → Approved → Filed → Reserved → Settling → Closed`, steps lit by the resolved state; rejected/needs-info render as a branch label. Answers "what happened to my report?"
 
 ## C. Operator evidence-append (operator)
 
@@ -63,12 +78,13 @@ Make the broker's claim journey read as **one pipeline: Inbox → Decide → Cla
 - `resolve_fnol_defaults`: resolves policy/line/date; `no_active_policy` blocker when none; multi-policy note.
 - `POST /file-fnol`: requires `approved` (422 otherwise); creates a `Claim` linked to proposal+incident; proposal → `filed_with_carrier`; emits audit event.
 - Claim close → proposal terminal state (`paid`/`denied`) for a proposal-linked claim.
+- **Deductible-aware recommendation (B1):** loss above the deductible → positive `carrier_payout` and `net_ev_file`; loss **at/below** the deductible → `carrier_payout == 0` and `should_file == False` (pay out of pocket); `no_active_policy` → null `deductible`/`carrier_payout` + flag. Premium-impact breakdown present in the payload.
 - `GET /claim-status`: correct chain for none/proposal-only/filed/closed; venue-gated (operator can't read another venue's).
 - Evidence append: allowed on open/under_review/closed; `409` on `closed_archived`.
 
 ## Scope / phasing
 
-- **Phase 1 (this spec):** backend (A, B, C, D1 redirect) + web (A confirm form, B timeline, C button, D2/D3).
+- **Phase 1 (this spec):** backend (A, B1 deductible-aware recommendation, B3 claim-status, C, D1 redirect) + web (A confirm form, B2 decision explainer + B3 timeline, C button, D2/D3).
 - **Phase 2:** mobile parity — operator status spine + add-evidence; broker decision + FNOL confirm.
 
 ## Out of scope (tracked)
