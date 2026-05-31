@@ -498,6 +498,131 @@ def test_inbox_filters_pending_and_sorts_by_priority():
 # ---------- GET /api/claim-proposals/{proposal_id}/fnol-draft ----------
 
 
+# ---------- POST /api/claim-proposals/{proposal_id}/file-fnol ----------
+
+
+def _seed_approved_proposal_routes(session, sfx, *, state="approved"):
+    """Mirror the FK chain from test_fnol_draft_returns_resolved_defaults, suffixed."""
+    if not session.get(Carrier, f"markel-{sfx}"):
+        session.add(Carrier(id=f"markel-{sfx}", name=f"Markel {sfx} Test", market_type="e&s"))
+    session.flush()
+
+    if not session.get(IncidentRecord, f"in-{sfx}"):
+        session.add(IncidentRecord(
+            id=f"in-{sfx}", venue_id="elsewhere-brooklyn",
+            occurred_at="2026-05-17T00:46:00Z", location="bar", summary="x",
+            reported_by="m", injury_observed=True, police_called=False,
+            ems_called=False, status="open",
+        ))
+    if not session.get(UnderwritingPacket, f"pk-{sfx}"):
+        session.add(UnderwritingPacket(
+            id=f"pk-{sfx}", venue_id="elsewhere-brooklyn", incident_id=f"in-{sfx}",
+            rubric_version_id="demo-rubric-v1", status="needs_review",
+            snapshot_hash="h",
+            risk_signals={"type": "premises_liability", "severity": "high", "confidence": 0.9},
+        ))
+    session.flush()
+
+    if not session.get(Submission, f"sub-{sfx}"):
+        session.add(Submission(
+            id=f"sub-{sfx}", venue_id="elsewhere-brooklyn",
+            effective_date=_d(2026, 1, 1),
+            coverage_lines=["general_liability"],
+        ))
+    session.flush()
+
+    if not session.get(CarrierQuote, f"q-{sfx}"):
+        session.add(CarrierQuote(
+            id=f"q-{sfx}", submission_id=f"sub-{sfx}", carrier_id=f"markel-{sfx}",
+        ))
+    session.flush()
+
+    if not session.get(Policy, f"po-{sfx}"):
+        session.add(Policy(
+            id=f"po-{sfx}", submission_id=f"sub-{sfx}", bound_quote_id=f"q-{sfx}",
+            venue_id="elsewhere-brooklyn", carrier_id=f"markel-{sfx}",
+            status="bound",
+            effective_date=_d(2026, 1, 1), expiration_date=_d(2027, 1, 1),
+            annual_premium=_D("5000.00"), commission_amount=_D("750.00"),
+            commission_rate=_D("0.15"),
+            coverage_lines=["general_liability"],
+            terms_snapshot={}, snapshot_hash=f"ph-{sfx}",
+        ))
+    session.flush()
+
+    if not session.get(ClaimProposal, f"pr-{sfx}"):
+        session.add(ClaimProposal(
+            id=f"pr-{sfx}", packet_id=f"pk-{sfx}", venue_id="elsewhere-brooklyn",
+            proposed_by="auto-router", state=state,
+        ))
+    session.commit()
+
+
+def test_file_fnol_creates_claim_and_advances_proposal():
+    session = next(get_session())
+    try:
+        _seed_approved_proposal_routes(session, "ff")
+        with TestClient(app) as client:
+            r = client.post(
+                "/api/claim-proposals/pr-ff/file-fnol",
+                json={"policy_id": "po-ff", "coverage_line": "general_liability",
+                      "date_of_loss": "2026-05-17", "broker_id": "bk"},
+                headers=_broker_headers(),
+            )
+        assert r.status_code == 201, r.text
+        assert r.json()["claim"]["proposal_id"] == "pr-ff"
+        assert r.json()["proposal_state"] == "filed_with_carrier"
+        assert session.get(ClaimProposal, "pr-ff").state == "filed_with_carrier"
+    finally:
+        from app.models import Claim
+        from sqlmodel import select as _sel
+        for clm in session.exec(_sel(Claim).where(Claim.proposal_id == "pr-ff")).all():
+            session.delete(clm)
+        for tbl, _id in [
+            (ClaimProposal, "pr-ff"),
+            (Policy, "po-ff"),
+            (CarrierQuote, "q-ff"),
+            (Submission, "sub-ff"),
+            (UnderwritingPacket, "pk-ff"),
+            (IncidentRecord, "in-ff"),
+            (Carrier, "markel-ff"),
+        ]:
+            row = session.get(tbl, _id)
+            if row:
+                session.delete(row)
+        session.commit()
+        session.close()
+
+
+def test_file_fnol_requires_approved_state():
+    session = next(get_session())
+    try:
+        _seed_approved_proposal_routes(session, "pend", state="pending_broker_review")
+        with TestClient(app) as client:
+            r = client.post(
+                "/api/claim-proposals/pr-pend/file-fnol",
+                json={"policy_id": "po-pend", "coverage_line": "general_liability",
+                      "date_of_loss": "2026-05-17", "broker_id": "bk"},
+                headers=_broker_headers(),
+            )
+        assert r.status_code == 422, r.text
+    finally:
+        for tbl, _id in [
+            (ClaimProposal, "pr-pend"),
+            (Policy, "po-pend"),
+            (CarrierQuote, "q-pend"),
+            (Submission, "sub-pend"),
+            (UnderwritingPacket, "pk-pend"),
+            (IncidentRecord, "in-pend"),
+            (Carrier, "markel-pend"),
+        ]:
+            row = session.get(tbl, _id)
+            if row:
+                session.delete(row)
+        session.commit()
+        session.close()
+
+
 def test_fnol_draft_returns_resolved_defaults():
     session = next(get_session())
     try:

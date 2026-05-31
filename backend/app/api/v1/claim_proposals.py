@@ -284,3 +284,72 @@ def get_venue_override_stats(
     _resolve_venue(venue_id, session)
     stats = compute_override_stats(session=session, venue_id=venue_id)
     return override_stats_to_dict(stats)
+
+
+# ─── FNOL bridge ────────────────────────────────────────────────────────
+
+
+@router.post("/claim-proposals/{proposal_id}/file-fnol", status_code=201)
+def file_fnol_for_proposal(
+    proposal_id: str,
+    payload: dict,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Create the carrier-side Claim from an approved ClaimProposal and
+    advance the proposal to 'filed_with_carrier'.
+
+    Body: { policy_id, coverage_line, date_of_loss (ISO), broker_id }
+    Returns: { claim: <claim dict>, proposal_state: "filed_with_carrier" }
+    """
+    from datetime import date as _date
+
+    proposal = session.get(ClaimProposal, proposal_id)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    require_venue_access(proposal.venue_id, authorization, session)
+    if proposal.state != "approved":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "not_approved",
+                "message": (
+                    f"Proposal must be 'approved' to file (state={proposal.state})"
+                ),
+            },
+        )
+
+    packet = session.get(UnderwritingPacket, proposal.packet_id)
+
+    from app.services.claims import file_fnol
+    from app.claim_proposals import mark_proposal_filed
+    from app.api.v1.claims import _claim_to_dict
+
+    try:
+        claim = file_fnol(
+            session,
+            policy_id=payload["policy_id"],
+            coverage_line=payload["coverage_line"],
+            date_of_loss=_date.fromisoformat(payload["date_of_loss"]),
+            filed_by=payload.get("broker_id", "broker"),
+            incident_id=packet.incident_id if packet else None,
+            proposal_id=proposal_id,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "fnol_failed", "message": str(e)},
+        ) from e
+
+    # file_fnol uses session.flush() only — commit before mark_proposal_filed
+    # so the Claim row is persisted before the proposal state advances.
+    session.commit()
+    session.refresh(claim)
+
+    mark_proposal_filed(
+        session=session,
+        proposal_id=proposal_id,
+        broker_id=payload.get("broker_id", "broker"),
+    )
+
+    return {"claim": _claim_to_dict(claim), "proposal_state": "filed_with_carrier"}
