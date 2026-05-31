@@ -71,6 +71,46 @@ const TIER_COLOR: Record<string, string> = {
   D: "var(--tier-d)",
 };
 
+function BrokerTriageStrip({ expiringRenewals }: { expiringRenewals: number }) {
+  const [pending, setPending] = useState(0);
+  const [requests, setRequests] = useState(0);
+  useEffect(() => {
+    (async () => {
+      const [p, r] = await Promise.all([
+        fetch(`${API_URL}/api/claim-proposals?status=pending_broker_review`, { headers: authHeaders() }),
+        fetch(`${API_URL}/api/policy-requests`, { headers: authHeaders() }),
+      ]);
+      if (p.ok) { const d = await p.json(); setPending(Array.isArray(d) ? d.length : 0); }
+      if (r.ok) {
+        const d = await r.json();
+        const open = Array.isArray(d) ? d.filter((x: { status: string }) => ["requested", "pending", "open"].includes(x.status)).length : 0;
+        setRequests(open);
+      }
+    })();
+  }, []);
+  const total = pending + expiringRenewals + requests;
+  if (total === 0) return null;
+  const Cell = ({ n, label, href }: { n: number; label: string; href: string }) =>
+    n > 0 ? (
+      <Link href={href} className="lc-card" style={{ flex: 1, minWidth: 150, textDecoration: "none", minHeight: 44, display: "block" }}>
+        <div className="lc-card__inner">
+          <div className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{n}</div>
+          <div className="text-xs text-muted">{label}</div>
+        </div>
+      </Link>
+    ) : null;
+  return (
+    <section className="mb-lg" aria-label="Needs you">
+      <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Needs you · {total}</div>
+      <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
+        <Cell n={pending} label="proposals to decide" href="/work-queue" />
+        <Cell n={expiringRenewals} label="renewals expiring (60d)" href="/renewals" />
+        <Cell n={requests} label="open requests" href="/policy-requests" />
+      </div>
+    </section>
+  );
+}
+
 interface VenueSummary { id: string; name: string; }
 
 export default function DashboardPage() {
@@ -414,6 +454,16 @@ function DashboardPageInner() {
           </div>
         </div>
       )}
+
+      {/* BROKER: needs-you triage strip */}
+      {isBroker && (() => {
+        const expiringRenewals = portfolioVenues.filter((v) => {
+          if (!v.renewal_date) return false;
+          const d = new Date(v.renewal_date).getTime() - Date.now();
+          return d >= 0 && d <= 60 * 24 * 60 * 60 * 1000;
+        }).length;
+        return <BrokerTriageStrip expiringRenewals={expiringRenewals} />;
+      })()}
 
       {/* BROKER: triage console */}
       {isBroker && (
