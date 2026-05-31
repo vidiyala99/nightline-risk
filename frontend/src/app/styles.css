@@ -375,6 +375,11 @@ a:hover { color: var(--text-primary); }
   color: var(--state-info);
 }
 
+.badge-neutral {
+  background: rgba(23, 21, 15, 0.08);
+  color: var(--text-muted);
+}
+
 /* ============================================
    LOADING STATES
    ============================================ */

@@ -125,6 +125,12 @@ const PROPOSAL_BADGE: Record<string, { label: string; color: string }> = {
   denied: { label: "Proposal · denied", color: "var(--state-error)" },
 };
 
+interface ClaimStatusResponse {
+  incident_status: string;
+  proposal: { exists: boolean; state: string | null };
+  claim: { exists: boolean; status: string | null };
+}
+
 // The closed loop: did this incident become a real carrier claim?
 interface IncidentClaim {
   id: string;
@@ -159,9 +165,8 @@ export default function IncidentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
-  const [claimStatus, setClaimStatus] = useState<
-    | { incident_status: string; proposal: { exists: boolean; state: string | null };
-        claim: { exists: boolean; status: string | null } } | null>(null);
+  const [claimStatus, setClaimStatus] = useState<ClaimStatusResponse | null>(null);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) router.push("/login");
@@ -314,10 +319,11 @@ export default function IncidentDetailPage() {
           <header className="mb-xl">
             <h1 className="glow-text mb-md">{incident.summary.length > 80 ? incident.summary.slice(0, 80) + "…" : incident.summary}</h1>
             <div className="flex items-center gap-lg flex-wrap">
-              <span className={`badge ${incident.status === "open" ? "badge-error" : incident.status === "under_review" ? "badge-warning" : "badge-success"}`} style={{ fontSize: "0.8rem", padding: "4px 10px" }}>
-                {incident.status === "open" && <AlertTriangle size={12} />}
-                {incident.status === "under_review" && <Clock size={12} />}
-                {incident.status === "closed" && <CheckCircle2 size={12} />}
+              <span className={`badge ${incident.status === "open" ? "badge-error" : incident.status === "under_review" ? "badge-warning" : incident.status === "closed_archived" ? "badge-neutral" : "badge-success"}`} style={{ fontSize: "0.8rem", padding: "4px 10px" }}>
+                {incident.status === "open" && <AlertTriangle size={12} aria-hidden="true" />}
+                {incident.status === "under_review" && <Clock size={12} aria-hidden="true" />}
+                {incident.status === "closed" && <CheckCircle2 size={12} aria-hidden="true" />}
+                {incident.status === "closed_archived" && <CheckCircle2 size={12} aria-hidden="true" />}
                 {statusLabel[incident.status]}
               </span>
               <span className="flex items-center gap-xs text-sm text-secondary"><Calendar size={13} />{new Date(incident.occurred_at).toLocaleString()}</span>
@@ -380,19 +386,28 @@ export default function IncidentDetailPage() {
                   <div className="flex items-center justify-between mb-md" style={{ flexWrap: "wrap", gap: "var(--space-sm)" }}>
                     <div className="text-xs uppercase tracking-wide text-secondary">Attached Evidence</div>
                     {isOperator && incident && incident.status !== "closed_archived" && (
-                      <label className="btn btn-secondary" style={{ minHeight: 44, cursor: "pointer" }}>
-                        Add evidence
-                        <input type="file" hidden onChange={async (e) => {
-                          const file = e.target.files?.[0]; if (!file) return;
-                          const fd = new FormData(); fd.append("file", file);
-                          const r = await fetch(`${API_URL}/api/incidents/${id}/evidence`, {
-                            method: "POST", headers: authHeaders(), body: fd });
-                          if (r.ok) {
-                            const ev = await fetch(`${API_URL}/api/incidents/${id}/evidence`, { headers: authHeaders() });
-                            if (ev.ok) setEvidence(await ev.json());
-                          }
-                        }} />
-                      </label>
+                      <div className="flex flex-col items-end gap-xs">
+                        <label className="btn btn-secondary" style={{ minHeight: 44, cursor: "pointer" }}>
+                          Add evidence
+                          <input type="file" hidden onChange={async (e) => {
+                            const file = e.target.files?.[0]; if (!file) return;
+                            setEvidenceError(null);
+                            const fd = new FormData(); fd.append("file", file);
+                            const r = await fetch(`${API_URL}/api/incidents/${id}/evidence`, {
+                              method: "POST", headers: authHeaders(), body: fd });
+                            if (r.ok) {
+                              setEvidenceError(null);
+                              const ev = await fetch(`${API_URL}/api/incidents/${id}/evidence`, { headers: authHeaders() });
+                              if (ev.ok) setEvidence(await ev.json());
+                            } else {
+                              setEvidenceError("Upload failed — try again.");
+                            }
+                          }} />
+                        </label>
+                        {evidenceError && (
+                          <span className="text-xs" style={{ color: "var(--state-error)" }}>{evidenceError}</span>
+                        )}
+                      </div>
                     )}
                   </div>
                   {evidence.length > 0 && (
@@ -507,10 +522,10 @@ export default function IncidentDetailPage() {
                           Carrier covers ~${carrierPayout.toLocaleString()}
                         </div>
                         <div className="text-muted" style={{ fontSize: "0.78rem", marginTop: "var(--space-xs)" }}>
-                          your cost: ${deductible.toLocaleString()} deductible + ${cumulative.toLocaleString()} / 3 yrs
+                          your cost: ${deductible.toLocaleString()} deductible + ${cumulative.toLocaleString()} / {rec.expected_premium_impact?.duration_years ?? 3} yrs
                         </div>
                         <div className="font-mono" style={{ fontSize: "0.92rem", fontWeight: 600, marginTop: "var(--space-xs)" }}>
-                          net {netEv >= 0 ? "+" : ""}${netEv.toLocaleString()}
+                          net {netEv >= 0 ? "+" : "−"}${Math.abs(netEv).toLocaleString()}
                         </div>
                       </div>
                     );
@@ -549,7 +564,7 @@ export default function IncidentDetailPage() {
                       <div>
                         <div className="text-muted" style={{ fontSize: "0.75rem" }}>Net expected value</div>
                         <div className="font-mono" style={{ fontSize: "1.1rem" }}>
-                          ${rec.net_expected_value_usd.toLocaleString()}
+                          {rec.net_expected_value_usd >= 0 ? "+" : "−"}${Math.abs(rec.net_expected_value_usd).toLocaleString()}
                         </div>
                       </div>
                       <div>
@@ -654,9 +669,9 @@ export default function IncidentDetailPage() {
                       className="flex gap-sm"
                       style={{ flexWrap: "wrap", alignItems: "center" }}
                     >
-                      {steps.map((step, i) => (
+                      {steps.map((step) => (
                         <div
-                          key={i}
+                          key={step.label}
                           role="listitem"
                           className="flex items-center gap-xs"
                           style={{ padding: "4px 10px", borderRadius: "var(--radius-sm)", background: "var(--bg-elevated)" }}
@@ -674,10 +689,14 @@ export default function IncidentDetailPage() {
                       ))}
                     </div>
                     {ps === "rejected_by_broker" && (
-                      <p className="text-xs mt-sm" style={{ color: "var(--state-error)" }}>Declined by broker</p>
+                      <p className="text-xs mt-sm flex items-center gap-xs" style={{ color: "var(--state-error)" }}>
+                        <AlertTriangle size={12} aria-hidden="true" />Declined by broker
+                      </p>
                     )}
                     {ps === "needs_more_info" && (
-                      <p className="text-xs mt-sm" style={{ color: "var(--state-warning)" }}>Info requested</p>
+                      <p className="text-xs mt-sm flex items-center gap-xs" style={{ color: "var(--state-warning)" }}>
+                        <Clock size={12} aria-hidden="true" />Info requested
+                      </p>
                     )}
                   </div>
                 );
