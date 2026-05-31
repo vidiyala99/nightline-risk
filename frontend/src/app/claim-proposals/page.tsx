@@ -63,6 +63,9 @@ export default function ClaimsPortfolioPage() {
     non_override_right_rate: number | null;
   } | null>(null);
 
+  // Broker-only: prioritized pending queue for the inbox section.
+  const [pendingQueue, setPendingQueue] = useState<any[]>([]);
+
   useEffect(() => {
     async function load() {
       try {
@@ -81,6 +84,13 @@ export default function ClaimsPortfolioPage() {
         if (isBroker) {
           const statsRes = await fetch(`${API_URL}/api/override-stats`);
           if (statsRes.ok) setOverrideStats(await statsRes.json());
+
+          // Prioritized pending inbox — highest-priority proposals first.
+          const queueRes = await fetch(
+            `${API_URL}/api/claim-proposals?status=pending_broker_review&sort=priority`,
+            { headers: authHeaders() },
+          );
+          if (queueRes.ok) setPendingQueue(await queueRes.json());
         }
       } finally {
         setLoading(false);
@@ -160,6 +170,85 @@ export default function ClaimsPortfolioPage() {
           )}
         </div>
       </section>
+
+      {/* Broker-only: prioritized inbox of pending proposals.
+          Highest-priority first, each row shows venue, file/review signal,
+          confidence %, and approx median payout. Clicking navigates to the
+          broker packet-review screen. */}
+      {isBroker && (
+        <div className="lc-card mb-lg">
+          <div className="lc-card__inner">
+            <div className="flex items-center justify-between mb-md" style={{ flexWrap: "wrap", gap: "var(--space-sm)" }}>
+              <h2 className="card-title" style={{ margin: 0 }}>Awaiting review</h2>
+              <span
+                className="text-xs font-mono"
+                style={{
+                  color: pendingQueue.length > 0 ? "var(--state-warning)" : "var(--text-secondary)",
+                  border: `1px solid ${pendingQueue.length > 0 ? "var(--state-warning)" : "var(--border-subtle)"}`,
+                  borderRadius: "var(--radius-sm)",
+                  padding: "2px 8px",
+                }}
+              >
+                {pendingQueue.length} pending
+              </span>
+            </div>
+            {pendingQueue.length === 0 ? (
+              <p className="text-muted" style={{ margin: 0, fontSize: "var(--text-sm)" }}>
+                No proposals awaiting review.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+                {pendingQueue.map((p: any) => {
+                  const s = p.recommendation_snapshot || {};
+                  const median = s.expected_payout?.median_usd ?? 0;
+                  const conf = Math.round((s.confidence ?? 0) * 100);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => router.push(`/underwriter/${p.packet_id}`)}
+                      aria-label={`Review proposal for ${p.venue_id}, confidence ${conf} percent`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "var(--space-md)",
+                        width: "100%",
+                        textAlign: "left",
+                        minHeight: 44,
+                        cursor: "pointer",
+                        background: "var(--bg-surface)",
+                        border: "1px solid var(--border-subtle)",
+                        borderRadius: "var(--radius-md)",
+                        padding: "10px var(--space-md)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      <span
+                        className="font-display"
+                        style={{ fontWeight: 600, flex: 1, fontSize: "var(--text-sm)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                      >
+                        {p.venue_id}
+                      </span>
+                      <span
+                        className={s.should_file ? "badge badge-warning" : "badge badge-info"}
+                        style={{ flexShrink: 0 }}
+                      >
+                        {s.should_file ? "File" : "Review"}
+                      </span>
+                      <span className="font-mono text-muted" style={{ flexShrink: 0, fontSize: "var(--text-sm)" }}>
+                        {conf}%
+                      </span>
+                      <span className="font-mono" style={{ flexShrink: 0, fontSize: "var(--text-sm)" }}>
+                        ~${Number(median).toLocaleString()}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Broker-only: cross-venue override calibration summary.
           One-glance signal for "are operator overrides well-calibrated across
