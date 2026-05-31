@@ -747,7 +747,7 @@ export default function IncidentDetailPage() {
                               const badge = PROPOSAL_BADGE[proposalByPacket[pkt.id]];
                               return badge ? (
                                 <Link
-                                  href={`/claim-proposals/${pkt.id}`}
+                                  href={`/underwriter/${pkt.id}`}
                                   className="text-xs font-mono uppercase px-2 py-0 rounded flex items-center gap-xs"
                                   style={{ color: badge.color, border: `1px solid ${badge.color}`, textDecoration: "none" }}
                                   aria-label={`${badge.label} — open claim proposal`}
