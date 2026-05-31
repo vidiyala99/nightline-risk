@@ -28,8 +28,10 @@ test("operator venues page — Elsewhere Brooklyn visible, Add Venue button pres
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
   await dashboardPage.waitForLoad();
 
-  // 2. Navigate via sidebar (keeps React hydrated — avoids redirect guard race)
-  await dashboardPage.venuesNavItem.click();
+  // 2. Venues left the slim operator nav (per-persona IA); operators reach the
+  // venue page via the home "View venue profile" link. In-app nav keeps React
+  // hydrated (avoids the redirect-guard race a full reload can hit).
+  await page.getByRole("link", { name: /view venue profile/i }).click();
 
   // 3. Wait for the venues page heading
   await expect(venuesPage.heading).toBeVisible({ timeout: 20000 });

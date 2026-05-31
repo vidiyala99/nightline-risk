@@ -824,6 +824,21 @@ def test_incident_status_feed_for_venue():
         assert row["claim_status"] is None
         assert "summary" in row and "occurred_at" in row and "status" in row
     finally:
+        for clm in session.exec(select(Claim).where(Claim.proposal_id == "pr-feed")).all():
+            session.delete(clm)
+        for tbl, _id in [
+            (ClaimProposal, "pr-feed"),
+            (Policy, "po-feed"),
+            (CarrierQuote, "q-feed"),
+            (Submission, "sub-feed"),
+            (UnderwritingPacket, "pk-feed"),
+            (IncidentRecord, "in-feed"),
+            (Carrier, "markel-feed"),
+        ]:
+            row = session.get(tbl, _id)
+            if row:
+                session.delete(row)
+        session.commit()
         session.close()
 
 
@@ -838,4 +853,19 @@ def test_incident_status_feed_rejects_cross_venue():
             r = client.get("/api/venues/elsewhere-brooklyn/incident-status-feed", headers=cross_venue_headers)
         assert r.status_code == 403
     finally:
+        for clm in session.exec(select(Claim).where(Claim.proposal_id == "pr-feedx")).all():
+            session.delete(clm)
+        for tbl, _id in [
+            (ClaimProposal, "pr-feedx"),
+            (Policy, "po-feedx"),
+            (CarrierQuote, "q-feedx"),
+            (Submission, "sub-feedx"),
+            (UnderwritingPacket, "pk-feedx"),
+            (IncidentRecord, "in-feedx"),
+            (Carrier, "markel-feedx"),
+        ]:
+            row = session.get(tbl, _id)
+            if row:
+                session.delete(row)
+        session.commit()
         session.close()
