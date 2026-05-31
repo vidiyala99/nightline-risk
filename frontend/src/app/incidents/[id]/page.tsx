@@ -8,7 +8,7 @@ import { authHeaders } from "@/lib/authFetch";
 import { downloadDefensePackagePdf } from "@/lib/claims";
 import {
   AlertTriangle, ArrowLeft, Calendar, MapPin, User,
-  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download,
+  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download, Circle,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -73,7 +73,7 @@ function AuthedEvidenceRow({ ev }: { ev: EvidenceItem }) {
   );
 }
 
-type IncidentStatus = "open" | "under_review" | "closed";
+type IncidentStatus = "open" | "under_review" | "closed" | "closed_archived";
 
 interface Incident {
   id: string;
@@ -139,6 +139,7 @@ const statusLabel: Record<IncidentStatus, string> = {
   open: "Open",
   under_review: "Under Review",
   closed: "Closed",
+  closed_archived: "Archived",
 };
 
 export default function IncidentDetailPage() {
@@ -158,6 +159,9 @@ export default function IncidentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
+  const [claimStatus, setClaimStatus] = useState<
+    | { incident_status: string; proposal: { exists: boolean; state: string | null };
+        claim: { exists: boolean; status: string | null } } | null>(null);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) router.push("/login");
@@ -166,13 +170,15 @@ export default function IncidentDetailPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [incidentRes, packetsRes, evidenceRes, analysisRes] = await Promise.all([
+        const [incidentRes, packetsRes, evidenceRes, analysisRes, claimStatusRes] = await Promise.all([
           fetch(`${API_URL}/api/incidents/${id}`, { headers: authHeaders() }),
           fetch(`${API_URL}/api/incidents/${id}/packets`, { headers: authHeaders() }),
           fetch(`${API_URL}/api/incidents/${id}/evidence`, { headers: authHeaders() }),
           fetch(`${API_URL}/api/incidents/${id}/evidence-analysis`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/incidents/${id}/claim-status`, { headers: authHeaders() }),
         ]);
         if (incidentRes.ok) setIncident(await incidentRes.json());
+        if (claimStatusRes.ok) setClaimStatus(await claimStatusRes.json());
         if (packetsRes.ok) {
           const pkts = await packetsRes.json();
           setPackets(pkts);
@@ -234,7 +240,9 @@ export default function IncidentDetailPage() {
   // ── Recommendation card helpers ──────────────────────────────────────────
   const primaryPacket = packets[0] as any | undefined;
   const rec = primaryPacket?.claim_recommendation as
-    | { should_file: boolean; net_expected_value_usd: number; confidence: number; reasons: string[] }
+    | { should_file: boolean; net_expected_value_usd: number; confidence: number; reasons: string[];
+        carrier_payout: number; deductible: number | null; pay_out_of_pocket_cost: number;
+        expected_premium_impact: { annual_delta_usd: number; duration_years: number; cumulative_usd: number } }
     | undefined;
   const routingStatus = primaryPacket?.routing_status as
     | "auto_routed" | "borderline" | "not_routed"
@@ -367,14 +375,33 @@ export default function IncidentDetailPage() {
               </div>
 
               {/* Evidence files */}
-              {evidence.length > 0 && (
+              {(evidence.length > 0 || (isOperator && incident && incident.status !== "closed_archived")) && (
                 <div className="card">
-                  <div className="text-xs uppercase tracking-wide text-secondary mb-md">Attached Evidence</div>
-                  <div className="flex flex-col gap-sm">
-                    {evidence.map((ev) => (
-                      <AuthedEvidenceRow key={ev.id} ev={ev} />
-                    ))}
+                  <div className="flex items-center justify-between mb-md" style={{ flexWrap: "wrap", gap: "var(--space-sm)" }}>
+                    <div className="text-xs uppercase tracking-wide text-secondary">Attached Evidence</div>
+                    {isOperator && incident && incident.status !== "closed_archived" && (
+                      <label className="btn btn-secondary" style={{ minHeight: 44, cursor: "pointer" }}>
+                        Add evidence
+                        <input type="file" hidden onChange={async (e) => {
+                          const file = e.target.files?.[0]; if (!file) return;
+                          const fd = new FormData(); fd.append("file", file);
+                          const r = await fetch(`${API_URL}/api/incidents/${id}/evidence`, {
+                            method: "POST", headers: authHeaders(), body: fd });
+                          if (r.ok) {
+                            const ev = await fetch(`${API_URL}/api/incidents/${id}/evidence`, { headers: authHeaders() });
+                            if (ev.ok) setEvidence(await ev.json());
+                          }
+                        }} />
+                      </label>
+                    )}
                   </div>
+                  {evidence.length > 0 && (
+                    <div className="flex flex-col gap-sm">
+                      {evidence.map((ev) => (
+                        <AuthedEvidenceRow key={ev.id} ev={ev} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -429,24 +456,110 @@ export default function IncidentDetailPage() {
                   <div className="mb-md">
                     {rec.should_file
                       ? <span className="badge badge-success">{isBroker ? "Recommendation: File" : "Recommended: File"}</span>
-                      : <span className="badge badge-warning">{isBroker ? "Recommendation: hold" : "Recommended: don’t file"}</span>}
+                      : <span className="badge badge-warning">{isBroker ? "Recommendation: hold" : rec.deductible == null ? "No active policy" : "Recommended: pay out of pocket"}</span>}
                   </div>
 
-                  {/* Two-stat row */}
-                  <div className="flex gap-lg flex-wrap mb-md">
-                    <div>
-                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>Net expected value</div>
-                      <div className="font-mono" style={{ fontSize: "1.1rem" }}>
-                        ${rec.net_expected_value_usd.toLocaleString()}
+                  {/* Operator: two-path file-vs-pay-out-of-pocket decision explainer */}
+                  {isOperator && (() => {
+                    if (rec.deductible == null) {
+                      // No active policy — only show pay-out-of-pocket panel + note
+                      return (
+                        <div className="mb-md">
+                          <div style={{
+                            flex: 1, minWidth: 220, padding: "var(--space-md)",
+                            border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)",
+                          }}>
+                            <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--space-xs)" }}>Pay out of pocket</div>
+                            <div className="font-mono" style={{ fontSize: "1.05rem", fontWeight: 600 }}>
+                              Absorb ~${(rec.pay_out_of_pocket_cost || 0).toLocaleString()}
+                            </div>
+                            <div className="text-muted" style={{ fontSize: "0.78rem", marginTop: "var(--space-xs)" }}>
+                              no premium hike · no loss-run mark
+                            </div>
+                          </div>
+                          <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: "var(--space-sm)" }}>
+                            No active policy on file — talk to your broker about coverage.
+                          </p>
+                        </div>
+                      );
+                    }
+                    // Has policy — show both panels
+                    const fileIsRecommended = rec.should_file;
+                    const cumulative = rec.expected_premium_impact?.cumulative_usd ?? 0;
+                    const deductible = rec.deductible ?? 0;
+                    const carrierPayout = rec.carrier_payout ?? 0;
+                    const netEv = rec.net_expected_value_usd ?? 0;
+                    const popCost = rec.pay_out_of_pocket_cost ?? 0;
+                    const filePanel = (
+                      <div style={{
+                        flex: 1, minWidth: 220, padding: "var(--space-md)",
+                        border: fileIsRecommended ? "1px solid var(--accent-ink)" : "1px solid var(--border-subtle)",
+                        borderRadius: "var(--radius-sm)",
+                        background: fileIsRecommended ? "rgba(200,240,0,0.05)" : undefined,
+                      }}>
+                        {fileIsRecommended && (
+                          <div style={{ fontSize: "0.7rem", color: "var(--accent-ink)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-xs)" }}>
+                            Recommended
+                          </div>
+                        )}
+                        <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--space-xs)" }}>File the claim</div>
+                        <div className="font-mono" style={{ fontSize: "1.05rem", fontWeight: 600 }}>
+                          Carrier covers ~${carrierPayout.toLocaleString()}
+                        </div>
+                        <div className="text-muted" style={{ fontSize: "0.78rem", marginTop: "var(--space-xs)" }}>
+                          your cost: ${deductible.toLocaleString()} deductible + ${cumulative.toLocaleString()} / 3 yrs
+                        </div>
+                        <div className="font-mono" style={{ fontSize: "0.92rem", fontWeight: 600, marginTop: "var(--space-xs)" }}>
+                          net {netEv >= 0 ? "+" : ""}${netEv.toLocaleString()}
+                        </div>
+                      </div>
+                    );
+                    const popPanel = (
+                      <div style={{
+                        flex: 1, minWidth: 220, padding: "var(--space-md)",
+                        border: !fileIsRecommended ? "1px solid var(--accent-ink)" : "1px solid var(--border-subtle)",
+                        borderRadius: "var(--radius-sm)",
+                        background: !fileIsRecommended ? "rgba(200,240,0,0.05)" : undefined,
+                      }}>
+                        {!fileIsRecommended && (
+                          <div style={{ fontSize: "0.7rem", color: "var(--accent-ink)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-xs)" }}>
+                            Recommended
+                          </div>
+                        )}
+                        <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--space-xs)" }}>Pay out of pocket</div>
+                        <div className="font-mono" style={{ fontSize: "1.05rem", fontWeight: 600 }}>
+                          Absorb ~${popCost.toLocaleString()}
+                        </div>
+                        <div className="text-muted" style={{ fontSize: "0.78rem", marginTop: "var(--space-xs)" }}>
+                          no premium hike · no loss-run mark
+                        </div>
+                      </div>
+                    );
+                    return (
+                      <div className="flex gap-md mb-md" style={{ flexWrap: "wrap" }}>
+                        {filePanel}
+                        {popPanel}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Broker: two-stat row (unchanged) */}
+                  {isBroker && (
+                    <div className="flex gap-lg flex-wrap mb-md">
+                      <div>
+                        <div className="text-muted" style={{ fontSize: "0.75rem" }}>Net expected value</div>
+                        <div className="font-mono" style={{ fontSize: "1.1rem" }}>
+                          ${rec.net_expected_value_usd.toLocaleString()}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted" style={{ fontSize: "0.75rem" }}>Confidence</div>
+                        <div className="font-mono" style={{ fontSize: "1.1rem" }}>
+                          {Math.round(rec.confidence * 100)}%
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>Confidence</div>
-                      <div className="font-mono" style={{ fontSize: "1.1rem" }}>
-                        {Math.round(rec.confidence * 100)}%
-                      </div>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Reasons */}
                   {rec.reasons.length > 0 && (
@@ -512,6 +625,63 @@ export default function IncidentDetailPage() {
                   )}
                 </div>
               )}
+              {/* ─────────────────────────────────────────────────────────────────── */}
+
+              {/* ── Claim status stepper (operator only) ─────────────────────────── */}
+              {isOperator && claimStatus && (() => {
+                const ps = claimStatus.proposal.state;
+                const litReported = true;
+                const litSent = claimStatus.proposal.exists;
+                const litApproved = !!ps && ["approved", "filed_with_carrier", "paid", "denied"].includes(ps);
+                const litFiled = (!!ps && ["filed_with_carrier", "paid", "denied"].includes(ps)) || claimStatus.claim.exists;
+                const litResolved = (!!ps && ["paid", "denied"].includes(ps)) ||
+                  (!!claimStatus.claim.status && ["closed_paid", "closed_denied", "closed_dropped"].includes(claimStatus.claim.status));
+
+                const steps: { label: string; lit: boolean }[] = [
+                  { label: "Reported", lit: litReported },
+                  { label: "Sent to broker", lit: litSent },
+                  { label: "Approved", lit: litApproved },
+                  { label: "Filed", lit: litFiled },
+                  { label: "Resolved", lit: litResolved },
+                ];
+
+                return (
+                  <div className="card">
+                    <div className="text-xs uppercase tracking-wide text-secondary mb-md">Claim status</div>
+                    <div
+                      role="list"
+                      aria-label="Claim status"
+                      className="flex gap-sm"
+                      style={{ flexWrap: "wrap", alignItems: "center" }}
+                    >
+                      {steps.map((step, i) => (
+                        <div
+                          key={i}
+                          role="listitem"
+                          className="flex items-center gap-xs"
+                          style={{ padding: "4px 10px", borderRadius: "var(--radius-sm)", background: "var(--bg-elevated)" }}
+                        >
+                          {step.lit
+                            ? <CheckCircle2 size={13} style={{ color: "var(--accent-ink)", flexShrink: 0 }} aria-hidden="true" />
+                            : <Circle size={13} className="text-muted" style={{ flexShrink: 0 }} aria-hidden="true" />}
+                          <span
+                            className="text-xs"
+                            style={{ color: step.lit ? "var(--accent-ink)" : undefined }}
+                          >
+                            {step.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {ps === "rejected_by_broker" && (
+                      <p className="text-xs mt-sm" style={{ color: "var(--state-error)" }}>Declined by broker</p>
+                    )}
+                    {ps === "needs_more_info" && (
+                      <p className="text-xs mt-sm" style={{ color: "var(--state-warning)" }}>Info requested</p>
+                    )}
+                  </div>
+                );
+              })()}
               {/* ─────────────────────────────────────────────────────────────────── */}
 
               {/* Insurance Reports */}
