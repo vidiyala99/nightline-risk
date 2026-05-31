@@ -51,6 +51,14 @@ async def upload_evidence(
     # Operator-write gate: resolve the venue from the incident, then require
     # access. Entity-404 precedes auth (matches GET /incidents/{id}).
     require_venue_access(record.venue_id, authorization, session)
+
+    if record.status == "closed_archived":
+        raise error_response(
+            "incident_archived",
+            "This incident is archived; evidence can no longer be added.",
+            status_code=409,
+        )
+
     from uuid import uuid4
     from app.main import _process_evidence_sync
     from app.storage import get_storage

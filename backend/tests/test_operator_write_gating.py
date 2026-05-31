@@ -12,7 +12,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.auth import create_token
+from app.database import get_session
 from app.main import app
+from app.models import IncidentRecord
 
 VENUE = "elsewhere-brooklyn"
 
@@ -106,6 +108,38 @@ def test_evidence_allows_owner(client):
 def test_evidence_unknown_incident_is_404_even_without_token(client):
     # Entity 404 precedes the auth gate (matches GET /incidents/{id}).
     assert client.post("/api/incidents/inc-nope/evidence", files=_evidence_file()).status_code == 404
+
+
+def test_evidence_append_blocked_on_archived(client):
+    """POST evidence to a closed_archived incident must return 409 Conflict."""
+    session = next(get_session())
+    try:
+        if not session.get(IncidentRecord, "in-arch"):
+            session.add(IncidentRecord(
+                id="in-arch", venue_id=VENUE,
+                occurred_at="2026-01-01T00:00:00Z", location="bar",
+                summary="archived fixture", reported_by="shift-lead",
+                injury_observed=False, police_called=False, ems_called=False,
+                status="closed_archived",
+            ))
+            session.commit()
+    finally:
+        session.close()
+
+    r = client.post(
+        "/api/incidents/in-arch/evidence",
+        files=_evidence_file(),
+        headers=_owner_headers(),
+    )
+    assert r.status_code == 409, r.text
+
+    # cleanup
+    session2 = next(get_session())
+    row = session2.get(IncidentRecord, "in-arch")
+    if row:
+        session2.delete(row)
+    session2.commit()
+    session2.close()
 
 
 # ── POST /venues/{id}/compliance/{item}/upload ───────────────────────────
