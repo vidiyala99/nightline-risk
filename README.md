@@ -3,177 +3,92 @@
 [![CI](https://github.com/vidiyala99/nightline-risk/actions/workflows/ci.yml/badge.svg)](https://github.com/vidiyala99/nightline-risk/actions/workflows/ci.yml)
 [![E2E](https://github.com/vidiyala99/nightline-risk/actions/workflows/e2e.yml/badge.svg)](https://github.com/vidiyala99/nightline-risk/actions/workflows/e2e.yml)
 
-Evidence-first underwriting infrastructure for nightlife venues.
+**Evidence-first underwriting infrastructure for nightlife venues.**
 
-**Live demo:** https://nightline-app.vercel.app  
-**Mobile walkthrough:** https://drive.google.com/file/d/1UaMGv5HxK811FAFx8cNE9l1x2IPFVuuI/view?usp=sharing  
-**Eval dashboard:** [`/evals`](https://nightline-app.vercel.app/evals) — committed baseline, scorer breakdown, stack signature  
-**Architecture:**
-- [Agent pipeline, LLM integration points, and roadmap](docs/superpowers/specs/2026-05-07-architecture-v2.md) — evidence layer (incidents → packets → claim proposals)
-- [Broker platform — Phases 1–3](docs/superpowers/specs/2026-05-21-broker-platform-phases-1-3.md) — placement, policy lifecycle, carrier-side claims
-- [Phase 4 — renewals & experience rating](docs/superpowers/specs/2026-05-24-phase-4-renewals-experience-rating-design.md) — expiring-policy re-quote with loss-experience banding
-- [Defense-package export](docs/superpowers/specs/2026-05-24-defense-package-export-design.md) — evidence-authenticated, exportable A&B defense artifact (PDF)
-- [Broker-platform roadmap](docs/superpowers/specs/2026-05-25-broker-platform-roadmap.md) — benchmarked gap analysis, additions ranked by architectural coherence
-- [ADR-0004 — Claim vs. ClaimProposal vocabulary split](docs/adr/0004-broker-platform-and-claim-vocabulary-split.md)
+A venue operator logs an incident; AI agents turn it into a citation-backed underwriting packet in ~200ms; a broker reviews, decides, and — when it's worth filing — routes it to a carrier claim. Every step traces back to source evidence.
+
+**[Live demo](https://nightline-app.vercel.app)** · **[Eval dashboard](https://nightline-app.vercel.app/evals)** · **[Mobile walkthrough](https://drive.google.com/file/d/1UaMGv5HxK811FAFx8cNE9l1x2IPFVuuI/view?usp=sharing)**
+
+Demo logins (password `demo123`): `broker@nightline.risk` · `venue@elsewhere.com`
 
 ---
 
-## What It Does
-
-A venue operator logs an incident. AI agents analyze it instantly and produce a citation-backed underwriting packet. An underwriter opens their queue, reviews the report, and makes a decision — all traceable back to source evidence.
+## What it does
 
 ```
-Operator logs incident
-        │
-        ▼
-Agent pipeline runs (~200ms)
-  → Retrieval agent pulls policy docs + stream events
-  → Risk evaluator scores severity + confidence
-  → Claims timeline reconstructed
-  → Underwriting memo drafted with open questions
-        │
-        ▼
-Underwriting packet created (Phase 1)
-        │
-        ├── Vision pipeline runs async (Phase 2)
-        │     → Image/video analyzed by vision agent
-        │     → Corroboration agent compares vs written report
-        │     → Packet updated with visual findings
-        │
-        ▼
-Underwriter reviews report → Approve / Block / Request More Info
-
-Live camera feed (Phase 3)
-  → RTSP sampler captures 1 frame / 8s per zone
-  → Gemini 2.5 Flash classifies event type + severity
-  → 3-gate filter (confidence ≥ 0.75 + 3 consecutive frames + critical/high severity)
-  → 20-min cooldown per zone prevents spam
-  → PWA push notification → operator mobile alert
-  → Operator marks Confirmed / False Alarm → threshold self-calibrates
+Operator logs an incident
+      │
+      ▼
+Agent pipeline (~200ms)   retrieval · risk scoring · claims timeline · underwriter memo
+      │
+      ▼
+Citation-backed underwriting packet      (+ async vision corroboration on uploaded media)
+      │
+      ▼
+"Worth filing?" recommendation   →   auto-routed to the broker's inbox
+      │
+      ▼
+Broker reviews → Approve / Reject / Request info   →   confirm & file FNOL → carrier Claim
 ```
 
 ---
 
-## Demo Logins
+## Highlights
 
-| Role | Email | Password |
-|------|-------|----------|
-| Broker | broker@nightline.risk | demo123 |
-| Venue Operator | venue@elsewhere.com | demo123 |
-
-Or create a new account via **Sign Up / Create Account** on the login screen (web + mobile). New venue operators get a blank dashboard and walk through venue setup on first login.
+- **Evidence layer** — incident → multi-agent packet (retrieval, risk eval, timeline, memo) → broker decision. A vision agent corroborates uploaded photos/video against the written report.
+- **Recommendation + routing** — a deterministic "worth filing?" engine (net EV, confidence) auto-routes high-confidence incidents to a prioritized broker inbox.
+- **Broker platform** — full placement → policy → claims lifecycle: submissions, multi-carrier quotes, bind, endorsements, COIs, cancellation refunds, and carrier-side claims (FNOL → reserve → settle → close). On **web and mobile**.
+- **Eval harness** — 21 scenarios across 7 exposure classes × 10 scorers, with a signature-keyed baseline regression gate wired into CI and a live scoreboard at [`/evals`](https://nightline-app.vercel.app/evals).
+- **Ingestion spine** — extract → transform → quality-gate → idempotent-load pipeline (POS / ID-scanner / staffing / NY State open data) that moves venue risk scores from real signals.
+- **Live monitoring** — per-zone RTSP frame sampler → Gemini classification → a 3-gate false-positive filter → self-calibrating PWA push alerts.
+- **Engineering discipline** — `Decimal` money, UTC timestamps, lifecycle state machines with `assert_valid_transition`, an `AuditEvent` on every state change, SHA-256 snapshot hashes, and a pluggable provider matrix (deterministic stubs + Anthropic / Gemini / OpenAI, key-gated).
 
 ---
 
 ## Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 16.2 (App Router), DM Sans + Cormorant Garamond + JetBrains Mono |
-| Mobile | React Native (Expo SDK 54), expo-secure-store, React Navigation |
-| Backend | FastAPI + SQLModel (Postgres on Railway, SQLite locally) |
-| Agents | Provider matrix — deterministic stubs + Anthropic/Gemini/OpenAI (key-gated) |
-| Auth | HMAC-signed session tokens (role-aware: broker, venue_operator) |
-| Deployment | Vercel (frontend) + Railway (backend) |
+|---|---|
+| Web | Next.js 16 (App Router) |
+| Mobile | React Native (Expo SDK 54) |
+| Backend | FastAPI + SQLModel (Postgres in prod, SQLite locally) |
+| Agents | Deterministic stubs + Anthropic / Gemini / OpenAI (key-gated) |
+| Deploy | Vercel (web) + Railway (backend) |
 
 ---
 
-## Key Features
+## Run locally
 
-- **Dual portal** — operator terminal and broker workbench with role-aware navigation
-- **Agent pipeline** — retrieval, risk evaluation, claims timeline, memo drafting (~200ms synchronous)
-- **Two-phase packets** — instant text analysis + async vision processing for uploaded evidence
-- **Vision corroboration** — visual findings flagged CONSISTENT / PARTIAL / CONTRADICTED against the written report
-- **Claims v1 — operator proposes, broker decides** — structured 4-tag override vocabulary, full state machine (pending → approved | rejected → filed), shipped on web and mobile with EV breakdown and lifecycle timeline
-- **Override calibration** — per-venue and cross-portfolio stats on which override reasons hold up under broker scrutiny; the training signal for v2 rubric calibration
-- **Reports queue** — severity-sorted packet list with role-scoped views (broker "Reports Portfolio" / operator "My Reports") and full audit trail
-- **Risk Profile + Compliance pages** — factor breakdowns, premium impact, role-aware compliance views
-- **Self-serve registration + venue management** — sign up on web or mobile, add/edit multiple venues
-- **Mobile app** — full iOS/Android app at broker parity with the web: a unified 5-tab bottom nav + overflow, the complete placement flow (Submissions create → submit → quote → bind), Policies (assign #, cancel, endorsements/COI/claims read), Renewals, broker Tasks, venue Alerts, and FNOL — same Paper & Ink type system as the web
-- **Operational-data ingestion spine** — extract→transform→quality-gate→idempotent-load→rollup pipeline (POS / ID-scanner / staffing / NY State open data connectors) that moves venue risk scores from real signals; content-hash dedupe + watermark incrementality, run-history observability with per-reason rejection stats at `/ingestion`, and bounded extract retries
-- **Pluggable provider matrix** — `MemoProvider`, `RiskClassifierProvider`, `TranscriptionProvider`, `EmbeddingProvider` interfaces with deterministic stubs + Anthropic/Gemini/OpenAI implementations; swap providers without touching agent code
-- **Live camera monitoring + PWA alerts** — RTSP frame sampler per venue zone feeds Gemini 2.5 Flash; a 3-gate filter (confidence, temporal persistence, severity) suppresses false positives; qualifying events push mobile notifications via Web Push to subscribed operators; operators confirm or flag as false alarm to self-calibrate per-venue thresholds
-- **Broker platform — Placement, Policy lifecycle, Carrier-side claims** — Phases 1–3 shipped end-to-end on **web and mobile**:
-  - **Placement (Phase 1):** `Submission` → `CarrierQuote` lifecycle with appetite-checked carrier targeting, per-carrier multipliers on top of shared base rates, surplus-lines tax for E&S, and a kanban UI at `/submissions` with drag-to-transition gates pulled from the lifecycle matrix
-  - **Policy lifecycle (Phase 2):** atomic `bind_quote` (6-effect savepoint), endorsements with Pydantic-validated `terms_diff` discriminated unions, pro-rata vs. short-rate cancellation refund math, and Certificates of Insurance with audit-preserving superseding to the same holder
-  - **Claims integration (Phase 3):** carrier-side `Claim` with FNOL → reserved → settling → closed lifecycle, `ClaimPayment` ledger across indemnity/expense/recovery, `ReserveChange` audit rows, `ON DELETE RESTRICT` FK from claim to its frozen defense packet — distinct from the `ClaimProposal` recommendation surface ([see ADR-0004](docs/adr/0004-broker-platform-and-claim-vocabulary-split.md))
-  - All money is `Decimal`/`Numeric(12,2)`, all timestamps UTC via `app.time.now_utc`, all lifecycle transitions go through `app.lifecycles.assert_valid_transition`, all state changes emit `AuditEvent` rows, and `Policy`/`Claim` carry SHA-256 `snapshot_hash` columns so archived defense packages keep their referent
-- **Load-bearing eval harness** — 15 research-grounded scenarios across 7 exposure classes + adversarial gold set, 5 scorers (structural, severity_match, citation_coverage, review_status_match, factor_recognition) plus retrieval and safety scorers, signature-keyed `baseline.json` regression gate wired into CI, nightly LLM provider matrix; see [`/evals` dashboard](https://nightline-app.vercel.app/evals) and [`docs/evals/README.md`](docs/evals/README.md)
+**Backend** (from `backend/`):
+```bash
+python -m uvicorn app.main:app --port 8000
+```
+
+**Frontend** (from `frontend/`):
+```bash
+npm run dev          # → http://localhost:3000
+```
+Set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local`. Backend env is all optional except `APP_SECRET` in production — see [`backend/.env.example`](backend/.env.example). Unset LLM keys fall back to deterministic stubs, so it runs with no keys.
+
+**Mobile** (from `mobile/`): set `EXPO_PUBLIC_API_URL`, run `npm start`, scan the QR with [Expo Go](https://expo.dev/go).
 
 ---
 
-## Local Development
+## Seed data
 
-**Backend:**
-```powershell
-cd backend
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
+Idempotent; auto-seeds on startup — 5 demo venues with diverse incidents, plus ~286 real NYC nightlife licensees as scored prospects (NY State open data). Optional scripts, from `backend/`:
 
-Env vars in `backend/.env` (full list + notes in [`backend/.env.example`](backend/.env.example)):
+```bash
+python -m scripts.seed_demo_placements   # 4 submissions + 1 bound policy
+python -m scripts.seed_prospects         # ~286 NYC prospects
+python -m scripts.seed_defense_demo      # incident → packet → claim (exportable defense PDF)
 ```
-APP_SECRET=...              # session-token secret — REQUIRED in production (the app refuses to boot without it)
-DATABASE_URL=...            # Postgres in prod; unset → local SQLite
-GEMINI_API_KEY=...          # vision analysis (unset → deterministic fallback)
-ANTHROPIC_API_KEY=...       # memo drafting (unset → deterministic fallback)
-VAPID_PRIVATE_KEY=...       # Web Push alerts (generate with: npx web-push generate-vapid-keys)
-RESEND_API_KEY=...          # password-reset emails (unset → reset URL is logged instead)
-```
-
-**Frontend:**
-```powershell
-cd frontend
-npm run dev -- --hostname 127.0.0.1 --port 3000
-```
-
-Required env vars in `frontend/.env.local`:
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=...   # matching public key from above
-```
-
-**Live camera monitoring** (optional — sampler skips gracefully if opencv missing):
-```powershell
-pip install opencv-python   # in backend venv
-```
-Register cameras via `POST /api/venues/{venue_id}/cameras` with the RTSP URL, then start sampling via `POST /api/cameras/{camera_id}/start`.
-
-Open `http://localhost:3000`
-
-**Mobile (Expo Go):**
-```powershell
-cd mobile
-# Create .env.local with your backend URL:
-# EXPO_PUBLIC_API_URL=https://your-railway-backend.up.railway.app
-npm start
-```
-
-Scan the QR code with [Expo Go](https://expo.dev/go) on your device. Log in with `venue@elsewhere.com / demo123`.
 
 ---
 
-## Architecture
+## Docs
 
-See `docs/superpowers/specs/2026-05-07-architecture-v2.md` for the full system design, data contracts, LLM integration points, and phased roadmap.
-
----
-
-## Seed Data
-
-5 demo venues across Brooklyn/NYC with diverse incidents (brawls, medical emergencies, property damage, liquor liability, crowd management). Packets generate automatically on startup. ~286 real NYC nightlife licensees are seeded as scored **prospects** from NY State open data. Demo accounts pre-configured.
-
-All seed scripts are idempotent. Run from `backend/`:
-
-```powershell
-python -m scripts.seed_demo_placements   # 4 submissions (open/in_market/quoting/bound) + 1 bound policy
-python -m scripts.seed_prospects         # ~286 NYC nightlife prospects (from the cleaned market snapshot)
-python -m scripts.seed_defense_demo      # one A&B incident → packet → claim, so the defense-package PDF is exportable in the UI
-```
-
-Maintenance:
-```powershell
-python -m scripts.dedupe_venues          # dry-run; merge duplicate venues (--apply to execute)
-python -m scripts.build_nyc_market       # rebuild the NYC market snapshot from NY State open data
-```
-
-See [the broker-platform spec](docs/superpowers/specs/2026-05-21-broker-platform-phases-1-3.md#6-demo-data) for the venue/carrier choices and the case-sensitivity note on `check_appetite`. Venue uniqueness is enforced on **normalized name + address** (same name at a different address is allowed).
+- [Architecture v2](docs/superpowers/specs/2026-05-07-architecture-v2.md) — the evidence layer (incidents → packets → claim proposals)
+- [Broker platform, Phases 1–3](docs/superpowers/specs/2026-05-21-broker-platform-phases-1-3.md) — placement, policy lifecycle, carrier claims
+- [ADR-0004](docs/adr/0004-broker-platform-and-claim-vocabulary-split.md) — why `Claim` ≠ `ClaimProposal`
+- More design specs in [`docs/superpowers/specs/`](docs/superpowers/specs).
