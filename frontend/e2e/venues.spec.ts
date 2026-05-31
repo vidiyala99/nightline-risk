@@ -28,12 +28,15 @@ test("operator venues page — Elsewhere Brooklyn visible, Add Venue button pres
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
   await dashboardPage.waitForLoad();
 
-  // 2. Venues left the slim operator nav (per-persona IA); operators reach the
-  // venue page via the home "View venue profile" link. In-app nav keeps React
-  // hydrated (avoids the redirect-guard race a full reload can hit).
+  // 2. Operators reach the venue ROSTER (manage/add) via Home "View venue
+  // profile" → the venue's Risk Profile → "Manage venue". ("Venue" now resolves
+  // to the profile, not the roster.) In-app nav keeps React hydrated (avoids the
+  // redirect-guard race a full reload can hit).
   await page.getByRole("link", { name: /view venue profile/i }).click();
+  // Lands on the venue's Risk Profile; the "Manage venue" chip opens the roster.
+  await page.getByRole("link", { name: /manage venue/i }).click();
 
-  // 3. Wait for the venues page heading
+  // 3. Wait for the venues roster heading
   await expect(venuesPage.heading).toBeVisible({ timeout: 20000 });
 
   // 4. The demo venue should appear
