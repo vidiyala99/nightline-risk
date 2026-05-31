@@ -948,7 +948,14 @@ export default function ReportDetailPage() {
                         }),
                       });
                       setFiling(false);
-                      if (r.ok) location.reload();
+                      if (r.ok) {
+                        // Reactively advance the proposal so the confirm form
+                        // collapses and the "Filed with carrier" badge shows
+                        // immediately — no full-page reload.
+                        setProposal((prev) => (prev ? { ...prev, state: "filed_with_carrier" } : prev));
+                      } else {
+                        setProposalError("Could not file the FNOL. Please retry.");
+                      }
                     }}
                   >
                     {filing ? "Filing…" : "Confirm & file FNOL"}
