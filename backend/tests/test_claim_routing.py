@@ -244,7 +244,7 @@ def test_recommendation_for_packet_applies_deductible():
         ems_called=True, status="open"))
     _packet(s)  # pkt-routetest, premises_liability -> line "gl"
     s.add(Policy(id="po-x", submission_id="s", bound_quote_id="q", venue_id="elsewhere-brooklyn",
-        carrier_id="markel-specialty", status="bound", effective_date=_date(2026,1,1),
+        carrier_id="markel-specialty", status="active", effective_date=_date(2026,1,1),
         expiration_date=_date(2027,1,1), annual_premium=Decimal("5000"), commission_amount=Decimal("750"),
         commission_rate=Decimal("0.15"), coverage_lines=["gl"],
         terms_snapshot={"premium_breakdown": {"lines": {"gl": {"deductible": "999999"}}}}, snapshot_hash="h"))

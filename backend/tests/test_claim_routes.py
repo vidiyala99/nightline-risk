@@ -542,7 +542,7 @@ def _seed_approved_proposal_routes(session, sfx, *, state="approved"):
         session.add(Policy(
             id=f"po-{sfx}", submission_id=f"sub-{sfx}", bound_quote_id=f"q-{sfx}",
             venue_id="elsewhere-brooklyn", carrier_id=f"markel-{sfx}",
-            status="bound",
+            status="active",
             effective_date=_d(2026, 1, 1), expiration_date=_d(2027, 1, 1),
             annual_premium=_D("5000.00"), commission_amount=_D("750.00"),
             commission_rate=_D("0.15"),
@@ -732,7 +732,7 @@ def test_fnol_draft_returns_resolved_defaults():
         session.add(Policy(
             id="po-fd", submission_id="sub-fd", bound_quote_id="q-fd",
             venue_id="elsewhere-brooklyn", carrier_id="markel-fd",
-            status="bound",
+            status="active",
             effective_date=_d(2027, 6, 1), expiration_date=_d(2028, 6, 1),
             annual_premium=_D("5000.00"), commission_amount=_D("750.00"),
             commission_rate=_D("0.15"),

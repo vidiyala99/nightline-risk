@@ -51,7 +51,7 @@ def _proposal(s, *, risk_type="premises_liability", with_policy=True) -> ClaimPr
         s.add(Policy(
             id="pol-1", submission_id="sub-1", bound_quote_id="q-1",
             venue_id="elsewhere-brooklyn", carrier_id="markel-specialty",
-            status="bound",
+            status="active",
             effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
             annual_premium=Decimal("5000.00"),
             commission_amount=Decimal("750.00"),
@@ -101,7 +101,7 @@ def test_venue_line_deductible_reads_terms_snapshot():
     from app.models import Policy
     from datetime import date
     s.add(Policy(id="pol-d", submission_id="s", bound_quote_id="q", venue_id="elsewhere-brooklyn",
-        carrier_id="markel-specialty", status="bound", effective_date=date(2026,1,1),
+        carrier_id="markel-specialty", status="active", effective_date=date(2026,1,1),
         expiration_date=date(2027,1,1), annual_premium=Decimal("5000"), commission_amount=Decimal("750"),
         commission_rate=Decimal("0.15"), coverage_lines=["gl"],
         terms_snapshot={"premium_breakdown": {"lines": {"gl": {"deductible": "2500.00"}}}}, snapshot_hash="h"))

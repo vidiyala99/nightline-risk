@@ -12,9 +12,12 @@ from sqlmodel import Session, select
 
 from app.models import ClaimProposal, IncidentRecord, Policy, UnderwritingPacket
 
-# Active = a bound policy we can file against. "bound_pending_number" is a
-# freshly-bound policy awaiting its carrier number; both are fileable.
-ACTIVE_POLICY_STATUSES = {"bound", "bound_pending_number"}
+# In-force policies we can file against. Per app/lifecycles.py PolicyStatus, the
+# steady-state in-force status is "active"; "bound_pending_number" is a freshly
+# bound policy awaiting its carrier number. Both are fileable. ("bound" is a
+# Submission/Quote status, never a Policy status — it must NOT appear here, or a
+# real active policy is missed and the deductible/FNOL resolution silently fails.)
+ACTIVE_POLICY_STATUSES = {"active", "bound_pending_number"}
 
 # Map the risk classifier's type to a policy coverage line. Default to GL.
 # Short codes must match Policy.coverage_lines (see app/seed_carriers.py::COVERAGE_LINES).
