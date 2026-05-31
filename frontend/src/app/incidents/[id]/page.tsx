@@ -154,6 +154,7 @@ export default function IncidentDetailPage() {
   const [claim, setClaim] = useState<IncidentClaim | null>(null);
   const [evidence, setEvidence] = useState<Array<{ id: string; filename: string; content_type: string; file_size: number; uploaded_at: string }>>([]);
   const [visionAnalysis, setVisionAnalysis] = useState<{ status: string; processed: number; total_files: number; analyses: any[] } | null>(null);
+  const [riskScore, setRiskScore] = useState<{ total_score: number; tier: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
@@ -204,26 +205,51 @@ export default function IncidentDetailPage() {
   }, [id]);
 
   // Closed loop: once we know the venue, pull its claims and find the one
-  // filed off this incident. Uses the venue-scoped read, so it resolves for
-  // the operator (own venue) as well as the broker — killing the
-  // post-incident black box on the operator's own surface.
+  // filed off this incident. Also fetch the venue risk score for the snapshot.
+  // Uses the venue-scoped read, so it resolves for the operator (own venue)
+  // as well as the broker — killing the post-incident black box on the
+  // operator's own surface.
   useEffect(() => {
     const venueId = incident?.venue_id;
     if (!venueId) return;
     let cancelled = false;
     (async () => {
       try {
-        const r = await fetch(`${API_URL}/api/venues/${venueId}/claims`, { headers: authHeaders() });
-        if (!r.ok) return;
-        const rows: IncidentClaim[] = await r.json();
+        const [claimsRes, riskRes] = await Promise.all([
+          fetch(`${API_URL}/api/venues/${venueId}/claims`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/venues/${venueId}/risk-score`, { headers: authHeaders() }),
+        ]);
+        if (!claimsRes.ok) return;
+        const rows: IncidentClaim[] = await claimsRes.json();
         const match = rows.find((c) => c.incident_id === id) ?? null;
         if (!cancelled) setClaim(match);
+        if (riskRes.ok && !cancelled) setRiskScore(await riskRes.json());
       } catch {
         // non-fatal
       }
     })();
     return () => { cancelled = true; };
   }, [incident?.venue_id, id]);
+
+  // ── Recommendation card helpers ──────────────────────────────────────────
+  const primaryPacket = packets[0] as any | undefined;
+  const rec = primaryPacket?.claim_recommendation as
+    | { should_file: boolean; net_expected_value_usd: number; confidence: number; reasons: string[] }
+    | undefined;
+  const routingStatus = primaryPacket?.routing_status as
+    | "auto_routed" | "borderline" | "not_routed"
+    | undefined;
+
+  const sendToBroker = async () => {
+    if (!primaryPacket) return;
+    const res = await fetch(`${API_URL}/api/packets/${primaryPacket.id}/claim-proposal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ operator_id: "operator", override_recommendation: false }),
+    });
+    if (res.ok) { location.reload(); }
+  };
+  // ─────────────────────────────────────────────────────────────────────────
 
   const handleStatusUpdate = async (newStatus: IncidentStatus) => {
     setUpdatingStatus(true);
@@ -389,6 +415,81 @@ export default function IncidentDetailPage() {
                   ))}
                 </div>
               )}
+
+              {/* ── "Worth filing?" recommendation card ───────────────────────────── */}
+              {rec && (
+                <div className="card">
+                  <h2 className="card-title">Worth filing?</h2>
+
+                  {/* Verdict badge — text + color, never color alone */}
+                  <div className="mb-md">
+                    {rec.should_file
+                      ? <span className="badge badge-success">Recommended: File</span>
+                      : <span className="badge badge-warning">Recommended: don&apos;t file</span>}
+                  </div>
+
+                  {/* Two-stat row */}
+                  <div className="flex gap-lg flex-wrap mb-md">
+                    <div>
+                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>Net expected value</div>
+                      <div className="font-mono" style={{ fontSize: "1.1rem" }}>
+                        ${rec.net_expected_value_usd.toLocaleString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>Confidence</div>
+                      <div className="font-mono" style={{ fontSize: "1.1rem" }}>
+                        {Math.round(rec.confidence * 100)}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reasons */}
+                  {rec.reasons.length > 0 && (
+                    <ul style={{ margin: "0 0 var(--space-md) var(--space-md)", padding: 0, fontSize: "0.82rem" }}>
+                      {rec.reasons.map((r, i) => (
+                        <li key={i} className="text-muted" style={{ marginBottom: "var(--space-xs)" }}>{r}</li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* Venue risk snapshot */}
+                  {riskScore && (
+                    <div className="text-muted mb-md" style={{ fontSize: "0.82rem" }}>
+                      Venue risk{" "}
+                      <span className="font-mono">{riskScore.total_score}/100</span>
+                      {" · "}tier{" "}
+                      <span
+                        className="font-mono"
+                        style={{ color: `var(--tier-${riskScore.tier.toLowerCase()})`, fontWeight: 700 }}
+                      >
+                        {riskScore.tier}
+                      </span>
+                      {" · "}
+                      <a href={`/incidents?venue=${incident?.venue_id}`}>recent incidents</a>
+                    </div>
+                  )}
+
+                  {/* Routing footer */}
+                  {routingStatus === "borderline" && (
+                    <button
+                      className="btn btn-primary"
+                      onClick={sendToBroker}
+                      aria-label="Send this incident to the broker for review"
+                      style={{ minHeight: 44 }}
+                    >
+                      Send to broker
+                    </button>
+                  )}
+                  {routingStatus === "auto_routed" && (
+                    <span className="badge badge-info">Sent to broker for review</span>
+                  )}
+                  {routingStatus === "not_routed" && (
+                    <span className="text-muted">Logged — below the filing threshold.</span>
+                  )}
+                </div>
+              )}
+              {/* ─────────────────────────────────────────────────────────────────── */}
 
               {/* Insurance Reports */}
               <div>
