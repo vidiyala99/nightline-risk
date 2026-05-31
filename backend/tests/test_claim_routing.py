@@ -1,7 +1,14 @@
+from datetime import date
+from decimal import Decimal
+
+import pytest
+from sqlmodel import Session, SQLModel, create_engine
+
 from app.claim_recommendation import (
     ClaimRecommendation, PayoutRange, PremiumImpact,
 )
-from app.claim_routing import route_status, should_auto_route
+from app.claim_routing import route_status, should_auto_route, count_prior_claims
+from app.models import Claim, Policy, Venue
 
 
 def _rec(*, should_file: bool, confidence: float) -> ClaimRecommendation:
@@ -34,3 +41,53 @@ def test_borderline_band_prompts_operator():
 
 def test_below_floor_is_not_routed():
     assert route_status(_rec(should_file=True, confidence=0.30)) == "not_routed"
+
+
+# ─── count_prior_claims ──────────────────────────────────────────────────
+
+
+def _db_session() -> Session:
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(engine)
+    s = Session(engine)
+    s.add(Venue(id="elsewhere-brooklyn", name="Elsewhere"))
+    s.commit()
+    return s
+
+
+def _policy(session: Session, venue_id: str) -> Policy:
+    pol = Policy(
+        id=f"pol-{venue_id}",
+        submission_id="sub-test-placeholder",
+        bound_quote_id="q-test-placeholder",
+        venue_id=venue_id,
+        carrier_id="markel-specialty",
+        status="active",
+        effective_date=date(2026, 1, 1),
+        expiration_date=date(2027, 1, 1),
+        annual_premium=Decimal("5000.00"),
+        commission_amount=Decimal("750.00"),
+        commission_rate=Decimal("0.15"),
+        coverage_lines=["premises_liability"],
+        terms_snapshot={},
+        snapshot_hash="hash-test",
+    )
+    session.add(pol)
+    session.flush()
+    return pol
+
+
+def test_count_prior_claims_excludes_dropped():
+    s = _db_session()
+    pol = _policy(s, "elsewhere-brooklyn")
+    s.add(Claim(id="clm-1", policy_id=pol.id, coverage_line="premises_liability",
+                status="reserved", date_of_loss=date(2026, 1, 1)))
+    s.add(Claim(id="clm-2", policy_id=pol.id, coverage_line="premises_liability",
+                status="closed_dropped", date_of_loss=date(2026, 1, 2)))
+    s.flush()
+    assert count_prior_claims(s, "elsewhere-brooklyn") == 1
+
+
+def test_count_prior_claims_zero_for_unknown_venue():
+    s = _db_session()
+    assert count_prior_claims(s, "no-such-venue") == 0
