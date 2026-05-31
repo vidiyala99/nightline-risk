@@ -21,7 +21,7 @@ from decimal import Decimal
 from sqlmodel import Session, select
 
 from app.database import engine
-from app.models import Policy, Submission
+from app.models import CarrierQuote, Policy, Submission
 from app.seed_carriers import seed_broker_platform_data
 from app.seed_data import VENUES
 from app.services.policies import bind_quote
@@ -214,12 +214,28 @@ def ensure_eb_current_policy(session: Session) -> Policy | None:
     FNOL resolver reads. The venue's open submission (sub-demo-open) is its
     *renewal*; this is the *current* term's policy.
 
-    Idempotent: skips if sub-demo-eb-current already exists.
+    Idempotent on the POLICY — the thing we actually want. Checking the submission
+    alone is wrong: a prior partial run can commit `sub-demo-eb-current` but fail
+    before the policy binds, leaving the submission orphaned. If the policy is
+    already there we skip; if a stale submission exists without it, we clear the
+    submission (+ its quotes) and rebuild cleanly.
     """
     if session.exec(
-        select(Submission).where(Submission.id == "sub-demo-eb-current")
+        select(Policy).where(Policy.policy_number == "EB-DEMO-2026-0001")
     ).first():
         return None
+
+    # Self-heal a stale partial submission so the bind flow can re-run.
+    stale = session.exec(
+        select(Submission).where(Submission.id == "sub-demo-eb-current")
+    ).first()
+    if stale is not None:
+        for q in session.exec(
+            select(CarrierQuote).where(CarrierQuote.submission_id == "sub-demo-eb-current")
+        ).all():
+            session.delete(q)
+        session.delete(stale)
+        session.flush()
 
     seed_broker_platform_data(session)
     session.flush()
