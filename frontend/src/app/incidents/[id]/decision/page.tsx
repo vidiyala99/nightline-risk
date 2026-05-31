@@ -79,7 +79,7 @@ export default function DecisionPage() {
 
   return (
     <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
-      <button onClick={() => router.push(`/incidents/${id}`)} className="flex items-center gap-xs text-secondary text-sm" style={{ background: "none", border: "none", cursor: "pointer", padding: "16px 0" }}>
+      <button onClick={() => router.push(`/incidents/${id}`)} className="flex items-center gap-xs text-secondary text-sm" style={{ background: "none", border: "none", cursor: "pointer", padding: "16px 0", minHeight: 44 }}>
         <ArrowLeft size={14} /> Back to incident
       </button>
       <section className="lc-hero">
