@@ -648,7 +648,7 @@ def test_fnol_draft_returns_resolved_defaults():
         session.add(Submission(
             id="sub-fd", venue_id="elsewhere-brooklyn",
             effective_date=_d(2026, 1, 1),
-            coverage_lines=["general_liability"],
+            coverage_lines=["gl"],
         ))
         session.flush()
 
@@ -661,10 +661,10 @@ def test_fnol_draft_returns_resolved_defaults():
             id="po-fd", submission_id="sub-fd", bound_quote_id="q-fd",
             venue_id="elsewhere-brooklyn", carrier_id="markel-fd",
             status="bound",
-            effective_date=_d(2026, 1, 1), expiration_date=_d(2027, 1, 1),
+            effective_date=_d(2027, 6, 1), expiration_date=_d(2028, 6, 1),
             annual_premium=_D("5000.00"), commission_amount=_D("750.00"),
             commission_rate=_D("0.15"),
-            coverage_lines=["general_liability"],
+            coverage_lines=["gl"],
             terms_snapshot={}, snapshot_hash="ph-fd",
         ))
         session.flush()
@@ -680,7 +680,7 @@ def test_fnol_draft_returns_resolved_defaults():
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["policy_id"] == "po-fd"
-        assert body["coverage_line"] == "general_liability"
+        assert body["coverage_line"] == "gl"
         assert body["date_of_loss"] == "2026-05-17"
     finally:
         for tbl, _id in [

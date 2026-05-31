@@ -16,13 +16,14 @@ from app.models import ClaimProposal, IncidentRecord, Policy, UnderwritingPacket
 ACTIVE_POLICY_STATUSES = {"bound", "bound_pending_number"}
 
 # Map the risk classifier's type to a policy coverage line. Default to GL.
+# Short codes must match Policy.coverage_lines (see app/seed_carriers.py::COVERAGE_LINES).
 RISK_TYPE_TO_COVERAGE = {
-    "premises_liability": "general_liability",
-    "altercation_event": "general_liability",
-    "medical_emergency": "general_liability",
-    "crowd_management": "general_liability",
-    "property_damage": "general_liability",
-    "liquor_liability": "liquor_liability",
+    "premises_liability": "gl",
+    "altercation_event": "gl",
+    "medical_emergency": "gl",
+    "crowd_management": "gl",
+    "property_damage": "property",
+    "liquor_liability": "liquor",
 }
 
 
@@ -55,7 +56,7 @@ def resolve_fnol_defaults(session: Session, proposal: ClaimProposal) -> dict:
             notes.append("multiple_policies")
 
     risk_type = (packet.risk_signals or {}).get("type", "") if packet else ""
-    coverage_line = RISK_TYPE_TO_COVERAGE.get(risk_type, "general_liability")
+    coverage_line = RISK_TYPE_TO_COVERAGE.get(risk_type, "gl")
 
     dol = _date_of_loss(incident.occurred_at) if incident else None
     if dol is None:

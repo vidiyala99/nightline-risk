@@ -41,7 +41,7 @@ def _proposal(s, *, risk_type="premises_liability", with_policy=True) -> ClaimPr
         s.add(Submission(
             id="sub-1", venue_id="elsewhere-brooklyn",
             effective_date=date(2026, 1, 1),
-            coverage_lines=["general_liability"],
+            coverage_lines=["gl"],
         ))
         s.flush()
         s.add(CarrierQuote(
@@ -56,7 +56,7 @@ def _proposal(s, *, risk_type="premises_liability", with_policy=True) -> ClaimPr
             annual_premium=Decimal("5000.00"),
             commission_amount=Decimal("750.00"),
             commission_rate=Decimal("0.15"),
-            coverage_lines=["general_liability"],
+            coverage_lines=["gl"],
             terms_snapshot={}, snapshot_hash="ph",
         ))
     prop = ClaimProposal(
@@ -73,9 +73,16 @@ def test_resolves_policy_line_date():
     p = _proposal(s)
     d = resolve_fnol_defaults(s, p)
     assert d["policy_id"] == "pol-1"
-    assert d["coverage_line"] == "general_liability"   # premises_liability -> GL
+    assert d["coverage_line"] == "gl"   # premises_liability -> GL (short code)
     assert d["date_of_loss"] == date(2026, 5, 17)
     assert d["blockers"] == []
+
+
+def test_coverage_line_is_short_code():
+    s = _session()
+    p = _proposal(s)   # premises_liability incident
+    d = resolve_fnol_defaults(s, p)
+    assert d["coverage_line"] == "gl"
 
 
 def test_blocks_when_no_active_policy():
@@ -113,7 +120,7 @@ def test_closing_a_paid_claim_settles_its_proposal():
     s = _session(); p = _proposal(s)
     p.state = "filed_with_carrier"; s.add(p)
     s.add(Claim(id="clm-x", policy_id="pol-1", incident_id="inc-1", proposal_id="prop-1",
-                coverage_line="general_liability", status="reserved", date_of_loss=date(2026, 5, 17),
+                coverage_line="gl", status="reserved", date_of_loss=date(2026, 5, 17),
                 current_reserve=Decimal("10000.00")))
     s.commit()
     close_claim(s, "clm-x", disposition="paid", final_indemnity=Decimal("8000.00"), closed_by="bk")
