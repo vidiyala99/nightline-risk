@@ -11,6 +11,7 @@ the recommendation to the operator and (eventually) to a carrier audit.
 """
 
 from dataclasses import dataclass, asdict
+from decimal import Decimal
 from typing import Optional
 
 
@@ -38,6 +39,9 @@ class ClaimRecommendation:
     reasons: list[str]
     confidence: float            # how confident we are in this recommendation
     rubric_version: str = "claim-recommendation-v1"
+    deductible_usd: Optional[int] = None
+    carrier_payout_usd: int = 0
+    pay_out_of_pocket_cost_usd: int = 0
 
 
 # Base payout ranges per incident type — orders of magnitude, not point estimates.
@@ -67,6 +71,7 @@ def recommend_claim_filing(
     risk_signal: dict,
     incident: dict,
     venue_prior_claim_count: int = 0,
+    deductible: "Decimal | None" = None,
 ) -> ClaimRecommendation:
     risk_type = (risk_signal.get("type") or "general_incident").lower()
     severity = (risk_signal.get("severity") or "low").lower()
@@ -89,9 +94,11 @@ def recommend_claim_filing(
         venue_prior_claim_count=venue_prior_claim_count,
     )
 
-    expected_payout_value = int(payout.median_usd * probability)
+    ded = int(deductible) if deductible is not None else None
+    carrier_payout = payout.median_usd if ded is None else max(0, payout.median_usd - ded)
+    expected_payout_value = int(carrier_payout * probability)
     net_ev = expected_payout_value - premium.cumulative_usd
-    should_file = net_ev > 0 and probability >= 0.45
+    should_file = net_ev > 0 and carrier_payout > 0 and probability >= 0.45
 
     # Confidence in our own recommendation: bounded by the classifier's confidence,
     # reduced if there's no corroborating hard signal, boosted by hard signals.
@@ -110,6 +117,9 @@ def recommend_claim_filing(
         net_expected_value_usd=net_ev,
         reasons=reasons,
         confidence=round(rec_confidence, 2),
+        deductible_usd=ded,
+        carrier_payout_usd=carrier_payout,
+        pay_out_of_pocket_cost_usd=payout.median_usd,
     )
 
 
@@ -189,4 +199,7 @@ def recommendation_to_dict(rec: ClaimRecommendation) -> dict:
         "reasons": list(rec.reasons),
         "confidence": rec.confidence,
         "rubric_version": rec.rubric_version,
+        "deductible": rec.deductible_usd,
+        "carrier_payout": rec.carrier_payout_usd,
+        "pay_out_of_pocket_cost": rec.pay_out_of_pocket_cost_usd,
     }

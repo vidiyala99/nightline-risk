@@ -114,7 +114,28 @@ def test_recommendation_to_dict_has_stable_shape():
         "should_file", "probability",
         "expected_payout", "expected_premium_impact",
         "net_expected_value_usd", "reasons", "confidence", "rubric_version",
+        "deductible", "carrier_payout", "pay_out_of_pocket_cost",
     }
     assert set(d["expected_payout"].keys()) == {"low_usd", "median_usd", "high_usd"}
     assert set(d["expected_premium_impact"].keys()) == {"annual_delta_usd", "duration_years", "cumulative_usd"}
     assert d["rubric_version"] == "claim-recommendation-v1"
+
+
+# ─── deductible-aware recommendation ────────────────────────────────────────
+
+from decimal import Decimal
+
+RS = {"type": "premises_liability", "severity": "high", "confidence": 0.9}
+INC = {"injury_observed": True, "police_called": True, "ems_called": True}
+
+
+def test_deductible_reduces_carrier_payout_and_can_flip_to_dont_file():
+    big = recommend_claim_filing(risk_signal=RS, incident=INC, deductible=None)
+    d = recommendation_to_dict(big)
+    assert d["carrier_payout"] == d["expected_payout"]["median_usd"]   # no deductible → full
+
+    huge = recommend_claim_filing(risk_signal=RS, incident=INC, deductible=Decimal("10000000"))
+    hd = recommendation_to_dict(huge)
+    assert hd["carrier_payout"] == 0
+    assert hd["should_file"] is False
+    assert hd["pay_out_of_pocket_cost"] == hd["expected_payout"]["median_usd"]
