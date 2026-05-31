@@ -418,16 +418,18 @@ export default function IncidentDetailPage() {
                 </div>
               )}
 
-              {/* ── "Worth filing?" recommendation card ───────────────────────────── */}
+              {/* ── Recommendation card ───────────────────────────────────────────
+                  Persona-aware framing: the operator decides ("Worth filing?");
+                  the broker sees it as a reference recommendation to act on. */}
               {rec && (
                 <div className="card">
-                  <h2 className="card-title">Worth filing?</h2>
+                  <h2 className="card-title">{isBroker ? "Claim recommendation" : "Worth filing?"}</h2>
 
                   {/* Verdict badge — text + color, never color alone */}
                   <div className="mb-md">
                     {rec.should_file
-                      ? <span className="badge badge-success">Recommended: File</span>
-                      : <span className="badge badge-warning">Recommended: don&apos;t file</span>}
+                      ? <span className="badge badge-success">{isBroker ? "Recommendation: File" : "Recommended: File"}</span>
+                      : <span className="badge badge-warning">{isBroker ? "Recommendation: hold" : "Recommended: don’t file"}</span>}
                   </div>
 
                   {/* Two-stat row */}
