@@ -8,7 +8,7 @@ from app.claim_recommendation import (
     ClaimRecommendation, PayoutRange, PremiumImpact,
 )
 from app.claim_routing import route_status, should_auto_route, count_prior_claims
-from app.models import Claim, Policy, Venue
+from app.models import Claim, Policy, Venue, IncidentRecord
 
 
 def _rec(*, should_file: bool, confidence: float) -> ClaimRecommendation:
@@ -109,6 +109,20 @@ def _packet(session, venue_id="elsewhere-brooklyn") -> UnderwritingPacket:
     session.add(pkt)
     session.flush()
     return pkt
+
+
+def test_recommendation_for_packet_uses_real_prior_claims():
+    from app.claim_routing import recommendation_for_packet
+    s = _db_session()
+    s.add(IncidentRecord(
+        id="inc-x", venue_id="elsewhere-brooklyn", occurred_at="2026-05-17T00:00:00Z",
+        location="bar", summary="slip", reported_by="mgr",
+        injury_observed=True, police_called=False, ems_called=False, status="open",
+    ))
+    _packet(s)  # pkt-routetest, incident_id="inc-x"
+    rec = recommendation_for_packet(s, s.get(UnderwritingPacket, "pkt-routetest"))
+    assert rec.should_file in (True, False)
+    assert 0.0 <= rec.confidence <= 1.0
 
 
 def test_create_proposal_persists_recommendation_snapshot():

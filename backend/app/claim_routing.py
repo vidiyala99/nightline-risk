@@ -7,8 +7,8 @@ import os
 
 from sqlmodel import Session, select
 
-from app.claim_recommendation import ClaimRecommendation
-from app.models import Claim, Policy
+from app.claim_recommendation import ClaimRecommendation, recommend_claim_filing
+from app.models import Claim, IncidentRecord, Policy, UnderwritingPacket
 
 
 def _auto_confidence() -> float:
@@ -30,6 +30,25 @@ def route_status(rec: ClaimRecommendation) -> str:
 
 def should_auto_route(rec: ClaimRecommendation) -> bool:
     return route_status(rec) == "auto_routed"
+
+
+def recommendation_for_packet(session: Session, packet: UnderwritingPacket) -> ClaimRecommendation:
+    """Build the ClaimRecommendation for a packet using REAL venue claim history.
+
+    Single source for the recommendation so main.py, the auto-router, and the
+    manual propose path agree on the number.
+    """
+    incident = session.get(IncidentRecord, packet.incident_id)
+    incident_payload = {
+        "injury_observed": bool(incident.injury_observed) if incident else False,
+        "police_called": bool(incident.police_called) if incident else False,
+        "ems_called": bool(incident.ems_called) if incident else False,
+    }
+    return recommend_claim_filing(
+        risk_signal=packet.risk_signals or {},
+        incident=incident_payload,
+        venue_prior_claim_count=count_prior_claims(session, packet.venue_id),
+    )
 
 
 def count_prior_claims(session: Session, venue_id: str) -> int:

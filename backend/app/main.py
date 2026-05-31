@@ -668,17 +668,9 @@ def simulate_event_queue(venue_id: str, events: list[StreamEvent], venue_data: d
 
 
 def _packet_to_dict(packet: UnderwritingPacket, session: Session | None = None) -> dict:
-    incident_payload: dict = {}
-    venue_prior_claims = 0
+    from app.claim_routing import recommendation_for_packet, route_status
     latest_proposal: ClaimProposal | None = None
     if session is not None:
-        incident = session.get(IncidentRecord, packet.incident_id)
-        if incident is not None:
-            incident_payload = {
-                "injury_observed": incident.injury_observed or False,
-                "police_called": incident.police_called or False,
-                "ems_called": incident.ems_called or False,
-            }
         # Per-packet latest proposal — frontend uses this to render the state
         # badge + action row without a second round-trip. Order by proposed_at
         # desc so a re-proposal (if we ever allow it) returns the newest.
@@ -687,13 +679,14 @@ def _packet_to_dict(packet: UnderwritingPacket, session: Session | None = None) 
             .where(ClaimProposal.packet_id == packet.id)
             .order_by(ClaimProposal.proposed_at.desc())
         ).first()
-        # Placeholder for venue claim history once Claims is built — for now 0.
-        # Wired through so the recommender's signature is stable when real data lands.
-    recommendation = recommend_claim_filing(
-        risk_signal=packet.risk_signals or {},
-        incident=incident_payload,
-        venue_prior_claim_count=venue_prior_claims,
-    )
+    if session is not None:
+        recommendation = recommendation_for_packet(session, packet)
+    else:
+        recommendation = recommend_claim_filing(
+            risk_signal=packet.risk_signals or {},
+            incident={},
+            venue_prior_claim_count=0,
+        )
     return {
         "id": packet.id,
         "venue_id": packet.venue_id,
@@ -711,6 +704,7 @@ def _packet_to_dict(packet: UnderwritingPacket, session: Session | None = None) 
         "corroboration_status": packet.corroboration_status,
         "corroboration_flags": packet.corroboration_flags or [],
         "claim_recommendation": recommendation_to_dict(recommendation),
+        "routing_status": route_status(recommendation),
         "claim_proposal": _claim_proposal_to_dict(latest_proposal) if latest_proposal else None,
     }
 
