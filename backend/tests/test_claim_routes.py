@@ -11,12 +11,13 @@ from datetime import date as _d
 from decimal import Decimal as _D
 
 from fastapi.testclient import TestClient
+from sqlmodel import select
 
 from app.auth import create_token
 from app.database import get_session
 from app.main import app
 from app.models import (
-    Carrier, CarrierQuote, ClaimProposal, IncidentRecord, Policy,
+    Carrier, CarrierQuote, Claim, ClaimProposal, IncidentRecord, Policy,
     Submission, UnderwritingPacket,
 )
 
@@ -592,6 +593,46 @@ def test_file_fnol_creates_claim_and_advances_proposal():
                 session.delete(row)
         session.commit()
         session.close()
+
+
+# ---------- GET /api/incidents/{id}/claim-status ----------
+
+
+def test_claim_status_chain():
+    session = next(get_session())
+    try:
+        _seed_approved_proposal_routes(session, "cs")  # incident in-cs, proposal pr-cs (approved)
+        with TestClient(app) as client:
+            r = client.get("/api/incidents/in-cs/claim-status", headers=_op_headers())
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["proposal"]["exists"] is True
+        assert body["proposal"]["state"] == "approved"
+        assert body["claim"]["exists"] is False
+    finally:
+        # clean up Claim rows first (FK -> proposal)
+        for clm in session.exec(select(Claim).where(Claim.proposal_id == "pr-cs")).all():
+            session.delete(clm)
+        for tbl, _id in [
+            (ClaimProposal, "pr-cs"),
+            (Policy, "po-cs"),
+            (CarrierQuote, "q-cs"),
+            (Submission, "sub-cs"),
+            (UnderwritingPacket, "pk-cs"),
+            (IncidentRecord, "in-cs"),
+            (Carrier, "markel-cs"),
+        ]:
+            row = session.get(tbl, _id)
+            if row:
+                session.delete(row)
+        session.commit()
+        session.close()
+
+
+def test_claim_status_returns_404_for_unknown_incident():
+    with TestClient(app) as client:
+        r = client.get("/api/incidents/in-does-not-exist/claim-status", headers=_op_headers())
+    assert r.status_code == 404
 
 
 def test_file_fnol_requires_approved_state():

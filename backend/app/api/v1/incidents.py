@@ -208,6 +208,65 @@ def update_incident_status(
     return {"id": incident_id, "status": record.status}
 
 
+# ─── Claim-status chain ─────────────────────────────────────────────────
+
+
+@router.get("/incidents/{incident_id}/claim-status")
+def incident_claim_status(
+    incident_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Resolve the full chain: incident → latest packet → latest ClaimProposal
+    → linked Claim. Returns a single summary dict so the frontend can gate
+    UI panels (e.g. 'File with carrier') without stitching 3 round-trips.
+    """
+    record = session.get(IncidentRecord, incident_id)
+    if record is None:
+        raise error_response(
+            "incident_not_found",
+            f"Incident {incident_id!r} not found",
+            status_code=404,
+        )
+    require_venue_access(record.venue_id, authorization, session)
+
+    from app.models import Claim, ClaimProposal, UnderwritingPacket
+
+    packet = session.exec(
+        select(UnderwritingPacket).where(UnderwritingPacket.incident_id == incident_id)
+    ).first()
+
+    proposal = None
+    if packet is not None:
+        proposal = session.exec(
+            select(ClaimProposal)
+            .where(ClaimProposal.packet_id == packet.id)
+            .order_by(ClaimProposal.proposed_at.desc())
+        ).first()
+
+    claim = None
+    if proposal is not None:
+        claim = session.exec(
+            select(Claim).where(Claim.proposal_id == proposal.id)
+        ).first()
+    if claim is None:
+        claim = session.exec(
+            select(Claim).where(Claim.incident_id == incident_id)
+        ).first()
+
+    return {
+        "incident_status": record.status,
+        "proposal": {
+            "exists": proposal is not None,
+            "state": proposal.state if proposal else None,
+        },
+        "claim": {
+            "exists": claim is not None,
+            "status": claim.status if claim else None,
+        },
+    }
+
+
 # ─── Create (delegates to the brawl-incident agentic flow) ──────────────
 
 
