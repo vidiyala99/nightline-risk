@@ -17,7 +17,6 @@ import {
   RefreshCw,
   ShieldCheck,
   Inbox,
-  ListChecks,
   Database,
 } from "lucide-react";
 import { useAuth, useRole, useTenantId } from "@/contexts/AuthContext";
@@ -61,41 +60,43 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
   type Item = { href: string; label: string; icon: typeof LayoutDashboard; roles?: string[]; badge?: number };
   type Group = { label: string; items: Item[] };
 
-  const portfolioItems: Item[] = [
-    { href: `/dashboard${venueQuery}`, label: role === "venue_operator" ? "Dashboard" : "The Book", icon: LayoutDashboard },
-    { href: "/venues", label: "Venues", icon: Building2, roles: ["broker", "admin", "venue_operator"] },
-    { href: "/submissions", label: "Submissions", icon: FileSearch, roles: ["broker", "admin"] },
-    { href: "/policies", label: "Policies", icon: FileSpreadsheet, roles: ["broker", "admin"] },
-    { href: "/coverage", label: "Coverage", icon: ShieldCheck, roles: ["venue_operator"] },
-    { href: "/renewals", label: "Renewals", icon: RefreshCw, roles: ["broker", "admin"] },
-    ...(role === "venue_operator" && contextVenueId
-      ? [{ href: `/terminal/${contextVenueId}`, label: "Live Terminal", icon: Activity } as Item]
-      : []),
-  ];
+  const isBrokerNav = role === "broker" || role === "admin";
 
-  const operationsItems: Item[] = [
-    { href: `/incidents${venueQuery}`, label: "Incidents", icon: AlertTriangle },
-    { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
-    { href: "/claims", label: "Claims", icon: FileSpreadsheet, roles: ["broker", "admin"] },
-    { href: "/claim-proposals", label: "Claim Proposals", icon: FileSpreadsheet, roles: ["broker", "admin"] },
-    { href: "/policy-requests", label: "Requests", icon: Inbox, roles: ["broker", "admin"] },
-    { href: "/tasks", label: "Tasks", icon: ListChecks, roles: ["broker", "admin"] },
-    { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
-  ];
-
-  const underwritingItems: Item[] = [
-    { href: "/underwriter", label: "Reports", icon: FileSearch, roles: ["broker", "admin"] },
-    { href: "/ingestion", label: "Ingestion", icon: Database, roles: ["broker", "admin"] },
-  ];
-
-  const filterByRole = (items: Item[]) =>
-    items.filter((item) => !item.roles || item.roles.includes(role || ""));
-
-  const groups: Group[] = [
-    { label: "Portfolio", items: filterByRole(portfolioItems) },
-    { label: "Operations", items: filterByRole(operationsItems) },
-    { label: "Underwriting", items: filterByRole(underwritingItems) },
-  ].filter((g) => g.items.length > 0);
+  const groups: Group[] = (isBrokerNav
+    ? [
+        { label: "", items: [{ href: "/dashboard", label: "Home", icon: LayoutDashboard }] },
+        { label: "Claims pipeline", items: [
+          { href: "/work-queue", label: "Work Queue", icon: Inbox },
+          { href: "/claims", label: "Claims", icon: FileSpreadsheet },
+        ] },
+        { label: "Placement", items: [
+          { href: "/submissions", label: "Submissions", icon: FileSearch },
+          { href: "/policies", label: "Policies", icon: FileSpreadsheet },
+          { href: "/renewals", label: "Renewals", icon: RefreshCw },
+        ] },
+        { label: "Book", items: [
+          { href: "/venues", label: "Venues", icon: Building2 },
+          { href: "/policy-requests", label: "Requests", icon: Inbox },
+        ] },
+        { label: "System", items: [
+          { href: "/ingestion", label: "Ingestion", icon: Database },
+          { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
+        ] },
+      ]
+    : [
+        { label: "Portfolio", items: [
+          { href: `/dashboard${venueQuery}`, label: "Dashboard", icon: LayoutDashboard },
+          { href: "/venues", label: "Venues", icon: Building2 },
+          { href: "/coverage", label: "Coverage", icon: ShieldCheck },
+          ...(contextVenueId ? [{ href: `/terminal/${contextVenueId}`, label: "Live Terminal", icon: Activity } as Item] : []),
+        ] },
+        { label: "Operations", items: [
+          { href: `/incidents${venueQuery}`, label: "Incidents", icon: AlertTriangle },
+          { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
+          { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
+        ] },
+      ]
+  ).filter((g) => g.items.length > 0);
 
   const isActive = (href: string) => {
     const base = href.split("?")[0];
@@ -108,7 +109,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
     <>
       {groups.map((group) => (
         <div key={group.label} className="sidebar-nav__group">
-          {variant !== "rail" && <div className="sidebar-nav__group-label">{group.label}</div>}
+          {variant !== "rail" && group.label && <div className="sidebar-nav__group-label">{group.label}</div>}
           {group.items.map((item) => (
             <SidebarNavItem
               key={item.href}
