@@ -229,3 +229,25 @@ def test_backfill_auto_routes_high_confidence_incident():
     assert proposal is not None, "backfill should auto-route a high-confidence 'file' incident"
     assert proposal.state == "pending_broker_review"
     assert proposal.recommendation_snapshot["should_file"] is True
+
+
+# ─── Task 4: deductible wired into recommendation_for_packet ─────────────────
+
+from app.claim_routing import recommendation_for_packet
+from datetime import date as _date
+
+
+def test_recommendation_for_packet_applies_deductible():
+    s = _db_session()
+    s.add(IncidentRecord(id="inc-x", venue_id="elsewhere-brooklyn", occurred_at="2026-05-17T00:00:00Z",
+        location="bar", summary="x", reported_by="m", injury_observed=True, police_called=True,
+        ems_called=True, status="open"))
+    _packet(s)  # pkt-routetest, premises_liability -> line "gl"
+    s.add(Policy(id="po-x", submission_id="s", bound_quote_id="q", venue_id="elsewhere-brooklyn",
+        carrier_id="markel-specialty", status="bound", effective_date=_date(2026,1,1),
+        expiration_date=_date(2027,1,1), annual_premium=Decimal("5000"), commission_amount=Decimal("750"),
+        commission_rate=Decimal("0.15"), coverage_lines=["gl"],
+        terms_snapshot={"premium_breakdown": {"lines": {"gl": {"deductible": "999999"}}}}, snapshot_hash="h"))
+    s.commit()
+    rec = recommendation_for_packet(s, s.get(UnderwritingPacket, "pkt-routetest"))
+    assert rec.carrier_payout_usd == 0

@@ -38,16 +38,22 @@ def recommendation_for_packet(session: Session, packet: UnderwritingPacket) -> C
     Single source for the recommendation so main.py, the auto-router, and the
     manual propose path agree on the number.
     """
+    from app.services.fnol import RISK_TYPE_TO_COVERAGE, venue_line_deductible
+
     incident = session.get(IncidentRecord, packet.incident_id)
     incident_payload = {
         "injury_observed": bool(incident.injury_observed) if incident else False,
         "police_called": bool(incident.police_called) if incident else False,
         "ems_called": bool(incident.ems_called) if incident else False,
     }
+    risk_type = (packet.risk_signals or {}).get("type", "")
+    line_id = RISK_TYPE_TO_COVERAGE.get(risk_type, "gl")
+    deductible = venue_line_deductible(session, packet.venue_id, line_id)
     return recommend_claim_filing(
         risk_signal=packet.risk_signals or {},
         incident=incident_payload,
         venue_prior_claim_count=count_prior_claims(session, packet.venue_id),
+        deductible=deductible,
     )
 
 
