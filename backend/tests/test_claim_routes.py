@@ -805,3 +805,37 @@ def test_priority_missing_snapshot_sorts_last():
     p = _CP(id="wq-none", packet_id="pk", venue_id="v", proposed_by="x",
             state="pending_broker_review", proposed_at=_NOW)
     assert _proposal_priority(p, _NOW) == 0.0
+
+
+# ---------- GET /api/venues/{venue_id}/incident-status-feed ----------
+
+
+def test_incident_status_feed_for_venue():
+    session = next(get_session())
+    try:
+        _seed_approved_proposal_routes(session, "feed")  # incident in-feed, proposal approved, venue elsewhere-brooklyn
+        with TestClient(app) as client:
+            r = client.get("/api/venues/elsewhere-brooklyn/incident-status-feed", headers=_op_headers())
+        assert r.status_code == 200, r.text
+        rows = r.json()
+        row = next((x for x in rows if x["incident_id"] == "in-feed"), None)
+        assert row is not None
+        assert row["proposal_state"] == "approved"
+        assert row["claim_status"] is None
+        assert "summary" in row and "occurred_at" in row and "status" in row
+    finally:
+        session.close()
+
+
+def test_incident_status_feed_rejects_cross_venue():
+    session = next(get_session())
+    try:
+        _seed_approved_proposal_routes(session, "feedx")
+        # Token scoped to house-of-yes — a different venue from the seeded incident at elsewhere-brooklyn.
+        other_token = create_token("u-feedx-other", "feedx@other.example.com", "venue_operator", "house-of-yes")
+        cross_venue_headers = {"Authorization": f"Bearer {other_token}"}
+        with TestClient(app) as client:
+            r = client.get("/api/venues/elsewhere-brooklyn/incident-status-feed", headers=cross_venue_headers)
+        assert r.status_code == 403
+    finally:
+        session.close()
