@@ -16,7 +16,7 @@ export class DashboardPage {
   // Sidebar nav items
   readonly dashboardNavItem: Locator;
   readonly venuesNavItem: Locator;
-  readonly portfolioLabel: Locator;
+  readonly workQueueNavItem: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -33,13 +33,14 @@ export class DashboardPage {
     // .lc-triage__title replaced the card-grid "Portfolio" .lc-rule__label.
     this.portfolioGrid = page.locator(".lc-triage__title", { hasText: /^The Book$/ });
 
-    // Sidebar navigation links — labels are editorial ("The Book" for dashboard
-    // in the v3 sidebar redesign); accept legacy "Dashboard" too for safety.
-    this.dashboardNavItem = page.locator(".sidebar-nav-item", { hasText: /The Book|Dashboard/ });
+    // Sidebar nav: the broker home item is "Home" (per-persona IA spine);
+    // operators see "Dashboard". Legacy "The Book" kept for older builds.
+    this.dashboardNavItem = page.locator(".sidebar-nav-item", { hasText: /Home|The Book|Dashboard/ });
     this.venuesNavItem = page.locator(".sidebar-nav-item", { hasText: "Venues" });
 
-    // Broker-only "Reports" nav item
-    this.portfolioLabel = page.locator(".sidebar-nav-item", { hasText: "Reports" });
+    // Broker-only "Work Queue" nav item (replaced the old "Reports" item when
+    // the duplicate decision surfaces collapsed into the Work Queue).
+    this.workQueueNavItem = page.locator(".sidebar-nav-item", { hasText: "Work Queue" });
   }
 
   async waitForLoad() {

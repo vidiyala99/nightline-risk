@@ -58,8 +58,8 @@ test("broker login — redirects to dashboard with Evidence-First Underwriting h
   // Heading contains "Evidence-First"
   await expect(dashboardPage.brokerHeading).toBeVisible();
 
-  // Broker sidebar should show "Reports" nav item (broker-only)
-  await expect(dashboardPage.portfolioLabel).toBeVisible();
+  // Broker sidebar should show the broker-only "Work Queue" nav item
+  await expect(dashboardPage.workQueueNavItem).toBeVisible();
 });
 
 // ─── 3. Invalid credentials ───────────────────────────────────────────────────

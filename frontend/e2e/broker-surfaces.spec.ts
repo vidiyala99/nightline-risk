@@ -1,7 +1,8 @@
 /**
- * E2E — broker money-path surfaces added since May 10: Tasks feed, Policy
- * Requests queue, and Claims. Verifies each is reachable from the sidebar and
- * renders its page header. Target: deployed site.
+ * E2E — broker money-path surfaces: Tasks feed, Policy Requests queue, and
+ * Claims. Requests + Claims are reachable from the sidebar; Tasks is no longer
+ * a primary sidebar destination after the per-persona IA nav spine (the page
+ * still exists and is verified by direct navigation). Target: deployed site.
  */
 import { test, expect } from "@playwright/test";
 import { LoginPage } from "./pages/LoginPage";
@@ -20,9 +21,9 @@ function navItem(page: any, label: string) {
   return page.locator(".sidebar-nav-item", { hasText: new RegExp(`^${label}$`) });
 }
 
-test("broker tasks feed — reachable from sidebar, renders", async ({ page }) => {
+test("broker tasks page — renders via direct nav (not in the IA sidebar spine)", async ({ page }) => {
   await loginBroker(page);
-  await navItem(page, "Tasks").click();
+  await page.goto("/tasks");
   await expect(page).toHaveURL(/\/tasks/, { timeout: 20000 });
   await expect(page.locator(".page-header__title", { hasText: /Tasks/i })).toBeVisible({ timeout: 15000 });
 });
