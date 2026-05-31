@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import OnboardingCard from "@/components/OnboardingCard";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
-import { Building2, LogOut, ArrowUpRight, WifiOff, AlertTriangle, CheckSquare, ArrowRight } from "lucide-react";
+import { Building2, LogOut, ArrowUpRight, WifiOff, AlertTriangle, CheckSquare, ArrowRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Grid } from "@/components/layout/Grid";
 import { authHeaders } from "@/lib/authFetch";
@@ -13,7 +13,7 @@ import { StatTile } from "@/components/ui/StatTile";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { TierBadge, Tier as UiTier } from "@/components/ui/TierBadge";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
-import { riskAttentionLine, FACTOR_TIER_COLOR, FACTOR_GLYPH } from "@/lib/risk";
+import { riskAttentionLine, FACTOR_TIER_COLOR, FACTOR_GLYPH, factorLabel, getFactorTier } from "@/lib/risk";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -60,9 +60,20 @@ interface PremiumQuote {
   savings_pct?: number;
   renewal_date?: string;
   coverage_breakdown?: Record<string, CoverageLine>;
+  // Present when the venue has an in-force policy — the real bound premium,
+  // which supersedes the indicative estimate above for insured operators.
+  policy?: {
+    annual_premium: string;
+    monthly_premium: string;
+    policy_number: string | null;
+    status: string;
+    effective_date: string;
+    expiration_date: string;
+    coverage_lines: string[];
+  } | null;
 }
 
-interface Stats { venues: number; incidents: number; compliance: number; }
+interface Stats { venues: number; incidents: number; compliance: number; claims?: number; }
 
 const TIER_COLOR: Record<string, string> = {
   A: "var(--tier-a)",
@@ -82,6 +93,20 @@ interface FeedRow {
   claim_status: string | null;
 }
 
+// Operator home surfaces only what's *live*. A report drops off once its incident is
+// closed AND its claim journey is finished (or never started) — closed-and-done belongs in
+// the Incidents archive, not the home feed. A closed incident with a claim still in flight
+// stays, so "existing claims" remain visible.
+const TERMINAL_INCIDENT = new Set(["closed", "closed_archived"]);
+const TERMINAL_CLAIM = new Set(["closed_paid", "closed_denied", "closed_dropped"]);
+const TERMINAL_PROPOSAL = new Set(["paid", "denied", "rejected_by_broker"]);
+function isActiveReport(r: FeedRow): boolean {
+  const incidentActive = !TERMINAL_INCIDENT.has(r.status);
+  const claimActive = !!r.claim_status && !TERMINAL_CLAIM.has(r.claim_status);
+  const proposalActive = !!r.proposal_state && !TERMINAL_PROPOSAL.has(r.proposal_state);
+  return incidentActive || claimActive || proposalActive;
+}
+
 function reportSteps(r: FeedRow) {
   const ps = r.proposal_state ?? "";
   return [
@@ -99,7 +124,12 @@ function ReportFeedRow({ r }: { r: FeedRow }) {
     : r.proposal_state === "needs_more_info" ? "Info requested" : null;
   // Current step = the furthest-along lit step. Spoken to screen readers via the
   // row's aria-label; the ●/○ glyph row is decorative (aria-hidden).
-  const current = [...steps].reverse().find((s) => s.lit)?.label ?? "Reported";
+  const currentIdx = steps.map((s) => s.lit).lastIndexOf(true);
+  const current = steps[currentIdx]?.label ?? "Reported";
+  const dateLabel = (() => {
+    const d = new Date(r.occurred_at);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  })();
   return (
     <Link
       href={`/incidents/${r.incident_id}`}
@@ -107,17 +137,31 @@ function ReportFeedRow({ r }: { r: FeedRow }) {
       style={{ textDecoration: "none", display: "block" }}
       aria-label={`${r.summary} — status: ${current}${branch ? `, ${branch}` : ""}`}
     >
-      <div className="lc-card__inner" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <span className="text-sm" title={r.summary} style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {r.summary}
-        </span>
-        <div className="flex items-center" aria-hidden="true" style={{ gap: 8, flexWrap: "wrap" }}>
-          {steps.map((s) => (
-            <span key={s.label} className="text-xs" style={{ color: s.lit ? "var(--accent-ink)" : "var(--text-muted)" }}>
-              {s.lit ? "● " : "○ "}{s.label}
-            </span>
-          ))}
-          {branch && <span className="text-xs" style={{ color: branch === "Info requested" ? "var(--state-warning)" : "var(--state-error)" }}>· {branch}</span>}
+      {/* Two-column row: content left, occurred-date + affordance right — gives the
+          row a scannable right edge instead of trailing whitespace. */}
+      <div className="lc-card__inner" style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+          <span className="text-sm" title={r.summary} style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {r.summary}
+          </span>
+          <div className="flex items-center" aria-hidden="true" style={{ gap: 8, flexWrap: "wrap" }}>
+            {steps.map((s, i) => {
+              const isCurrent = i === currentIdx;
+              return (
+                <span key={s.label} className="text-xs" style={{
+                  color: s.lit ? "var(--accent-ink)" : "var(--text-muted)",
+                  fontWeight: isCurrent ? 700 : 400,
+                }}>
+                  {s.lit ? "● " : "○ "}{s.label}{isCurrent ? " · now" : ""}
+                </span>
+              );
+            })}
+            {branch && <span className="text-xs" style={{ color: branch === "Info requested" ? "var(--state-warning)" : "var(--state-error)" }}>· {branch}</span>}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          {dateLabel && <span className="text-xs text-muted" style={{ fontFamily: "var(--font-mono)" }}>{dateLabel}</span>}
+          <ArrowRight size={15} className="text-muted" aria-hidden="true" />
         </div>
       </div>
     </Link>
@@ -136,43 +180,67 @@ function OperatorReportFeed({ venueId, complianceDue }: { venueId: string; compl
     return () => { cancelled = true; };
   }, [venueId]);
 
-  const infoRequested = rows.filter((r) => r.proposal_state === "needs_more_info").length;
+  // Home shows only live reports; closed-and-done incidents live in the Incidents archive.
+  const activeRows = rows.filter(isActiveReport);
+  const infoRequested = activeRows.filter((r) => r.proposal_state === "needs_more_info").length;
   const needsYou = complianceDue + infoRequested;
+  // Claims currently in flight (entered the journey, not resolved) — gets its own
+  // navigable doorway to /claims, mirroring the compliance tile.
+  const claimsInFlight = activeRows.filter((r) => r.proposal_state != null || r.claim_status != null).length;
 
   return (
     <>
-      {needsYou > 0 && (
-        <section className="mb-lg" aria-label="Needs you">
-          <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Needs you · {needsYou}</div>
-          <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
-            {complianceDue > 0 && (
-              <Link href="/compliance" className="lc-card" style={{ flex: 1, minWidth: 150, textDecoration: "none", display: "block" }}>
-                <div className="lc-card__inner">
-                  <div className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{complianceDue}</div>
-                  <div className="text-xs text-muted">compliance items due</div>
-                </div>
-              </Link>
-            )}
-            {infoRequested > 0 && (
-              <Link href="/incidents" className="lc-card" style={{ flex: 1, minWidth: 150, textDecoration: "none", display: "block" }}>
-                <div className="lc-card__inner">
-                  <div className="font-mono" style={{ fontSize: "1.25rem", color: "var(--state-warning)" }}>{infoRequested}</div>
-                  <div className="text-xs text-muted">incidents need info</div>
-                </div>
-              </Link>
-            )}
-          </div>
-        </section>
+      {/* Summary band — "Needs you" + "Claims in flight" side by side (each keeps
+          its own label so action vs tracking stays distinct); stacks on narrow. */}
+      {(needsYou > 0 || claimsInFlight > 0) && (
+        <div className="mb-lg flex" style={{ gap: "var(--space-2xl)", flexWrap: "wrap", alignItems: "flex-start" }}>
+          {needsYou > 0 && (
+            <section aria-label="Needs you">
+              <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Needs you · {needsYou}</div>
+              <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
+                {complianceDue > 0 && (
+                  <Link href="/compliance" className="lc-card" style={{ flex: "0 1 240px", textDecoration: "none", display: "block" }}>
+                    <div className="lc-card__inner" style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "14px 18px" }}>
+                      <span className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{complianceDue}</span>
+                      <span className="text-xs text-muted">compliance items due</span>
+                    </div>
+                  </Link>
+                )}
+                {infoRequested > 0 && (
+                  <Link href="/incidents" className="lc-card" style={{ flex: "0 1 240px", textDecoration: "none", display: "block" }}>
+                    <div className="lc-card__inner" style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "14px 18px" }}>
+                      <span className="font-mono" style={{ fontSize: "1.25rem", color: "var(--state-warning)" }}>{infoRequested}</span>
+                      <span className="text-xs text-muted">incidents need info</span>
+                    </div>
+                  </Link>
+                )}
+              </div>
+            </section>
+          )}
+          {claimsInFlight > 0 && (
+            <section aria-label="Claims">
+              <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Claims · in flight</div>
+              <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
+                <Link href="/claims" className="lc-card" style={{ flex: "0 1 240px", textDecoration: "none", display: "block" }}>
+                  <div className="lc-card__inner" style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "14px 18px" }}>
+                    <span className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{claimsInFlight}</span>
+                    <span className="text-xs text-muted">claims in flight · track →</span>
+                  </div>
+                </Link>
+              </div>
+            </section>
+          )}
+        </div>
       )}
-      {rows.length > 0 && (
+      {activeRows.length > 0 && (
         <section className="mb-lg" aria-label="Your reports">
           <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Your reports — what happened next</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
-            {rows.slice(0, 8).map((r) => <ReportFeedRow key={r.incident_id} r={r} />)}
+            {activeRows.slice(0, 8).map((r) => <ReportFeedRow key={r.incident_id} r={r} />)}
           </div>
-          {rows.length > 8 && (
+          {activeRows.length > 8 && (
             <Link href="/incidents" className="text-xs" style={{ display: "inline-block", marginTop: "var(--space-sm)", color: "var(--accent-ink)", textDecoration: "none" }}>
-              +{rows.length - 8} more in Incidents →
+              +{activeRows.length - 8} more in Incidents →
             </Link>
           )}
         </section>
@@ -324,13 +392,22 @@ function DashboardPageInner() {
             return;
           }
           const totalVenueCount = Math.max(venuesList.length, 1);
-          const [liveRes, riskRes, quoteRes, incidentsRes] = await Promise.all([
+          const [liveRes, riskRes, quoteRes, incidentsRes, feedRes] = await Promise.all([
             fetch(`${API_URL}/api/venues/${venueId}/live`, { headers: authHeaders() }),
             fetch(`${API_URL}/api/venues/${venueId}/risk-score`, { headers: authHeaders() }),
             fetch(`${API_URL}/api/venues/${venueId}/quote`, { headers: authHeaders() }),
             fetch(`${API_URL}/api/venues/${venueId}/incidents?status=open`, { headers: authHeaders() }),
+            fetch(`${API_URL}/api/venues/${venueId}/incident-status-feed`, { headers: authHeaders() }),
           ]);
           const incidentCount = incidentsRes.ok ? (await incidentsRes.json()).length : 0;
+          // Open claims = incidents that entered the claim journey and aren't resolved.
+          let claimsInFlight = 0;
+          if (feedRes.ok) {
+            const feed: FeedRow[] = await feedRes.json();
+            claimsInFlight = (Array.isArray(feed) ? feed : [])
+              .filter((r) => (r.proposal_state != null || r.claim_status != null) && isActiveReport(r))
+              .length;
+          }
           if (cancelled) return;
           if (liveRes.ok) {
             const state = await liveRes.json();
@@ -339,6 +416,7 @@ function DashboardPageInner() {
               venues: totalVenueCount,
               incidents: incidentCount,
               compliance: state.compliance_queue?.length || 0,
+              claims: claimsInFlight,
             });
           } else {
             setStats((s) => ({ ...s, venues: totalVenueCount, incidents: incidentCount }));
@@ -532,6 +610,11 @@ function DashboardPageInner() {
               tier={stats.incidents > 0 ? "d" : "neutral"}
             />
             <StatTile
+              label="Open Claims"
+              value={(stats.claims ?? 0).toString().padStart(2, "0")}
+              tier={(stats.claims ?? 0) > 0 ? "b" : "neutral"}
+            />
+            <StatTile
               label="Compliance"
               value={stats.compliance.toString().padStart(2, "0")}
               tier={stats.compliance > 0 ? "b" : "neutral"}
@@ -642,10 +725,11 @@ function DashboardPageInner() {
         />
       )}
 
-      {/* OPERATOR: venue profile link (Venues left the nav) */}
+      {/* OPERATOR: jump straight to this venue's profile (its risk profile) —
+          not the venue roster, which is for managing/adding venues. */}
       {!isBroker && tenantId && (
         <div className="mb-lg">
-          <Link href="/venues" className="lc-link text-xs">
+          <Link href={`/risk-profile/${selectedVenueId ?? tenantId}`} className="lc-link text-xs">
             View venue profile <ArrowUpRight size={12} aria-hidden="true" />
           </Link>
         </div>
@@ -779,6 +863,40 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
                 </div>
               </div>
             </div>
+
+            {/* Coverage consequence — the part only an insurance OS would tell you:
+                translate live state into what it means for risk/evidence/claims. */}
+            {(() => {
+              const degraded = (liveState.infrastructure ?? [])
+                .filter((i) => i.is_degraded)
+                .map((i) => i.name.replace(/_/g, " ").replace(/\[.*?\]/g, "").trim());
+              const lines: { tone: "error" | "warning" | "success"; text: string }[] = [];
+              if (capPct >= 95) {
+                lines.push({ tone: "error", text: "At capacity — exceeding it is a recordable compliance & liability event that lifts your risk score." });
+              } else if (capPct >= 80) {
+                lines.push({ tone: "warning", text: "Approaching capacity — a breach becomes a compliance event on your loss record." });
+              }
+              if (degraded.length > 0) {
+                lines.push({ tone: "warning", text: `${degraded.join(", ")} down — incidents in ${degraded.length > 1 ? "these zones" : "this zone"} won't have video/sensor evidence, which weakens any claim. Restore to protect your coverage.` });
+              }
+              if (lines.length === 0) {
+                lines.push({ tone: "success", text: "Evidence capture is green across the floor — every zone is recording, so any incident stays defensible." });
+              }
+              const toneColor: Record<string, string> = { error: "var(--state-error)", warning: "var(--state-warning)", success: "var(--accent-ink)" };
+              return (
+                <div style={{ marginTop: "var(--space-md)", borderTop: "1px solid var(--border-subtle)", paddingTop: "var(--space-md)", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div className="text-xs uppercase tracking-wide text-muted">What this means for your coverage</div>
+                  {lines.map((l, i) => (
+                    <div key={i} className="flex items-start gap-xs text-sm" style={{ color: toneColor[l.tone], lineHeight: 1.5 }}>
+                      {l.tone === "success"
+                        ? <ShieldCheck size={14} style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+                        : <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true" />}
+                      <span>{l.text}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -786,7 +904,7 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
       {/* RISK + QUOTE — secondary policy row */}
       {(riskScore || quote) && (
         <div className="lc-rule">
-          <span className="lc-rule__label">Your policy</span>
+          <span className="lc-rule__label">Risk &amp; policy</span>
           <div className="lc-rule__line" />
         </div>
       )}
@@ -795,6 +913,9 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
         display: "grid",
         gridTemplateColumns: riskScore && quote ? "repeat(auto-fit, minmax(min(360px, 100%), 1fr))" : "1fr",
         gap: "var(--space-lg)",
+        // Top-align so the shorter Risk Profile card hugs its content instead of
+        // stretching into a hollow card beside the taller Premium Quote.
+        alignItems: "start",
       }}>
         {riskScore && (
           <Link href={`/risk-profile/${venueId}`} style={{ textDecoration: "none" }}>
@@ -803,12 +924,12 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
                 <span className="lc-stat-label">Risk Profile</span>
                 <span className="lc-tier" style={{ color: TIER_COLOR[riskScore.tier] }}>Tier {riskScore.tier}</span>
               </div>
-              <div className="flex items-baseline gap-sm" style={{ marginBottom: 24 }}>
+              <div className="flex items-baseline gap-sm" style={{ marginBottom: 14 }}>
                 <span className="lc-num-data lc-num-data--lg" style={{ color: TIER_COLOR[riskScore.tier] }}>{riskScore.total_score}</span>
                 <span className="text-muted" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>/ 100</span>
               </div>
-              {/* One-line attention summary — full factor breakdown lives on
-                  the Risk Profile page, not duplicated on this glance card. */}
+              {/* Attention headline + compact factor bars: shows WHAT drives the score
+                  (balances the card vs the policy column). Full advice on /risk-profile. */}
               {(() => {
                 const attn = riskAttentionLine(riskScore.factors);
                 return (
@@ -818,7 +939,24 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
                   </div>
                 );
               })()}
-              <span className="lc-link" style={{ marginTop: 22 }}>Full analysis <ArrowUpRight size={13} /></span>
+              <div style={{ marginTop: "var(--space-md)", display: "flex", flexDirection: "column", gap: 7 }}>
+                {Object.entries(riskScore.factors)
+                  .map(([k, v]) => [k, typeof v === "number" ? v : v.score] as const)
+                  .sort((a, b) => a[1] - b[1])
+                  .map(([k, s]) => {
+                    const c = FACTOR_TIER_COLOR[getFactorTier(s)];
+                    return (
+                      <div key={k} className="flex items-center gap-sm" style={{ fontSize: "0.76rem" }}>
+                        <span className="text-secondary" title={factorLabel(k)} style={{ flex: "0 0 104px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{factorLabel(k)}</span>
+                        <div style={{ flex: 1, height: 5, borderRadius: 3, background: "var(--bg-elevated)", overflow: "hidden" }} aria-hidden="true">
+                          <div style={{ width: `${Math.max(0, Math.min(100, s))}%`, height: "100%", background: c, borderRadius: 3 }} />
+                        </div>
+                        <span className="font-mono" style={{ flex: "0 0 26px", textAlign: "right", color: c, fontVariantNumeric: "tabular-nums" }}>{Math.round(s)}</span>
+                      </div>
+                    );
+                  })}
+              </div>
+              <span className="lc-link" style={{ marginTop: 18 }}>Full analysis <ArrowUpRight size={13} /></span>
             </div></div>
           </Link>
         )}
@@ -827,6 +965,46 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
           const selectedVenue = portfolioVenues.find((v) => v.id === venueId);
           const renewalDate = quote.renewal_date ?? selectedVenue?.renewal_date;
           const carrier = selectedVenue?.current_carrier;
+
+          // Insured operator → show the ACTUAL bound policy, not the indicative
+          // estimate. The "vs market / you save" framing is prospect-only.
+          const pol = quote.policy;
+          if (pol) {
+            const annual = Number(pol.annual_premium);
+            const monthly = Number(pol.monthly_premium);
+            return (
+              <div className="lc-card"><div className="lc-card__inner">
+                <div className="flex justify-between items-start mb-md">
+                  <span className="lc-stat-label">Your Policy</span>
+                  <span className="lc-tier" style={{ color: TIER_COLOR[quote.tier] }}>{quote.venue_type.replace(/_/g, " ")}</span>
+                </div>
+                <div className="flex items-baseline gap-sm" style={{ marginBottom: 8 }}>
+                  <span className="lc-numeral lc-numeral--indigo">${Math.round(annual).toLocaleString()}</span>
+                  <span className="lc-stat-foot" style={{ fontSize: "0.9rem" }}>/ year</span>
+                </div>
+                <span className="lc-stat-foot">${Math.round(monthly).toLocaleString()} / month · annualized</span>
+                <div style={{ height: 1, background: "var(--border-subtle)", margin: "20px 0 14px" }} />
+                {pol.policy_number && (
+                  <div className="lc-cov-row"><span className="lc-cov-row__name">Policy</span><span className="lc-cov-row__check font-mono" data-included="true">{pol.policy_number}</span></div>
+                )}
+                <div className="lc-cov-row"><span className="lc-cov-row__name">Status</span><span className="lc-cov-row__check" data-included="true" style={{ textTransform: "capitalize" }}>{pol.status.replace(/_/g, " ")}</span></div>
+                <div className="lc-cov-row" style={{ borderBottom: 0 }}><span className="lc-cov-row__name">Term</span><span className="lc-cov-row__check font-mono">{pol.effective_date} → {pol.expiration_date}</span></div>
+                {pol.coverage_lines.length > 0 && (
+                  <>
+                    <div style={{ height: 1, background: "var(--border-subtle)", margin: "16px 0 8px" }} />
+                    <span className="lc-stat-label">Coverage lines</span>
+                    <div style={{ marginTop: 8 }}>
+                      {pol.coverage_lines.map((c) => (
+                        <div key={c} className="lc-cov-row"><span className="lc-cov-row__name" style={{ textTransform: "uppercase" }}>{c.replace(/_/g, " ")}</span><span className="lc-cov-row__check" data-included="true">✓ bound</span></div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <Link href="/coverage" className="lc-link" style={{ marginTop: 18, display: "inline-flex" }}>View coverage <ArrowUpRight size={13} /></Link>
+              </div></div>
+            );
+          }
+
           const savingsPct = Math.max(0, Math.min(100, Math.round(quote.savings_pct ?? 0)));
           const coverageEntries = quote.coverage_breakdown ? Object.entries(quote.coverage_breakdown) : [];
           return (

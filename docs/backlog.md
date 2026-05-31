@@ -3,7 +3,7 @@
 Working checklist for the subscription-free work (no API keys, no S3/email/SMS
 accounts yet). Gated/integration items live in [`go-live-readiness.md`](./go-live-readiness.md).
 
-Last updated: 2026-05-30.
+Last updated: 2026-05-31.
 
 ---
 
@@ -80,6 +80,17 @@ each output box, verified against code on 2026-05-30:
 **Inputs (left side)** are simulated connectors (`app/ingestion/connectors.py`): `PosConnector`,
 `IdScanConnector`, `StaffingConnector`, + camera via the vision pipeline. No distinct HR-System
 connector. Tracked under "Real operational connectors" in `go-live-readiness.md`.
+
+### 6. Operator multi-venue home — deferred (added 2026-05-31)
+
+- [ ] **Multi-venue operator home layout.** Today the operator home assumes a single venue
+  (`tenant_id == venue_id`); a venue-group manager (`extra_venue_ids`) only gets a venue
+  *switcher* (chips when `venuesList.length > 1`), not a portfolio roll-up. If/when a single
+  operator account legitimately spans multiple venues, design a proper multi-venue home:
+  per-venue risk / open incidents / open claims / compliance at a glance, sortable by what
+  needs attention (mirrors the broker triage strip, scoped to the operator's own venues).
+  **Deferred** — current product assumption is one venue per operator; no multi-venue demo
+  data exercises this. Revisit when a real multi-venue operator scenario exists.
 
 > First move when we start: the **Slack incoming-webhook adapter** on the existing `dispatch_alert`
 > seam — subscription-free, demoable, and it's the one output box that's genuinely absent rather than

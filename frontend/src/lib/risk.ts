@@ -10,10 +10,12 @@
 
 export type FactorTier = "good" | "moderate" | "poor";
 
-/** Bucket a 0-100 factor score into a tier (higher score = lower risk). */
+/** Bucket a 0-100 factor score into a tier (higher score = lower risk).
+ * Bands: good ≥80 · moderate ≥55 · poor <55 — only genuinely low scores
+ * read as red, while a mid-range score stays honestly "moderate" (not green). */
 export function getFactorTier(score: number): FactorTier {
-  if (score >= 85) return "good";
-  if (score >= 65) return "moderate";
+  if (score >= 80) return "good";
+  if (score >= 55) return "moderate";
   return "poor";
 }
 

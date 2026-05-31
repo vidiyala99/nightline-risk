@@ -286,13 +286,17 @@ export default function IncidentDetailPage() {
   return (
     <div className="theme-venue min-h-screen p-xl">
       {/* Back nav */}
-      <button
-        onClick={() => router.push("/incidents")}
-        className="flex items-center gap-xs text-secondary text-sm mb-xl"
-        style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-      >
-        <ArrowLeft size={14} /> Back to Incidents
-      </button>
+      {/* Operators get a global "Back to home" from the app shell; brokers keep
+          the contextual back to their Incidents list here. */}
+      {!isOperator && (
+        <button
+          onClick={() => router.push("/incidents")}
+          className="flex items-center gap-xs text-secondary text-sm mb-xl"
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 0, minHeight: 44 }}
+        >
+          <ArrowLeft size={14} /> Back to Incidents
+        </button>
+      )}
 
       {!incident ? (
         <div className="page-empty">
@@ -508,7 +512,7 @@ export default function IncidentDetailPage() {
                   style={{ textDecoration: "none" }}
                 >
                   <span style={{ flex: 1 }} className="text-sm">
-                    {rec.should_file ? "Worth filing" : rec.deductible == null ? "No active policy" : "Pay out of pocket"}
+                    {rec.deductible == null ? "No active policy" : rec.should_file ? "Worth filing" : "Pay out of pocket"}
                     {" · "}
                     <span className="font-mono">net {rec.net_expected_value_usd >= 0 ? "+" : "−"}${Math.abs(rec.net_expected_value_usd).toLocaleString()}</span>
                   </span>
@@ -520,12 +524,25 @@ export default function IncidentDetailPage() {
               {/* ── Claim status link (operator only) ───────────────────────────── */}
               {isOperator && claimStatus && (() => {
                 const ps = claimStatus.proposal.state;
-                const filed = claimStatus.claim.exists || (!!ps && ["filed_with_carrier", "paid", "denied"].includes(ps));
-                const resolved = (!!ps && ["paid", "denied"].includes(ps)) || (!!claimStatus.claim.status && ["closed_paid", "closed_denied", "closed_dropped"].includes(claimStatus.claim.status));
-                const current = resolved ? "Resolved" : filed ? "Filed" : (ps === "approved") ? "Approved" : claimStatus.proposal.exists ? "Sent to broker" : "Not filed";
+                const cstat = claimStatus.claim.status;
+                // ADR-0004: a real Claim only exists once the broker files it. Until then it's a routed
+                // recommendation, so don't call it a "Claim".
+                const isRealClaim = claimStatus.claim.exists || (!!ps && ["filed_with_carrier", "paid", "denied"].includes(ps));
+                const resolved = (!!ps && ["paid", "denied"].includes(ps)) || (!!cstat && ["closed_paid", "closed_denied", "closed_dropped"].includes(cstat));
+                // This row links to "Where this stands" (claim-status), so label it as status —
+                // not "Recommendation", which would collide with the decision row above.
+                const noun = isRealClaim ? "Claim" : "Status";
+                const current =
+                  resolved ? "Resolved"
+                  : isRealClaim ? "Filed with carrier"
+                  : ps === "approved" ? "Approved — filing"
+                  : ps === "rejected_by_broker" ? "Declined by broker"
+                  : ps === "needs_more_info" ? "Needs more info"
+                  : claimStatus.proposal.exists ? "Awaiting broker"
+                  : "Not sent yet";
                 return (
                   <Link href={`/incidents/${id}/claim-status`} className="wq-row" aria-label="View claim status" style={{ textDecoration: "none" }}>
-                    <span style={{ flex: 1 }} className="text-sm">Claim status: <span style={{ color: "var(--accent-ink)" }}>{current}</span></span>
+                    <span style={{ flex: 1 }} className="text-sm">{noun}: <span style={{ color: "var(--accent-ink)" }}>{current}</span></span>
                     <span className="text-xs text-muted">View →</span>
                   </Link>
                 );

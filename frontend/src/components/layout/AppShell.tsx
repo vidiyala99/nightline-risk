@@ -2,15 +2,16 @@
 
 import { ReactNode, Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   LayoutDashboard,
   Building2,
   AlertTriangle,
+  ArrowLeft,
   CheckSquare,
   FileSearch,
   FileSpreadsheet,
   LogOut,
-  Activity,
   Bell,
   Menu,
   X,
@@ -88,10 +89,13 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
           { href: `/dashboard${venueQuery}`, label: "Home", icon: LayoutDashboard },
         ] },
         { label: "My venue", items: [
+          // "Venue" → the venue's profile (its risk profile), not the roster.
+          // Manage/edit/add lives on /venues, reachable from the profile.
+          { href: contextVenueId ? `/risk-profile/${contextVenueId}` : "/venues", label: "Venue", icon: Building2 },
           { href: `/incidents${venueQuery}`, label: "Incidents", icon: AlertTriangle },
+          { href: "/claims", label: "Claims", icon: FileSpreadsheet },
           { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
           { href: "/coverage", label: "Coverage", icon: ShieldCheck },
-          ...(contextVenueId ? [{ href: `/terminal/${contextVenueId}`, label: "Live Terminal", icon: Activity } as Item] : []),
         ] },
         { label: "System", items: [
           { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
@@ -131,9 +135,15 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
 
 export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { signOut, user } = useAuth();
   const role = useRole();
   const tenantId = useTenantId();
+
+  // Operators get an explicit "back to home" on every screen except home itself.
+  // (Brokers are out of scope for now; their nav rework comes later.)
+  const isOperator = role === "venue_operator";
+  const showBackHome = isOperator && !!pathname && pathname !== "/dashboard";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
@@ -222,6 +232,15 @@ export function AppShell({ children }: AppShellProps) {
       </aside>
 
       <main className="main-content">
+        {showBackHome && (
+          <Link
+            href="/dashboard"
+            className="appshell-back-home flex items-center gap-xs text-secondary text-sm"
+            style={{ textDecoration: "none", padding: "16px clamp(20px, 4vw, 56px) 0", minHeight: 44 }}
+          >
+            <ArrowLeft size={14} aria-hidden="true" /> Back to home
+          </Link>
+        )}
         {children}
       </main>
 

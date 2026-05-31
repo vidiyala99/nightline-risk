@@ -396,9 +396,9 @@ export default function VenuesPage() {
 
       <div className="venues-grid">
         {filteredVenues.map((venue) => {
-          // Brokers drill into the risk profile (their working surface); operators
-          // open their live terminal.
-          const detailHref = isBroker ? `/risk-profile/${venue.id}` : `/terminal/${venue.id}`;
+          // Both personas drill into the venue's risk profile — the canonical
+          // venue-detail surface. (The live terminal was retired.)
+          const detailHref = `/risk-profile/${venue.id}`;
           return (
           <div key={venue.id} className="venue-card" style={{ textDecoration: "none", display: "block" }}>
             {editingId === venue.id ? (

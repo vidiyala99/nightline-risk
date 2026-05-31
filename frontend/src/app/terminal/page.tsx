@@ -23,7 +23,8 @@ function TerminalRedirectInner() {
       return;
     }
     if (!target) { router.replace("/venues"); return; }
-    router.replace(`/terminal/${target}`);
+    // The live terminal was retired — the risk profile is the venue-detail surface.
+    router.replace(`/risk-profile/${target}`);
   }, [isLoaded, isSignedIn, role, tenantId, venueParam, router]);
 
   return <div className="page-loading"><div className="loading-spinner" /></div>;

@@ -21,7 +21,7 @@ from decimal import Decimal
 from sqlmodel import Session, select
 
 from app.database import engine
-from app.models import Submission
+from app.models import Policy, Submission
 from app.seed_carriers import seed_broker_platform_data
 from app.seed_data import VENUES
 from app.services.policies import bind_quote
@@ -206,16 +206,76 @@ def seed(session: Session) -> dict:
     }
 
 
+def ensure_eb_current_policy(session: Session) -> Policy | None:
+    """The operator persona logs in as elsewhere-brooklyn. For the file-vs-pay
+    decision to compute *real* deductible/premium numbers it needs an in-force
+    Policy — built through the same bind_quote path as any real policy, so the
+    terms_snapshot carries short-code lines (gl/liquor) with deductibles the
+    FNOL resolver reads. The venue's open submission (sub-demo-open) is its
+    *renewal*; this is the *current* term's policy.
+
+    Idempotent: skips if sub-demo-eb-current already exists.
+    """
+    if session.exec(
+        select(Submission).where(Submission.id == "sub-demo-eb-current")
+    ).first():
+        return None
+
+    seed_broker_platform_data(session)
+    session.flush()
+
+    eff = date.today() - timedelta(days=180)  # bound ~6 months ago → in-force now
+    limits = {
+        "gl": {"per_occurrence": "1000000", "aggregate": "2000000", "deductible": "2500"},
+        "liquor": {"per_occurrence": "1000000", "aggregate": "2000000", "deductible": "2500"},
+    }
+    sub = create_submission(
+        session, venue_id="elsewhere-brooklyn", effective_date=eff,
+        coverage_lines=["gl", "liquor"], requested_limits=limits,
+        producer_id=BROKER_USER_ID,
+        notes="Current in-force policy (bound last term; renewal is sub-demo-open).",
+        actor_id=BROKER_USER_ID,
+    )
+    _force_sub_id(session, sub, "sub-demo-eb-current")
+    res = submit_to_market(
+        session, sub.id, target_carriers=["burns-wilcox"], submitted_by=BROKER_USER_ID,
+    )
+    q = res.quotes_created[0]
+    bd = _quote_breakdown(
+        venue_id="elsewhere-brooklyn", carrier_id="burns-wilcox",
+        lines=["gl", "liquor"], market_type="e&s", requested_limits=limits,
+    )
+    record_carrier_response(
+        session, q.id, status="quoted", premium_breakdown=bd,
+        coverage_terms={
+            "gl": {"per_occurrence": "1000000", "aggregate": "2000000"},
+            "liquor": {"per_occurrence": "1000000", "aggregate": "2000000"},
+        },
+        underwriter_name="Burns & Wilcox underwriter", recorded_by=BROKER_USER_ID,
+    )
+    select_quote(session, q.id, selected_by=BROKER_USER_ID)
+    return bind_quote(
+        session, q.id, policy_number="EB-DEMO-2026-0001",
+        effective_date=eff, term_length_days=365, bound_by=BROKER_USER_ID,
+    )
+
+
 def main() -> int:
     with Session(engine) as session:
         result = seed(session)
+    # Operator persona's in-force policy — always ensured, even when the
+    # placement demo above was skipped (already seeded).
+    with Session(engine) as session:
+        eb = ensure_eb_current_policy(session)
+        session.commit()
     if result.get("skipped"):
-        print(f"[seed] skipped: {result['reason']}")
-        return 0
-    print("[seed] created:")
-    for sid in result["submissions"]:
-        print(f"  - {sid}")
-    print(f"  - {result['policy_id']} ({result['policy_number']})")
+        print(f"[seed] placements skipped: {result['reason']}")
+    else:
+        print("[seed] created:")
+        for sid in result["submissions"]:
+            print(f"  - {sid}")
+        print(f"  - {result['policy_id']} ({result['policy_number']})")
+    print(f"[seed] operator policy: {'created EB-DEMO-2026-0001' if eb else 'already present'}")
     return 0
 
 

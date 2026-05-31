@@ -2806,11 +2806,11 @@ a:hover { color: var(--text-primary); }
 .lc-display {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(2rem, 6vw, 4.75rem);
-  line-height: 1.02;
+  font-size: clamp(1.85rem, 4.4vw, 3.5rem);
+  line-height: 1.04;
   letter-spacing: -0.022em;
   color: var(--text-primary);
-  margin-top: 18px;
+  margin-top: 12px;
   max-width: 22ch;
 }
 
@@ -2841,7 +2841,7 @@ a:hover { color: var(--text-primary); }
   font-family: var(--font-body);
   color: var(--text-secondary);
   font-size: 0.98rem;
-  margin-top: 14px;
+  margin-top: 10px;
   max-width: 56ch;
 }
 
@@ -3481,11 +3481,11 @@ a:hover { color: var(--text-primary); }
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: var(--space-2xl) 0 var(--space-lg);
+  margin: var(--space-xl) 0 var(--space-md);
   flex-wrap: wrap;
 }
 @media (max-width: 640px) {
-  .lc-rule { margin-top: var(--space-xl); gap: 10px; }
+  .lc-rule { margin-top: var(--space-lg); gap: 10px; }
 }
 .lc-rule__line {
   flex: 1;
@@ -3682,7 +3682,7 @@ a:hover { color: var(--text-primary); }
   grid-template-columns: 1.4fr 1fr;
   gap: var(--space-2xl);
   align-items: end;
-  padding: var(--space-2xl) 0 var(--space-md);
+  padding: var(--space-xl) 0 var(--space-md);
   border-bottom: 2px solid var(--border-strong);
 }
 @media (max-width: 900px) {
@@ -3691,7 +3691,9 @@ a:hover { color: var(--text-primary); }
 
 .lc-hero__meta {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* auto-fit collapses empty tracks, so the strip fits its tile count exactly —
+     4 for broker, 3 for operator/work-queue — with no stray empty cell. */
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: var(--space-md);
 }
 @media (max-width: 900px) {

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
 
@@ -79,26 +78,25 @@ export default function DecisionPage() {
   }
 
   return (
-    <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
-      <button onClick={() => router.push(`/incidents/${id}`)} className="flex items-center gap-xs text-secondary text-sm" style={{ background: "none", border: "none", cursor: "pointer", padding: "16px 0", minHeight: 44 }}>
-        <ArrowLeft size={14} /> Back to incident
-      </button>
-      <section className="lc-hero">
-        <div>
-          <span className="lc-eyebrow">OPERATOR<span className="lc-eyebrow__sep" />DECISION</span>
-          <h1 className="lc-display">File or <em>pay out of pocket?</em></h1>
-          <p className="lc-sub">{summary}</p>
-        </div>
-      </section>
+    <div className="theme-venue min-h-screen p-xl">
+      <div style={{ maxWidth: 880 }}>
+      <header className="mb-xl">
+        <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Operator · Decision</div>
+        <h1 className="glow-text mb-md">File or pay out of pocket?</h1>
+        {summary && <p className="text-secondary" style={{ lineHeight: 1.6, margin: 0 }}>{summary}</p>}
+      </header>
 
       {!rec ? (
-        <div className="lc-card"><div className="lc-card__inner"><p className="text-sm text-muted" style={{ margin: 0 }}>No recommendation available for this incident yet.</p></div></div>
+        <div className="card"><p className="text-sm text-muted" style={{ margin: 0 }}>No recommendation available for this incident yet.</p></div>
       ) : (
-        <div className="lc-card"><div className="lc-card__inner">
+        <>
+        <div className="card">
           <div className="mb-md">
-            {rec.should_file
-              ? <span className="badge badge-success">Recommended: File</span>
-              : <span className="badge badge-warning">{rec.deductible == null ? "No active policy" : "Recommended: pay out of pocket"}</span>}
+            {rec.deductible == null
+              ? <span className="badge badge-warning">No active policy</span>
+              : rec.should_file
+                ? <span className="badge badge-success">Recommended: File</span>
+                : <span className="badge badge-warning">Recommended: pay out of pocket</span>}
           </div>
 
           {/* Operator: two-path file-vs-pay-out-of-pocket decision explainer */}
@@ -204,8 +202,16 @@ export default function DecisionPage() {
           )}
           {routingStatus === "auto_routed" && <span className="badge badge-info">Sent to broker for review</span>}
           {routingStatus === "not_routed" && <span className="text-muted">Logged — below the filing threshold.</span>}
-        </div></div>
+        </div>
+
+        {/* Smooth flow: from "should I file / why" → "where does the claim stand". */}
+        <Link href={`/incidents/${id}/claim-status`} className="wq-row" aria-label="Track this claim's status" style={{ textDecoration: "none", marginTop: "var(--space-lg)" }}>
+          <span style={{ flex: 1 }} className="text-sm">Track this claim — where it stands now</span>
+          <span className="text-xs text-muted">Claim status →</span>
+        </Link>
+        </>
       )}
+      </div>
     </div>
   );
 }

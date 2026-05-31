@@ -466,28 +466,6 @@ function AlertsPageInner() {
                     ? "No liability events flagged for this venue. Real-time detection is running across all infrastructure."
                     : "Select a venue to view its alert stream."}
                 </p>
-                {selectedVenueId && process.env.NODE_ENV !== "production" && (
-                  <Link
-                    href={`/terminal/${selectedVenueId}`}
-                    className="lc-empty__cta"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "10px 18px",
-                      borderRadius: "var(--radius-md)",
-                      background: "rgba(200,240,0,0.08)",
-                      border: "1px solid rgba(200,240,0,0.32)",
-                      color: "var(--accent-ink)",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "0.78rem",
-                      letterSpacing: "0.06em",
-                      textDecoration: "none",
-                    }}
-                  >
-                    <Zap size={14} /> Simulate alert in Live Terminal <ArrowRight size={13} />
-                  </Link>
-                )}
               </div>
 
               {resolvedAlerts.length > 0 && (

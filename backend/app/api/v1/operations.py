@@ -116,4 +116,34 @@ def get_venue_quote(
     require_venue_access(venue_id, authorization, session)
     from app.main import _resolve_venue
     _resolve_venue(venue_id, session)
-    return get_premium_quote(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
+    result = get_premium_quote(venue_id, VENUES, session=session, live_state_manager=live_state_manager)
+
+    # Overlay the venue's in-force policy when one exists. The base number above
+    # is an indicative estimate (prospect-facing); an insured venue should see
+    # its ACTUAL bound premium. Additive — `policy` is null for prospects, so
+    # existing consumers are unaffected.
+    from decimal import Decimal
+    from sqlmodel import select
+    from app.models import Policy
+    from app.services.fnol import ACTIVE_POLICY_STATUSES
+
+    policies = session.exec(select(Policy).where(Policy.venue_id == venue_id)).all()
+    active = sorted(
+        [p for p in policies if p.status in ACTIVE_POLICY_STATUSES],
+        key=lambda p: p.effective_date, reverse=True,
+    )
+    if active:
+        p = active[0]
+        monthly = (p.annual_premium / Decimal(12)).quantize(Decimal("0.01"))
+        result["policy"] = {
+            "annual_premium": str(p.annual_premium),
+            "monthly_premium": str(monthly),
+            "policy_number": p.policy_number,
+            "status": p.status,
+            "effective_date": p.effective_date.isoformat(),
+            "expiration_date": p.expiration_date.isoformat(),
+            "coverage_lines": list(p.coverage_lines),
+        }
+    else:
+        result["policy"] = None
+    return result

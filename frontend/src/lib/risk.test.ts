@@ -18,11 +18,11 @@ describe("estimatePremiumDeltaForFix", () => {
 });
 
 describe("getFactorTier", () => {
-  it("buckets scores at the 85 / 65 boundaries", () => {
-    expect(getFactorTier(85)).toBe("good");
-    expect(getFactorTier(84)).toBe("moderate");
-    expect(getFactorTier(65)).toBe("moderate");
-    expect(getFactorTier(64)).toBe("poor");
+  it("buckets scores at the 80 / 55 boundaries", () => {
+    expect(getFactorTier(80)).toBe("good");
+    expect(getFactorTier(79)).toBe("moderate");
+    expect(getFactorTier(55)).toBe("moderate");
+    expect(getFactorTier(54)).toBe("poor");
   });
 });
 

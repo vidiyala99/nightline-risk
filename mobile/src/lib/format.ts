@@ -18,10 +18,11 @@ export function venueTypeLabel(t: string): string {
   return t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Bucket a 0-100 factor/risk score into a tier. */
+/** Bucket a 0-100 factor/risk score into a tier.
+ * Bands mirror web (src/lib/risk.ts): good ≥80 · moderate ≥55 · poor <55. */
 export function getFactorTier(score: number): FactorTier {
-  if (score >= 85) return 'good';
-  if (score >= 65) return 'moderate';
+  if (score >= 80) return 'good';
+  if (score >= 55) return 'moderate';
   return 'poor';
 }
 

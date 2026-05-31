@@ -98,7 +98,7 @@ const FACTOR_EXPLANATIONS: Record<string, {
       operator: "Unresolved compliance actions signal gaps in your risk documentation. Address these first.",
       broker: "Unresolved compliance actions signal gaps in risk documentation.",
     },
-    action: "Complete all pending compliance actions in the Live Terminal.",
+    action: "Complete all pending compliance actions on the Compliance page.",
   },
   operational: {
     label: "Operational Health",
@@ -154,7 +154,9 @@ function factorHref(key: string, venueId: string, isBroker: boolean): string | n
   const v = encodeURIComponent(venueId);
   if (key === "incident_history") return `/incidents?venue=${v}`;
   if (key === "compliance") return `/compliance?venue=${v}`;
-  if (key === "operational" && !isBroker) return `/terminal/${v}#infrastructure`;
+  // Operational infra detail used to live on the (now-retired) live terminal;
+  // its live status surfaces on the home "On the floor" section instead.
+  if (key === "operational" && !isBroker) return `/dashboard`;
   if (key === "business_profile") return `/venues/${v}`;
   return null;
 }
@@ -919,15 +921,18 @@ export default function RiskProfilePage() {
         }
       `}</style>
       <div className="rp-container">
-        {/* Back nav — padded to meet 44pt minimum tap target */}
-        <button
-          onClick={handleBack}
-          className="rp-back"
-          aria-label={backLabel}
-        >
-          <ArrowLeft size={16} aria-hidden="true" />
-          <span>{backLabel}</span>
-        </button>
+        {/* Back nav — brokers/prospects only. Operators get a global "Back to
+            home" from the app shell, so a page-level back here would duplicate it. */}
+        {role !== "venue_operator" && (
+          <button
+            onClick={handleBack}
+            className="rp-back"
+            aria-label={backLabel}
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+            <span>{backLabel}</span>
+          </button>
+        )}
 
         <header className="mb-xl">
           <div className="flex items-center gap-sm mb-xs" style={{ flexWrap: "wrap" }}>
@@ -953,6 +958,21 @@ export default function RiskProfilePage() {
           <p style={{ ...SR_ONLY_STYLE }} aria-live="polite">
             Tier {tier}, score {score} out of 100.
           </p>
+          {/* Operator quick links — this is the venue-detail surface, so jump
+              straight to the venue's incidents and claims from here. */}
+          {!isBroker && (
+            <div className="flex items-center gap-sm" style={{ marginTop: "var(--space-md)", flexWrap: "wrap" }}>
+              <Link href={`/incidents?venue=${venueId}`} className="lc-chip" style={{ textDecoration: "none", minHeight: 36 }}>
+                <AlertTriangle size={12} style={{ marginRight: 6, display: "inline" }} aria-hidden="true" /> Incidents
+              </Link>
+              <Link href="/claims" className="lc-chip" style={{ textDecoration: "none", minHeight: 36 }}>
+                <FileText size={12} style={{ marginRight: 6, display: "inline" }} aria-hidden="true" /> Claims
+              </Link>
+              <Link href="/venues" className="lc-chip" style={{ textDecoration: "none", minHeight: 36 }}>
+                <Building2 size={12} style={{ marginRight: 6, display: "inline" }} aria-hidden="true" /> Manage venue
+              </Link>
+            </div>
+          )}
         </header>
 
         <div className="rp-grid">
@@ -1173,8 +1193,8 @@ export default function RiskProfilePage() {
           {/* Records & evidence — connective hub. Complements the diagnostic
               factor rows above by giving the broker one launchpad into the
               venue's underlying records. Links to existing surfaces only.
-              Broker-only: operators launch from the live terminal; prospects
-              have no records. */}
+              Broker-only: operators get the Incidents/Claims quick-links in the
+              header above; prospects have no records. */}
           {isBroker && !isProspect && (
             <div className="card">
               <h3 className="rp-section-title text-xs uppercase tracking-wide text-secondary mb-md">Records &amp; evidence</h3>

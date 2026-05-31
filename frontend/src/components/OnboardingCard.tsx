@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { authHeaders } from "@/lib/authFetch";
 import {
   CoverageLine,
@@ -119,14 +119,10 @@ export default function OnboardingCard({
 
   if (!loaded) return null;
 
-  if (complete) {
-    return (
-      <div className="card flex items-center gap-sm">
-        <CheckCircle2 size={18} aria-hidden style={{ color: "var(--state-success)", flexShrink: 0 }} />
-        <span className="text-sm">Profile complete — ready for quotes.</span>
-      </div>
-    );
-  }
+  // The card is a setup *nudge* — once the profile is complete it has no standing
+  // job, so it disappears rather than persisting a "complete" banner on every visit.
+  // (Completeness is still reflected on Coverage / the venue's Risk Profile.)
+  if (complete) return null;
 
   return (
     <div className="card" aria-labelledby="onboarding-title">

@@ -29,8 +29,8 @@ type LucideIcon = typeof Activity;
 type Row = { href: string; label: string; description: string; icon: LucideIcon };
 
 const OPERATOR_OVERFLOW: Row[] = [
+  { href: "/claims",          label: "Claims",          description: "Track your filed claims",          icon: FileSpreadsheet },
   { href: "/alerts",          label: "Alerts",          description: "Real-time liability detections",  icon: Bell },
-  { href: "/terminal",        label: "Live Terminal",   description: "Real-time venue floor activity",  icon: Activity },
   { href: "/claim-proposals", label: "Claim Proposals", description: "Incidents recommended for filing", icon: FileText },
   { href: "/underwriter",     label: "Reports",         description: "Risk and loss reporting",          icon: FileSearch },
   { href: "/settings",        label: "Settings",        description: "Account and preferences",          icon: Settings },

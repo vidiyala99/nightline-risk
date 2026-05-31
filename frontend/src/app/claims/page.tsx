@@ -11,10 +11,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, FileSpreadsheet } from "lucide-react";
 
 import { ClaimStatusPill } from "@/components/claims/ClaimStatusPill";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, useTenantId } from "@/contexts/AuthContext";
+import { authHeaders } from "@/lib/authFetch";
 import { claimsApi, totalPaidFromClaim, type Claim } from "@/lib/claims";
 import { formatLedgerMoney, isClosedStatus } from "@/lib/claim-tokens";
 import { policiesApi, type Policy } from "@/lib/policies";
@@ -85,15 +87,7 @@ export default function CarrierClaimsListPage() {
   }
 
   if (!isBroker) {
-    return (
-      <div className="page page-empty">
-        <h3>Carrier claims are a broker surface.</h3>
-        <p className="text-secondary">
-          Operators see their reported incidents — and each incident&apos;s claim
-          recommendation and status — under <Link href="/incidents">Incidents</Link>.
-        </p>
-      </div>
-    );
+    return <OperatorClaimsTracker />;
   }
 
   return (
@@ -198,6 +192,172 @@ export default function CarrierClaimsListPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Operator claims tracker ───────────────────────────────────────────────
+// Aggregate "where do all my claims stand" view for an operator's own venue.
+// Mirrors the per-incident claim-status status model (Reported → Sent →
+// Approved → Filed → Resolved) so the operator sees ONE consistent claim
+// journey across Home feed → this tracker → per-incident claim-status.
+// Reuses the existing incident-status-feed endpoint — no new backend.
+
+const CLAIMS_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const TERMINAL_CLAIM_STATUS = new Set(["closed_paid", "closed_denied", "closed_dropped"]);
+const TERMINAL_PROPOSAL_STATE = new Set(["paid", "denied", "rejected_by_broker"]);
+
+interface ClaimFeedRow {
+  incident_id: string;
+  summary: string;
+  occurred_at: string;
+  status: string;
+  proposal_state: string | null;
+  claim_status: string | null;
+}
+type ClaimsFilter = "active" | "all" | "resolved";
+
+function claimIsResolved(r: ClaimFeedRow): boolean {
+  return (!!r.claim_status && TERMINAL_CLAIM_STATUS.has(r.claim_status))
+    || (!!r.proposal_state && TERMINAL_PROPOSAL_STATE.has(r.proposal_state));
+}
+function claimIsFiled(r: ClaimFeedRow): boolean {
+  return !claimIsResolved(r) && (!!r.claim_status || r.proposal_state === "filed_with_carrier");
+}
+function claimStatusLabel(r: ClaimFeedRow): { text: string; color: string } {
+  const ps = r.proposal_state, cs = r.claim_status;
+  if (ps === "paid" || cs === "closed_paid") return { text: "Claim paid", color: "var(--accent-ink)" };
+  if (ps === "denied" || cs === "closed_denied") return { text: "Claim denied by carrier", color: "var(--state-error)" };
+  if (cs === "closed_dropped") return { text: "Claim withdrawn", color: "var(--text-secondary)" };
+  if (ps === "rejected_by_broker") return { text: "Declined by broker", color: "var(--state-error)" };
+  if (ps === "filed_with_carrier" || cs) return { text: "Filed with the carrier", color: "var(--accent-ink)" };
+  if (ps === "approved") return { text: "Approved — filing with carrier", color: "var(--accent-ink)" };
+  if (ps === "needs_more_info") return { text: "Broker needs more info", color: "var(--state-warning)" };
+  return { text: "Awaiting your broker's decision", color: "var(--accent-ink)" };
+}
+function claimSteps(r: ClaimFeedRow): { label: string; lit: boolean }[] {
+  const ps = r.proposal_state ?? "";
+  const cs = r.claim_status ?? "";
+  return [
+    { label: "Reported", lit: true },
+    { label: "Sent", lit: !!r.proposal_state },
+    { label: "Approved", lit: ["approved", "filed_with_carrier", "paid", "denied"].includes(ps) },
+    { label: "Filed", lit: ["filed_with_carrier", "paid", "denied"].includes(ps) || !!r.claim_status },
+    { label: "Resolved", lit: ["paid", "denied"].includes(ps) || TERMINAL_CLAIM_STATUS.has(cs) },
+  ];
+}
+
+function OperatorClaimsTracker() {
+  const tenantId = useTenantId();
+  const [rows, setRows] = useState<ClaimFeedRow[] | null>(null);
+  const [filter, setFilter] = useState<ClaimsFilter>("active");
+
+  useEffect(() => {
+    if (!tenantId) { setRows([]); return; }
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`${CLAIMS_API_URL}/api/venues/${tenantId}/incident-status-feed`, { headers: authHeaders() });
+      const data = res.ok ? await res.json() : [];
+      if (!cancelled) setRows(Array.isArray(data) ? data : []);
+    })();
+    return () => { cancelled = true; };
+  }, [tenantId]);
+
+  // Only incidents that have entered the claim journey (a proposal or a claim).
+  const claims = (rows ?? []).filter((r) => r.proposal_state != null || r.claim_status != null);
+  const resolvedCount = claims.filter(claimIsResolved).length;
+  const filedCount = claims.filter(claimIsFiled).length;
+  const inFlightCount = claims.length - resolvedCount - filedCount;
+
+  const visible = claims.filter((r) => {
+    if (filter === "all") return true;
+    if (filter === "resolved") return claimIsResolved(r);
+    return !claimIsResolved(r);
+  });
+
+  return (
+    <div className="lc-shell min-h-screen theme-venue" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
+      <section className="lc-hero">
+        <div>
+          <span className="lc-eyebrow">CLAIMS<span className="lc-eyebrow__sep" />OPERATOR · VENUE</span>
+          <h1 className="lc-display">Your <em>claims</em></h1>
+          <p className="lc-sub">Every incident you&apos;ve sent to your broker — and exactly where each one stands.</p>
+        </div>
+        <div className="lc-hero__meta">
+          <div className="lc-meta-cell"><span className="lc-stat-label">In flight</span><strong style={{ color: inFlightCount > 0 ? "var(--accent-ink)" : undefined }}>{inFlightCount.toString().padStart(2, "0")}</strong></div>
+          <div className="lc-meta-cell"><span className="lc-stat-label">Filed</span><strong>{filedCount.toString().padStart(2, "0")}</strong></div>
+          <div className="lc-meta-cell"><span className="lc-stat-label">Resolved</span><strong>{resolvedCount.toString().padStart(2, "0")}</strong></div>
+        </div>
+      </section>
+
+      <div className="lc-rule" role="group" aria-label="Filter claims">
+        {(["active", "all", "resolved"] as ClaimsFilter[]).map((f) => (
+          <button key={f} type="button" onClick={() => setFilter(f)} aria-pressed={filter === f}
+            style={{
+              padding: "6px 14px", borderRadius: 14, minHeight: 36, cursor: "pointer", fontSize: "0.8rem", fontWeight: 600,
+              border: filter === f ? "1px solid var(--brand-primary)" : "1px solid var(--border-subtle)",
+              background: filter === f ? "rgba(200,240,0,0.08)" : "var(--bg-surface)",
+              color: filter === f ? "var(--accent-ink)" : "var(--text-secondary)",
+            }}>
+            {f === "active" ? "Active" : f === "all" ? "All" : "Resolved"}
+            <span className="font-mono" style={{ marginLeft: 6, opacity: 0.7 }}>
+              {f === "all" ? claims.length : f === "resolved" ? resolvedCount : inFlightCount + filedCount}
+            </span>
+          </button>
+        ))}
+        <div className="lc-rule__line" />
+      </div>
+
+      {rows === null ? (
+        <div className="page-loading"><div className="loading-spinner" /></div>
+      ) : claims.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon"><FileSpreadsheet size={48} /></div>
+          <h2>No claims yet</h2>
+          <p>When you send an incident to your broker, track its journey here. Start from <Link href="/incidents">Incidents</Link>.</p>
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon"><FileSpreadsheet size={48} /></div>
+          <h2>Nothing here</h2>
+          <p>No claims match the current filter.</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+          {visible.map((r) => {
+            const steps = claimSteps(r);
+            const currentIdx = steps.map((s) => s.lit).lastIndexOf(true);
+            const label = claimStatusLabel(r);
+            const dateLabel = (() => {
+              const d = new Date(r.occurred_at);
+              return isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+            })();
+            return (
+              <Link key={r.incident_id} href={`/incidents/${r.incident_id}/claim-status`} className="lc-card"
+                style={{ textDecoration: "none", display: "block" }}
+                aria-label={`${r.summary} — ${label.text}`}>
+                <div className="lc-card__inner" style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <span className="text-sm" title={r.summary} style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.summary}</span>
+                    <span className="text-xs" style={{ color: label.color, fontWeight: 600 }}>{label.text}</span>
+                    <div className="flex items-center" aria-hidden="true" style={{ gap: 8, flexWrap: "wrap" }}>
+                      {steps.map((s, i) => (
+                        <span key={s.label} className="text-xs" style={{ color: s.lit ? "var(--accent-ink)" : "var(--text-muted)", fontWeight: i === currentIdx ? 700 : 400 }}>
+                          {s.lit ? "● " : "○ "}{s.label}{i === currentIdx ? " · now" : ""}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                    {dateLabel && <span className="text-xs text-muted font-mono">{dateLabel}</span>}
+                    <ArrowRight size={15} className="text-muted" aria-hidden="true" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
