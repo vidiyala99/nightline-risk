@@ -402,16 +402,22 @@ app.include_router(ingestion_runs_router, prefix="/api", tags=["ingestion-runs"]
 from app.api.v1.alerts import router as alerts_router  # noqa: E402
 app.include_router(alerts_router, prefix="/api", tags=["alerts"])
 
+# CORS origins. Standard local web dev (localhost + 127.0.0.1 are distinct
+# origins to a browser) + Expo mobile dev + prod. Machine-specific origins — a
+# LAN IP for a phone on the same wifi, or a local verify server on another port —
+# go in EXTRA_CORS_ORIGINS (comma-separated) so we never edit source for a one-off.
+_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://nightline-app.vercel.app",
+    "exp://localhost:8081",
+    "exp://127.0.0.1:8081",
+    *[o.strip() for o in os.getenv("EXTRA_CORS_ORIGINS", "").split(",") if o.strip()],
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://172.20.5.179:3000",
-        "https://nightline-app.vercel.app",
-        "exp://localhost:8081",
-        "exp://127.0.0.1:8081",
-    ],
+    allow_origins=_CORS_ORIGINS,
     allow_origin_regex=r"(https://.*\.vercel\.app|exp://192\.168\.\d+\.\d+:\d+)",
     allow_credentials=True,
     allow_methods=["*"],
