@@ -233,7 +233,9 @@ def incident_claim_status(
     from app.models import Claim, ClaimProposal, UnderwritingPacket
 
     packet = session.exec(
-        select(UnderwritingPacket).where(UnderwritingPacket.incident_id == incident_id)
+        select(UnderwritingPacket)
+        .where(UnderwritingPacket.incident_id == incident_id)
+        .order_by(UnderwritingPacket.generated_at.desc())
     ).first()
 
     proposal = None
