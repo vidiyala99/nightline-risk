@@ -114,6 +114,7 @@ export default function ComplianceDetailPage() {
       formData.append("file", file);
       const res = await fetch(`${API_URL}/api/venues/${venueId}/compliance/${itemId}/upload`, {
         method: "POST",
+        headers: authHeaders(),
         body: formData,
       });
       if (!res.ok) throw new Error("Upload failed");

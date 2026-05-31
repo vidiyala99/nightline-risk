@@ -65,7 +65,7 @@ function CompliancePageInner() {
   // Populate the broker venue picker
   useEffect(() => {
     if (!isBroker) return;
-    fetch(`${API_URL}/api/venues`)
+    fetch(`${API_URL}/api/venues`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setAllVenues(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -127,6 +127,7 @@ function CompliancePageInner() {
       formData.append("file", file);
       const res = await fetch(`${API_URL}/api/venues/${detailVenueId}/compliance/${itemId}/upload`, {
         method: "POST",
+        headers: authHeaders(),
         body: formData,
       });
       if (!res.ok) throw new Error("Upload failed");

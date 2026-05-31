@@ -85,7 +85,7 @@ export default function IncidentsPage() {
 
   useEffect(() => {
     if (!isBroker) return;
-    fetch(`${API_URL}/api/venues`)
+    fetch(`${API_URL}/api/venues`, { headers: authHeaders() })
       .then(r => r.json())
       .then(data => {
         const list = Array.isArray(data) ? data : [];
@@ -175,13 +175,24 @@ export default function IncidentsPage() {
         throw new Error(err.detail || `Server error ${res.status}`);
       }
       const created = await res.json();
-      // Upload any attached evidence files
+      // Upload any attached evidence files. authHeaders() is required — the
+      // evidence route is venue-gated; without it the upload 401s and the
+      // evidence is silently dropped. Don't set Content-Type: the browser
+      // sets the multipart boundary for FormData.
       if (evidenceFiles.length > 0 && created.incident?.id) {
-        await Promise.all(evidenceFiles.map(file => {
+        const results = await Promise.all(evidenceFiles.map(file => {
           const fd = new FormData();
           fd.append("file", file);
-          return fetch(`${API_URL}/api/incidents/${created.incident.id}/evidence`, { method: "POST", body: fd });
+          return fetch(`${API_URL}/api/incidents/${created.incident.id}/evidence`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: fd,
+          });
         }));
+        const failed = results.filter(r => !r.ok).length;
+        if (failed > 0) {
+          toastError(`${failed} of ${evidenceFiles.length} evidence file(s) failed to upload`);
+        }
       }
       toastSuccess("Incident reported successfully");
       setShowForm(false);

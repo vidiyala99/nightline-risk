@@ -125,6 +125,7 @@ export default function VenueTerminalPage() {
     try {
       const res = await fetch(`${API_URL}/api/venues/${venueId}/compliance/${itemId}/upload`, {
         method: "POST",
+        headers: authHeaders(),
         body: formData,
       });
       if (!res.ok) throw new Error(`Upload failed with status ${res.status}`);
