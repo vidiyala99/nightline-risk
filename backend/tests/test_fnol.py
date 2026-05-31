@@ -93,6 +93,27 @@ def test_blocks_when_no_active_policy():
     assert d["policy_id"] is None
 
 
+from app.services.fnol import venue_line_deductible
+
+
+def test_venue_line_deductible_reads_terms_snapshot():
+    s = _session()
+    from app.models import Policy
+    from datetime import date
+    s.add(Policy(id="pol-d", submission_id="s", bound_quote_id="q", venue_id="elsewhere-brooklyn",
+        carrier_id="markel-specialty", status="bound", effective_date=date(2026,1,1),
+        expiration_date=date(2027,1,1), annual_premium=Decimal("5000"), commission_amount=Decimal("750"),
+        commission_rate=Decimal("0.15"), coverage_lines=["gl"],
+        terms_snapshot={"premium_breakdown": {"lines": {"gl": {"deductible": "2500.00"}}}}, snapshot_hash="h"))
+    s.commit()
+    assert venue_line_deductible(s, "elsewhere-brooklyn", "gl") == Decimal("2500.00")
+
+
+def test_venue_line_deductible_none_when_no_policy():
+    s = _session()
+    assert venue_line_deductible(s, "no-such-venue", "gl") is None
+
+
 from app.claim_proposals import mark_proposal_filed, settle_proposal_from_claim
 
 

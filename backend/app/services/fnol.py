@@ -5,6 +5,7 @@ All three are derivable from the proposal's incident; this surfaces them
 (plus any blockers) so the broker confirms rather than types.
 """
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
 
 from sqlmodel import Session, select
@@ -25,6 +26,21 @@ RISK_TYPE_TO_COVERAGE = {
     "property_damage": "property",
     "liquor_liability": "liquor",
 }
+
+
+def venue_line_deductible(session: Session, venue_id: str, line_id: str) -> "Decimal | None":
+    """The per-line deductible on the venue's most recent active policy, or None."""
+    policies = session.exec(select(Policy).where(Policy.venue_id == venue_id)).all()
+    active = [p for p in policies if p.status in ACTIVE_POLICY_STATUSES]
+    if not active:
+        return None
+    active.sort(key=lambda p: p.effective_date, reverse=True)
+    lines = (active[0].terms_snapshot or {}).get("premium_breakdown", {}).get("lines", {})
+    raw = (lines.get(line_id) or {}).get("deductible")
+    if raw is None:
+        return None
+    from app.money import json_to_usd
+    return json_to_usd(raw)
 
 
 def _date_of_loss(occurred_at: str) -> Optional[date]:
