@@ -71,6 +71,20 @@ const TIER_COLOR: Record<string, string> = {
   D: "var(--tier-d)",
 };
 
+// Hoisted out of BrokerTriageStrip so it isn't re-created (and its <Link>
+// subtree remounted) on every state update.
+function TriageCell({ n, label, href }: { n: number; label: string; href: string }) {
+  if (n <= 0) return null;
+  return (
+    <Link href={href} className="lc-card" style={{ flex: 1, minWidth: 150, textDecoration: "none", minHeight: 44, display: "block" }}>
+      <div className="lc-card__inner">
+        <div className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{n}</div>
+        <div className="text-xs text-muted">{label}</div>
+      </div>
+    </Link>
+  );
+}
+
 function BrokerTriageStrip({ expiringRenewals }: { expiringRenewals: number }) {
   const [pending, setPending] = useState(0);
   const [requests, setRequests] = useState(0);
@@ -90,22 +104,13 @@ function BrokerTriageStrip({ expiringRenewals }: { expiringRenewals: number }) {
   }, []);
   const total = pending + expiringRenewals + requests;
   if (total === 0) return null;
-  const Cell = ({ n, label, href }: { n: number; label: string; href: string }) =>
-    n > 0 ? (
-      <Link href={href} className="lc-card" style={{ flex: 1, minWidth: 150, textDecoration: "none", minHeight: 44, display: "block" }}>
-        <div className="lc-card__inner">
-          <div className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{n}</div>
-          <div className="text-xs text-muted">{label}</div>
-        </div>
-      </Link>
-    ) : null;
   return (
     <section className="mb-lg" aria-label="Needs you">
       <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Needs you · {total}</div>
       <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
-        <Cell n={pending} label="proposals to decide" href="/work-queue" />
-        <Cell n={expiringRenewals} label="renewals expiring (60d)" href="/renewals" />
-        <Cell n={requests} label="open requests" href="/policy-requests" />
+        <TriageCell n={pending} label="proposals to decide" href="/work-queue" />
+        <TriageCell n={expiringRenewals} label="renewals expiring (60d)" href="/renewals" />
+        <TriageCell n={requests} label="open requests" href="/policy-requests" />
       </div>
     </section>
   );
