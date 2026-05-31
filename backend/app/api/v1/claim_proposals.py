@@ -101,8 +101,12 @@ def create_claim_proposal_route(
     the service's legacy 404 (entity-404 precedes auth).
     """
     packet = session.get(UnderwritingPacket, packet_id)
+    snapshot = None
     if packet is not None:
         require_venue_access(packet.venue_id, authorization, session)
+        from app.claim_routing import recommendation_for_packet
+        from app.claim_recommendation import recommendation_to_dict
+        snapshot = recommendation_to_dict(recommendation_for_packet(session, packet))
     try:
         proposal = create_claim_proposal(
             session=session,
@@ -111,6 +115,7 @@ def create_claim_proposal_route(
             override_recommendation=payload.override_recommendation,
             override_reason=payload.override_reason,
             override_freetext=payload.override_freetext,
+            recommendation_snapshot=snapshot,
         )
     except ClaimProposalValidationError as e:
         message = str(e)

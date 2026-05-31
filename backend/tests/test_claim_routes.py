@@ -445,6 +445,16 @@ def test_operator_response_on_pending_proposal_returns_400():
 # ---------- GET /api/claim-proposals — status filter + priority sort ----------
 
 
+def test_manual_proposal_gets_a_snapshot():
+    client = TestClient(app, headers=_op_headers())
+    packet_id = _create_packet(client)
+    r = client.post(f"/api/packets/{packet_id}/claim-proposal",
+                    json={"operator_id": "mgr", "override_recommendation": False})
+    assert r.status_code == 201, r.text
+    assert r.json()["recommendation_snapshot"] is not None
+    assert "confidence" in r.json()["recommendation_snapshot"]
+
+
 def test_inbox_filters_pending_and_sorts_by_priority():
     """status=pending_broker_review + sort=priority => highest (confidence x
     median payout) first, scoped/auth preserved."""
