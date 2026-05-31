@@ -239,6 +239,8 @@ export default function IncidentDetailPage() {
   const routingStatus = primaryPacket?.routing_status as
     | "auto_routed" | "borderline" | "not_routed"
     | undefined;
+  const isBroker = role === "broker" || role === "admin";
+  const proposalState = primaryPacket ? proposalByPacket[primaryPacket.id] : undefined;
 
   const sendToBroker = async () => {
     if (!primaryPacket) return;
@@ -470,22 +472,41 @@ export default function IncidentDetailPage() {
                     </div>
                   )}
 
-                  {/* Routing footer */}
-                  {routingStatus === "borderline" && (
-                    <button
-                      className="btn btn-primary"
-                      onClick={sendToBroker}
-                      aria-label="Send this incident to the broker for review"
-                      style={{ minHeight: 44 }}
-                    >
-                      Send to broker
-                    </button>
-                  )}
-                  {routingStatus === "auto_routed" && (
-                    <span className="badge badge-info">Sent to broker for review</span>
-                  )}
-                  {routingStatus === "not_routed" && (
-                    <span className="text-muted">Logged — below the filing threshold.</span>
+                  {/* Routing footer — persona-aware. The broker is the reviewer,
+                      so they get the decision action; the operator gets the
+                      send/sent status. */}
+                  {isBroker ? (
+                    proposalState ? (
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => router.push(`/underwriter/${primaryPacket.id}`)}
+                        aria-label="Review this claim proposal"
+                        style={{ minHeight: 44 }}
+                      >
+                        Review proposal →
+                      </button>
+                    ) : (
+                      <span className="text-muted">No claim proposal to review yet.</span>
+                    )
+                  ) : (
+                    <>
+                      {routingStatus === "borderline" && (
+                        <button
+                          className="btn btn-primary"
+                          onClick={sendToBroker}
+                          aria-label="Send this incident to the broker for review"
+                          style={{ minHeight: 44 }}
+                        >
+                          Send to broker
+                        </button>
+                      )}
+                      {routingStatus === "auto_routed" && (
+                        <span className="badge badge-info">Sent to broker for review</span>
+                      )}
+                      {routingStatus === "not_routed" && (
+                        <span className="text-muted">Logged — below the filing threshold.</span>
+                      )}
+                    </>
                   )}
                 </div>
               )}
