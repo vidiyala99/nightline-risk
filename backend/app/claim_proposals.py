@@ -66,6 +66,7 @@ def create_proposal(
     override_recommendation: bool,
     override_reason: str | None,
     override_freetext: str | None,
+    recommendation_snapshot: dict | None = None,
 ) -> ClaimProposal:
     """Persist an operator's claim proposal against a packet.
 
@@ -99,6 +100,7 @@ def create_proposal(
         override_reason=override_reason,
         override_freetext=override_freetext,
         state="pending_broker_review",
+        recommendation_snapshot=recommendation_snapshot,
     )
     session.add(proposal)
     _add_audit_event(

@@ -224,6 +224,13 @@ class ClaimProposal(SQLModel, table=True):
     info_request_note: Optional[str] = None
     operator_response_note: Optional[str] = None
     operator_responded_at: Optional[datetime] = None
+    # Snapshot of the ClaimRecommendation that drove routing, captured at
+    # proposal creation so the broker inbox shows the exact number that
+    # triggered routing (auditable; not recomputed). Nullable/additive — relies
+    # on the per-engine schema self-healing, no manual migration.
+    recommendation_snapshot: Optional[dict] = Field(
+        default=None, sa_column=Column(JSON)
+    )
 
 
 class EvidenceAnalysis(SQLModel, table=True):

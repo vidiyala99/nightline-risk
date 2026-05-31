@@ -91,3 +91,34 @@ def test_count_prior_claims_excludes_dropped():
 def test_count_prior_claims_zero_for_unknown_venue():
     s = _db_session()
     assert count_prior_claims(s, "no-such-venue") == 0
+
+
+# ─── create_proposal persistence ─────────────────────────────────────────────
+
+from app.claim_proposals import create_proposal
+from app.models import UnderwritingPacket, ClaimProposal
+
+
+def _packet(session, venue_id="elsewhere-brooklyn") -> UnderwritingPacket:
+    pkt = UnderwritingPacket(
+        id="pkt-routetest", venue_id=venue_id, incident_id="inc-x",
+        rubric_version_id="demo-rubric-v1", status="needs_review",
+        risk_signals={"type": "premises_liability", "severity": "medium", "confidence": 0.81},
+        snapshot_hash="test-hash",
+    )
+    session.add(pkt)
+    session.flush()
+    return pkt
+
+
+def test_create_proposal_persists_recommendation_snapshot():
+    s = _db_session()
+    _packet(s)
+    snap = {"should_file": True, "confidence": 0.81, "net_expected_value_usd": 8000}
+    proposal = create_proposal(
+        session=s, packet_id="pkt-routetest", operator_id="auto-router",
+        override_recommendation=False, override_reason=None, override_freetext=None,
+        recommendation_snapshot=snap,
+    )
+    fetched = s.get(ClaimProposal, proposal.id)
+    assert fetched.recommendation_snapshot == snap
