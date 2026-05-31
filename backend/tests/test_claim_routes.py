@@ -440,3 +440,40 @@ def test_operator_response_on_pending_proposal_returns_400():
     )
     assert response.status_code == 400
     assert "not awaiting more info" in response.json()["detail"]
+
+
+# ---------- GET /api/claim-proposals — status filter + priority sort ----------
+
+
+def test_inbox_filters_pending_and_sorts_by_priority():
+    """status=pending_broker_review + sort=priority => highest (confidence x
+    median payout) first, scoped/auth preserved."""
+    session = next(get_session())
+    created = []
+    try:
+        for pid, conf, median in [("prop-lo", 0.7, 10_000), ("prop-hi", 0.9, 90_000)]:
+            pkt_id = f"pk-{pid}"
+            if not session.get(ClaimProposal, pid):
+                session.add(ClaimProposal(
+                    id=pid, packet_id=pkt_id, venue_id="elsewhere-brooklyn",
+                    proposed_by="auto-router", state="pending_broker_review",
+                    recommendation_snapshot={"confidence": conf,
+                                             "expected_payout": {"median_usd": median}}))
+                created.append(pid)
+        session.commit()
+
+        with TestClient(app) as client:
+            r = client.get("/api/claim-proposals?status=pending_broker_review&sort=priority",
+                           headers=_broker_headers())
+        assert r.status_code == 200, r.text
+        ids = [p["id"] for p in r.json() if p["id"] in ("prop-lo", "prop-hi")]
+        assert ids == ["prop-hi", "prop-lo"]            # higher priority first
+        hi = next(p for p in r.json() if p["id"] == "prop-hi")
+        assert hi["recommendation_snapshot"]["confidence"] == 0.9   # snapshot exposed
+    finally:
+        for pid in created:
+            row = session.get(ClaimProposal, pid)
+            if row:
+                session.delete(row)
+        session.commit()
+        session.close()

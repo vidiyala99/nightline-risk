@@ -64,9 +64,22 @@ class _OperatorInfoResponseCreate(BaseModel):
 
 def _proposal_to_dict(proposal) -> dict[str, Any]:
     """Lazy import to avoid the circular at module load: main.py defines
-    _claim_proposal_to_dict but also imports this router."""
+    _claim_proposal_to_dict but also imports this router.
+
+    Augments the base dict with ``recommendation_snapshot`` so broker-inbox
+    callers can sort and display confidence/payout data without a second fetch.
+    """
     from app.main import _claim_proposal_to_dict as _to_dict
-    return _to_dict(proposal)
+    result = _to_dict(proposal)
+    result["recommendation_snapshot"] = proposal.recommendation_snapshot
+    return result
+
+
+def _proposal_priority(p: ClaimProposal) -> float:
+    """confidence x median payout from the snapshot; missing snapshot sorts last."""
+    snap = p.recommendation_snapshot or {}
+    median = (snap.get("expected_payout") or {}).get("median_usd", 0)
+    return float(snap.get("confidence", 0.0)) * float(median)
 
 router = APIRouter()
 
@@ -168,23 +181,35 @@ def operator_info_response_on_proposal(
 @router.get("/claim-proposals")
 def list_claim_proposals(
     venue_id: str | None = None,
+    status: str | None = None,
+    sort: str | None = None,
     authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> list[dict]:
     """Cross-venue claim-proposal list. Authentication required; operators
     are scoped server-side to their own venue(s), brokers/admins see all.
-    The frontend still filters as defense-in-depth. Optional `venue_id`
-    query param narrows further."""
+    The frontend still filters as defense-in-depth.
+
+    Optional query params:
+    - ``venue_id``: narrows to a single venue.
+    - ``status``: filters by ``ClaimProposal.state`` (e.g. ``pending_broker_review``).
+    - ``sort``: ``priority`` sorts by confidence × median_payout descending
+      (broker inbox view); default is newest-first.
+    """
     user = current_user_optional(authorization)
     if user is None:
         raise HTTPException(status_code=401, detail="Authentication required")
     statement = select(ClaimProposal).order_by(ClaimProposal.proposed_at.desc())
     if venue_id:
         statement = statement.where(ClaimProposal.venue_id == venue_id)
+    if status:
+        statement = statement.where(ClaimProposal.state == status)
     proposals = session.exec(statement).all()
     allowed = accessible_venue_ids(user, session)
     if allowed is not None:
         proposals = [p for p in proposals if p.venue_id in allowed]
+    if sort == "priority":
+        proposals = sorted(proposals, key=_proposal_priority, reverse=True)
     return [_proposal_to_dict(p) for p in proposals]
 
 
