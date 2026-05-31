@@ -71,6 +71,105 @@ const TIER_COLOR: Record<string, string> = {
   D: "var(--tier-d)",
 };
 
+// ---- Operator report feed types + components (module-scope, not per-render) --
+
+interface FeedRow {
+  incident_id: string;
+  summary: string;
+  occurred_at: string;
+  status: string;
+  proposal_state: string | null;
+  claim_status: string | null;
+}
+
+function reportSteps(r: FeedRow) {
+  const ps = r.proposal_state ?? "";
+  return [
+    { label: "Reported", lit: true },
+    { label: "Sent", lit: !!r.proposal_state },
+    { label: "Approved", lit: ["approved", "filed_with_carrier", "paid", "denied"].includes(ps) },
+    { label: "Filed", lit: ["filed_with_carrier", "paid", "denied"].includes(ps) || !!r.claim_status },
+    { label: "Resolved", lit: ["paid", "denied"].includes(ps) || ["closed_paid", "closed_denied", "closed_dropped"].includes(r.claim_status ?? "") },
+  ];
+}
+
+function ReportFeedRow({ r }: { r: FeedRow }) {
+  const steps = reportSteps(r);
+  const branch = r.proposal_state === "rejected_by_broker" ? "Declined by broker"
+    : r.proposal_state === "needs_more_info" ? "Info requested" : null;
+  return (
+    <Link href={`/incidents/${r.incident_id}`} className="lc-card" style={{ textDecoration: "none", display: "block" }}>
+      <div className="lc-card__inner" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <span className="text-sm" style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {r.summary}
+        </span>
+        <div className="flex items-center" style={{ gap: 8, flexWrap: "wrap" }}>
+          {steps.map((s) => (
+            <span key={s.label} className="text-xs" style={{ color: s.lit ? "var(--accent-ink)" : "var(--text-muted)" }}>
+              {s.lit ? "● " : "○ "}{s.label}
+            </span>
+          ))}
+          {branch && <span className="text-xs" style={{ color: branch === "Info requested" ? "var(--state-warning)" : "var(--state-error)" }}>· {branch}</span>}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function OperatorReportFeed({ venueId, complianceDue }: { venueId: string; complianceDue: number }) {
+  const [rows, setRows] = useState<FeedRow[]>([]);
+  useEffect(() => {
+    if (!venueId) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`${API_URL}/api/venues/${venueId}/incident-status-feed`, { headers: authHeaders() });
+      if (res.ok && !cancelled) { const d = await res.json(); setRows(Array.isArray(d) ? d : []); }
+    })();
+    return () => { cancelled = true; };
+  }, [venueId]);
+
+  const infoRequested = rows.filter((r) => r.proposal_state === "needs_more_info").length;
+  const needsYou = complianceDue + infoRequested;
+
+  return (
+    <>
+      {needsYou > 0 && (
+        <section className="mb-lg" aria-label="Needs you">
+          <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Needs you · {needsYou}</div>
+          <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
+            {complianceDue > 0 && (
+              <Link href="/compliance" className="lc-card" style={{ flex: 1, minWidth: 150, textDecoration: "none", display: "block" }}>
+                <div className="lc-card__inner">
+                  <div className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{complianceDue}</div>
+                  <div className="text-xs text-muted">compliance items due</div>
+                </div>
+              </Link>
+            )}
+            {infoRequested > 0 && (
+              <Link href="/incidents" className="lc-card" style={{ flex: 1, minWidth: 150, textDecoration: "none", display: "block" }}>
+                <div className="lc-card__inner">
+                  <div className="font-mono" style={{ fontSize: "1.25rem", color: "var(--state-warning)" }}>{infoRequested}</div>
+                  <div className="text-xs text-muted">incidents need info</div>
+                </div>
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
+      {rows.length > 0 && (
+        <section className="mb-lg" aria-label="Your reports">
+          <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Your reports — what happened next</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+            {rows.slice(0, 8).map((r) => <ReportFeedRow key={r.incident_id} r={r} />)}
+          </div>
+        </section>
+      )}
+    </>
+  );
+}
+
+// ---- Broker triage (hoisted so Link subtree isn't remounted on state update) -
+
 // Hoisted out of BrokerTriageStrip so it isn't re-created (and its <Link>
 // subtree remounted) on every state update.
 function TriageCell({ n, label, href }: { n: number; label: string; href: string }) {
@@ -520,6 +619,23 @@ function DashboardPageInner() {
             </Link>
           </div></div>
         </>
+      )}
+
+      {/* OPERATOR: needs-you strip + report feed */}
+      {!isBroker && tenantId && (
+        <OperatorReportFeed
+          venueId={(selectedVenueId ?? tenantId)!}
+          complianceDue={liveState?.compliance_queue?.length ?? 0}
+        />
+      )}
+
+      {/* OPERATOR: venue profile link (Venues left the nav) */}
+      {!isBroker && tenantId && (
+        <div className="mb-lg">
+          <Link href="/venues" className="lc-link text-xs">
+            View venue profile <ArrowUpRight size={12} aria-hidden="true" />
+          </Link>
+        </div>
       )}
 
       {/* OPERATOR: "On The Floor" — live state is hero, policy is secondary */}
