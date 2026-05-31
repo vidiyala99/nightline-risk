@@ -22,7 +22,7 @@ We needed a second, broker-facing data layer alongside the existing evidence lay
 |---|---|---|
 | 1 | Placement (submissions → carrier quotes) | Schema + service + 13 endpoints + 3 frontend routes |
 | 2 | Policy lifecycle (bind, endorse, COI, cancel) | Schema + service + 10 endpoints + 3 frontend routes |
-| 3 | Claims integration (carrier-side claims) | Schema + service + 10 endpoints (frontend deferred) |
+| 3 | Claims integration (carrier-side claims) | Schema + service + 10 endpoints (frontend shipped since — see Update below) |
 
 ---
 
@@ -98,12 +98,23 @@ All broker-platform code follows the conventions established by the plan:
 
 - **More surface to maintain.** 16 new database tables across phases 1–3, ~30 new endpoints. Adds operational complexity to a previously incident-centric system.
 - **Two claim concepts.** A future reader still has to learn the `ClaimProposal` vs. `Claim` distinction. The naming, linkage, and ADR documentation address this; some confusion is unavoidable until the v2 neutral-drafter design (ADR-0002 long-term target) collapses some of the proposal surface.
-- **Frontend lag.** Phase 3 backend shipped without a `/claims/[cid]` UI. Carrier-side claims are visible only via the API or DB until the Phase 3 frontend slice lands.
+- **Frontend lag (resolved 2026-05-30).** Phase 3 backend originally shipped without a carrier-claims UI; that gap is now closed. The frontend slice landed on both platforms — web `/claims` + `/claims/[cid]` (with FNOL / reserve / payment authoring under `/policies/[pid]/claims/new`), and mobile `CarrierClaimsListScreen` + `CarrierClaimDetailScreen`. (One residual: the mobile list still aggregates per-policy instead of calling the cross-policy `GET /api/claims` the web UI uses.)
 
 ### Neutral / migration
 
 - The `claim-proposals` URL rename is a breaking change for any external integration. None exist today — the only consumers were the project's own frontend, mobile app, and tests, all updated in the same commit (`fb52247`).
 - Existing `database.db` instances (including Railway prod) need no migration for the rename itself, but new tables (`Claim`, `ClaimPayment`, `ReserveChange`) will be created by SQLModel's `create_all` on next boot. Postgres-on-Railway uses additive `ALTER TABLE` for column-level migrations and creates new tables idempotently — no manual step required.
+
+---
+
+## Update — 2026-05-30
+
+The Phase 3 "frontend deferred" note above is **superseded**. The carrier-side-claims UI shipped on both platforms:
+
+- **Web:** `/claims` (cross-policy portfolio via `GET /api/claims`), `/claims/[cid]` (lifecycle + reserve + payment ledger), and FNOL/reserve/payment authoring from the policy detail (`/policies/[pid]/claims/new`).
+- **Mobile:** `CarrierClaimsListScreen` + `CarrierClaimDetailScreen` (file FNOL / record reserve / record payment).
+
+Residual gap: the mobile list still does N per-policy fetches instead of the single cross-policy `GET /api/claims` the web UI migrated to — tracked as a follow-up, not a deferral.
 
 ---
 
