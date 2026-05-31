@@ -154,9 +154,9 @@ function factorHref(key: string, venueId: string, isBroker: boolean): string | n
   const v = encodeURIComponent(venueId);
   if (key === "incident_history") return `/incidents?venue=${v}`;
   if (key === "compliance") return `/compliance?venue=${v}`;
-  // Operational infra detail used to live on the (now-retired) live terminal;
-  // its live status surfaces on the home "On the floor" section instead.
-  if (key === "operational" && !isBroker) return `/dashboard`;
+  // "operational" has no in-app fix surface — infra/sensor feeds are external
+  // telemetry (live status already shows on the home "On the floor" section), so
+  // it stays informational rather than bouncing the user back to home.
   if (key === "business_profile") return `/venues/${v}`;
   return null;
 }
