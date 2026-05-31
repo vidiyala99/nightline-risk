@@ -6,6 +6,10 @@ VENUES = {
         "address": "599 Johnson Ave, Brooklyn, NY 11237",
         "current_carrier": "Admitted Market A",
         "renewal_date": "2026-10-15",
+        # Coverage profile so the operator's onboarding reads complete on a fresh
+        # DB — the OnboardingCard only nudges incomplete profiles, and without this
+        # the card would persist (existing rows are PATCHed separately).
+        "coverage_interest": ["gl", "liquor", "wc"],
         # Scoring attributes — underwriter view of 12-month claim history.
         # Intentionally decoupled from SEED_INCIDENTS / seed_compliance below,
         # which represent the operator's recent active queue.
