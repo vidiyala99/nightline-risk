@@ -218,6 +218,32 @@ def list_claim_proposals(
     return [_proposal_to_dict(p) for p in proposals]
 
 
+@router.get("/claim-proposals/{proposal_id}/fnol-draft")
+def fnol_draft(
+    proposal_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Return the resolved FNOL defaults for an approved claim proposal.
+
+    Surfaces the policy, coverage line, date-of-loss, and any blockers so
+    the broker can confirm rather than type when filing with the carrier.
+    """
+    proposal = session.get(ClaimProposal, proposal_id)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    require_venue_access(proposal.venue_id, authorization, session)
+    from app.services.fnol import resolve_fnol_defaults
+    d = resolve_fnol_defaults(session, proposal)
+    return {
+        "policy_id": d["policy_id"],
+        "coverage_line": d["coverage_line"],
+        "date_of_loss": d["date_of_loss"].isoformat() if d["date_of_loss"] else None,
+        "blockers": d["blockers"],
+        "notes": d["notes"],
+    }
+
+
 @router.get("/claim-proposals/by-packet/{packet_id}")
 def get_claim_for_packet(
     packet_id: str,

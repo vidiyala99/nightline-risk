@@ -7,12 +7,18 @@ existing /review-decisions route, which takes actor IDs in the body. The UI
 enforces who-can-do-what.
 """
 
+from datetime import date as _d
+from decimal import Decimal as _D
+
 from fastapi.testclient import TestClient
 
 from app.auth import create_token
 from app.database import get_session
 from app.main import app
-from app.models import ClaimProposal
+from app.models import (
+    Carrier, CarrierQuote, ClaimProposal, IncidentRecord, Policy,
+    Submission, UnderwritingPacket,
+)
 
 
 def _op_headers():
@@ -483,6 +489,85 @@ def test_inbox_filters_pending_and_sorts_by_priority():
     finally:
         for pid in created:
             row = session.get(ClaimProposal, pid)
+            if row:
+                session.delete(row)
+        session.commit()
+        session.close()
+
+
+# ---------- GET /api/claim-proposals/{proposal_id}/fnol-draft ----------
+
+
+def test_fnol_draft_returns_resolved_defaults():
+    session = next(get_session())
+    try:
+        # Seed carrier if not already present (dev DB persists across runs).
+        if not session.get(Carrier, "markel-fd"):
+            session.add(Carrier(id="markel-fd", name="Markel FD Test", market_type="e&s"))
+        session.flush()
+
+        session.add(IncidentRecord(
+            id="in-fd", venue_id="elsewhere-brooklyn",
+            occurred_at="2026-05-17T00:46:00Z", location="bar", summary="x",
+            reported_by="m", injury_observed=True, police_called=False,
+            ems_called=False, status="open",
+        ))
+        session.add(UnderwritingPacket(
+            id="pk-fd", venue_id="elsewhere-brooklyn", incident_id="in-fd",
+            rubric_version_id="demo-rubric-v1", status="needs_review",
+            snapshot_hash="h",
+            risk_signals={"type": "premises_liability", "severity": "high", "confidence": 0.9},
+        ))
+        session.flush()
+
+        session.add(Submission(
+            id="sub-fd", venue_id="elsewhere-brooklyn",
+            effective_date=_d(2026, 1, 1),
+            coverage_lines=["general_liability"],
+        ))
+        session.flush()
+
+        session.add(CarrierQuote(
+            id="q-fd", submission_id="sub-fd", carrier_id="markel-fd",
+        ))
+        session.flush()
+
+        session.add(Policy(
+            id="po-fd", submission_id="sub-fd", bound_quote_id="q-fd",
+            venue_id="elsewhere-brooklyn", carrier_id="markel-fd",
+            status="bound",
+            effective_date=_d(2026, 1, 1), expiration_date=_d(2027, 1, 1),
+            annual_premium=_D("5000.00"), commission_amount=_D("750.00"),
+            commission_rate=_D("0.15"),
+            coverage_lines=["general_liability"],
+            terms_snapshot={}, snapshot_hash="ph-fd",
+        ))
+        session.flush()
+
+        session.add(ClaimProposal(
+            id="pr-fd", packet_id="pk-fd", venue_id="elsewhere-brooklyn",
+            proposed_by="auto-router", state="approved",
+        ))
+        session.commit()
+
+        with TestClient(app) as client:
+            r = client.get("/api/claim-proposals/pr-fd/fnol-draft", headers=_broker_headers())
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["policy_id"] == "po-fd"
+        assert body["coverage_line"] == "general_liability"
+        assert body["date_of_loss"] == "2026-05-17"
+    finally:
+        for tbl, _id in [
+            (ClaimProposal, "pr-fd"),
+            (Policy, "po-fd"),
+            (CarrierQuote, "q-fd"),
+            (Submission, "sub-fd"),
+            (UnderwritingPacket, "pk-fd"),
+            (IncidentRecord, "in-fd"),
+            (Carrier, "markel-fd"),
+        ]:
+            row = session.get(tbl, _id)
             if row:
                 session.delete(row)
         session.commit()
