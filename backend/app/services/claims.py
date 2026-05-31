@@ -423,6 +423,16 @@ def close_claim(
     claim.snapshot_hash = _compute_claim_snapshot_hash(claim)
     session.add(claim)
     session.flush()
+
+    # Feed the linked proposal's terminal state (paid|denied) so the operator's
+    # status spine reflects the real outcome. Runs in this transaction.
+    if claim.proposal_id:
+        from app.claim_proposals import settle_proposal_from_claim
+        from app.models import ClaimProposal
+        prop = session.get(ClaimProposal, claim.proposal_id)
+        if prop is not None:
+            settle_proposal_from_claim(session=session, proposal=prop, disposition=disposition)
+
     return claim
 
 

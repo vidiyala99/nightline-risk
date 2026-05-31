@@ -103,3 +103,18 @@ def test_settle_proposal_from_claim_maps_disposition():
     p.state = "filed_with_carrier"
     settle_proposal_from_claim(session=s, proposal=p, disposition="dropped")
     assert p.state == "denied"     # denied|dropped -> denied
+
+
+def test_closing_a_paid_claim_settles_its_proposal():
+    from app.services.claims import close_claim
+    from app.models import Claim
+    from decimal import Decimal
+    from datetime import date
+    s = _session(); p = _proposal(s)
+    p.state = "filed_with_carrier"; s.add(p)
+    s.add(Claim(id="clm-x", policy_id="pol-1", incident_id="inc-1", proposal_id="prop-1",
+                coverage_line="general_liability", status="reserved", date_of_loss=date(2026, 5, 17),
+                current_reserve=Decimal("10000.00")))
+    s.commit()
+    close_claim(s, "clm-x", disposition="paid", final_indemnity=Decimal("8000.00"), closed_by="bk")
+    assert s.get(ClaimProposal, "prop-1").state == "paid"
