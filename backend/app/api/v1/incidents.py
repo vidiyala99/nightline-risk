@@ -23,7 +23,7 @@ from app.lifecycles import (
     InvalidTransitionError,
     assert_valid_transition,
 )
-from app.models import IncidentRecord
+from app.models import Claim, ClaimProposal, IncidentRecord, UnderwritingPacket
 from app.packet_core import _add_audit_event
 from app.schemas import Incident, IncidentCreate, IncidentFlowResponse
 from app.schemas.errors import error_response
@@ -229,8 +229,6 @@ def incident_claim_status(
             status_code=404,
         )
     require_venue_access(record.venue_id, authorization, session)
-
-    from app.models import Claim, ClaimProposal, UnderwritingPacket
 
     packet = session.exec(
         select(UnderwritingPacket)

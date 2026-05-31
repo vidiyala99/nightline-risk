@@ -61,7 +61,6 @@ async def upload_evidence(
 
     from uuid import uuid4
     from app.main import _process_evidence_sync
-    from app.storage import get_storage
 
     evidence_id = f"ev-{uuid4().hex[:12]}"
     safe_name = f"{evidence_id}_{file.filename}"

@@ -635,6 +635,37 @@ def test_claim_status_returns_404_for_unknown_incident():
     assert r.status_code == 404
 
 
+def test_claim_status_rejects_cross_venue():
+    """An operator scoped to a different venue must be denied with 403."""
+    session = next(get_session())
+    try:
+        _seed_approved_proposal_routes(session, "cv")  # incident in-cv at elsewhere-brooklyn
+        # Token scoped to house-of-yes — a different venue from the seeded incident.
+        other_token = create_token("u-cv-other", "cv@other.example.com", "venue_operator", "house-of-yes")
+        other_headers = {"Authorization": f"Bearer {other_token}"}
+        with TestClient(app) as client:
+            r = client.get("/api/incidents/in-cv/claim-status", headers=other_headers)
+        assert r.status_code == 403
+        assert r.json()["detail"]["error"] == "venue_access_denied"
+    finally:
+        for clm in session.exec(select(Claim).where(Claim.proposal_id == "pr-cv")).all():
+            session.delete(clm)
+        for tbl, _id in [
+            (ClaimProposal, "pr-cv"),
+            (Policy, "po-cv"),
+            (CarrierQuote, "q-cv"),
+            (Submission, "sub-cv"),
+            (UnderwritingPacket, "pk-cv"),
+            (IncidentRecord, "in-cv"),
+            (Carrier, "markel-cv"),
+        ]:
+            row = session.get(tbl, _id)
+            if row:
+                session.delete(row)
+        session.commit()
+        session.close()
+
+
 def test_file_fnol_requires_approved_state():
     session = next(get_session())
     try:
