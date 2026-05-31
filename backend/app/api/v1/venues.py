@@ -21,7 +21,7 @@ import json as _json
 import re
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlmodel import Session, func, select
 
 from app.auth import (
@@ -105,14 +105,19 @@ def _resolve_venue(venue_id: str, session: Session) -> dict:
 def list_venues(
     source: Optional[str] = None,
     session: Session = Depends(get_session),
+    user: Optional[dict] = Depends(current_user_optional),
 ) -> list[dict]:
-    """All venues — both seeded and DB-only. No auth gate at the list
-    level; the dashboard renders the same set for any logged-in user.
+    """All venues — both seeded and DB-only. Requires a logged-in user
+    (any role) — the row set is the same for every authenticated caller,
+    but anonymous access is rejected so the book (carrier / renewal /
+    capacity / incident counts) can't be scraped without a token.
     Tenant-scoping is applied when drilling into a specific venue.
 
     Each row carries `source` ("book" | "prospect"). Real NYC venues seeded
     as leads are "prospect"; the underwritten demo book defaults to "book".
     `?source=book|prospect|all` filters server-side (default: all)."""
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
     result: list[dict] = [
         {"id": venue_id, **venue, "source": venue.get("source", "book")}
         for venue_id, venue in VENUES.items()

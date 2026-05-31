@@ -320,6 +320,39 @@ def can_access_venue(user: dict | None, venue_id: str, session: Session) -> bool
     return venue_id in extras
 
 
+def accessible_venue_ids(user: dict | None, session: Session) -> set[str] | None:
+    """Venue ids a caller may see in a CROSS-VENUE list, or None for
+    unrestricted (broker/admin).
+
+    Companion to `can_access_venue` for list endpoints: rather than calling
+    that per-row (one UserRecord lookup each), resolve the operator's venue
+    set once and filter in memory. Returns:
+      - None              → broker/admin, no restriction (caller returns all)
+      - set of venue ids  → operator's own tenant + extra_venue_ids
+      - empty set         → anonymous / unknown role (sees nothing)
+    """
+    if not user:
+        return set()
+    role = user.get("role")
+    if role in ("broker", "admin"):
+        return None
+    if role != "venue_operator":
+        return set()
+    ids: set[str] = set()
+    tid = user.get("tenant_id")
+    if tid:
+        ids.add(tid)
+    from app.models import UserRecord
+    import json as _json
+    record = session.get(UserRecord, user.get("sub"))
+    if record and record.extra_venue_ids:
+        try:
+            ids |= set(_json.loads(record.extra_venue_ids))
+        except (ValueError, TypeError):
+            pass
+    return ids
+
+
 def require_venue_access(
     venue_id: str,
     authorization: str,

@@ -6,9 +6,12 @@ the post-bind lifecycle.
 
 Critical design decisions encoded here:
 
-  1. bind_quote is ATOMIC. The plan calls out 6 sub-effects that must
-     succeed together or all fail. The function wraps them in a
-     savepoint that rolls back on any error.
+  1. bind_quote is ATOMIC at the caller's transaction boundary. The plan
+     calls out 6 sub-effects that must succeed together or all fail. The
+     function does NOT open its own savepoint or commit — per the project
+     convention the API layer (or test fixture) owns commit/rollback, so a
+     mid-bind failure unwinds the whole bind only when the caller rolls
+     back. See bind_quote's own docstring for the caller contract.
 
   2. Policy.snapshot_hash is ONLY re-computed by issue_endorsement.
      Status changes (cancel, expire, lapse) intentionally leave it alone

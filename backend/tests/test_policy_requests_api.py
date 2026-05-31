@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from app.auth import create_token
 from app.database import get_session
 from app.main import app
-from app.models import Policy, Submission, UserRecord, Venue
+from app.models import Policy, PolicyRequest, Submission, UserRecord, Venue
 
 
 VENUE_A = "elsewhere-brooklyn"
@@ -70,6 +70,45 @@ def _seed():
             ))
         session.commit()
     finally:
+        session.close()
+
+
+# ─── List auth + tenant scoping ──────────────────────────────────────────
+
+
+def test_policy_requests_list_rejects_anonymous(client):
+    """The list previously soft-stripped on the client; anonymous callers
+    must now get 401 instead of every venue's requests."""
+    assert client.get("/api/policy-requests").status_code == 401
+
+
+def test_policy_requests_list_scoped_to_operator_venue(client):
+    """An operator sees only their own venue's requests; a broker sees all."""
+    session = next(get_session())
+    try:
+        for vid, rid in [(VENUE_A, "preq-scope-a"), (VENUE_OTHER, "preq-scope-other")]:
+            if not session.get(PolicyRequest, rid):
+                session.add(PolicyRequest(
+                    id=rid, policy_id=f"pol-x-{vid}", venue_id=vid,
+                    request_type="coi", status="pending", requested_by="op",
+                ))
+        session.commit()
+
+        r = client.get("/api/policy-requests", headers=_operator_headers(VENUE_A))
+        assert r.status_code == 200, r.text
+        venues = {row["venue_id"] for row in r.json()}
+        assert VENUE_A in venues
+        assert VENUE_OTHER not in venues  # other venue's request is hidden
+
+        rb = client.get("/api/policy-requests", headers=_broker_headers())
+        assert rb.status_code == 200, rb.text
+        assert {VENUE_A, VENUE_OTHER} <= {row["venue_id"] for row in rb.json()}
+    finally:
+        for rid in ("preq-scope-a", "preq-scope-other"):
+            row = session.get(PolicyRequest, rid)
+            if row:
+                session.delete(row)
+        session.commit()
         session.close()
 
 
@@ -313,8 +352,8 @@ def test_coverage_requires_auth(client):
 
 def test_list_and_per_policy_read(client):
     rid = _create(client).json()["id"]
-    # cross-venue list filtered to VENUE_A includes our request
-    listed = client.get(f"/api/policy-requests?venue_id={VENUE_A}")
+    # cross-venue list filtered to VENUE_A includes our request (broker sees all)
+    listed = client.get(f"/api/policy-requests?venue_id={VENUE_A}", headers=_broker_headers())
     assert listed.status_code == 200
     assert rid in {x["id"] for x in listed.json()}
     # per-policy read is tenant-gated

@@ -22,6 +22,11 @@ def _operator_headers():
     return {"Authorization": f"Bearer {token}"}
 
 
+def _broker_headers():
+    token = create_token("user-broker-list", "broker-list@example.com", "broker", "broker-list-tenant")
+    return {"Authorization": f"Bearer {token}"}
+
+
 def _unique_name() -> str:
     return f"Dedupe Bar {uuid.uuid4().hex[:8]}"
 
@@ -30,6 +35,23 @@ def _unique_name() -> str:
 def client():
     with TestClient(app) as c:
         yield c
+
+
+# ─── List auth gate (no anonymous portfolio disclosure) ──────────────────
+
+def test_list_venues_rejects_anonymous(client):
+    """GET /api/venues exposes the whole book (carrier, renewal, capacity,
+    incident/compliance counts). The docstring always intended "any logged-in
+    user" — enforce that so an anonymous caller can't scrape the portfolio."""
+    r = client.get("/api/venues")
+    assert r.status_code == 401, r.text
+
+
+def test_list_venues_allows_authenticated(client):
+    for headers in (_operator_headers(), _broker_headers()):
+        r = client.get("/api/venues", headers=headers)
+        assert r.status_code == 200, r.text
+        assert isinstance(r.json(), list)
 
 
 # ─── Create-time dedup (name + address) ──────────────────────────────────

@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AlertTriangle, ArrowLeft, FileSpreadsheet } from "lucide-react";
 import type { ClaimProposal } from "@/app/underwriter/[id]/page";
 import { ResponsiveTable } from "@/components/ui/ResponsiveTable";
+import { authHeaders } from "@/lib/authFetch";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -65,7 +66,7 @@ export default function ClaimsPortfolioPage() {
   useEffect(() => {
     async function load() {
       try {
-        const proposalsRes = await fetch(`${API_URL}/api/claim-proposals`);
+        const proposalsRes = await fetch(`${API_URL}/api/claim-proposals`, { headers: authHeaders() });
         if (proposalsRes.ok) {
           const all: ClaimProposal[] = await proposalsRes.json();
           // Server returns everything; client filters to the operator's

@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from app.api.v1.placement import _broker_user_id
-from app.auth import require_broker, require_venue_access
+from app.auth import accessible_venue_ids, current_user_optional, require_broker, require_venue_access
 from app.database import get_session
 from app.lifecycles import InvalidTransitionError
 from app.models import Policy, PolicyRequest
@@ -172,16 +172,23 @@ def api_list_policy_requests(
     venue_id: Optional[str] = None,
     policy_id: Optional[str] = None,
     status: Optional[str] = None,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> list[dict]:
-    """Cross-venue request list (broker queue). No hard gate at the route
-    level — the frontend filters by tenant for operators and shows all for
-    brokers, matching the claim-proposals list. Optional filters scope
-    server-side."""
+    """Cross-venue request list (broker queue). Authentication required;
+    operators are scoped server-side to their own venue(s), brokers/admins
+    see all (matching the claim-proposals list). The frontend still filters
+    as defense-in-depth. Optional filters narrow further."""
+    user = current_user_optional(authorization)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
     status_in = [s.strip() for s in status.split(",")] if status else None
     rows = list_policy_requests(
         session, venue_id=venue_id, policy_id=policy_id, status_in=status_in,
     )
+    allowed = accessible_venue_ids(user, session)
+    if allowed is not None:
+        rows = [r for r in rows if r.venue_id in allowed]
     return [_request_to_dict(r) for r in rows]
 
 

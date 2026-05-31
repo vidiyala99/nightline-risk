@@ -27,7 +27,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from app.auth import require_venue_access
+from app.auth import accessible_venue_ids, current_user_optional, require_venue_access
 from app.claim_proposals import (
     ClaimProposalValidationError,
     compute_override_stats,
@@ -168,15 +168,23 @@ def operator_info_response_on_proposal(
 @router.get("/claim-proposals")
 def list_claim_proposals(
     venue_id: str | None = None,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> list[dict]:
-    """Cross-venue claim-proposal list. No role gate at the route level —
-    the frontend filters by tenant for operators and shows all for
-    brokers. Optional `venue_id` query param scopes server-side."""
+    """Cross-venue claim-proposal list. Authentication required; operators
+    are scoped server-side to their own venue(s), brokers/admins see all.
+    The frontend still filters as defense-in-depth. Optional `venue_id`
+    query param narrows further."""
+    user = current_user_optional(authorization)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
     statement = select(ClaimProposal).order_by(ClaimProposal.proposed_at.desc())
     if venue_id:
         statement = statement.where(ClaimProposal.venue_id == venue_id)
     proposals = session.exec(statement).all()
+    allowed = accessible_venue_ids(user, session)
+    if allowed is not None:
+        proposals = [p for p in proposals if p.venue_id in allowed]
     return [_proposal_to_dict(p) for p in proposals]
 
 
