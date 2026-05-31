@@ -187,3 +187,45 @@ def test_borderline_incident_creates_no_proposal():
     maybe_auto_route_incident(s, packet=pkt, operator_id="mgr")
     props = s.exec(select(ClaimProposal).where(ClaimProposal.packet_id == "pkt-mid")).all()
     assert props == []
+
+
+# ─── seed/backfill path auto-routes (Gap A) ──────────────────────────────────
+
+
+def test_backfill_auto_routes_high_confidence_incident():
+    """The startup backfill must auto-route high-confidence 'file' incidents the
+    same way the live incident-create flow does.
+
+    Without this, a broker opening a *seeded* incident (e.g. seed-market-hotel-013)
+    sees a 'File' recommendation with no proposal to act on — the packet is
+    generated but the ClaimProposal is never created.
+    """
+    from datetime import datetime
+    from app.main import _backfill_incident_packets
+
+    s = _db_session()  # seeds Venue "elsewhere-brooklyn"
+    # The real market-hotel altercation: injury + police + EMS → high-confidence
+    # "file" under the deterministic classifier (matches the 90% in the UI).
+    s.add(IncidentRecord(
+        id="inc-altercation", venue_id="elsewhere-brooklyn",
+        occurred_at=datetime(2026, 4, 22, 23, 10),
+        location="Main Bar",
+        summary=("Bouncer used excessive force when removing a patron who refused to "
+                 "leave. Patron claims injuries to shoulder. Police arrived post-incident."),
+        reported_by="Venue Owner",
+        injury_observed=True, police_called=True, ems_called=True, status="open",
+    ))
+    s.commit()
+
+    _backfill_incident_packets(s)
+
+    pkt = s.exec(
+        select(UnderwritingPacket).where(UnderwritingPacket.incident_id == "inc-altercation")
+    ).first()
+    assert pkt is not None, "backfill should still generate the packet"
+    proposal = s.exec(
+        select(ClaimProposal).where(ClaimProposal.packet_id == pkt.id)
+    ).first()
+    assert proposal is not None, "backfill should auto-route a high-confidence 'file' incident"
+    assert proposal.state == "pending_broker_review"
+    assert proposal.recommendation_snapshot["should_file"] is True

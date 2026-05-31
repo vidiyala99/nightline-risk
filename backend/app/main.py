@@ -130,7 +130,7 @@ def _backfill_incident_packets(session: Session) -> None:
                 knowledge_sources=load_knowledge_sources_for_venue(session, record.venue_id),
                 stream_events=STREAM_EVENTS,
             )
-            create_packet_snapshot(
+            packet = create_packet_snapshot(
                 session=session,
                 venue_id=record.venue_id,
                 incident_id=record.id,
@@ -141,6 +141,14 @@ def _backfill_incident_packets(session: Session) -> None:
                 underwriting_memo=result.underwriting_memo.model_dump(),
                 citations=result.citations,
                 rubric_version="demo-rubric-v1",
+            )
+            # Auto-route the same way the live incident-create flow does, so a
+            # broker opening a seeded high-confidence "file" incident gets an
+            # actionable ClaimProposal (not just a recommendation with nothing to
+            # act on). Idempotent; borderline/no-file incidents create nothing.
+            from app.claim_routing import maybe_auto_route_incident
+            maybe_auto_route_incident(
+                session, packet=packet, operator_id=record.reported_by or "operator"
             )
             session.commit()
             succeeded += 1
