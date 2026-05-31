@@ -8,7 +8,7 @@ import { authHeaders } from "@/lib/authFetch";
 import { downloadDefensePackagePdf } from "@/lib/claims";
 import {
   AlertTriangle, ArrowLeft, Calendar, MapPin, User,
-  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download, Circle,
+  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download, Circle, Archive,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -323,7 +323,7 @@ export default function IncidentDetailPage() {
                 {incident.status === "open" && <AlertTriangle size={12} aria-hidden="true" />}
                 {incident.status === "under_review" && <Clock size={12} aria-hidden="true" />}
                 {incident.status === "closed" && <CheckCircle2 size={12} aria-hidden="true" />}
-                {incident.status === "closed_archived" && <CheckCircle2 size={12} aria-hidden="true" />}
+                {incident.status === "closed_archived" && <Archive size={12} aria-hidden="true" />}
                 {statusLabel[incident.status]}
               </span>
               <span className="flex items-center gap-xs text-sm text-secondary"><Calendar size={13} />{new Date(incident.occurred_at).toLocaleString()}</span>
@@ -339,7 +339,7 @@ export default function IncidentDetailPage() {
               {/* Closed loop: this incident became a real carrier claim */}
               {claim && (() => {
                 const reserve = Number(claim.current_reserve);
-                const isClosed = claim.status === "closed";
+                const isClosed = ["closed_paid", "closed_denied", "closed_dropped"].includes(claim.status);
                 const claimCard = (
                   <div className="flex items-center gap-md p-lg" style={{
                     border: `1px solid ${isClosed ? "var(--border-subtle)" : "var(--accent-ink)"}`,
