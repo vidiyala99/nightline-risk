@@ -1,0 +1,232 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { authHeaders } from "@/lib/authFetch";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+interface Proposal {
+  id: string;
+  packet_id: string;
+  venue_id: string;
+  state: string;
+  proposed_at: string;
+  recommendation_snapshot?: {
+    should_file?: boolean;
+    confidence?: number;
+    expected_payout?: { median_usd?: number };
+  } | null;
+}
+
+async function fetchBucket(status: string, sort?: string): Promise<Proposal[]> {
+  const q = new URLSearchParams({ status });
+  if (sort) q.set("sort", sort);
+  const res = await fetch(`${API_URL}/api/claim-proposals?${q.toString()}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+function Row({ p, onOpen }: { p: Proposal; onOpen: (id: string) => void }) {
+  const s = p.recommendation_snapshot || {};
+  const median = s.expected_payout?.median_usd ?? 0;
+  const conf = Math.round((s.confidence ?? 0) * 100);
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(p.packet_id)}
+      aria-label={`Review proposal for ${p.venue_id}, confidence ${conf} percent`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-md)",
+        width: "100%",
+        textAlign: "left",
+        minHeight: 44,
+        cursor: "pointer",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border-subtle)",
+        borderRadius: "var(--radius-md)",
+        padding: "10px var(--space-md)",
+        color: "var(--text-primary)",
+      }}
+    >
+      <span
+        className="font-display"
+        style={{
+          fontWeight: 600,
+          flex: 1,
+          fontSize: "var(--text-sm)",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {p.venue_id}
+      </span>
+      <span
+        className={s.should_file ? "badge badge-warning" : "badge badge-info"}
+        style={{ flexShrink: 0 }}
+      >
+        {s.should_file ? "File" : "Review"}
+      </span>
+      <span className="font-mono text-muted" style={{ flexShrink: 0, fontSize: "var(--text-sm)" }}>
+        {conf}%
+      </span>
+      <span className="font-mono" style={{ flexShrink: 0, fontSize: "var(--text-sm)" }}>
+        ~${Number(median).toLocaleString()}
+      </span>
+    </button>
+  );
+}
+
+interface SectionProps {
+  title: string;
+  hint: string;
+  rows: Proposal[];
+  onOpen: (id: string) => void;
+}
+
+function Section({ title, hint, rows, onOpen }: SectionProps) {
+  return (
+    <div className="lc-card mb-xl">
+      <div className="lc-card__inner">
+        <div
+          className="flex items-center justify-between mb-md"
+          style={{ flexWrap: "wrap", gap: "var(--space-sm)" }}
+        >
+          <div className="flex items-center" style={{ gap: "var(--space-sm)" }}>
+            <h2 className="text-sm font-semibold" style={{ margin: 0 }}>
+              {title}
+            </h2>
+            <span className="text-xs text-muted">{hint}</span>
+          </div>
+          {rows.length > 0 && (
+            <span
+              className="text-xs font-mono"
+              style={{
+                color: "var(--state-warning)",
+                border: "1px solid var(--state-warning)",
+                borderRadius: "var(--radius-sm)",
+                padding: "2px 8px",
+              }}
+            >
+              {rows.length}
+            </span>
+          )}
+        </div>
+        {rows.length === 0 ? (
+          <p className="text-xs text-muted" style={{ margin: 0 }}>
+            Nothing here.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+            {rows.map((p) => (
+              <Row key={p.id} p={p} onOpen={onOpen} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function WorkQueuePage() {
+  const router = useRouter();
+  const { isSignedIn, isLoaded } = useAuth();
+  const [toDecide, setToDecide] = useState<Proposal[]>([]);
+  const [awaiting, setAwaiting] = useState<Proposal[]>([]);
+  const [ready, setReady] = useState<Proposal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) router.push("/login");
+  }, [isLoaded, isSignedIn, router]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    (async () => {
+      const [decide, info, appr] = await Promise.all([
+        fetchBucket("pending_broker_review", "priority"),
+        fetchBucket("needs_more_info"),
+        fetchBucket("approved"),
+      ]);
+      setToDecide(decide);
+      // endpoint returns newest-first; awaiting wants oldest-first
+      setAwaiting([...info].reverse());
+      setReady(appr);
+      setLoading(false);
+    })();
+  }, [isLoaded, isSignedIn]);
+
+  const open = (packetId: string) => router.push(`/underwriter/${packetId}`);
+
+  if (!isLoaded || loading) {
+    return (
+      <div className="page-loading">
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
+      <section className="lc-hero">
+        <div>
+          <span className="lc-eyebrow">
+            BROKER
+            <span className="lc-eyebrow__sep" />
+            WORK QUEUE
+          </span>
+          <h1 className="lc-display">
+            Work <em>Queue</em>
+          </h1>
+          <p className="lc-sub">
+            Triage and decide — highest priority first; aging items surface automatically.
+          </p>
+        </div>
+        <div className="lc-hero__meta">
+          <div className="lc-meta-cell">
+            <span className="lc-stat-label">To decide</span>
+            <strong
+              style={{ color: toDecide.length > 0 ? "var(--state-warning)" : undefined }}
+            >
+              {String(toDecide.length).padStart(2, "0")}
+            </strong>
+          </div>
+          <div className="lc-meta-cell">
+            <span className="lc-stat-label">Awaiting info</span>
+            <strong>{String(awaiting.length).padStart(2, "0")}</strong>
+          </div>
+          <div className="lc-meta-cell">
+            <span className="lc-stat-label">Ready to file</span>
+            <strong>{String(ready.length).padStart(2, "0")}</strong>
+          </div>
+        </div>
+      </section>
+
+      <Section
+        title="To decide"
+        hint="pending broker review · value + urgency"
+        rows={toDecide}
+        onOpen={open}
+      />
+      <Section
+        title="Awaiting info"
+        hint="you asked the operator · oldest first"
+        rows={awaiting}
+        onOpen={open}
+      />
+      <Section
+        title="Ready to file"
+        hint="approved · confirm FNOL"
+        rows={ready}
+        onOpen={open}
+      />
+    </div>
+  );
+}
