@@ -7,8 +7,8 @@ import os
 
 from sqlmodel import Session, select
 
-from app.claim_recommendation import ClaimRecommendation, recommend_claim_filing
-from app.models import Claim, IncidentRecord, Policy, UnderwritingPacket
+from app.claim_recommendation import ClaimRecommendation, recommend_claim_filing, recommendation_to_dict
+from app.models import Claim, ClaimProposal, IncidentRecord, Policy, UnderwritingPacket
 
 
 def _auto_confidence() -> float:
@@ -63,3 +63,37 @@ def count_prior_claims(session: Session, venue_id: str) -> int:
         .where(Policy.venue_id == venue_id)
     ).all()
     return sum(1 for status in rows if status != "closed_dropped")
+
+
+def maybe_auto_route_incident(
+    session: Session,
+    *,
+    packet: UnderwritingPacket,
+    operator_id: str,
+) -> ClaimRecommendation:
+    """Compute the recommendation for a freshly-created packet and, when the gate
+    says auto-route, create a pending_broker_review proposal with the snapshot.
+
+    Idempotent: never creates a second proposal for the same packet. Returns the
+    ClaimRecommendation (so callers can log/inspect), proposal created or not.
+    """
+    from app.claim_proposals import create_proposal  # local import avoids circular dependency
+
+    rec = recommendation_for_packet(session, packet)
+    if not should_auto_route(rec):
+        return rec
+    existing = session.exec(
+        select(ClaimProposal).where(ClaimProposal.packet_id == packet.id)
+    ).first()
+    if existing is not None:
+        return rec
+    create_proposal(
+        session=session,
+        packet_id=packet.id,
+        operator_id="auto-router",
+        override_recommendation=False,
+        override_reason=None,
+        override_freetext=None,
+        recommendation_snapshot=recommendation_to_dict(rec),
+    )
+    return rec

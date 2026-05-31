@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.claim_recommendation import (
     ClaimRecommendation, PayoutRange, PremiumImpact,
@@ -136,3 +136,54 @@ def test_create_proposal_persists_recommendation_snapshot():
     )
     fetched = s.get(ClaimProposal, proposal.id)
     assert fetched.recommendation_snapshot == snap
+
+
+# ─── maybe_auto_route_incident ───────────────────────────────────────────────
+
+from app.claim_routing import maybe_auto_route_incident
+
+
+def test_auto_route_creates_pending_proposal_with_snapshot():
+    s = _db_session()
+    s.add(IncidentRecord(
+        id="inc-hi", venue_id="elsewhere-brooklyn", occurred_at="2026-05-17T00:00:00Z",
+        location="bar", summary="serious", reported_by="mgr",
+        injury_observed=True, police_called=True, ems_called=True, status="open",
+    ))
+    pkt = UnderwritingPacket(
+        id="pkt-hi", venue_id="elsewhere-brooklyn", incident_id="inc-hi",
+        rubric_version_id="demo-rubric-v1", status="needs_review",
+        risk_signals={"type": "premises_liability", "severity": "high", "confidence": 0.9},
+        snapshot_hash="h",
+    )
+    s.add(pkt); s.flush()
+
+    maybe_auto_route_incident(s, packet=pkt, operator_id="mgr")
+
+    props = s.exec(select(ClaimProposal).where(ClaimProposal.packet_id == "pkt-hi")).all()
+    assert len(props) == 1
+    assert props[0].state == "pending_broker_review"
+    assert props[0].recommendation_snapshot["should_file"] is True
+    # idempotent: a second call creates no duplicate
+    maybe_auto_route_incident(s, packet=pkt, operator_id="mgr")
+    props2 = s.exec(select(ClaimProposal).where(ClaimProposal.packet_id == "pkt-hi")).all()
+    assert len(props2) == 1
+
+
+def test_borderline_incident_creates_no_proposal():
+    s = _db_session()
+    s.add(IncidentRecord(
+        id="inc-mid", venue_id="elsewhere-brooklyn", occurred_at="2026-05-17T00:00:00Z",
+        location="bar", summary="minor", reported_by="mgr",
+        injury_observed=False, police_called=False, ems_called=False, status="open",
+    ))
+    pkt = UnderwritingPacket(
+        id="pkt-mid", venue_id="elsewhere-brooklyn", incident_id="inc-mid",
+        rubric_version_id="demo-rubric-v1", status="needs_review",
+        risk_signals={"type": "general_incident", "severity": "low", "confidence": 0.55},
+        snapshot_hash="h",
+    )
+    s.add(pkt); s.flush()
+    maybe_auto_route_incident(s, packet=pkt, operator_id="mgr")
+    props = s.exec(select(ClaimProposal).where(ClaimProposal.packet_id == "pkt-mid")).all()
+    assert props == []

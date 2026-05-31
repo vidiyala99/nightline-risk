@@ -58,7 +58,7 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
     session.add(db_eval)
     session.flush()
 
-    create_packet_snapshot(
+    packet = create_packet_snapshot(
         session=session,
         venue_id=venue_id,
         incident_id=incident.id,
@@ -92,6 +92,11 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
     # (backlog #37). Archives the oldest beyond the cap; no-op under the cap.
     if enforce_open_incident_cap(session, venue_id, protect_ids={incident.id}):
         session.commit()
+
+    # Recommendation-gated routing: high-confidence "file" incidents land in the
+    # broker inbox automatically. Idempotent; borderline/no-file create nothing.
+    from app.claim_routing import maybe_auto_route_incident
+    maybe_auto_route_incident(session, packet=packet, operator_id=incident.reported_by or "operator")
 
     return IncidentFlowResponse(
         incident=incident,

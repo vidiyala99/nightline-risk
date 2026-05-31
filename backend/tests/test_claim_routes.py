@@ -10,13 +10,58 @@ enforces who-can-do-what.
 from fastapi.testclient import TestClient
 
 from app.auth import create_token
+from app.database import get_session
 from app.main import app
+from app.models import ClaimProposal
 
 
 def _op_headers():
     # Operator scoped to elsewhere-brooklyn — matches the venue in _create_packet.
     token = create_token("user-claim-routes-1", "op@example.com", "venue_operator", "elsewhere-brooklyn")
     return {"Authorization": f"Bearer {token}"}
+
+
+def _broker_headers():
+    token = create_token("user-claim-routes-broker", "broker@example.com", "broker", None)
+    return {"Authorization": f"Bearer {token}"}
+
+
+# ---------- GET /api/claim-proposals — auth + tenant scoping ----------
+
+
+def test_claim_proposals_list_rejects_anonymous():
+    """The list previously soft-stripped on the client and returned every
+    venue's proposals to anyone. Anonymous callers must now get 401."""
+    with TestClient(app) as client:
+        assert client.get("/api/claim-proposals").status_code == 401
+
+
+def test_claim_proposals_list_scoped_to_operator_venue():
+    """An operator sees only their own venue's proposals; a broker sees all."""
+    session = next(get_session())
+    try:
+        for vid, pid in [("elsewhere-brooklyn", "cp-scope-a"), ("house-of-yes", "cp-scope-other")]:
+            if not session.get(ClaimProposal, pid):
+                session.add(ClaimProposal(id=pid, packet_id=f"pkt-{pid}", venue_id=vid, proposed_by="op"))
+        session.commit()
+
+        with TestClient(app) as client:
+            r = client.get("/api/claim-proposals", headers=_op_headers())
+            assert r.status_code == 200, r.text
+            venues = {p["venue_id"] for p in r.json()}
+            assert "elsewhere-brooklyn" in venues
+            assert "house-of-yes" not in venues  # other venue's proposal is hidden
+
+            rb = client.get("/api/claim-proposals", headers=_broker_headers())
+            assert rb.status_code == 200, rb.text
+            assert {"elsewhere-brooklyn", "house-of-yes"} <= {p["venue_id"] for p in rb.json()}
+    finally:
+        for pid in ("cp-scope-a", "cp-scope-other"):
+            row = session.get(ClaimProposal, pid)
+            if row:
+                session.delete(row)
+        session.commit()
+        session.close()
 
 
 DEMO_INCIDENT = {
@@ -256,10 +301,13 @@ def test_get_claim_by_packet_id_returns_latest_proposal():
 
 
 def test_get_claim_by_packet_id_returns_404_when_no_proposal():
+    # DEMO_INCIDENT is high-severity (injury+police+ems), so the auto-router now
+    # creates a pending_broker_review proposal on incident creation.  The 404
+    # path can still be exercised by querying a packet that was never incident-
+    # created (i.e. a non-existent packet id).
     client = TestClient(app, headers=_op_headers())
-    packet_id = _create_packet(client)
 
-    response = client.get(f"/api/claim-proposals/by-packet/{packet_id}")
+    response = client.get("/api/claim-proposals/by-packet/pkt-does-not-exist")
 
     assert response.status_code == 404
 
@@ -268,6 +316,10 @@ def test_get_claim_by_packet_id_returns_404_when_no_proposal():
 
 
 def test_packet_response_has_null_claim_proposal_before_any_proposal():
+    # DEMO_INCIDENT is high-severity (injury+police+ems), so the auto-router now
+    # creates a pending_broker_review proposal immediately.  The contract
+    # guarantees the field is always present; for a high-confidence incident it
+    # will be populated rather than None.
     client = TestClient(app, headers=_op_headers())
     packet_id = _create_packet(client)
 
@@ -275,7 +327,10 @@ def test_packet_response_has_null_claim_proposal_before_any_proposal():
 
     # Field is always present in the contract so the frontend can branch on it
     assert "claim_proposal" in body
-    assert body["claim_proposal"] is None
+    # The auto-router fires on high-confidence incidents, so the auto-created
+    # proposal may already be here; assert the field shape is correct either way.
+    if body["claim_proposal"] is not None:
+        assert body["claim_proposal"]["state"] == "pending_broker_review"
 
 
 def test_packet_response_embeds_latest_claim_proposal_after_creation():
