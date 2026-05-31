@@ -89,9 +89,8 @@ export default function CarrierClaimsListPage() {
       <div className="page page-empty">
         <h3>Carrier claims are a broker surface.</h3>
         <p className="text-secondary">
-          Operators see their reported incidents under{" "}
-          <Link href="/incidents">Incidents</Link> and any claim recommendations
-          under <Link href="/claim-proposals">Claim Proposals</Link>.
+          Operators see their reported incidents — and each incident&apos;s claim
+          recommendation and status — under <Link href="/incidents">Incidents</Link>.
         </p>
       </div>
     );

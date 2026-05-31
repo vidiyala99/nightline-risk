@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
-import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, FileSpreadsheet, LockKeyhole, RefreshCw, ShieldCheck, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, FileSpreadsheet, LockKeyhole, RefreshCw, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
 import ClaimProposeModal, { type OverrideReason } from "@/components/ClaimProposeModal";
 import { authHeaders } from "@/lib/authFetch";
 
@@ -900,14 +900,6 @@ export default function ReportDetailPage() {
                       </div>
                     )}
 
-                    <Link
-                      href={`/claim-proposals/${packet.id}`}
-                      className="text-xs flex items-center gap-xs"
-                      style={{ color: "var(--accent-ink)" }}
-                    >
-                      View claim proposal
-                      <ExternalLink size={12} />
-                    </Link>
                   </div>
                 );
               })()}

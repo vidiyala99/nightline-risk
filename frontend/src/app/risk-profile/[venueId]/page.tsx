@@ -1132,7 +1132,7 @@ export default function RiskProfilePage() {
                     return (
                       <Link
                         key={p.id}
-                        href={`/claim-proposals/${p.packet_id}`}
+                        href={`/underwriter/${p.packet_id}`}
                         className="rp-dossier-tile"
                         aria-label={`Review claim proposal — ${awaiting ? "info requested, awaiting operator" : "pending your review"}`}
                       >
