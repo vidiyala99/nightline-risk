@@ -123,6 +123,13 @@ export default function ReportDetailPage() {
   const [proposalError, setProposalError] = useState<string | null>(null);
   const [operatorResponseNote, setOperatorResponseNote] = useState("");
   const [submittingResponse, setSubmittingResponse] = useState(false);
+  const [fnolDraft, setFnolDraft] = useState<{
+    policy_id: string | null;
+    coverage_line: string;
+    date_of_loss: string | null;
+    blockers: string[];
+  } | null>(null);
+  const [filing, setFiling] = useState(false);
 
   const isOperator = user?.role === "venue_operator";
   const isBroker = user?.role === "broker" || user?.role === "admin";
@@ -221,6 +228,9 @@ export default function ReportDetailPage() {
       const updated: ClaimProposal = await res.json();
       setProposal(updated);
       setBrokerRejectNotes("");
+      if (dec === "approved") {
+        loadFnolDraft(updated.id);
+      }
     } finally {
       setSubmittingBrokerDecision(false);
     }
@@ -254,6 +264,19 @@ export default function ReportDetailPage() {
       setSubmittingResponse(false);
     }
   }
+
+  async function loadFnolDraft(proposalId: string) {
+    const r = await fetch(`${API_URL}/api/claim-proposals/${proposalId}/fnol-draft`, { headers: authHeaders() });
+    if (r.ok) setFnolDraft(await r.json());
+  }
+
+  // Auto-load the FNOL draft when the page loads with an already-approved proposal.
+  useEffect(() => {
+    if (proposal?.state === "approved" && !fnolDraft) {
+      loadFnolDraft(proposal.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proposal?.state, proposal?.id]);
 
   async function submitDecision(dec: string) {
     if (!packet) return;
@@ -895,6 +918,48 @@ export default function ReportDetailPage() {
                 </p>
               )}
             </section>
+          )}
+
+          {/* FNOL confirm — shown to brokers after a proposal is approved */}
+          {isBroker && proposal?.state === "approved" && fnolDraft && (
+            <section className="card" data-section="fnol-confirm" style={{ marginTop: "var(--space-md)" }}>
+              <h3 className="card-title">Confirm &amp; file FNOL</h3>
+              {fnolDraft.blockers.length > 0 ? (
+                <p className="text-error">Cannot file: {fnolDraft.blockers.join(", ")}. Resolve the policy first.</p>
+              ) : (
+                <>
+                  <p className="text-muted font-mono" style={{ fontSize: "0.85rem" }}>
+                    policy {fnolDraft.policy_id} · {fnolDraft.coverage_line} · loss {fnolDraft.date_of_loss}
+                  </p>
+                  <button
+                    className="btn btn-primary"
+                    disabled={filing}
+                    style={{ minHeight: 44 }}
+                    onClick={async () => {
+                      setFiling(true);
+                      const r = await fetch(`${API_URL}/api/claim-proposals/${proposal.id}/file-fnol`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", ...authHeaders() },
+                        body: JSON.stringify({
+                          policy_id: fnolDraft.policy_id,
+                          coverage_line: fnolDraft.coverage_line,
+                          date_of_loss: fnolDraft.date_of_loss,
+                          broker_id: user?.id ?? "broker",
+                        }),
+                      });
+                      setFiling(false);
+                      if (r.ok) location.reload();
+                    }}
+                  >
+                    {filing ? "Filing…" : "Confirm & file FNOL"}
+                  </button>
+                </>
+              )}
+            </section>
+          )}
+
+          {isBroker && proposal?.state === "filed_with_carrier" && (
+            <span className="badge badge-info">Filed with carrier</span>
           )}
 
           {/* Review Decision — broker/admin only. Operators see a read-only
