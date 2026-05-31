@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -32,14 +32,16 @@ async function fetchBucket(status: string, sort?: string): Promise<Proposal[]> {
 }
 
 function Row({ p, onOpen }: { p: Proposal; onOpen: (id: string) => void }) {
-  const s = p.recommendation_snapshot || {};
-  const median = s.expected_payout?.median_usd ?? 0;
-  const conf = Math.round((s.confidence ?? 0) * 100);
+  const s = p.recommendation_snapshot;
+  // A proposal can predate the recommendation snapshot; show "—" rather than a
+  // misleading 0% / ~$0.
+  const conf = s?.confidence != null ? Math.round(s.confidence * 100) : null;
+  const median = s?.expected_payout?.median_usd;
   return (
     <button
       type="button"
       onClick={() => onOpen(p.packet_id)}
-      aria-label={`Review proposal for ${p.venue_id}, confidence ${conf} percent`}
+      aria-label={`Review proposal for ${p.venue_id}${conf != null ? `, confidence ${conf} percent` : ""}`}
       style={{
         display: "flex",
         alignItems: "center",
@@ -69,16 +71,16 @@ function Row({ p, onOpen }: { p: Proposal; onOpen: (id: string) => void }) {
         {p.venue_id}
       </span>
       <span
-        className={s.should_file ? "badge badge-warning" : "badge badge-info"}
+        className={s?.should_file ? "badge badge-warning" : "badge badge-info"}
         style={{ flexShrink: 0 }}
       >
-        {s.should_file ? "File" : "Review"}
+        {s?.should_file ? "File" : "Review"}
       </span>
       <span className="font-mono text-muted" style={{ flexShrink: 0, fontSize: "var(--text-sm)" }}>
-        {conf}%
+        {conf != null ? `${conf}%` : "—"}
       </span>
       <span className="font-mono" style={{ flexShrink: 0, fontSize: "var(--text-sm)" }}>
-        ~${Number(median).toLocaleString()}
+        {median != null ? `~$${Number(median).toLocaleString()}` : "—"}
       </span>
     </button>
   );
@@ -138,6 +140,8 @@ function Section({ title, hint, rows, onOpen }: SectionProps) {
 export default function WorkQueuePage() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
+  const role = useRole();
+  const isBroker = role === "broker" || role === "admin";
   const [toDecide, setToDecide] = useState<Proposal[]>([]);
   const [awaiting, setAwaiting] = useState<Proposal[]>([]);
   const [ready, setReady] = useState<Proposal[]>([]);
@@ -147,8 +151,15 @@ export default function WorkQueuePage() {
     if (isLoaded && !isSignedIn) router.push("/login");
   }, [isLoaded, isSignedIn, router]);
 
+  // Broker-only decision surface (persona-correct). Operators are scoped to
+  // status screens; bounce them to their dashboard rather than render a
+  // broker-framed queue.
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (isLoaded && isSignedIn && !isBroker) router.replace("/dashboard");
+  }, [isLoaded, isSignedIn, isBroker, router]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !isBroker) return;
     (async () => {
       const [decide, info, appr] = await Promise.all([
         fetchBucket("pending_broker_review", "priority"),
@@ -161,11 +172,11 @@ export default function WorkQueuePage() {
       setReady(appr);
       setLoading(false);
     })();
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, isBroker]);
 
   const open = (packetId: string) => router.push(`/underwriter/${packetId}`);
 
-  if (!isLoaded || loading) {
+  if (!isLoaded || loading || !isBroker) {
     return (
       <div className="page-loading">
         <div className="loading-spinner" />
