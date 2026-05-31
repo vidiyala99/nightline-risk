@@ -295,7 +295,7 @@ function AlertsPageInner() {
     async function loadVenues() {
       try {
         if (isBroker) {
-          const res = await fetch(`${API_URL}/api/venues`);
+          const res = await fetch(`${API_URL}/api/venues`, { headers: authHeaders() });
           if (res.ok) {
             const list: VenueSummary[] = await res.json();
             setVenues(Array.isArray(list) ? list : []);
