@@ -21,6 +21,7 @@ from __future__ import annotations
 # services/claim_proposals.py module lands (later Phase B slice), both
 # will move into that module and the lazy imports go away.
 
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -75,11 +76,24 @@ def _proposal_to_dict(proposal) -> dict[str, Any]:
     return result
 
 
-def _proposal_priority(p: ClaimProposal) -> float:
-    """confidence x median payout from the snapshot; missing snapshot sorts last."""
+def _proposal_priority(p: ClaimProposal, now: "datetime | None" = None) -> float:
+    """Value (confidence x median payout), boosted as the item ages past a 3-day
+    grace so a high-value item ranks first immediately AND an aging item
+    eventually surfaces. Missing snapshot sorts last (0). Constants are tunable.
+    """
     snap = p.recommendation_snapshot or {}
     median = (snap.get("expected_payout") or {}).get("median_usd", 0)
-    return float(snap.get("confidence", 0.0)) * float(median)
+    base_value = float(snap.get("confidence", 0.0)) * float(median)
+    if base_value == 0.0:
+        return 0.0
+    if now is None:
+        now = datetime.now(timezone.utc)
+    proposed = p.proposed_at
+    if proposed is not None and proposed.tzinfo is None:
+        proposed = proposed.replace(tzinfo=timezone.utc)
+    age_days = ((now - proposed).total_seconds() / 86400.0) if proposed else 0.0
+    urgency_factor = 1.0 + 0.15 * max(0.0, age_days - 3.0)
+    return base_value * urgency_factor
 
 router = APIRouter()
 

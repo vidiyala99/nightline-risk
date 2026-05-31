@@ -769,3 +769,39 @@ def test_fnol_draft_returns_resolved_defaults():
                 session.delete(row)
         session.commit()
         session.close()
+
+
+# ---------- _proposal_priority — time-decay unit tests ----------
+
+from datetime import datetime, timezone, timedelta
+from app.api.v1.claim_proposals import _proposal_priority
+from app.models import ClaimProposal as _CP
+
+_NOW = datetime(2026, 6, 1, tzinfo=timezone.utc)
+
+
+def _prop(median, conf, age_days):
+    return _CP(
+        id=f"wq-{median}-{age_days}", packet_id="pk", venue_id="v", proposed_by="x",
+        state="pending_broker_review",
+        recommendation_snapshot={"confidence": conf, "expected_payout": {"median_usd": median}},
+        proposed_at=_NOW - timedelta(days=age_days),
+    )
+
+
+def test_priority_value_first_when_both_fresh():
+    assert _proposal_priority(_prop(90000, 0.9, 0), _NOW) > _proposal_priority(_prop(10000, 0.7, 0), _NOW)
+
+
+def test_priority_urgency_lifts_aged_over_fresh_same_value():
+    assert _proposal_priority(_prop(10000, 0.7, 30), _NOW) > _proposal_priority(_prop(10000, 0.7, 0), _NOW)
+
+
+def test_priority_no_boost_within_three_day_grace():
+    assert _proposal_priority(_prop(10000, 0.7, 2), _NOW) == _proposal_priority(_prop(10000, 0.7, 0), _NOW)
+
+
+def test_priority_missing_snapshot_sorts_last():
+    p = _CP(id="wq-none", packet_id="pk", venue_id="v", proposed_by="x",
+            state="pending_broker_review", proposed_at=_NOW)
+    assert _proposal_priority(p, _NOW) == 0.0
