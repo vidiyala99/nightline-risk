@@ -84,15 +84,16 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
         ] },
       ]
     : [
-        { label: "Portfolio", items: [
-          { href: `/dashboard${venueQuery}`, label: "Dashboard", icon: LayoutDashboard },
-          { href: "/venues", label: "Venues", icon: Building2 },
+        { label: "", items: [
+          { href: `/dashboard${venueQuery}`, label: "Home", icon: LayoutDashboard },
+        ] },
+        { label: "My venue", items: [
+          { href: `/incidents${venueQuery}`, label: "Incidents", icon: AlertTriangle },
+          { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
           { href: "/coverage", label: "Coverage", icon: ShieldCheck },
           ...(contextVenueId ? [{ href: `/terminal/${contextVenueId}`, label: "Live Terminal", icon: Activity } as Item] : []),
         ] },
-        { label: "Operations", items: [
-          { href: `/incidents${venueQuery}`, label: "Incidents", icon: AlertTriangle },
-          { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
+        { label: "System", items: [
           { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
         ] },
       ]
