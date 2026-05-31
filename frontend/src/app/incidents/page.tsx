@@ -198,6 +198,13 @@ export default function IncidentsPage() {
       setShowForm(false);
       setEvidenceFiles([]);
       setFormData({ occurred_at: "", location: "", summary: "", reported_by: "", injury_observed: false, police_called: false, ems_called: false });
+      // Land on the incident's context screen (risk profile + recommendation),
+      // not back on the list. Fall through to the list refresh only if the
+      // server didn't return an id.
+      if (created.incident?.id) {
+        openIncident(created.incident.id);
+        return;
+      }
       const updated = await fetch(isBroker ? `${API_URL}/api/incidents` : `${API_URL}/api/venues/${venueId}/incidents`, { headers: authHeaders() });
       if (updated.ok) {
         const data = await updated.json();
