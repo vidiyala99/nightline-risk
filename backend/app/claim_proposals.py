@@ -240,6 +240,60 @@ def record_operator_info_response(
     return proposal
 
 
+def mark_proposal_filed(
+    *,
+    session: Session,
+    proposal_id: str,
+    broker_id: str,
+) -> ClaimProposal:
+    """approved -> filed_with_carrier, after a Claim (FNOL) is created."""
+    proposal = session.get(ClaimProposal, proposal_id)
+    if proposal is None:
+        raise ClaimProposalValidationError(f"Proposal not found: {proposal_id}")
+    if proposal.state != "approved":
+        raise ClaimProposalValidationError(
+            f"Proposal {proposal_id} must be 'approved' to file (state={proposal.state})"
+        )
+    proposal.state = "filed_with_carrier"
+    session.add(proposal)
+    _add_audit_event(
+        session=session,
+        actor_id=broker_id,
+        actor_type="broker",
+        entity_id=proposal.id,
+        event_type="claim.filed_with_carrier",
+        event_metadata={"packet_id": proposal.packet_id, "venue_id": proposal.venue_id},
+    )
+    session.commit()
+    session.refresh(proposal)
+    return proposal
+
+
+def settle_proposal_from_claim(
+    *,
+    session: Session,
+    proposal: ClaimProposal,
+    disposition: str,
+) -> None:
+    """Claim close -> proposal terminal. paid -> paid; denied|dropped -> denied.
+
+    No-op if the proposal isn't filed_with_carrier (defensive). Does NOT commit
+    — runs inside the claim-close transaction owned by the caller.
+    """
+    if proposal.state != "filed_with_carrier":
+        return
+    proposal.state = "paid" if disposition == "paid" else "denied"
+    session.add(proposal)
+    _add_audit_event(
+        session=session,
+        actor_id="system",
+        actor_type="system",
+        entity_id=proposal.id,
+        event_type=f"claim.{proposal.state}",
+        event_metadata={"disposition": disposition, "venue_id": proposal.venue_id},
+    )
+
+
 def _add_audit_event(
     *,
     session: Session,

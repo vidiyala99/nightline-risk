@@ -84,3 +84,22 @@ def test_blocks_when_no_active_policy():
     d = resolve_fnol_defaults(s, p)
     assert "no_active_policy" in d["blockers"]
     assert d["policy_id"] is None
+
+
+from app.claim_proposals import mark_proposal_filed, settle_proposal_from_claim
+
+
+def test_mark_proposal_filed_requires_approved():
+    s = _session(); p = _proposal(s)              # state == "approved"
+    mark_proposal_filed(session=s, proposal_id="prop-1", broker_id="bk")
+    assert s.get(ClaimProposal, "prop-1").state == "filed_with_carrier"
+
+
+def test_settle_proposal_from_claim_maps_disposition():
+    s = _session(); p = _proposal(s)
+    p.state = "filed_with_carrier"; s.add(p); s.flush()
+    settle_proposal_from_claim(session=s, proposal=p, disposition="paid")
+    assert p.state == "paid"
+    p.state = "filed_with_carrier"
+    settle_proposal_from_claim(session=s, proposal=p, disposition="dropped")
+    assert p.state == "denied"     # denied|dropped -> denied
