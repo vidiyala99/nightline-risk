@@ -55,6 +55,9 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     ("claimproposal", "info_request_note", "TEXT", ""),
     ("claimproposal", "operator_response_note", "TEXT", ""),
     ("claimproposal", "operator_responded_at", "TEXT", ""),
+    # Broker-triage routing: recommendation snapshot driving auto-route — added
+    # 2026-05-31. JSON stored as TEXT per the convention above.
+    ("claimproposal", "recommendation_snapshot", "TEXT", ""),
     # PolicyRequest execute-on-approval result deep-link — added 2026-05-29.
     ("policyrequest", "result_entity_type", "TEXT", ""),
     ("policyrequest", "result_entity_id", "TEXT", ""),
