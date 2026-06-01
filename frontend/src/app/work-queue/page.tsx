@@ -136,6 +136,8 @@ export default function WorkQueuePage() {
   const [awaiting, setAwaiting] = useState<Proposal[]>([]);
   const [ready, setReady] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) router.push("/login");
@@ -150,19 +152,32 @@ export default function WorkQueuePage() {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !isBroker) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
     (async () => {
-      const [decide, info, appr] = await Promise.all([
-        fetchBucket("pending_broker_review", "priority"),
-        fetchBucket("needs_more_info"),
-        fetchBucket("approved"),
-      ]);
-      setToDecide(decide);
-      // endpoint returns newest-first; awaiting wants oldest-first
-      setAwaiting([...info].reverse());
-      setReady(appr);
-      setLoading(false);
+      try {
+        const [decide, info, appr] = await Promise.all([
+          fetchBucket("pending_broker_review", "priority"),
+          fetchBucket("needs_more_info"),
+          fetchBucket("approved"),
+        ]);
+        if (cancelled) return;
+        setToDecide(decide);
+        // endpoint returns newest-first; awaiting wants oldest-first
+        setAwaiting([...info].reverse());
+        setReady(appr);
+      } catch {
+        // A thrown fetch (network error, or a 5xx whose error response carries
+        // no CORS header) must NOT leave the page spinning forever — surface a
+        // retryable error instead of an infinite spinner.
+        if (!cancelled) setError("Couldn't load the work queue.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
-  }, [isLoaded, isSignedIn, isBroker]);
+    return () => { cancelled = true; };
+  }, [isLoaded, isSignedIn, isBroker, reloadKey]);
 
   const open = (packetId: string) => router.push(`/underwriter/${packetId}`);
 
@@ -170,6 +185,26 @@ export default function WorkQueuePage() {
     return (
       <div className="page-loading">
         <div className="loading-spinner" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
+        <div className="lc-card" style={{ marginTop: "clamp(40px, 12vh, 120px)" }}>
+          <div className="lc-card__inner" style={{ textAlign: "center", padding: "var(--space-xl)" }}>
+            <p className="text-sm" style={{ color: "var(--state-error)", margin: 0 }}>{error}</p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ marginTop: "var(--space-md)", minHeight: 44 }}
+              onClick={() => setReloadKey((k) => k + 1)}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

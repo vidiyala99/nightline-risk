@@ -195,13 +195,15 @@ def test_broker_can_approve_pending_proposal():
 
     response = client.post(
         f"/api/claim-proposals/{proposal_id}/broker-decision",
-        json={"broker_id": "br-1", "decision": "approved"},
+        json={"decision": "approved"},
+        headers=_broker_headers(),
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["state"] == "approved"
-    assert body["broker_decided_by"] == "br-1"
+    # Actor is the authenticated broker (token), not self-reported body data.
+    assert body["broker_decided_by"] == "user-claim-routes-broker"
 
 
 def test_broker_can_reject_with_notes():
@@ -215,10 +217,10 @@ def test_broker_can_reject_with_notes():
     response = client.post(
         f"/api/claim-proposals/{proposal_id}/broker-decision",
         json={
-            "broker_id": "br-1",
             "decision": "rejected",
             "notes": "Net EV is negative; recommend not filing.",
         },
+        headers=_broker_headers(),
     )
 
     assert response.status_code == 200
@@ -236,12 +238,14 @@ def test_double_decision_returns_400():
     ).json()["id"]
     client.post(
         f"/api/claim-proposals/{proposal_id}/broker-decision",
-        json={"broker_id": "br-1", "decision": "approved"},
+        json={"decision": "approved"},
+        headers=_broker_headers(),
     )
 
     response = client.post(
         f"/api/claim-proposals/{proposal_id}/broker-decision",
-        json={"broker_id": "br-1", "decision": "rejected"},
+        json={"decision": "rejected"},
+        headers=_broker_headers(),
     )
 
     assert response.status_code == 400
@@ -253,7 +257,8 @@ def test_broker_decision_on_unknown_proposal_returns_404():
 
     response = client.post(
         "/api/claim-proposals/prop-does-not-exist/broker-decision",
-        json={"broker_id": "br-1", "decision": "approved"},
+        json={"decision": "approved"},
+        headers=_broker_headers(),
     )
 
     assert response.status_code == 404
@@ -378,7 +383,8 @@ def test_broker_request_more_info_returns_needs_more_info():
 
     response = client.post(
         f"/api/claim-proposals/{pid}/broker-decision",
-        json={"broker_id": "br-1", "decision": "needs_more_info", "notes": "Upload the door footage."},
+        json={"decision": "needs_more_info", "notes": "Upload the door footage."},
+        headers=_broker_headers(),
     )
 
     assert response.status_code == 200
@@ -395,7 +401,8 @@ def test_request_more_info_without_notes_returns_400():
 
     response = client.post(
         f"/api/claim-proposals/{pid}/broker-decision",
-        json={"broker_id": "br-1", "decision": "needs_more_info"},
+        json={"decision": "needs_more_info"},
+        headers=_broker_headers(),
     )
 
     assert response.status_code == 400
@@ -408,7 +415,8 @@ def test_operator_response_requeues_then_broker_approves():
     pid = _pending_proposal_id(client, packet_id)
     client.post(
         f"/api/claim-proposals/{pid}/broker-decision",
-        json={"broker_id": "br-1", "decision": "needs_more_info", "notes": "Need the report."},
+        json={"decision": "needs_more_info", "notes": "Need the report."},
+        headers=_broker_headers(),
     )
 
     resp = client.post(
@@ -421,10 +429,58 @@ def test_operator_response_requeues_then_broker_approves():
 
     approved = client.post(
         f"/api/claim-proposals/{pid}/broker-decision",
-        json={"broker_id": "br-1", "decision": "approved"},
+        json={"decision": "approved"},
+        headers=_broker_headers(),
     )
     assert approved.status_code == 200
     assert approved.json()["state"] == "approved"
+
+
+def test_broker_decision_requires_broker_role():
+    """Deciding a proposal is broker-only. An operator can *create* the proposal
+    but must not be able to approve/reject it; an anonymous caller is rejected
+    outright. (Previously the endpoint was unauthenticated — anyone could decide.)"""
+    client = TestClient(app, headers=_op_headers())
+    packet_id = _create_packet(client)
+    pid = _pending_proposal_id(client, packet_id)
+
+    assert client.post(
+        f"/api/claim-proposals/{pid}/broker-decision",
+        json={"decision": "approved"}, headers=_op_headers(),
+    ).status_code == 403
+    # Empty Authorization overrides the client's default operator token → no auth.
+    assert client.post(
+        f"/api/claim-proposals/{pid}/broker-decision",
+        json={"decision": "approved"}, headers={"Authorization": ""},
+    ).status_code == 401
+
+
+def test_broker_can_cancel_info_request_to_requeue():
+    """A broker can withdraw their own 'request more info' and pull a parked
+    needs_more_info proposal back to pending so they can decide it without
+    waiting on the operator. Operators can't cancel it."""
+    client = TestClient(app, headers=_op_headers())
+    packet_id = _create_packet(client)
+    pid = _pending_proposal_id(client, packet_id)
+    client.post(
+        f"/api/claim-proposals/{pid}/broker-decision",
+        json={"decision": "needs_more_info", "notes": "Upload the footage."},
+        headers=_broker_headers(),
+    )
+
+    # Operator may not cancel a broker's info request.
+    assert client.post(
+        f"/api/claim-proposals/{pid}/cancel-info-request", headers=_op_headers(),
+    ).status_code == 403
+
+    # Broker withdraws the request → proposal is decidable again.
+    resp = client.post(
+        f"/api/claim-proposals/{pid}/cancel-info-request", headers=_broker_headers(),
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["state"] == "pending_broker_review"
+    assert body["info_request_note"] is None
 
 
 def test_operator_response_on_unknown_proposal_returns_404():
@@ -926,3 +982,26 @@ def test_close_allowed_when_no_claim():
     ok = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "closed"})
     assert ok.status_code == 200, ok.text
     assert ok.json()["status"] == "closed"
+
+
+# ---------- priority sort survives a Postgres JSON-string snapshot ----------
+
+
+def test_proposal_priority_handles_string_snapshot():
+    """recommendation_snapshot is a parsed dict on SQLite but a JSON STRING on
+    Postgres. The priority sort must coerce it, not 500 on str.get — that 500
+    (with no CORS header on the error) was hanging the broker Work Queue."""
+    import json as _json
+    from app.api.v1.claim_proposals import _proposal_priority, _coerce_snapshot
+
+    snap = {"confidence": 0.8, "expected_payout": {"median_usd": 5000}}
+
+    class _P:
+        recommendation_snapshot = _json.dumps(snap)  # Postgres-style string
+        proposed_at = None
+
+    assert _proposal_priority(_P()) > 0  # must not raise
+    assert _coerce_snapshot(_json.dumps(snap)) == snap
+    assert _coerce_snapshot(None) == {}
+    assert _coerce_snapshot("not json") == {}
+    assert _coerce_snapshot({"a": 1}) == {"a": 1}

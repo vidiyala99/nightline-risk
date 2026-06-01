@@ -93,8 +93,6 @@ interface Incident {
   status: string;
 }
 
-type DecisionRecord = { decision: string; decided_at: string };
-
 const SEVERITY_COLOR: Record<string, string> = {
   critical: "var(--state-error)",
   high: "var(--state-error)",
@@ -111,9 +109,6 @@ export default function ReportDetailPage() {
   const [incident, setIncident] = useState<Incident | null>(null);
   const [visionAnalysis, setVisionAnalysis] = useState<{ status: string; analyses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [decision, setDecision] = useState<DecisionRecord | null>(null);
-  const [notes, setNotes] = useState("");
   const [checkedQuestions, setCheckedQuestions] = useState<Set<number>>(new Set());
   const [proposal, setProposal] = useState<ClaimProposal | null>(null);
   const [proposeModalOpen, setProposeModalOpen] = useState(false);
@@ -178,7 +173,7 @@ export default function ReportDetailPage() {
     try {
       const res = await fetch(`${API_URL}/api/packets/${packet.id}/claim-proposal`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           operator_id: user?.id ?? "unknown",
           override_recommendation: override.override_recommendation,
@@ -208,7 +203,7 @@ export default function ReportDetailPage() {
         `${API_URL}/api/claim-proposals/${proposal.id}/broker-decision`,
         {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...authHeaders() },
           body: JSON.stringify({
             broker_id: user?.id ?? "unknown",
             decision: dec,
@@ -245,7 +240,7 @@ export default function ReportDetailPage() {
         `${API_URL}/api/claim-proposals/${proposal.id}/operator-response`,
         {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...authHeaders() },
           body: JSON.stringify({
             operator_id: user?.id ?? "unknown",
             response_note: operatorResponseNote.trim(),
@@ -265,6 +260,28 @@ export default function ReportDetailPage() {
     }
   }
 
+  // Broker escape hatch: withdraw your own info request so the proposal comes
+  // back to your queue instead of parking on an operator who may never answer.
+  async function cancelInfoRequest() {
+    if (!proposal) return;
+    setSubmittingBrokerDecision(true);
+    setProposalError(null);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/claim-proposals/${proposal.id}/cancel-info-request`,
+        { method: "POST", headers: { "content-type": "application/json", ...authHeaders() } },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setProposalError(err.detail ?? `Request failed (${res.status})`);
+        return;
+      }
+      setProposal(await res.json());
+    } finally {
+      setSubmittingBrokerDecision(false);
+    }
+  }
+
   async function loadFnolDraft(proposalId: string) {
     const r = await fetch(`${API_URL}/api/claim-proposals/${proposalId}/fnol-draft`, { headers: authHeaders() });
     if (r.ok) setFnolDraft(await r.json());
@@ -277,24 +294,6 @@ export default function ReportDetailPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proposal?.state, proposal?.id]);
-
-  async function submitDecision(dec: string) {
-    if (!packet) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch(`${API_URL}/api/packets/${packet.id}/review-decisions`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ reviewer_id: user?.id ?? "unknown", decision: dec, notes: notes || null }),
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setDecision({ decision: dec, decided_at: result.decided_at });
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   if (loading) return <div className="page-loading"><div className="loading-spinner" /></div>;
   if (!packet) return (
@@ -900,6 +899,25 @@ export default function ReportDetailPage() {
                       </div>
                     )}
 
+                    {/* Broker escape: stop waiting on the operator and pull the
+                        proposal back to your queue to decide it now. */}
+                    {proposal.state === "needs_more_info" && isBroker && (
+                      <div className="flex flex-col gap-sm" style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "var(--space-md)" }}>
+                        <p className="text-xs text-secondary" style={{ margin: 0 }}>
+                          Awaiting the operator&apos;s response. Don&apos;t want to wait? Withdraw your request and decide now.
+                        </p>
+                        <button
+                          className="btn w-full flex items-center justify-center gap-sm"
+                          onClick={cancelInfoRequest}
+                          disabled={submittingBrokerDecision}
+                          style={{ border: "1px solid var(--state-warning)", color: "var(--state-warning)", background: "none" }}
+                        >
+                          <RefreshCw size={16} />
+                          {submittingBrokerDecision ? "Withdrawing…" : "Withdraw request — decide now"}
+                        </button>
+                      </div>
+                    )}
+
                   </div>
                 );
               })()}
@@ -959,63 +977,6 @@ export default function ReportDetailPage() {
 
           {isBroker && proposal?.state === "filed_with_carrier" && (
             <span className="badge badge-info">Filed with carrier</span>
-          )}
-
-          {/* Review Decision — broker/admin only. Operators see a read-only
-              result if a decision was already made, but never the action buttons. */}
-          {(isBroker || decision) && (
-          <section className="card" data-section="review-decision">
-            <h2 className="text-xs uppercase tracking-wide text-secondary mb-lg" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>Review Decision</h2>
-            {decision ? (
-              <div className="flex items-center gap-md p-md" style={{ border: `1px solid ${decision.decision === "approved" ? "var(--brand-primary)" : "var(--state-error)"}`, borderRadius: "var(--radius-sm)" }}>
-                {decision.decision === "approved" ? <ShieldCheck size={20} style={{ color: "var(--accent-ink)" }} /> : <LockKeyhole size={20} style={{ color: "var(--state-error)" }} />}
-                <div>
-                  <p className="font-semibold capitalize">{decision.decision.replace(/_/g, " ")}</p>
-                  <p className="text-xs text-secondary">{new Date(decision.decided_at).toLocaleString()}</p>
-                </div>
-              </div>
-            ) : isBroker ? (
-              <div className="flex flex-col gap-sm">
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-secondary block mb-xs">Notes (optional)</label>
-                  <textarea
-                    className="w-full text-sm p-sm"
-                    rows={3}
-                    placeholder="Add internal notes..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)", color: "var(--text-primary)", resize: "none" }}
-                  />
-                </div>
-                <button
-                  className="btn btn-primary w-full flex items-center justify-center gap-sm"
-                  onClick={() => submitDecision("approved")}
-                  disabled={submitting}
-                >
-                  <CheckCircle2 size={16} />
-                  {submitting ? "Recording..." : "Approve"}
-                </button>
-                <button
-                  className="btn w-full flex items-center justify-center gap-sm"
-                  onClick={() => submitDecision("needs_more_info")}
-                  disabled={submitting}
-                  style={{ border: "1px solid var(--state-warning)", color: "var(--state-warning)", background: "none" }}
-                >
-                  <AlertTriangle size={16} />
-                  Request More Info
-                </button>
-                <button
-                  className="btn w-full flex items-center justify-center gap-sm"
-                  onClick={() => submitDecision("blocked")}
-                  disabled={submitting}
-                  style={{ border: "1px solid var(--state-error)", color: "var(--state-error)", background: "none" }}
-                >
-                  <LockKeyhole size={16} />
-                  Block
-                </button>
-              </div>
-            ) : null}
-          </section>
           )}
 
           <section className="card" data-section="evidence">

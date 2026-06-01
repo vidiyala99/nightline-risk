@@ -50,7 +50,8 @@ def _propose(client: TestClient, packet_id: str, *, override: bool, reason: str 
 def _decide(client: TestClient, proposal_id: str, decision: str) -> None:
     client.post(
         f"/api/claim-proposals/{proposal_id}/broker-decision",
-        json={"broker_id": "br-1", "decision": decision, "notes": "x" if decision == "rejected" else None},
+        json={"decision": decision, "notes": "x" if decision == "rejected" else None},
+        headers=_broker(),
     )
 
 

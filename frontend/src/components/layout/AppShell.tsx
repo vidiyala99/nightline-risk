@@ -108,6 +108,10 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
   // up "Claims", not "Incidents". The incident itself (/incidents/<id>) stays
   // under Incidents. Brokers never reach these operator-only routes.
   const isClaimFlow = /^\/incidents\/[^/]+\/(decision|claim-status)(\/|$)/.test(pathname ?? "");
+  // The broker proposal-review screen (/underwriter/<id>) is reached from the
+  // Work Queue and has no nav href of its own — light Work Queue so the broker
+  // keeps their "where am I" anchor mid-decision.
+  const isProposalReview = (pathname ?? "").startsWith("/underwriter");
 
   const isActive = (href: string) => {
     const base = href.split("?")[0];
@@ -115,6 +119,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
       if (base === "/claims") return true;
       if (base === "/incidents") return false;
     }
+    if (isProposalReview && base === "/work-queue") return true;
     return pathname === base || pathname?.startsWith(base + "/");
   };
 

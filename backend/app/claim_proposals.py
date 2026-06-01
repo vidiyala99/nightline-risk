@@ -240,6 +240,44 @@ def record_operator_info_response(
     return proposal
 
 
+def record_broker_cancel_info_request(
+    *,
+    session: Session,
+    proposal_id: str,
+    broker_id: str,
+) -> ClaimProposal:
+    """Broker withdraws their own 'request more info', pulling the proposal back
+    to `pending_broker_review` so they can decide it without waiting on the
+    operator — the broker's escape hatch from a proposal the operator never
+    answered. Only valid from `needs_more_info`.
+    """
+    proposal = session.get(ClaimProposal, proposal_id)
+    if proposal is None:
+        raise ClaimProposalValidationError(f"Proposal not found: {proposal_id}")
+    if proposal.state != "needs_more_info":
+        raise ClaimProposalValidationError(
+            f"Proposal {proposal_id} is not awaiting more info (state={proposal.state})"
+        )
+
+    proposal.state = "pending_broker_review"
+    # Clear the open ask so the re-queued proposal doesn't show a stale request.
+    proposal.info_request_note = None
+    proposal.info_requested_by = None
+    proposal.info_requested_at = None
+    session.add(proposal)
+    _add_audit_event(
+        session=session,
+        actor_id=broker_id,
+        actor_type="broker",
+        entity_id=proposal.id,
+        event_type="claim.info_request_cancelled",
+        event_metadata={"packet_id": proposal.packet_id, "venue_id": proposal.venue_id},
+    )
+    session.commit()
+    session.refresh(proposal)
+    return proposal
+
+
 def mark_proposal_filed(
     *,
     session: Session,

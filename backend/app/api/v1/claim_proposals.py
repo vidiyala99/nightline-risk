@@ -28,11 +28,12 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from app.auth import accessible_venue_ids, current_user_optional, require_venue_access
+from app.auth import accessible_venue_ids, current_user_optional, require_broker, require_venue_access
 from app.claim_proposals import (
     ClaimProposalValidationError,
     compute_override_stats,
     create_proposal as create_claim_proposal,
+    record_broker_cancel_info_request as record_claim_broker_cancel_info_request,
     record_broker_decision as record_claim_broker_decision,
     record_operator_info_response as record_claim_operator_info_response,
     stats_to_dict as override_stats_to_dict,
@@ -53,7 +54,9 @@ class _ClaimProposalCreate(BaseModel):
 
 
 class _BrokerDecisionCreate(BaseModel):
-    broker_id: str
+    # broker_id is accepted for backwards-compat but ignored — the actor is the
+    # authenticated broker from the token, never self-reported body data.
+    broker_id: str | None = None
     decision: str
     notes: str | None = None
 
@@ -61,6 +64,20 @@ class _BrokerDecisionCreate(BaseModel):
 class _OperatorInfoResponseCreate(BaseModel):
     operator_id: str
     response_note: str
+
+
+def _coerce_snapshot(snap) -> dict:
+    """`recommendation_snapshot` is a JSON column — a parsed dict on SQLite but a
+    JSON **string** on Postgres. Coerce to a dict at the read boundary so callers
+    can `.get()` safely on both backends (prod was 500ing on the priority sort
+    because `.get()` was called on the raw string)."""
+    if isinstance(snap, str):
+        import json
+        try:
+            snap = json.loads(snap)
+        except (ValueError, TypeError):
+            return {}
+    return snap if isinstance(snap, dict) else {}
 
 
 def _proposal_to_dict(proposal) -> dict[str, Any]:
@@ -72,7 +89,7 @@ def _proposal_to_dict(proposal) -> dict[str, Any]:
     """
     from app.main import _claim_proposal_to_dict as _to_dict
     result = _to_dict(proposal)
-    result["recommendation_snapshot"] = proposal.recommendation_snapshot
+    result["recommendation_snapshot"] = _coerce_snapshot(proposal.recommendation_snapshot)
     return result
 
 
@@ -81,7 +98,7 @@ def _proposal_priority(p: ClaimProposal, now: "datetime | None" = None) -> float
     grace so a high-value item ranks first immediately AND an aging item
     eventually surfaces. Missing snapshot sorts last (0). Constants are tunable.
     """
-    snap = p.recommendation_snapshot or {}
+    snap = _coerce_snapshot(p.recommendation_snapshot)
     median = (snap.get("expected_payout") or {}).get("median_usd", 0)
     base_value = float(snap.get("confidence", 0.0)) * float(median)
     if base_value == 0.0:
@@ -147,13 +164,18 @@ def create_claim_proposal_route(
 def broker_decision_on_proposal(
     proposal_id: str,
     payload: _BrokerDecisionCreate,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
+    # Deciding a claim proposal is a broker-only action. Gate on broker role and
+    # record the *authenticated* broker as the actor — the body broker_id was
+    # previously unverified, which let an operator (or anyone) approve a claim.
+    broker = require_broker(authorization)
     try:
         proposal = record_claim_broker_decision(
             session=session,
             proposal_id=proposal_id,
-            broker_id=payload.broker_id,
+            broker_id=broker["sub"],
             decision=payload.decision,
             notes=payload.notes,
         )
@@ -185,6 +207,30 @@ def operator_info_response_on_proposal(
             proposal_id=proposal_id,
             operator_id=payload.operator_id,
             response_note=payload.response_note,
+        )
+    except ClaimProposalValidationError as e:
+        message = str(e)
+        status = 404 if "Proposal not found" in message else 400
+        from fastapi import HTTPException
+        raise HTTPException(status_code=status, detail=message) from e
+    return _proposal_to_dict(proposal)
+
+
+@router.post("/claim-proposals/{proposal_id}/cancel-info-request")
+def cancel_info_request_on_proposal(
+    proposal_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Broker withdraws their own 'request more info', re-queueing the proposal
+    for their own decision instead of waiting on the operator. Broker-only —
+    this is the escape hatch from a needs_more_info proposal that's gone stale."""
+    broker = require_broker(authorization)
+    try:
+        proposal = record_claim_broker_cancel_info_request(
+            session=session,
+            proposal_id=proposal_id,
+            broker_id=broker["sub"],
         )
     except ClaimProposalValidationError as e:
         message = str(e)

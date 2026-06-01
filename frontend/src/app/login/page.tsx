@@ -203,10 +203,6 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
-
-          <p className="lc-login__back">
-            <Link href="/">← Back home</Link>
-          </p>
         </div>
 
         <div className="lc-login__quote">
