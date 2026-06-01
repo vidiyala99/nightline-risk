@@ -125,9 +125,10 @@ ratios, and placement, not just clicks. Commission is *stored* per policy
   `app/services/carriers.py::carrier_detail` (book rollup + appetite tags + policies), surfaced via
   the enhanced `GET /api/carriers/{cid}` (additive book/policies keys) → web `/carriers/[cid]` page
   (appetite tags + written/earned premium + commission + loss ratio + in-force policy list), and the
-  Book Financials "By carrier" rows now deep-link to it. **Remaining:** graded match-score on a
-  submission's carrier-picker (turn `check_appetite`'s boolean into a 0-100 match + reasons) and
-  mobile carrier-detail parity.
+  Book Financials "By carrier" rows now deep-link to it. Mobile carrier-detail parity shipped
+  2026-06-01 (`mobile/.../CarrierDetailScreen.tsx`; BookScreen "By carrier" cards tappable).
+  **Remaining:** graded match-score on a submission's carrier-picker (turn `check_appetite`'s
+  boolean into a 0-100 match + reasons).
 - [ ] 🔒 Billing / premium accounting / invoicing — likely needs Stripe; gate it.
 
 **7b. Lifecycle negative edges — defined but unreachable (placement audit).** ✅ **Done 2026-06-01.**
