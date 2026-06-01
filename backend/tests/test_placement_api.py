@@ -371,6 +371,74 @@ def test_withdraw_submission_sets_terminal(client):
     assert r.json()["status"] == "withdrawn"
 
 
+# ─── POST /api/submissions/{sid}/decline and /lose ───────────────────────
+
+
+def test_decline_submission_from_in_market(client):
+    """All carriers declined → submission 'declined' (from 'in_market')."""
+    sid = client.post(
+        "/api/submissions", json=_new_submission_body(), headers=_broker_headers()
+    ).json()["id"]
+    client.post(
+        f"/api/submissions/{sid}/submit",
+        json={"target_carriers": ["markel-specialty"]}, headers=_broker_headers(),
+    )
+    r = client.post(
+        f"/api/submissions/{sid}/decline",
+        json={"reason": "class not in appetite"}, headers=_broker_headers(),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "declined"
+
+
+def test_lose_submission_from_quoting(client):
+    """Venue went elsewhere while quoting → submission 'lost'."""
+    sid = client.post(
+        "/api/submissions", json=_new_submission_body(), headers=_broker_headers()
+    ).json()["id"]
+    submit = client.post(
+        f"/api/submissions/{sid}/submit",
+        json={"target_carriers": ["markel-specialty"]}, headers=_broker_headers(),
+    )
+    qid = submit.json()["quotes_created"][0]["id"]
+    # Recording a quoted response advances the submission to 'quoting'.
+    client.post(
+        f"/api/quotes/{qid}/record-response",
+        json={"status": "quoted", "premium_breakdown": _well_formed_breakdown()},
+        headers=_broker_headers(),
+    )
+    r = client.post(
+        f"/api/submissions/{sid}/lose",
+        json={"reason": "bound with incumbent"}, headers=_broker_headers(),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "lost"
+
+
+def test_lose_submission_from_open_returns_422(client):
+    """'lost' is illegal from 'open' — lifecycle violation maps to 422."""
+    sid = client.post(
+        "/api/submissions", json=_new_submission_body(), headers=_broker_headers()
+    ).json()["id"]
+    r = client.post(
+        f"/api/submissions/{sid}/lose",
+        json={"reason": "x"}, headers=_broker_headers(),
+    )
+    assert r.status_code == 422
+    assert r.json()["detail"]["error"] == "invalid_transition"
+
+
+def test_decline_submission_rejects_operator(client):
+    sid = client.post(
+        "/api/submissions", json=_new_submission_body(), headers=_broker_headers()
+    ).json()["id"]
+    r = client.post(
+        f"/api/submissions/{sid}/decline",
+        json={"reason": "x"}, headers=_operator_headers(),
+    )
+    assert r.status_code in (401, 403)
+
+
 # ─── GET /api/carriers ───────────────────────────────────────────────────
 
 def test_list_carriers_returns_six_seeded(client):

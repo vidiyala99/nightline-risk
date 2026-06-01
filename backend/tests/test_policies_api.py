@@ -376,6 +376,65 @@ def test_cancel_policy_rejects_invalid_method(client):
     assert "unknown cancellation method" in r.json()["detail"]
 
 
+# ─── policy end-of-life routes (expire / non-renew / lapse / reinstate) ──
+
+
+def _bind_active(client, number: str) -> dict:
+    qid = _create_quoted_selected_quote(client)
+    return client.post(
+        f"/api/quotes/{qid}/bind",
+        json={"policy_number": number},
+        headers=_broker_headers(),
+    ).json()
+
+
+def test_expire_policy_route(client):
+    pol = _bind_active(client, "P-EXPIRE-1")
+    r = client.post(f"/api/policies/{pol['id']}/expire", json={}, headers=_broker_headers())
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "expired"
+
+
+def test_non_renew_policy_route(client):
+    pol = _bind_active(client, "P-NONREN-1")
+    r = client.post(
+        f"/api/policies/{pol['id']}/non-renew",
+        json={"reason": "loss ratio too high"}, headers=_broker_headers(),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "non_renewed"
+
+
+def test_lapse_then_reinstate_routes(client):
+    pol = _bind_active(client, "P-LAPSE-1")
+    lapse = client.post(
+        f"/api/policies/{pol['id']}/lapse",
+        json={"reason": "premium unpaid"}, headers=_broker_headers(),
+    )
+    assert lapse.status_code == 200, lapse.text
+    assert lapse.json()["status"] == "lapsed"
+
+    reinstate = client.post(
+        f"/api/policies/{pol['id']}/reinstate", json={}, headers=_broker_headers(),
+    )
+    assert reinstate.status_code == 200, reinstate.text
+    assert reinstate.json()["status"] == "active"
+
+
+def test_expire_route_rejects_operator(client):
+    pol = _bind_active(client, "P-EXPIRE-AUTH")
+    r = client.post(f"/api/policies/{pol['id']}/expire", json={}, headers=_operator_headers())
+    assert r.status_code in (401, 403)
+
+
+def test_reinstate_active_policy_returns_422(client):
+    """Illegal lifecycle transition maps to 422, not 400."""
+    pol = _bind_active(client, "P-REIN-BAD")
+    r = client.post(f"/api/policies/{pol['id']}/reinstate", json={}, headers=_broker_headers())
+    assert r.status_code == 422
+    assert r.json()["detail"]["error"] == "invalid_transition"
+
+
 # ─── POST /api/policies/{pid}/certificates ──────────────────────────────
 
 

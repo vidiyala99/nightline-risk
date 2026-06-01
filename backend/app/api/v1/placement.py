@@ -40,7 +40,11 @@ from sqlmodel import Session, select
 
 from app.auth import require_broker, verify_token
 from app.database import get_session
-from app.lifecycles import SUBMISSION_TRANSITIONS, transition_table_to_json
+from app.lifecycles import (
+    SUBMISSION_TRANSITIONS,
+    InvalidTransitionError,
+    transition_table_to_json,
+)
 from app.models import Carrier, CarrierQuote, Submission
 from app.services.submissions import (
     OutOfAppetiteError,
@@ -48,6 +52,8 @@ from app.services.submissions import (
     SubmissionsError,
     create_submission,
     list_submissions,
+    mark_submission_declined,
+    mark_submission_lost,
     record_carrier_response,
     select_quote,
     submit_to_market,
@@ -308,6 +314,53 @@ def api_withdraw_submission(
     except SubmissionsError as e:
         session.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+
+def _terminal_submission_response(
+    fn, session: Session, sid: str, reason: str, actor_id: str
+) -> dict:
+    """Shared body for the decline/lose routes. Maps the lifecycle's two
+    failure modes: an unknown/already-terminal submission → 400
+    (SubmissionsError); an illegal from-state → 422 (InvalidTransitionError),
+    matching the policies router's convention."""
+    try:
+        sub = fn(session, sid, reason=reason, actor_id=actor_id)
+        session.commit()
+        return _submission_to_dict(sub)
+    except InvalidTransitionError as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=422, detail={"error": "invalid_transition", "message": str(e)}
+        )
+    except SubmissionsError as e:
+        session.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/submissions/{sid}/decline", dependencies=[Depends(require_broker)])
+def api_decline_submission(
+    sid: str,
+    body: WithdrawBody,
+    user_id: str = Depends(_broker_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """All targeted carriers declined to quote → terminal 'declined'."""
+    return _terminal_submission_response(
+        mark_submission_declined, session, sid, body.reason, user_id
+    )
+
+
+@router.post("/submissions/{sid}/lose", dependencies=[Depends(require_broker)])
+def api_lose_submission(
+    sid: str,
+    body: WithdrawBody,
+    user_id: str = Depends(_broker_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Venue bound coverage elsewhere → terminal 'lost'."""
+    return _terminal_submission_response(
+        mark_submission_lost, session, sid, body.reason, user_id
+    )
 
 
 # ─── Quotes ─────────────────────────────────────────────────────────────

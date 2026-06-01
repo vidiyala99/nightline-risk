@@ -120,18 +120,19 @@ ratios, and placement, not just clicks. Commission is *stored* per policy
   on a submission" makes placement feel real.
 - [ ] 🔒 Billing / premium accounting / invoicing — likely needs Stripe; gate it.
 
-**7b. Lifecycle negative edges — defined but unreachable (placement audit).** These make the spine
-*incomplete*, not just unpolished:
-- [ ] **Renewal hand-off leaves the prior policy dangling** ★ — `renewalsApi.renew` creates a
-  renewal submission but never advances the old policy, so it stays on the "due" list forever and
-  can be re-renewed infinitely (`services/renewals.py:81`). Real data-integrity bug.
-- [ ] `bound_pending_number` policies are excluded from the default `/policies` list
-  (`services/policies.py:640`) — a just-bound policy vanishes until a number is assigned.
-- [ ] No UI path to mark a submission `lost`/`declined`, or a policy `expired`/`non_renewed`/
-  `lapsed` (or reinstate) — all defined in `lifecycles.py`, none reachable; expired policies show
-  "Active" forever and win/loss analytics are corrupted.
-- [ ] `coverage_change` policy-request approval is a silent no-op (`services/policy_requests.py:211`
-  returns `(None, None)`) — operator sees "Approved" but no endorsement issues.
+**7b. Lifecycle negative edges — defined but unreachable (placement audit).** ✅ **Done 2026-06-01.**
+These made the spine *incomplete*, not just unpolished:
+- [x] **Renewal hand-off leaves the prior policy dangling** ★ — `create_renewal` now guards one live
+  renewal per policy (`find_live_renewal`) and the `/renewals/due` list excludes policies with a
+  renewal in flight. (`services/renewals.py`)
+- [x] `bound_pending_number` policies are excluded from the default `/policies` list — `list_policies`
+  default now filters on `ACTIVE_POLICY_STATUSES` (active + bound_pending_number).
+- [x] No UI path to mark a submission `lost`/`declined`, or a policy `expired`/`non_renewed`/
+  `lapsed` (or reinstate) — service fns (`mark_submission_lost/declined`, `expire/non_renew/lapse/
+  reinstate_policy`) + routes (`/submissions/{id}/lose|decline`, `/policies/{id}/expire|non-renew|
+  lapse|reinstate`) + web (submissions kanban + policy detail) and mobile (detail screens) controls.
+- [x] `coverage_change` policy-request approval is a silent no-op — approval now issues a real
+  `Endorsement` and adjusts premium, validated before the lifecycle transition.
 
 **7c. Remaining gut-check polish (medium/low).**
 - [ ] Broker dashboard has no empty-book / fetch-error state (a failed `/api/portfolio` renders a

@@ -251,6 +251,21 @@ export const placementApi = {
       body: JSON.stringify({ reason }),
     }),
 
+  // Terminal outcomes other than a broker withdrawal: the venue bound
+  // elsewhere (lost, from 'quoting') or every carrier declined (declined,
+  // from 'in_market'). Kept distinct from withdraw for win/loss reporting.
+  declineSubmission: (sid: string, reason: string) =>
+    call<Submission>(`/api/submissions/${sid}/decline`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  loseSubmission: (sid: string, reason: string) =>
+    call<Submission>(`/api/submissions/${sid}/lose`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
   // Quotes
   recordQuoteResponse: (qid: string, body: {
     status: "quoted" | "declined" | "expired" | "withdrawn";

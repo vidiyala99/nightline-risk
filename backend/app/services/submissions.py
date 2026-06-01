@@ -576,16 +576,22 @@ def select_quote(
     return q
 
 
-def withdraw_submission(
+def _resolve_submission_terminal(
     session: Session,
     submission_id: str,
     *,
+    to: str,
     reason: str,
-    withdrawn_by: str,
+    actor_id: str,
 ) -> Submission:
-    """Pull a submission out of market. Withdraws every non-terminal
-    carrier quote attached to it (so they don't stay in 'requested'
-    forever). The submission's terminal state is 'withdrawn'."""
+    """Drive a submission to a dead-end terminal state, resolving its live
+    quotes so none dangle in 'requested'/'quoted' forever.
+
+    Shared by withdraw / lost / declined — the only difference between them
+    is the submission's target state and which from-states are legal (the
+    lifecycle matrix enforces that via `_transition_submission`). Withdrawing
+    the live quotes is always a valid quote transition from any live state,
+    so it's the uniform cascade regardless of the submission's outcome."""
     sub = session.get(Submission, submission_id)
     if sub is None:
         raise SubmissionsError(f"Unknown submission {submission_id!r}")
@@ -594,25 +600,65 @@ def withdraw_submission(
             f"Submission {sub.id!r} already in terminal state {sub.status!r}"
         )
 
-    # Withdraw every still-live quote first.
+    # Resolve every still-live quote first so it doesn't dangle.
     live_quotes = session.exec(
         select(CarrierQuote).where(CarrierQuote.submission_id == sub.id)
     ).all()
     for q in live_quotes:
         if q.status in {"requested", "pending", "quoted"}:
             _transition_carrier_quote(
-                session, q, to="withdrawn", actor_id=withdrawn_by,
-                metadata={"reason": reason, "submission_withdrawn": True},
+                session, q, to="withdrawn", actor_id=actor_id,
+                metadata={"reason": reason, f"submission_{to}": True},
             )
 
     _transition_submission(
-        session,
-        sub,
-        to="withdrawn",
-        actor_id=withdrawn_by,
-        metadata={"reason": reason},
+        session, sub, to=to, actor_id=actor_id, metadata={"reason": reason},
     )
     return sub
+
+
+def withdraw_submission(
+    session: Session,
+    submission_id: str,
+    *,
+    reason: str,
+    withdrawn_by: str,
+) -> Submission:
+    """Pull a submission out of market (broker's choice). Withdraws every
+    non-terminal carrier quote attached to it. Terminal state 'withdrawn'."""
+    return _resolve_submission_terminal(
+        session, submission_id, to="withdrawn", reason=reason, actor_id=withdrawn_by,
+    )
+
+
+def mark_submission_lost(
+    session: Session,
+    submission_id: str,
+    *,
+    reason: str,
+    actor_id: str,
+) -> Submission:
+    """The venue bound coverage elsewhere. Terminal state 'lost' (only legal
+    from 'quoting'). Records the reason for win/loss analytics and the next
+    renewal cycle ('lost to incumbent last year — lead with X')."""
+    return _resolve_submission_terminal(
+        session, submission_id, to="lost", reason=reason, actor_id=actor_id,
+    )
+
+
+def mark_submission_declined(
+    session: Session,
+    submission_id: str,
+    *,
+    reason: str,
+    actor_id: str,
+) -> Submission:
+    """Every targeted carrier declined to quote. Terminal state 'declined'
+    (only legal from 'in_market'). Distinct from broker-initiated 'withdrawn'
+    and venue-initiated 'lost' so win/loss reporting can tell them apart."""
+    return _resolve_submission_terminal(
+        session, submission_id, to="declined", reason=reason, actor_id=actor_id,
+    )
 
 
 def list_submissions(

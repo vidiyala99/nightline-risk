@@ -35,7 +35,14 @@ import {
 } from '../api/submissions';
 import { policiesApi } from '../api/policies';
 
-type PromptKind = { kind: 'withdraw' } | { kind: 'decline'; qid: string } | null;
+// 'decline' here is QUOTE-level (record a carrier's declination). The
+// submission-level terminal outcomes are 'sub-lost' / 'sub-declined'.
+type PromptKind =
+  | { kind: 'withdraw' }
+  | { kind: 'decline'; qid: string }
+  | { kind: 'sub-lost' }
+  | { kind: 'sub-declined' }
+  | null;
 
 /** api.request throws Error(rawBody); pull the structured {error,message} detail out. */
 function parseErrorDetail(message?: string): { error?: string; message?: string } | null {
@@ -89,6 +96,8 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
   }, [load]);
 
   const isOpen = detail?.status === 'open';
+  const isInMarket = detail?.status === 'in_market';
+  const isQuoting = detail?.status === 'quoting';
   const quotedCarrierIds = useMemo(
     () => new Set((detail?.quotes ?? []).map((q) => q.carrier_id)),
     [detail],
@@ -291,6 +300,40 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
               </View>
             )}
 
+            {/* In-market / quoting → close out the submission. Lost (venue
+                went elsewhere) is offered while quoting; declined (carriers
+                said no) while in market; withdraw applies to both. */}
+            {(isInMarket || isQuoting) && (
+              <View style={styles.card}>
+                <Text style={styles.sectionLabel}>CLOSE OUT</Text>
+                {isQuoting && (
+                  <Pressable
+                    style={styles.dangerBtn}
+                    disabled={busy === 'sub-lost'}
+                    onPress={() => setPrompt({ kind: 'sub-lost' })}
+                  >
+                    <Text style={styles.dangerBtnText}>Mark lost</Text>
+                  </Pressable>
+                )}
+                {isInMarket && (
+                  <Pressable
+                    style={styles.dangerBtn}
+                    disabled={busy === 'sub-declined'}
+                    onPress={() => setPrompt({ kind: 'sub-declined' })}
+                  >
+                    <Text style={styles.dangerBtnText}>Mark declined</Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  style={styles.dangerBtn}
+                  disabled={busy === 'withdraw'}
+                  onPress={() => setPrompt({ kind: 'withdraw' })}
+                >
+                  <Text style={styles.dangerBtnText}>Withdraw submission</Text>
+                </Pressable>
+              </View>
+            )}
+
             {/* Quotes */}
             <Text style={styles.quotesHeading}>CARRIER QUOTES</Text>
             {detail.quotes.length === 0 ? (
@@ -335,6 +378,30 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
           const qid = prompt && 'qid' in prompt ? prompt.qid : null;
           setPrompt(null);
           if (qid) run(`dec-${qid}`, () => submissionsApi.recordResponse(qid, { status: 'declined', decline_reason: reason }));
+        }}
+      />
+      <PromptModal
+        visible={prompt?.kind === 'sub-lost'}
+        title="Mark submission lost"
+        message="The venue bound coverage elsewhere. Record why for win/loss reporting."
+        placeholder="e.g. Bound with incumbent broker"
+        confirmLabel="Mark lost"
+        onCancel={() => setPrompt(null)}
+        onSubmit={(reason) => {
+          setPrompt(null);
+          run('sub-lost', () => submissionsApi.lose(sid, reason));
+        }}
+      />
+      <PromptModal
+        visible={prompt?.kind === 'sub-declined'}
+        title="Mark submission declined"
+        message="Every targeted carrier declined to quote. Record why."
+        placeholder="e.g. Class of business out of appetite"
+        confirmLabel="Mark declined"
+        onCancel={() => setPrompt(null)}
+        onSubmit={(reason) => {
+          setPrompt(null);
+          run('sub-declined', () => submissionsApi.decline(sid, reason));
         }}
       />
     </View>

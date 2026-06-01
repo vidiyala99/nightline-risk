@@ -26,6 +26,7 @@ from app.models import (
     Venue,
 )
 from app.seed_carriers import seed_broker_platform_data
+from app.lifecycles import InvalidTransitionError
 from app.services.policies import (
     PoliciesError,
     QuoteNotBindableError,
@@ -34,10 +35,14 @@ from app.services.policies import (
     bind_quote,
     cancel_policy,
     compute_refund,
+    expire_policy,
     issue_certificate,
     issue_endorsement,
+    lapse_policy,
     list_policies,
+    non_renew_policy,
     policy_for_venue,
+    reinstate_policy,
 )
 
 
@@ -471,6 +476,105 @@ def test_cancel_policy_rejects_invalid_method():
                 cancellation_date=date(2027, 1, 1),
                 cancelled_by=USER_ID,
             )
+
+
+# ─── policy end-of-life transitions (expire / non-renew / lapse / reinstate) ─
+#
+# These states were defined in lifecycles.POLICY_TRANSITIONS but had no
+# service path — only cancel_policy existed. So an active policy stayed
+# "Active" forever past its expiration_date, corrupting in-force counts and
+# win/loss reporting. These close that gap. None re-hash the snapshot
+# (status-only mutations; see CLAUDE.md snapshot-hash rule).
+
+
+def _active_policy(s, pid="P-eol") -> "Policy":
+    _, q = _make_quoting_submission_with_selected_quote(s)
+    policy = bind_quote(s, q.id, policy_number="MK-EOL-1", bound_by=USER_ID)
+    s.commit()
+    assert policy.status == "active"
+    return policy
+
+
+def test_expire_policy_active_to_expired():
+    with _session() as s:
+        policy = _active_policy(s)
+        before = policy.snapshot_hash
+        expire_policy(s, policy.id, actor_id=USER_ID)
+        s.commit()
+        reread = s.get(Policy, policy.id)
+        assert reread.status == "expired"
+        assert reread.snapshot_hash == before  # status change must NOT re-hash
+
+
+def test_expire_policy_emits_audit_event():
+    with _session() as s:
+        policy = _active_policy(s)
+        expire_policy(s, policy.id, actor_id="user-eol")
+        s.commit()
+        ev = s.exec(
+            select(AuditEvent).where(
+                AuditEvent.entity_id == policy.id,
+                AuditEvent.event_type == "policy.expired",
+            )
+        ).one()
+        assert ev.event_metadata["from"] == "active"
+
+
+def test_non_renew_policy_active_to_non_renewed_with_reason():
+    with _session() as s:
+        policy = _active_policy(s)
+        non_renew_policy(s, policy.id, reason="loss ratio too high", actor_id=USER_ID)
+        s.commit()
+        reread = s.get(Policy, policy.id)
+        assert reread.status == "non_renewed"
+        ev = s.exec(
+            select(AuditEvent).where(
+                AuditEvent.entity_id == policy.id,
+                AuditEvent.event_type == "policy.non_renewed",
+            )
+        ).one()
+        assert ev.event_metadata["reason"] == "loss ratio too high"
+
+
+def test_lapse_then_reinstate_round_trip():
+    """Premium unpaid → 'lapsed'; carrier accepts late payment → back to
+    'active'. Reinstate is the one non-terminal exit the matrix allows."""
+    with _session() as s:
+        policy = _active_policy(s)
+        lapse_policy(s, policy.id, reason="premium not received", actor_id=USER_ID)
+        s.commit()
+        assert s.get(Policy, policy.id).status == "lapsed"
+
+        reinstate_policy(s, policy.id, actor_id=USER_ID)
+        s.commit()
+        assert s.get(Policy, policy.id).status == "active"
+
+
+def test_expire_cancelled_policy_raises_invalid_transition():
+    """'cancelled' is a dead end — you cannot then expire it."""
+    with _session() as s:
+        policy = _active_policy(s)
+        cancel_policy(
+            s, policy.id, reason="x", method="pro_rata",
+            cancellation_date=date(2027, 1, 1), cancelled_by=USER_ID,
+        )
+        s.commit()
+        with pytest.raises(InvalidTransitionError):
+            expire_policy(s, policy.id, actor_id=USER_ID)
+
+
+def test_reinstate_active_policy_raises_invalid_transition():
+    """Reinstate is only legal from 'lapsed'."""
+    with _session() as s:
+        policy = _active_policy(s)
+        with pytest.raises(InvalidTransitionError):
+            reinstate_policy(s, policy.id, actor_id=USER_ID)
+
+
+def test_expire_unknown_policy_raises():
+    with _session() as s:
+        with pytest.raises(PoliciesError, match=r"[Uu]nknown"):
+            expire_policy(s, "pol-nope", actor_id=USER_ID)
 
 
 # ─── issue_certificate ──────────────────────────────────────────────────

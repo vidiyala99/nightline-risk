@@ -30,7 +30,12 @@ import {
 import { formatRatePct } from '../api/submissions';
 import { claimsApi, type Claim } from '../api/claims';
 
-type PromptKind = { kind: 'assign' } | { kind: 'cancel'; method: 'pro_rata' | 'short_rate' } | null;
+type PromptKind =
+  | { kind: 'assign' }
+  | { kind: 'cancel'; method: 'pro_rata' | 'short_rate' }
+  | { kind: 'non-renew' }
+  | { kind: 'lapse' }
+  | null;
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -103,6 +108,29 @@ export function PolicyDetailScreen({ route, navigation }: any) {
         { label: 'Dismiss', style: 'cancel' },
         { label: 'Short-rate', onPress: () => setPrompt({ kind: 'cancel', method: 'short_rate' }) },
         { label: 'Pro-rata', style: 'primary', onPress: () => setPrompt({ kind: 'cancel', method: 'pro_rata' }) },
+      ],
+    });
+
+  // expire / reinstate take no reason → confirm inline. non-renew / lapse
+  // capture a reason via PromptModal (see below).
+  const confirmExpire = () =>
+    alert.show({
+      title: 'Expire policy',
+      message: 'Mark this policy expired at end of term? This is terminal.',
+      variant: 'warning',
+      buttons: [
+        { label: 'Dismiss', style: 'cancel' },
+        { label: 'Expire', style: 'primary', onPress: () => run('expire', () => policiesApi.expire(pid)) },
+      ],
+    });
+
+  const confirmReinstate = () =>
+    alert.show({
+      title: 'Reinstate policy',
+      message: 'Bring this lapsed policy back to active?',
+      buttons: [
+        { label: 'Dismiss', style: 'cancel' },
+        { label: 'Reinstate', style: 'primary', onPress: () => run('reinstate', () => policiesApi.reinstate(pid)) },
       ],
     });
 
@@ -189,7 +217,33 @@ export function PolicyDetailScreen({ route, navigation }: any) {
               <Pressable style={styles.ghostBtn} onPress={fileFnol}>
                 <Text style={styles.ghostBtnText}>File FNOL</Text>
               </Pressable>
-              {detail.status !== 'cancelled' && (
+              {/* End-of-life transitions are only legal from 'active'. */}
+              {detail.status === 'active' && (
+                <>
+                  <Pressable style={styles.dangerBtn} disabled={busy === 'expire'} onPress={confirmExpire}>
+                    <Text style={styles.dangerBtnText}>Expire</Text>
+                  </Pressable>
+                  <Pressable style={styles.dangerBtn} disabled={busy === 'non-renew'} onPress={() => setPrompt({ kind: 'non-renew' })}>
+                    <Text style={styles.dangerBtnText}>Non-renew</Text>
+                  </Pressable>
+                  <Pressable style={styles.dangerBtn} disabled={busy === 'lapse'} onPress={() => setPrompt({ kind: 'lapse' })}>
+                    <Text style={styles.dangerBtnText}>Lapse</Text>
+                  </Pressable>
+                </>
+              )}
+              {/* A lapsed policy can come back. */}
+              {detail.status === 'lapsed' && (
+                <Pressable
+                  style={[styles.primaryBtn, busy === 'reinstate' && styles.btnDisabled]}
+                  disabled={busy === 'reinstate'}
+                  onPress={confirmReinstate}
+                >
+                  <Text style={styles.primaryBtnText}>Reinstate policy</Text>
+                </Pressable>
+              )}
+              {/* Cancel only applies to in-force policies (active / pending #),
+                  not to already-terminal states. */}
+              {(detail.status === 'active' || detail.status === 'bound_pending_number') && (
                 <Pressable style={styles.dangerBtn} disabled={busy === 'cancel'} onPress={startCancel}>
                   <Text style={styles.dangerBtnText}>Cancel policy</Text>
                 </Pressable>
@@ -285,6 +339,30 @@ export function PolicyDetailScreen({ route, navigation }: any) {
           run('cancel', () =>
             policiesApi.cancel(pid, { reason, method, cancellation_date: todayIso() }),
           );
+        }}
+      />
+      <PromptModal
+        visible={prompt?.kind === 'non-renew'}
+        title="Non-renew policy"
+        message="Record why this policy will not be renewed."
+        placeholder="e.g. Loss ratio too high"
+        confirmLabel="Non-renew"
+        onCancel={() => setPrompt(null)}
+        onSubmit={(reason) => {
+          setPrompt(null);
+          run('non-renew', () => policiesApi.nonRenew(pid, reason));
+        }}
+      />
+      <PromptModal
+        visible={prompt?.kind === 'lapse'}
+        title="Lapse policy"
+        message="Record why this policy lapsed (e.g. premium unpaid). It can be reinstated later."
+        placeholder="e.g. Premium not received"
+        confirmLabel="Lapse"
+        onCancel={() => setPrompt(null)}
+        onSubmit={(reason) => {
+          setPrompt(null);
+          run('lapse', () => policiesApi.lapse(pid, reason));
         }}
       />
     </View>

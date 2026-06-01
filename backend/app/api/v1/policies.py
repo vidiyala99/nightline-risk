@@ -34,9 +34,13 @@ from app.services.policies import (
     assign_policy_number,
     bind_quote,
     cancel_policy,
+    expire_policy,
     issue_certificate,
     issue_endorsement,
+    lapse_policy,
     list_policies,
+    non_renew_policy,
+    reinstate_policy,
 )
 
 
@@ -76,6 +80,12 @@ class CancelPolicyBody(BaseModel):
     reason: str = Field(..., min_length=1)
     method: str = Field(..., description="'pro_rata' | 'short_rate'")
     cancellation_date: date
+
+
+class PolicyTransitionBody(BaseModel):
+    """Optional reason for an end-of-life transition (expire/reinstate accept
+    none; non-renew/lapse want one for the audit trail)."""
+    reason: str = ""
 
 
 class IssueCertificateBody(BaseModel):
@@ -291,6 +301,77 @@ def api_cancel_policy(
             cancellation_date=body.cancellation_date,
             cancelled_by=user_id,
         )
+        session.commit()
+        return _policy_to_dict(p)
+    except (PoliciesError, InvalidTransitionError) as e:
+        session.rollback()
+        _map_service_error(e)
+
+
+# ─── End-of-life transitions ─────────────────────────────────────────────
+
+
+@router.post("/policies/{pid}/expire", dependencies=[Depends(require_broker)])
+def api_expire_policy(
+    pid: str,
+    body: PolicyTransitionBody,
+    user_id: str = Depends(_broker_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Mark a policy expired at end of term ('active' → 'expired')."""
+    try:
+        p = expire_policy(session, pid, reason=body.reason, actor_id=user_id)
+        session.commit()
+        return _policy_to_dict(p)
+    except (PoliciesError, InvalidTransitionError) as e:
+        session.rollback()
+        _map_service_error(e)
+
+
+@router.post("/policies/{pid}/non-renew", dependencies=[Depends(require_broker)])
+def api_non_renew_policy(
+    pid: str,
+    body: PolicyTransitionBody,
+    user_id: str = Depends(_broker_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Decline to renew at term end ('active' → 'non_renewed')."""
+    try:
+        p = non_renew_policy(session, pid, reason=body.reason, actor_id=user_id)
+        session.commit()
+        return _policy_to_dict(p)
+    except (PoliciesError, InvalidTransitionError) as e:
+        session.rollback()
+        _map_service_error(e)
+
+
+@router.post("/policies/{pid}/lapse", dependencies=[Depends(require_broker)])
+def api_lapse_policy(
+    pid: str,
+    body: PolicyTransitionBody,
+    user_id: str = Depends(_broker_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Premium unpaid ('active' → 'lapsed'); reversible via /reinstate."""
+    try:
+        p = lapse_policy(session, pid, reason=body.reason, actor_id=user_id)
+        session.commit()
+        return _policy_to_dict(p)
+    except (PoliciesError, InvalidTransitionError) as e:
+        session.rollback()
+        _map_service_error(e)
+
+
+@router.post("/policies/{pid}/reinstate", dependencies=[Depends(require_broker)])
+def api_reinstate_policy(
+    pid: str,
+    body: PolicyTransitionBody,
+    user_id: str = Depends(_broker_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Bring a lapsed policy back in force ('lapsed' → 'active')."""
+    try:
+        p = reinstate_policy(session, pid, reason=body.reason, actor_id=user_id)
         session.commit()
         return _policy_to_dict(p)
     except (PoliciesError, InvalidTransitionError) as e:

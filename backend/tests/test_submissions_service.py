@@ -28,6 +28,8 @@ from app.services.submissions import (
     check_appetite,
     create_submission,
     list_submissions,
+    mark_submission_declined,
+    mark_submission_lost,
     record_carrier_response,
     select_quote,
     submit_to_market,
@@ -35,6 +37,7 @@ from app.services.submissions import (
     validate_premium_breakdown,
     withdraw_submission,
 )
+from app.lifecycles import InvalidTransitionError
 
 
 VENUE_ID = "elsewhere-brooklyn"
@@ -440,6 +443,92 @@ def test_withdraw_terminal_submission_raises():
         s.add(sub); s.commit()
         with pytest.raises(SubmissionsError, match=r"terminal state"):
             withdraw_submission(s, sub.id, reason="any", withdrawn_by="u1")
+
+
+# ─── mark_submission_lost / mark_submission_declined ──────────────────────
+#
+# 'lost' (venue went elsewhere, from 'quoting') and 'declined' (all carriers
+# said no, from 'in_market') were defined in lifecycles but had no service
+# path — a submission could only ever reach 'bound' or 'withdrawn', so
+# win/loss analytics were structurally impossible. These close that gap.
+
+
+def test_mark_submission_lost_from_quoting_cascades_quotes():
+    """Venue chose a competitor while we were quoting. Submission → 'lost';
+    its still-live quotes must not dangle in 'quoted' forever."""
+    with _session() as s:
+        sub = _make_submission(s); s.commit()
+        result = submit_to_market(
+            s, sub.id, target_carriers=["markel-specialty", "burns-wilcox"], submitted_by="u1",
+        )
+        sub.status = "quoting"  # direct write: drive to the from-state
+        s.add(sub); s.commit()
+
+        mark_submission_lost(s, sub.id, reason="Venue bound with Cookiy AI", actor_id="u1")
+        s.commit()
+
+        assert s.get(Submission, sub.id).status == "lost"
+        for q in result.quotes_created:
+            assert s.get(CarrierQuote, q.id).status == "withdrawn"
+
+
+def test_mark_submission_lost_emits_audit_event_with_reason():
+    with _session() as s:
+        sub = _make_submission(s)
+        sub.status = "quoting"
+        s.add(sub); s.commit()
+
+        mark_submission_lost(s, sub.id, reason="lost to incumbent", actor_id="u7")
+        s.commit()
+
+        ev = s.exec(
+            select(AuditEvent).where(
+                AuditEvent.entity_id == sub.id,
+                AuditEvent.event_type == "submission.lost",
+            )
+        ).one()
+        assert ev.event_metadata["reason"] == "lost to incumbent"
+
+
+def test_mark_submission_lost_from_open_raises_invalid_transition():
+    """'lost' is only reachable from 'quoting' — marking a brand-new open
+    submission lost is a lifecycle violation, not a 400."""
+    with _session() as s:
+        sub = _make_submission(s); s.commit()  # status 'open'
+        with pytest.raises(InvalidTransitionError):
+            mark_submission_lost(s, sub.id, reason="x", actor_id="u1")
+
+
+def test_mark_submission_declined_from_in_market_cascades_quotes():
+    """All carriers declined. Submission → 'declined' (from 'in_market');
+    outstanding quote requests are resolved so none dangle."""
+    with _session() as s:
+        sub = _make_submission(s); s.commit()
+        result = submit_to_market(
+            s, sub.id, target_carriers=["markel-specialty", "burns-wilcox"], submitted_by="u1",
+        )
+        s.commit()
+        assert s.get(Submission, sub.id).status == "in_market"
+
+        mark_submission_declined(s, sub.id, reason="class of business not in appetite", actor_id="u1")
+        s.commit()
+
+        assert s.get(Submission, sub.id).status == "declined"
+        for q in result.quotes_created:
+            assert s.get(CarrierQuote, q.id).status == "withdrawn"
+
+
+def test_mark_submission_declined_from_open_raises_invalid_transition():
+    with _session() as s:
+        sub = _make_submission(s); s.commit()  # status 'open'
+        with pytest.raises(InvalidTransitionError):
+            mark_submission_declined(s, sub.id, reason="x", actor_id="u1")
+
+
+def test_mark_submission_lost_unknown_id_raises():
+    with _session() as s:
+        with pytest.raises(SubmissionsError, match=r"[Uu]nknown"):
+            mark_submission_lost(s, "sub-nope", reason="x", actor_id="u1")
 
 
 # ─── list_submissions ────────────────────────────────────────────────────

@@ -130,6 +130,47 @@ export default function PolicyDetailPage() {
     }
   };
 
+  // End-of-life transitions (active → expired / non_renewed / lapsed).
+  // Mirror handleCancel's confirm-then-reload shape. expire is benign (term
+  // ended); non-renew and lapse are adverse and capture a reason.
+  const handleEndOfLife = async (action: "expire" | "non-renew" | "lapse") => {
+    if (!policy) return;
+    let reason = "";
+    if (action === "expire") {
+      if (!window.confirm("Mark this policy expired at end of term? This is terminal.")) return;
+    } else {
+      const label = action === "non-renew" ? "non-renewal" : "lapse";
+      const r = window.prompt(`Reason for ${label}:`);
+      if (!r || !r.trim()) return;
+      reason = r.trim();
+    }
+    setBusy(true);
+    try {
+      if (action === "expire") await policiesApi.expirePolicy(policy.id);
+      else if (action === "non-renew") await policiesApi.nonRenewPolicy(policy.id, reason);
+      else await policiesApi.lapsePolicy(policy.id, reason);
+      await load();
+    } catch (e) {
+      alert(e instanceof PlacementApiError ? e.message : `${action} failed`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleReinstate = async () => {
+    if (!policy) return;
+    if (!window.confirm("Reinstate this lapsed policy back to active?")) return;
+    setBusy(true);
+    try {
+      await policiesApi.reinstatePolicy(policy.id);
+      await load();
+    } catch (e) {
+      alert(e instanceof PlacementApiError ? e.message : "Reinstate failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return <div className="placement-page__loading">Loading…</div>;
   }
@@ -260,14 +301,62 @@ export default function PolicyDetailPage() {
           >
             + Issue COI
           </Link>
+          {/* End-of-life cluster, right-aligned. Only 'active' policies can
+              expire/non-renew/lapse; a bound_pending_number policy must be
+              activated (or cancelled) first per the lifecycle matrix. */}
+          {policy.status === "active" && (
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleEndOfLife("expire")}
+                disabled={busy}
+                style={{ marginLeft: "auto" }}
+              >
+                Expire
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleEndOfLife("non-renew")}
+                disabled={busy}
+              >
+                Non-renew
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleEndOfLife("lapse")}
+                disabled={busy}
+              >
+                Lapse
+              </button>
+            </>
+          )}
           <button
             type="button"
             className="btn btn-danger btn-sm"
             onClick={handleCancel}
             disabled={busy}
-            style={{ marginLeft: "auto" }}
+            style={policy.status === "active" ? undefined : { marginLeft: "auto" }}
           >
             Cancel Policy
+          </button>
+        </div>
+      )}
+
+      {/* A lapsed policy is the one terminal state that can come back — offer
+          reinstatement (the matrix's only non-terminal exit). */}
+      {policy.status === "lapsed" && (
+        <div className="policy-actions">
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handleReinstate}
+            disabled={busy}
+            style={{ marginLeft: "auto" }}
+          >
+            Reinstate Policy
           </button>
         </div>
       )}

@@ -150,6 +150,32 @@ export const policiesApi = {
     body: JSON.stringify(body),
   }),
 
+  // End-of-life transitions. expire/reinstate take no reason; non-renew and
+  // lapse record one for the audit trail. Each maps to its own backend route.
+  expirePolicy: (pid: string, reason = "") =>
+    call<Policy>(`/api/policies/${pid}/expire`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  nonRenewPolicy: (pid: string, reason: string) =>
+    call<Policy>(`/api/policies/${pid}/non-renew`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  lapsePolicy: (pid: string, reason: string) =>
+    call<Policy>(`/api/policies/${pid}/lapse`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  reinstatePolicy: (pid: string, reason = "") =>
+    call<Policy>(`/api/policies/${pid}/reinstate`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
   issueEndorsement: (pid: string, body: {
     endorsement_type: string;
     effective_date: string;

@@ -49,16 +49,21 @@ function daysSince(iso: string | null): number | null {
   return Math.max(0, Math.floor((Date.now() - then) / (1000 * 60 * 60 * 24)));
 }
 
+// Terminal outcomes are recorded directly (with a reason), not navigated to.
+// 'bound' is terminal too but reached via the bind workflow on the detail
+// page, so it stays an "advance" button.
+const TERMINAL_OUTCOMES: SubmissionStatus[] = ["lost", "declined", "withdrawn"];
+
 function SubmissionCard({
   sub,
   transitions,
   onAdvance,
-  onWithdraw,
+  onOutcome,
 }: {
   sub: Submission;
   transitions: TransitionMatrix | null;
   onAdvance: (sub: Submission, to: SubmissionStatus) => void;
-  onWithdraw: (sub: Submission) => void;
+  onOutcome: (sub: Submission, outcome: "lost" | "declined" | "withdrawn") => void;
 }) {
   const allowed = (transitions?.[sub.status] ?? []) as SubmissionStatus[];
   const inMarketAge = daysSince(sub.submitted_at);
@@ -96,7 +101,7 @@ function SubmissionCard({
 
       <div className="submission-card__actions">
         {allowed
-          .filter(s => s !== "withdrawn")  // withdrawn has its own button below
+          .filter(s => !TERMINAL_OUTCOMES.includes(s))  // outcomes get their own buttons
           .map(target => (
             <button
               key={target}
@@ -108,11 +113,29 @@ function SubmissionCard({
             </button>
           ))
         }
+        {allowed.includes("lost") && (
+          <button
+            type="button"
+            className="submission-card__btn submission-card__btn--danger"
+            onClick={() => onOutcome(sub, "lost")}
+          >
+            Mark Lost
+          </button>
+        )}
+        {allowed.includes("declined") && (
+          <button
+            type="button"
+            className="submission-card__btn submission-card__btn--danger"
+            onClick={() => onOutcome(sub, "declined")}
+          >
+            Mark Declined
+          </button>
+        )}
         {allowed.includes("withdrawn") && (
           <button
             type="button"
             className="submission-card__btn submission-card__btn--danger"
-            onClick={() => onWithdraw(sub)}
+            onClick={() => onOutcome(sub, "withdrawn")}
           >
             Withdraw
           </button>
@@ -171,16 +194,30 @@ export default function SubmissionsPage() {
     window.location.href = `/submissions/${sub.id}`;
   };
 
-  const handleWithdraw = async (sub: Submission) => {
+  // Withdraw (broker pulled it) / Lost (venue went elsewhere) / Declined
+  // (carriers said no) are all terminal marks with a reason. One handler,
+  // distinct API calls, so win/loss reporting can tell them apart.
+  const OUTCOME_VERB: Record<"lost" | "declined" | "withdrawn", string> = {
+    lost: "Mark lost",
+    declined: "Mark declined",
+    withdrawn: "Withdraw",
+  };
+  const handleOutcome = async (
+    sub: Submission,
+    outcome: "lost" | "declined" | "withdrawn",
+  ) => {
     const reason = window.prompt(
-      `Withdraw submission for ${sub.venue_id}? Enter a reason:`,
+      `${OUTCOME_VERB[outcome]} — submission for ${sub.venue_id}. Enter a reason:`,
     );
     if (!reason || !reason.trim()) return;
     try {
-      await placementApi.withdrawSubmission(sub.id, reason.trim());
+      const r = reason.trim();
+      if (outcome === "lost") await placementApi.loseSubmission(sub.id, r);
+      else if (outcome === "declined") await placementApi.declineSubmission(sub.id, r);
+      else await placementApi.withdrawSubmission(sub.id, r);
       await load();
     } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : "Withdraw failed");
+      alert(e instanceof PlacementApiError ? e.message : `${OUTCOME_VERB[outcome]} failed`);
     }
   };
 
@@ -242,7 +279,7 @@ export default function SubmissionsPage() {
                         sub={sub}
                         transitions={transitions}
                         onAdvance={handleAdvance}
-                        onWithdraw={handleWithdraw}
+                        onOutcome={handleOutcome}
                       />
                     ))
                   )}

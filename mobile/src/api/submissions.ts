@@ -205,6 +205,21 @@ export const submissionsApi = {
       body: JSON.stringify({ reason }),
     }),
 
+  // Terminal outcomes distinct from a broker withdrawal: lost (venue went
+  // elsewhere, from 'quoting') and declined (carriers said no, from
+  // 'in_market'). Mirrors the web placement client.
+  lose: (sid: string, reason: string) =>
+    api.request<Submission>(`/api/submissions/${sid}/lose`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  decline: (sid: string, reason: string) =>
+    api.request<Submission>(`/api/submissions/${sid}/decline`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
   /** Indicative premium from the broker pricing engine (does not persist). */
   buildIndicative: (qid: string) =>
     api.request<PremiumBreakdown>(`/api/quotes/${qid}/build-indicative`, {

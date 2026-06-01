@@ -135,4 +135,30 @@ export const policiesApi = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  // End-of-life transitions. expire/reinstate take no reason; non-renew and
+  // lapse record one. Mirrors the web policies client.
+  expire: (pid: string, reason = '') =>
+    api.request<Policy>(`/api/policies/${pid}/expire`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  nonRenew: (pid: string, reason: string) =>
+    api.request<Policy>(`/api/policies/${pid}/non-renew`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  lapse: (pid: string, reason: string) =>
+    api.request<Policy>(`/api/policies/${pid}/lapse`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  reinstate: (pid: string, reason = '') =>
+    api.request<Policy>(`/api/policies/${pid}/reinstate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
 };

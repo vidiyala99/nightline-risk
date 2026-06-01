@@ -524,6 +524,87 @@ def cancel_policy(
     return policy
 
 
+# ─── end-of-life transitions (expire / non-renew / lapse / reinstate) ─────
+#
+# Status-only mutations: per the snapshot-hash rule they do NOT re-hash the
+# policy (the bound terms are unchanged — only its lifecycle state moves).
+# The lifecycle matrix enforces legal from-states; an illegal call raises
+# InvalidTransitionError (router → 422), distinct from PoliciesError (→ 400).
+
+
+def expire_policy(
+    session: Session,
+    policy_id: str,
+    *,
+    actor_id: str,
+    reason: str = "",
+) -> Policy:
+    """Mark a policy naturally expired at end of term ('active' → 'expired').
+    The reachable path that stops expired policies reading 'Active' forever."""
+    policy = session.get(Policy, policy_id)
+    if policy is None:
+        raise PoliciesError(f"Unknown Policy {policy_id!r}")
+    return _transition_policy(
+        session, policy, to="expired", actor_id=actor_id,
+        metadata={"reason": reason} if reason else None,
+    )
+
+
+def non_renew_policy(
+    session: Session,
+    policy_id: str,
+    *,
+    reason: str,
+    actor_id: str,
+) -> Policy:
+    """Carrier/broker chose not to renew ('active' → 'non_renewed'). Reason
+    is recorded for renewal analytics (loss ratio, appetite exit)."""
+    policy = session.get(Policy, policy_id)
+    if policy is None:
+        raise PoliciesError(f"Unknown Policy {policy_id!r}")
+    return _transition_policy(
+        session, policy, to="non_renewed", actor_id=actor_id,
+        metadata={"reason": reason},
+    )
+
+
+def lapse_policy(
+    session: Session,
+    policy_id: str,
+    *,
+    reason: str,
+    actor_id: str,
+) -> Policy:
+    """Premium not paid ('active' → 'lapsed'). Unlike the other end states a
+    lapse is reversible via reinstate_policy if the carrier accepts payment."""
+    policy = session.get(Policy, policy_id)
+    if policy is None:
+        raise PoliciesError(f"Unknown Policy {policy_id!r}")
+    return _transition_policy(
+        session, policy, to="lapsed", actor_id=actor_id,
+        metadata={"reason": reason},
+    )
+
+
+def reinstate_policy(
+    session: Session,
+    policy_id: str,
+    *,
+    actor_id: str,
+    reason: str = "",
+) -> Policy:
+    """Bring a lapsed policy back in force ('lapsed' → 'active') after the
+    carrier accepts late payment. The matrix's only non-terminal exit."""
+    policy = session.get(Policy, policy_id)
+    if policy is None:
+        raise PoliciesError(f"Unknown Policy {policy_id!r}")
+    return _transition_policy(
+        session, policy, to="active", actor_id=actor_id,
+        metadata={"reason": reason, "reinstated": True} if reason
+        else {"reinstated": True},
+    )
+
+
 # ─── issue_certificate ──────────────────────────────────────────────────
 
 
