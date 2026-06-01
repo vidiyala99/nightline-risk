@@ -7,6 +7,7 @@ import { VenueProfileScreen } from '../screens/VenueProfileScreen';
 import { IncidentListScreen } from '../screens/IncidentListScreen';
 import { IncidentDetailScreen } from '../screens/IncidentDetailScreen';
 import { BrokerComplianceScreen } from '../screens/BrokerComplianceScreen';
+import { LossRunScreen } from '../screens/LossRunScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,7 @@ export function BrokerVenuesStack() {
       <Stack.Screen name="IncidentList" component={IncidentListScreen} />
       <Stack.Screen name="IncidentDetail" component={IncidentDetailScreen} />
       <Stack.Screen name="ComplianceList" component={BrokerComplianceScreen} />
+      <Stack.Screen name="LossRun" component={LossRunScreen} />
     </Stack.Navigator>
   );
 }

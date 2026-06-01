@@ -116,8 +116,11 @@ ratios, and placement, not just clicks. Commission is *stored* per policy
   `GET /api/book/financials` (broker-only, TDD'd) → web `/book` page (nav: Book ▸ Financials)
   + mobile `BookScreen` (More ▸ Book Financials). Loss ratio uses underwriting bands
   (<60% healthy / 60–80% watch / >80% high) shown as color **and** text label.
-- [ ] Per-venue loss run as a first-class, exportable artifact (claims history + reserves/paid by
-  coverage line). Data exists in `Claim`; needs a broker-facing rollup/export.
+- [x] Per-venue loss run as a first-class, exportable artifact (claims history + reserves/paid by
+  coverage line). Shipped 2026-06-01: `app/services/loss_run.py` + `GET /api/venues/{id}/loss-run`
+  (+ `.csv` export), venue-access gated (broker any venue, owning operator own). Web dedicated
+  page `/risk-profile/{id}/loss-run` (entry tile in Records & evidence) w/ authed CSV download;
+  mobile `LossRunScreen` (entry on risk-profile, OS share-sheet CSV export). 11 tests TDD'd.
 - [ ] Carrier appetite / relationship model — carriers are static seed (`seed_carriers.py`); a
   broker can't model which carrier wants which class/geo. Even light "appetite tags + match score
   on a submission" makes placement feel real.

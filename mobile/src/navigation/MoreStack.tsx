@@ -20,6 +20,7 @@ import { VenueProfileScreen } from '../screens/VenueProfileScreen';
 import { IncidentListScreen } from '../screens/IncidentListScreen';
 import { IncidentDetailScreen } from '../screens/IncidentDetailScreen';
 import { BrokerComplianceScreen } from '../screens/BrokerComplianceScreen';
+import { LossRunScreen } from '../screens/LossRunScreen';
 
 // Overflow destinations live under the "More" tab as a nested stack rather than
 // as hidden tabs — a hidden tab still reserves its flex slot and leaves dead
@@ -55,6 +56,7 @@ export function BrokerMoreStack() {
       <Stack.Screen name="Market" component={MarketScreen} />
       <Stack.Screen name="VenueDetail" component={BrokerVenueDetailScreen} />
       <Stack.Screen name="RiskProfileDetail" component={RiskProfileDetailScreen} />
+      <Stack.Screen name="LossRun" component={LossRunScreen} />
       <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />
       {/* Venue-scoped drill-down targets registered locally so back-stack
           stays on the originating stack (e.g. Risk Profile → Active Incidents

@@ -246,6 +246,23 @@ export function RiskProfileDetailScreen({ route, navigation }: any) {
         </View>
       )}
 
+      {/* Loss run — broker-only records entry (operators get their claims via
+          the Claims tab). Links to the full claims history + CSV export. */}
+      {isBroker && !isProspect && (
+        <Pressable
+          style={styles.lossRunCard}
+          onPress={() => navigation.navigate('LossRun', { venueId })}
+          accessibilityRole="button"
+          accessibilityLabel="View the loss run — claims history"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.lossRunLabel}>Loss run</Text>
+            <Text style={styles.lossRunMeta}>Claims history · exportable CSV</Text>
+          </View>
+          <Text style={styles.lossRunArrow}>›</Text>
+        </Pressable>
+      )}
+
       {/* Factor breakdown */}
       <View style={styles.card}>
         <Text style={styles.eyebrow}>FACTOR BREAKDOWN</Text>
@@ -532,6 +549,15 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12, gap: 14,
   },
   eyebrow: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 2, fontFamily: 'SpaceMono_700Bold' },
+
+  lossRunCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle, borderRadius: 14, padding: 16, marginBottom: 12,
+  },
+  lossRunLabel: { color: Colors.text, fontSize: 15, fontWeight: '700', fontFamily: 'HankenGrotesk_600SemiBold' },
+  lossRunMeta: { color: Colors.textMuted, fontSize: 12, marginTop: 2, fontFamily: 'SpaceMono_400Regular' },
+  lossRunArrow: { color: Colors.textMuted, fontSize: 22 },
 
   factorList: { gap: 18 },
   factorItem: { gap: 6 },
