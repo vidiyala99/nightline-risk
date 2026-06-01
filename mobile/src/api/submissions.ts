@@ -190,6 +190,22 @@ export const submissionsApi = {
 
   get: (sid: string) => api.request<SubmissionDetail>(`/api/submissions/${sid}`),
 
+  // Edit requested terms before the submission goes to market (status 'open').
+  // Mirrors web placementApi.updateSubmission (PATCH /api/submissions/{sid}).
+  update: (
+    sid: string,
+    body: {
+      effective_date?: string;
+      coverage_lines?: string[];
+      requested_limits?: Record<string, RequestedLimitsLine>;
+      notes?: string;
+    },
+  ) =>
+    api.request<Submission>(`/api/submissions/${sid}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
   submitToMarket: (
     sid: string,
     body: { target_carriers: string[]; allow_out_of_appetite?: boolean },

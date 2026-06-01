@@ -1,9 +1,9 @@
 /**
  * Broker policy detail — mobile counterpart to /policies/[pid].
  *
- * Summary + read-only endorsements/COIs/linked claims, plus the core
- * actions: assign policy number, cancel, and file FNOL (reuses the FNOL
- * screen in the Claims tab). Endorsement/COI authoring stays on web.
+ * Summary + endorsements/COIs/linked claims, plus the core actions: assign
+ * policy number, cancel, file FNOL (reuses the FNOL screen in the Claims tab),
+ * and — when in-force — author endorsements and issue certificates.
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -142,6 +142,11 @@ export function PolicyDetailScreen({ route, navigation }: any) {
     );
   }
 
+  // Endorsements + COIs can only be authored against an in-force policy
+  // (active or bound-pending-number), matching the web entry-point gate.
+  const canAuthor =
+    detail?.status === 'active' || detail?.status === 'bound_pending_number';
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
@@ -251,7 +256,17 @@ export function PolicyDetailScreen({ route, navigation }: any) {
             </View>
 
             {/* Endorsements */}
-            <Text style={styles.heading}>ENDORSEMENTS</Text>
+            <View style={styles.headingRow}>
+              <Text style={styles.headingInline}>ENDORSEMENTS</Text>
+              {canAuthor && (
+                <Pressable
+                  onPress={() => navigation.navigate('EndorsePolicy', { pid: detail.id })}
+                  hitSlop={8}
+                >
+                  <Text style={styles.addLink}>+ Endorse</Text>
+                </Pressable>
+              )}
+            </View>
             {detail.endorsements.length === 0 ? (
               <Text style={styles.emptyText}>None.</Text>
             ) : (
@@ -268,7 +283,22 @@ export function PolicyDetailScreen({ route, navigation }: any) {
             )}
 
             {/* Certificates */}
-            <Text style={styles.heading}>CERTIFICATES</Text>
+            <View style={styles.headingRow}>
+              <Text style={styles.headingInline}>CERTIFICATES</Text>
+              {canAuthor && (
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate('IssueCertificate', {
+                      pid: detail.id,
+                      expirationDate: detail.expiration_date,
+                    })
+                  }
+                  hitSlop={8}
+                >
+                  <Text style={styles.addLink}>+ Issue COI</Text>
+                </Pressable>
+              )}
+            </View>
             {detail.certificates.length === 0 ? (
               <Text style={styles.emptyText}>None.</Text>
             ) : (
@@ -442,6 +472,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 20,
   },
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 22,
+    marginBottom: 8,
+    paddingHorizontal: 20,
+  },
+  headingInline: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: Colors.textSecondary,
+  },
+  addLink: { fontFamily: Fonts.sansSemiBold, fontSize: 13, color: Colors.accentInk },
   listCard: {
     marginHorizontal: 16,
     marginBottom: 8,

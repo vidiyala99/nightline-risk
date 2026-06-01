@@ -4,7 +4,9 @@
  * Shows the submission summary and one card per carrier quote, with the
  * on-the-go market actions: submit to market (when open), record a carrier
  * response (indicative pricing), mark declined, recommend (select), and
- * bind. Heavy authoring (edit terms, create) stays on web.
+ * bind. While the submission is still 'open' the broker can also edit the
+ * requested terms inline (effective date, coverage lines, notes). Creating a
+ * new submission stays on web.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -34,6 +36,19 @@ import {
   type SubmissionDetail,
 } from '../api/submissions';
 import { policiesApi } from '../api/policies';
+import { Field } from './RecordReserveScreen';
+
+// Coverage lines a broker can request — mirrors the web term-edit grid.
+const COVERAGE_LINE_OPTIONS = [
+  'gl',
+  'liquor',
+  'assault_battery',
+  'property',
+  'wc',
+  'epli',
+  'cyber',
+  'umbrella',
+];
 
 // 'decline' here is QUOTE-level (record a carrier's declination). The
 // submission-level terminal outcomes are 'sub-lost' / 'sub-declined'.
@@ -77,6 +92,12 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [prompt, setPrompt] = useState<PromptKind>(null);
 
+  // Inline term-editing (open submissions only). Seeded from the loaded
+  // submission and re-seeded after each save, mirroring the web detail page.
+  const [editEffective, setEditEffective] = useState('');
+  const [editLines, setEditLines] = useState<string[]>([]);
+  const [editNotes, setEditNotes] = useState('');
+
   const load = useCallback(async () => {
     setError(null);
     try {
@@ -94,6 +115,19 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Re-seed the edit fields whenever a fresh submission lands (load / save).
+  useEffect(() => {
+    if (!detail) return;
+    setEditEffective(detail.effective_date ?? '');
+    setEditLines(detail.coverage_lines ?? []);
+    setEditNotes(detail.notes ?? '');
+  }, [detail?.id, detail?.updated_at]);
+
+  const toggleLine = (line: string) =>
+    setEditLines((prev) =>
+      prev.includes(line) ? prev.filter((l) => l !== line) : [...prev, line],
+    );
 
   const isOpen = detail?.status === 'open';
   const isInMarket = detail?.status === 'in_market';
@@ -250,6 +284,55 @@ export function SubmissionDetailScreen({ route, navigation }: any) {
                 ))}
               </View>
             </View>
+
+            {/* Open submission → edit requested terms before going to market. */}
+            {isOpen && (
+              <View style={styles.card}>
+                <Text style={styles.sectionLabel}>EDIT TERMS</Text>
+                <Field
+                  label="Effective date"
+                  value={editEffective}
+                  onChangeText={setEditEffective}
+                  placeholder="YYYY-MM-DD"
+                  mono
+                />
+                <Text style={styles.fieldLabel}>Coverage lines</Text>
+                <View style={styles.lineGrid}>
+                  {COVERAGE_LINE_OPTIONS.map((line) => {
+                    const on = editLines.includes(line);
+                    return (
+                      <Pressable
+                        key={line}
+                        onPress={() => toggleLine(line)}
+                        style={[styles.lineToggle, on && styles.lineToggleOn]}
+                      >
+                        <Text style={[styles.lineToggleText, on && styles.lineToggleTextOn]}>
+                          {line.toUpperCase()}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <Field label="Notes" value={editNotes} onChangeText={setEditNotes} multiline />
+                <Pressable
+                  style={[styles.primaryBtn, busy === 'save-terms' && styles.btnDisabled]}
+                  disabled={busy === 'save-terms'}
+                  onPress={() =>
+                    run('save-terms', () =>
+                      submissionsApi.update(sid, {
+                        effective_date: editEffective.trim(),
+                        coverage_lines: editLines,
+                        notes: editNotes,
+                      }),
+                    )
+                  }
+                >
+                  <Text style={styles.primaryBtnText}>
+                    {busy === 'save-terms' ? 'Saving…' : 'Save terms'}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
 
             {/* Open submission → pick carriers + submit / withdraw */}
             {isOpen && (
@@ -558,6 +641,18 @@ const styles = StyleSheet.create({
   },
 
   sectionLabel: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: Colors.textSecondary, marginBottom: 10 },
+  fieldLabel: { color: Colors.text, fontFamily: Fonts.sansSemiBold, fontSize: 13, marginBottom: 8 },
+  lineGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  lineToggle: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  lineToggleOn: { borderColor: Colors.accent, backgroundColor: 'rgba(200,240,0,0.08)' },
+  lineToggleText: { color: Colors.textMuted, fontSize: 11, fontFamily: Fonts.monoBold, letterSpacing: 0.5 },
+  lineToggleTextOn: { color: Colors.accentInk },
   carrierRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   checkbox: {
     width: 22,

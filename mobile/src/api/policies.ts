@@ -161,4 +161,39 @@ export const policiesApi = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),
+
+  // Authoring — mid-term endorsement + certificate issuance. terms_diff shape
+  // is type-specific (see EndorsePolicyScreen.buildTermsDiff); the backend
+  // re-validates. Mirrors web policiesApi.issueEndorsement / issueCertificate.
+  issueEndorsement: (
+    pid: string,
+    body: {
+      endorsement_type: string;
+      effective_date: string;
+      terms_diff: Record<string, unknown>;
+      premium_change?: string;
+      tax_change?: string;
+      description?: string;
+    },
+  ) =>
+    api.request<Endorsement>(`/api/policies/${pid}/endorsements`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  issueCertificate: (
+    pid: string,
+    body: {
+      certificate_holder: string;
+      certificate_holder_address: string;
+      description_of_operations: string;
+      expires_on: string;
+      additional_insured?: boolean;
+      additional_insured_scope?: string | null;
+    },
+  ) =>
+    api.request<CertificateOfInsurance>(`/api/policies/${pid}/certificates`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
