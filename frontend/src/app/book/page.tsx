@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import {
@@ -222,7 +223,11 @@ export default function BookFinancialsPage() {
                   <tbody>
                     {data.by_carrier.map((r) => (
                       <tr key={r.carrier_id}>
-                        <td style={{ textAlign: "left" }}>{r.carrier_name}</td>
+                        <td style={{ textAlign: "left" }}>
+                          <Link href={`/carriers/${r.carrier_id}`} style={{ color: "var(--accent-ink)", textDecoration: "none" }}>
+                            {r.carrier_name}
+                          </Link>
+                        </td>
                         <td className="font-mono num">{r.policy_count}</td>
                         <td className="font-mono num">{fmtUsd(r.written_premium)}</td>
                         <td className="font-mono num">{fmtUsd(r.commission)}</td>

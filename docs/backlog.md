@@ -121,9 +121,13 @@ ratios, and placement, not just clicks. Commission is *stored* per policy
   (+ `.csv` export), venue-access gated (broker any venue, owning operator own). Web dedicated
   page `/risk-profile/{id}/loss-run` (entry tile in Records & evidence) w/ authed CSV download;
   mobile `LossRunScreen` (entry on risk-profile, OS share-sheet CSV export). 11 tests TDD'd.
-- [ ] Carrier appetite / relationship model — carriers are static seed (`seed_carriers.py`); a
-  broker can't model which carrier wants which class/geo. Even light "appetite tags + match score
-  on a submission" makes placement feel real.
+- [~] Carrier appetite / relationship model — **carrier detail page done 2026-06-01**:
+  `app/services/carriers.py::carrier_detail` (book rollup + appetite tags + policies), surfaced via
+  the enhanced `GET /api/carriers/{cid}` (additive book/policies keys) → web `/carriers/[cid]` page
+  (appetite tags + written/earned premium + commission + loss ratio + in-force policy list), and the
+  Book Financials "By carrier" rows now deep-link to it. **Remaining:** graded match-score on a
+  submission's carrier-picker (turn `check_appetite`'s boolean into a 0-100 match + reasons) and
+  mobile carrier-detail parity.
 - [ ] 🔒 Billing / premium accounting / invoicing — likely needs Stripe; gate it.
 
 **7b. Lifecycle negative edges — defined but unreachable (placement audit).** ✅ **Done 2026-06-01.**
