@@ -158,6 +158,47 @@ def get_incident(
     return _incident_to_response(record)
 
 
+# A claim is "in flight" while it can still resolve to a payout — closing the
+# incident must not abandon it. The carrier-side Claim is authoritative once it
+# exists; otherwise the proposal state decides. Resolved proposal states are the
+# only ones that free the incident to close.
+_RESOLVED_PROPOSAL_STATES = frozenset({"rejected_by_broker", "paid", "denied"})
+_CLOSED_CLAIM_STATUSES = frozenset({"closed_paid", "closed_denied", "closed_dropped"})
+_CLOSING_INCIDENT_STATUSES = frozenset({"closed", "closed_archived"})
+
+
+def _incident_claim_in_flight(session: Session, incident_id: str) -> str | None:
+    """Return a human label for an in-flight claim on this incident, or None.
+
+    Resolves incident → latest packet → latest proposal → claim, mirroring
+    incident_claim_status. A linked Claim is authoritative when present; else the
+    proposal state decides.
+    """
+    packet = session.exec(
+        select(UnderwritingPacket)
+        .where(UnderwritingPacket.incident_id == incident_id)
+        .order_by(UnderwritingPacket.generated_at.desc())
+    ).first()
+    proposal = None
+    if packet is not None:
+        proposal = session.exec(
+            select(ClaimProposal)
+            .where(ClaimProposal.packet_id == packet.id)
+            .order_by(ClaimProposal.proposed_at.desc())
+        ).first()
+    claim = None
+    if proposal is not None:
+        claim = session.exec(select(Claim).where(Claim.proposal_id == proposal.id)).first()
+    if claim is None:
+        claim = session.exec(select(Claim).where(Claim.incident_id == incident_id)).first()
+
+    if claim is not None:
+        return None if claim.status in _CLOSED_CLAIM_STATUSES else f"claim {claim.status}"
+    if proposal is not None:
+        return None if proposal.state in _RESOLVED_PROPOSAL_STATES else f"proposal {proposal.state}"
+    return None
+
+
 @router.patch("/incidents/{incident_id}/status", status_code=200)
 def update_incident_status(
     incident_id: str,
@@ -194,6 +235,19 @@ def update_incident_status(
             status_code=422,
             details={"from": from_status, "to": new_status},
         )
+
+    # Don't let an operator close/archive an incident out from under a live
+    # claim — the proposal/claim could still pay out. They resolve it with the
+    # broker first, then close. (Re-opening or moving to review is always fine.)
+    if new_status in _CLOSING_INCIDENT_STATUSES:
+        in_flight = _incident_claim_in_flight(session, incident_id)
+        if in_flight is not None:
+            raise error_response(
+                "claim_in_flight",
+                "Resolve this incident's claim with your broker before closing it.",
+                status_code=422,
+                details={"claim": in_flight},
+            )
 
     record.status = new_status
     session.add(record)

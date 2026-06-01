@@ -5,7 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
+import { toastError } from "@/lib/toast";
 import { downloadDefensePackagePdf } from "@/lib/claims";
+
+// A claim is "in flight" while it can still pay out — the incident can't be
+// closed until it resolves. Mirrors the backend guard in update_incident_status.
+const RESOLVED_PROPOSAL_STATES = new Set(["rejected_by_broker", "paid", "denied"]);
+const CLOSED_CLAIM_STATUSES = new Set(["closed_paid", "closed_denied", "closed_dropped"]);
 import {
   AlertTriangle, ArrowLeft, Calendar, MapPin, User,
   Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download, Archive,
@@ -251,6 +257,16 @@ export default function IncidentDetailPage() {
     | undefined;
   const isBroker = role === "broker" || role === "admin";
   const proposalState = primaryPacket ? proposalByPacket[primaryPacket.id] : undefined;
+  // Is there a claim still in flight? Blocks closing the incident (see backend
+  // guard). Claim status is authoritative once a real claim exists; else the
+  // proposal state decides.
+  const claimInFlight = (() => {
+    if (!claimStatus) return false;
+    const { proposal, claim } = claimStatus;
+    if (claim.exists && claim.status) return !CLOSED_CLAIM_STATUSES.has(claim.status);
+    if (proposal.exists && proposal.state) return !RESOLVED_PROPOSAL_STATES.has(proposal.state);
+    return false;
+  })();
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleStatusUpdate = async (newStatus: IncidentStatus) => {
@@ -261,7 +277,15 @@ export default function IncidentDetailPage() {
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (res.ok) setIncident((prev) => prev ? { ...prev, status: newStatus } : prev);
+      if (res.ok) {
+        setIncident((prev) => prev ? { ...prev, status: newStatus } : prev);
+      } else {
+        // Surface the reason (e.g. a claim still in flight blocks closing).
+        const body = await res.json().catch(() => null);
+        toastError(body?.message || body?.detail?.message || "Couldn't update the incident status.");
+      }
+    } catch {
+      toastError("Couldn't update the incident status.");
     } finally {
       setUpdatingStatus(false);
     }
@@ -662,12 +686,23 @@ export default function IncidentDetailPage() {
                     )}
                     <button
                       className="btn btn-secondary"
-                      disabled={updatingStatus}
+                      disabled={updatingStatus || claimInFlight}
                       onClick={() => handleStatusUpdate("closed")}
-                      style={{ color: "var(--state-error)", borderColor: "var(--state-error)" }}
+                      title={claimInFlight ? "Resolve the claim with your broker before closing." : undefined}
+                      style={{
+                        color: "var(--state-error)",
+                        borderColor: "var(--state-error)",
+                        opacity: claimInFlight ? 0.45 : undefined,
+                        cursor: claimInFlight ? "not-allowed" : undefined,
+                      }}
                     >
                       <CheckCircle2 size={14} /> Close Incident
                     </button>
+                    {claimInFlight && (
+                      <p className="text-xs text-muted" style={{ margin: 0, lineHeight: 1.5 }}>
+                        This incident has a claim with your broker. Resolve it first, then you can close.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

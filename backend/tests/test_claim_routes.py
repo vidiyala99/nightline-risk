@@ -869,3 +869,60 @@ def test_incident_status_feed_rejects_cross_venue():
                 session.delete(row)
         session.commit()
         session.close()
+
+
+# ---------- closing an incident is blocked while its claim is in flight ----------
+
+
+def _reset_proposals(packet_id: str, *, state: str | None) -> None:
+    """Delete every proposal on a packet, then optionally seed exactly one in
+    `state` — gives each test deterministic control over the in-flight check
+    regardless of whether incident-create auto-routed."""
+    session = next(get_session())
+    try:
+        for p in session.exec(select(ClaimProposal).where(ClaimProposal.packet_id == packet_id)).all():
+            session.delete(p)
+        if state is not None:
+            session.add(ClaimProposal(
+                id=f"prop-close-{packet_id}", packet_id=packet_id,
+                venue_id="elsewhere-brooklyn", proposed_by="op", state=state,
+            ))
+        session.commit()
+    finally:
+        session.close()
+
+
+def test_close_blocked_while_claim_in_flight():
+    """An operator must not be able to mark an incident Closed while its claim
+    proposal is still in flight at the broker — resolve the claim first. Stops a
+    'closed' incident silently abandoning a pending claim that could pay out."""
+    client = TestClient(app, headers=_op_headers())
+    inc = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+    assert inc.status_code == 201, inc.text
+    incident_id = inc.json()["incident"]["id"]
+    packet_id = client.get(f"/api/incidents/{incident_id}/packets").json()[0]["id"]
+
+    _reset_proposals(packet_id, state="pending_broker_review")
+    blocked = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "closed"})
+    assert blocked.status_code == 422, blocked.text
+    assert blocked.json()["detail"]["error"] == "claim_in_flight"
+
+    # Once the broker resolves the proposal (here: rejected), closing is allowed.
+    _reset_proposals(packet_id, state="rejected_by_broker")
+    ok = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "closed"})
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["status"] == "closed"
+
+
+def test_close_allowed_when_no_claim():
+    """No proposal/claim on the incident → closing is unaffected by the guard."""
+    client = TestClient(app, headers=_op_headers())
+    inc = client.post("/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT)
+    assert inc.status_code == 201, inc.text
+    incident_id = inc.json()["incident"]["id"]
+    packet_id = client.get(f"/api/incidents/{incident_id}/packets").json()[0]["id"]
+
+    _reset_proposals(packet_id, state=None)
+    ok = client.patch(f"/api/incidents/{incident_id}/status", json={"status": "closed"})
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["status"] == "closed"
