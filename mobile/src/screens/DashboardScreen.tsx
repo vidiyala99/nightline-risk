@@ -34,6 +34,17 @@ interface PremiumQuote {
   savings_annual?: number;
   market_rate_annual?: number;
   savings_pct?: number;
+  // Present when the venue has an in-force policy — the real bound premium,
+  // which supersedes the indicative estimate (mirrors web PremiumQuote.policy).
+  policy?: {
+    annual_premium: string;
+    monthly_premium: string;
+    policy_number: string | null;
+    status: string;
+    effective_date: string;
+    expiration_date: string;
+    coverage_lines: string[];
+  } | null;
 }
 
 interface VenueSummary {
@@ -56,6 +67,17 @@ interface FeedRow {
   status: string;
   proposal_state: string | null;
   claim_status: string | null;
+}
+
+/** Plain-language renewal line for a bound policy's expiration date. */
+function renewalLabel(expiration: string): string {
+  const exp = new Date(expiration).getTime();
+  if (Number.isNaN(exp)) return 'in force';
+  const days = Math.ceil((exp - new Date().getTime()) / 86400000);
+  if (days < 0) return 'expired';
+  if (days === 0) return 'renews today';
+  if (days <= 60) return `renews in ${days} day${days === 1 ? '' : 's'}`;
+  return `renews ${new Date(expiration).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
 
 const TERMINAL_INCIDENT = new Set(['closed', 'closed_archived']);
@@ -225,6 +247,10 @@ export function DashboardScreen({ navigation }: any) {
   const claimsInFlight = activeReports.filter(r => r.proposal_state != null || r.claim_status != null).length;
   const infoRequested = activeReports.filter(r => r.proposal_state === 'needs_more_info').length;
 
+  // Insured venue → show the ACTUAL bound policy, not the indicative estimate.
+  // The backend includes quote.policy only when a policy is in force (mirrors web).
+  const boundPolicy = quoteData?.policy ?? null;
+
   // "On the floor" live state. Capacity is only present when the caller may read
   // floor data (operator on their own venue) — guard on a real max_capacity.
   const cap = liveState?.current_capacity ?? 0;
@@ -287,8 +313,8 @@ export function DashboardScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Savings hero */}
-      {quoteData && (quoteData.savings_annual ?? 0) > 0 && (
+      {/* Savings hero — estimate-only; suppressed once a policy is in force. */}
+      {!boundPolicy && quoteData && (quoteData.savings_annual ?? 0) > 0 && (
         <View style={styles.savingsCard}>
           <Text style={styles.savingsEyebrow}>NIGHTLINE SAVES YOU</Text>
           <Text style={styles.savingsAmount}>
@@ -530,8 +556,39 @@ export function DashboardScreen({ navigation }: any) {
         </Pressable>
       )}
 
-      {/* Premium Quote card */}
-      {quoteData && (
+      {/* Policy card — real bound policy if in force, else the premium estimate.
+          A venue with coverage shouldn't see a speculative quote contradicting it. */}
+      {boundPolicy ? (
+        <Pressable
+          style={[styles.card, styles.quoteCard]}
+          onPress={() => navigation.navigate('Coverage')}
+          accessibilityRole="button"
+          accessibilityLabel="View your coverage"
+        >
+          <View style={styles.quoteHeader}>
+            <Text style={styles.sectionEyebrow}>YOUR POLICY · IN FORCE</Text>
+            <View style={[styles.tierBadge, { borderColor: Colors.accentInk }]}>
+              <Text style={[styles.tierBadgeText, { color: Colors.accentInk }]}>
+                {boundPolicy.status.replace(/_/g, ' ').toUpperCase()}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.venueTypeLabel}>
+            {(quoteData?.venue_type ?? '').replace(/_/g, ' ').toUpperCase()} · {boundPolicy.policy_number ?? 'PENDING NUMBER'}
+          </Text>
+
+          <Text style={styles.premiumAmount}>
+            ${Math.round(Number(boundPolicy.annual_premium)).toLocaleString()}
+          </Text>
+          <Text style={styles.premiumSub}>/ year</Text>
+
+          <Text style={styles.policyLines}>
+            {boundPolicy.coverage_lines.map((l) => l.toUpperCase()).join(' · ') || '—'}
+          </Text>
+          <Text style={styles.policyCta}>{renewalLabel(boundPolicy.expiration_date)} · view coverage →</Text>
+        </Pressable>
+      ) : quoteData ? (
         <View style={[styles.card, styles.quoteCard]}>
           <View style={styles.quoteHeader}>
             <Text style={styles.sectionEyebrow}>PREMIUM QUOTE</Text>
@@ -568,7 +625,7 @@ export function DashboardScreen({ navigation }: any) {
             <Text style={styles.premiumMonthlySub}> / month</Text>
           </Text>
         </View>
-      )}
+      ) : null}
     </ScrollView>
   );
 }
@@ -959,5 +1016,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '400',
     fontFamily: 'HankenGrotesk_400Regular',
+  },
+  policyLines: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    letterSpacing: 0.4,
+    marginTop: 6,
+    fontFamily: 'SpaceMono_400Regular',
+  },
+  policyCta: {
+    color: Colors.accentInk,
+    fontSize: 12,
+    marginTop: 10,
+    fontFamily: 'HankenGrotesk_600SemiBold',
   },
 });
