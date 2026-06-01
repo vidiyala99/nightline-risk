@@ -8,6 +8,7 @@ import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, FileSpreadsheet, LockKeyhole, RefreshCw, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
 import ClaimProposeModal, { type OverrideReason } from "@/components/ClaimProposeModal";
 import { authHeaders } from "@/lib/authFetch";
+import { byIndex, resolveOpenQuestion, type OpenQuestionResponse } from "@/lib/openQuestions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -78,6 +79,7 @@ interface Packet {
   generated_at: string;
   claim_recommendation?: ClaimRecommendation;
   claim_proposal?: ClaimProposal | null;
+  open_question_responses?: OpenQuestionResponse[];
 }
 
 interface Incident {
@@ -109,7 +111,7 @@ export default function ReportDetailPage() {
   const [incident, setIncident] = useState<Incident | null>(null);
   const [visionAnalysis, setVisionAnalysis] = useState<{ status: string; analyses: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [checkedQuestions, setCheckedQuestions] = useState<Set<number>>(new Set());
+  const [resolvingQ, setResolvingQ] = useState<number | null>(null);
   const [proposal, setProposal] = useState<ClaimProposal | null>(null);
   const [proposeModalOpen, setProposeModalOpen] = useState(false);
   const [submittingProposal, setSubmittingProposal] = useState(false);
@@ -133,12 +135,20 @@ export default function ReportDetailPage() {
   const mounted = useMounted();
   const isPhone = mounted && (bp === "xs" || bp === "sm");
 
-  const toggleQuestion = (i: number) => {
-    setCheckedQuestions((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i); else next.add(i);
-      return next;
-    });
+  const reloadPacket = async () => {
+    const res = await fetch(`${API_URL}/api/packets/${id}`, { headers: authHeaders() });
+    if (res.ok) setPacket(await res.json());
+  };
+
+  const handleResolve = async (i: number, questionText: string) => {
+    if (!packet) return;
+    setResolvingQ(i);
+    try {
+      await resolveOpenQuestion(packet.id, i, { question_text: questionText });
+      await reloadPacket();
+    } finally {
+      setResolvingQ(null);
+    }
   };
 
   useEffect(() => {
@@ -483,32 +493,58 @@ export default function ReportDetailPage() {
                 </div>
               );
             })()}
-            {(packet.memo?.open_questions?.length ?? 0) > 0 && (
-              <div>
-                <p className="text-xs uppercase tracking-wide text-secondary mb-md">Open Questions</p>
-                <div className="flex flex-col gap-sm">
-                  {packet.memo.open_questions!.map((q, i) => {
-                    const checked = checkedQuestions.has(i);
-                    return (
-                      <label key={i} className="flex items-start gap-sm cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="mt-1"
-                          checked={checked}
-                          onChange={() => toggleQuestion(i)}
-                        />
-                        <span
-                          className="text-sm text-secondary"
-                          style={checked ? { textDecoration: "line-through", opacity: 0.6 } : undefined}
+            {(packet.memo?.open_questions?.length ?? 0) > 0 && (() => {
+              const responses = byIndex(packet.open_question_responses);
+              return (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-secondary mb-md">Open Questions</p>
+                  <div className="flex flex-col gap-md">
+                    {packet.memo.open_questions!.map((q, i) => {
+                      const resp = responses.get(i);
+                      return (
+                        <div
+                          key={i}
+                          className="card"
+                          style={{ padding: "var(--space-md)", opacity: resp?.resolved ? 0.7 : 1 }}
                         >
-                          {q}
-                        </span>
-                      </label>
-                    );
-                  })}
+                          <div className="flex items-start gap-sm" style={{ justifyContent: "space-between" }}>
+                            <span className="text-sm" style={{ fontWeight: 600 }}>{q}</span>
+                            {resp?.resolved && (
+                              <span className="text-xs" style={{ color: "var(--accent-ink)", whiteSpace: "nowrap" }}>
+                                ✓ Resolved{resp.resolved_by ? ` · ${resp.resolved_by}` : ""}
+                              </span>
+                            )}
+                          </div>
+                          {resp?.answer ? (
+                            <div style={{ marginTop: 8, paddingLeft: 10, borderLeft: "2px solid var(--accent-ink)" }}>
+                              <div className="text-xs uppercase tracking-wide text-muted">
+                                Operator{resp.answered_by ? ` · ${resp.answered_by}` : ""}
+                              </div>
+                              <p className="text-sm text-secondary" style={{ margin: "2px 0 0", lineHeight: 1.6 }}>{resp.answer}</p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted" style={{ margin: "6px 0 0", fontStyle: "italic" }}>
+                              Awaiting operator response
+                            </p>
+                          )}
+                          {isBroker && !resp?.resolved && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              style={{ marginTop: 10, minHeight: 44 }}
+                              disabled={resolvingQ === i}
+                              onClick={() => handleResolve(i, q)}
+                            >
+                              {resolvingQ === i ? "Resolving…" : "Mark resolved"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </section>
 
           {/* Vision Analysis */}

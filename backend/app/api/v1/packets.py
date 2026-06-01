@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, Header
 from fastapi.responses import Response
 from sqlmodel import Session, select
 
-from app.auth import require_venue_access
+from app.auth import require_broker, require_venue_access
 from app.database import get_session
 from app.defense_package import (
     DefensePackageError,
@@ -179,3 +179,67 @@ def create_review_decision(
     except ValueError as e:
         raise error_response("review_decision_invalid", str(e), status_code=400)
     return _review_decision_to_dict_lazy(decision)
+
+
+# ─── Open-questions answer/resolve loop ─────────────────────────────────
+# Operator answers an AI memo's open question; broker marks it resolved. The
+# answers ride back on the packet payload (open_question_responses), so both
+# personas see the same state. See app/open_questions.py.
+
+
+@router.post("/packets/{packet_id}/open-questions/{question_index}/answer")
+def answer_open_question(
+    packet_id: str,
+    question_index: int,
+    payload: dict,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Operator answers an open question. Owning operator (or a broker) only."""
+    from app.open_questions import OpenQuestionError, response_to_dict, submit_answer
+
+    packet = session.get(UnderwritingPacket, packet_id)
+    if packet is None:
+        raise error_response("packet_not_found", f"Packet {packet_id!r} not found", status_code=404)
+    user = require_venue_access(packet.venue_id, authorization, session)
+    try:
+        row = submit_answer(
+            session=session,
+            packet_id=packet_id,
+            question_index=question_index,
+            question_text=str(payload.get("question_text", "")),
+            answer=str(payload.get("answer", "")),
+            operator_id=str(user.get("sub")),
+        )
+    except OpenQuestionError as e:
+        raise error_response("open_question_invalid", str(e), status_code=400)
+    return response_to_dict(row)
+
+
+@router.post("/packets/{packet_id}/open-questions/{question_index}/resolve")
+def resolve_open_question(
+    packet_id: str,
+    question_index: int,
+    payload: dict | None = None,
+    user: dict = Depends(require_broker),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Broker marks an open question resolved (or reopens it). Broker/admin only."""
+    from app.open_questions import OpenQuestionError, resolve_question, response_to_dict
+
+    packet = session.get(UnderwritingPacket, packet_id)
+    if packet is None:
+        raise error_response("packet_not_found", f"Packet {packet_id!r} not found", status_code=404)
+    body = payload or {}
+    try:
+        row = resolve_question(
+            session=session,
+            packet_id=packet_id,
+            question_index=question_index,
+            reviewer_id=str(user.get("sub")),
+            question_text=str(body.get("question_text", "")),
+            resolved=bool(body.get("resolved", True)),
+        )
+    except OpenQuestionError as e:
+        raise error_response("open_question_invalid", str(e), status_code=400)
+    return response_to_dict(row)

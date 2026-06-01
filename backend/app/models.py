@@ -185,6 +185,23 @@ class ReviewDecision(SQLModel, table=True):
     decided_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class OpenQuestionResponse(SQLModel, table=True):
+    """Operator's answer to an AI underwriting-memo open question, plus the
+    broker's resolve flag. One row per (packet_id, question_index): answering or
+    resolving the same question upserts. Closes the loop the read-only memo never
+    had — operator answers → broker sees → broker resolves."""
+    id: str = Field(primary_key=True)
+    packet_id: str = Field(foreign_key="underwritingpacket.id", index=True)
+    question_index: int
+    question_text: str
+    answer: str = ""
+    answered_by: Optional[str] = None
+    answered_at: Optional[datetime] = None
+    resolved: bool = False
+    resolved_by: Optional[str] = None
+    resolved_at: Optional[datetime] = None
+
+
 class ClaimProposal(SQLModel, table=True):
     """An operator's proposal to file a claim against an underwriting packet.
 

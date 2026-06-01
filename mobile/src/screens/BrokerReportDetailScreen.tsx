@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
 import { useAlert } from '../components/ThemedAlert';
+import { openQuestionsApi, byIndex } from '../api/openQuestions';
 import { STATE_LABEL, STATE_COLOR, type ClaimProposal } from '../types/claims';
 
 const SEVERITY_COLOR: Record<string, string> = {
@@ -38,6 +39,21 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
   const [proposal, setProposal] = useState<ClaimProposal | null>(null);
   const [submittingBrokerDecision, setSubmittingBrokerDecision] = useState(false);
   const [brokerRejectNotes, setBrokerRejectNotes] = useState('');
+  const [resolvingQ, setResolvingQ] = useState<number | null>(null);
+
+  async function resolveQuestion(index: number, questionText: string) {
+    if (!packet) return;
+    setResolvingQ(index);
+    try {
+      await openQuestionsApi.resolve(packet.id, index, { question_text: questionText });
+      const pkt = await api.request<any>(`/api/packets/${packetId}`);
+      setPacket(pkt);
+    } catch (e: any) {
+      alert.show({ title: 'Error', message: e?.message ?? 'Failed to resolve', variant: 'error' });
+    } finally {
+      setResolvingQ(null);
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -340,17 +356,48 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
           </>
         ) : null}
 
-        {(packet.memo?.open_questions?.length ?? 0) > 0 && (
-          <>
-            <Text style={[styles.eyebrow, { marginTop: 8 }]}>OPEN QUESTIONS</Text>
-            {packet.memo.open_questions.map((q: string, i: number) => (
-              <View key={i} style={styles.questionRow}>
-                <Text style={styles.questionDot}>·</Text>
-                <Text style={styles.questionText}>{q}</Text>
-              </View>
-            ))}
-          </>
-        )}
+        {(packet.memo?.open_questions?.length ?? 0) > 0 && (() => {
+          const oqResponses = byIndex(packet.open_question_responses);
+          return (
+            <>
+              <Text style={[styles.eyebrow, { marginTop: 8 }]}>OPEN QUESTIONS</Text>
+              {packet.memo.open_questions.map((q: string, i: number) => {
+                const resp = oqResponses.get(i);
+                return (
+                  <View key={i} style={styles.oqCard}>
+                    <Text style={styles.oqQuestion}>{q}</Text>
+                    {resp?.resolved && (
+                      <Text style={styles.oqResolved}>
+                        ✓ RESOLVED{resp.resolved_by ? ` · ${resp.resolved_by}` : ''}
+                      </Text>
+                    )}
+                    {resp?.answer ? (
+                      <View style={styles.oqAnswerBox}>
+                        <Text style={styles.oqAnswerLabel}>
+                          OPERATOR{resp.answered_by ? ` · ${resp.answered_by}` : ''}
+                        </Text>
+                        <Text style={styles.oqAnswerText}>{resp.answer}</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.oqAwaiting}>Awaiting operator response</Text>
+                    )}
+                    {!resp?.resolved && (
+                      <Pressable
+                        style={[styles.oqResolveBtn, resolvingQ === i && { opacity: 0.5 }]}
+                        onPress={() => resolveQuestion(i, q)}
+                        disabled={resolvingQ === i}
+                        accessibilityRole="button"
+                        accessibilityLabel="Mark question resolved"
+                      >
+                        <Text style={styles.oqResolveBtnText}>{resolvingQ === i ? '…' : 'Mark resolved'}</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                );
+              })}
+            </>
+          );
+        })()}
       </View>
 
       {/* Action Plan */}
@@ -492,6 +539,16 @@ const styles = StyleSheet.create({
   questionRow: { flexDirection: 'row', gap: 8 },
   questionDot: { color: Colors.accentInk, fontSize: 16, lineHeight: 20 },
   questionText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, flex: 1, fontFamily: 'HankenGrotesk_400Regular' },
+
+  oqCard: { marginTop: 10, padding: 12, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle, backgroundColor: 'rgba(23,21,15,0.02)' },
+  oqQuestion: { color: Colors.text, fontSize: 13, lineHeight: 19, fontFamily: 'HankenGrotesk_600SemiBold' },
+  oqResolved: { color: Colors.accentInk, fontSize: 10, letterSpacing: 1, marginTop: 6, fontFamily: 'SpaceMono_700Bold' },
+  oqAnswerBox: { marginTop: 8, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: Colors.accentInk },
+  oqAnswerLabel: { color: Colors.textMuted, fontSize: 9, letterSpacing: 1, fontFamily: 'SpaceMono_700Bold' },
+  oqAnswerText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 2, fontFamily: 'HankenGrotesk_400Regular' },
+  oqAwaiting: { color: Colors.textMuted, fontSize: 12, marginTop: 8, fontStyle: 'italic', fontFamily: 'HankenGrotesk_400Regular' },
+  oqResolveBtn: { alignSelf: 'flex-start', marginTop: 10, minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 6, borderWidth: 1, borderColor: Colors.accent },
+  oqResolveBtnText: { color: Colors.accentInk, fontSize: 13, fontFamily: 'HankenGrotesk_600SemiBold' },
 
   actionItem: { gap: 3, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(23,21,15,0.06)' },
   actionTitle: { color: Colors.text, fontSize: 13, fontWeight: '600', fontFamily: 'HankenGrotesk_600SemiBold' },

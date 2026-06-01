@@ -761,6 +761,14 @@ def _packet_to_dict(packet: UnderwritingPacket, session: Session | None = None) 
             incident={},
             venue_prior_claim_count=0,
         )
+    # Operator answers + broker resolves on the memo's open questions, so both
+    # personas read the same loop state from a single packet fetch.
+    open_question_responses: list[dict] = []
+    if session is not None:
+        from app.open_questions import list_responses, response_to_dict
+        open_question_responses = [
+            response_to_dict(r) for r in list_responses(session=session, packet_id=packet.id)
+        ]
     return {
         "id": packet.id,
         "venue_id": packet.venue_id,
@@ -780,6 +788,7 @@ def _packet_to_dict(packet: UnderwritingPacket, session: Session | None = None) 
         "claim_recommendation": recommendation_to_dict(recommendation),
         "routing_status": route_status(recommendation),
         "claim_proposal": _claim_proposal_to_dict(latest_proposal) if latest_proposal else None,
+        "open_question_responses": open_question_responses,
     }
 
 

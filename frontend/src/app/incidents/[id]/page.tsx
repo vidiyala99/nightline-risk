@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
+import { answerOpenQuestion, resolveOpenQuestion, byIndex } from "@/lib/openQuestions";
 import { toastError } from "@/lib/toast";
 import { downloadDefensePackagePdf } from "@/lib/claims";
 
@@ -173,6 +174,36 @@ export default function IncidentDetailPage() {
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
   const [claimStatus, setClaimStatus] = useState<ClaimStatusResponse | null>(null);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const [answerDrafts, setAnswerDrafts] = useState<Record<number, string>>({});
+  const [savingQ, setSavingQ] = useState<number | null>(null);
+
+  const reloadPackets = async () => {
+    const res = await fetch(`${API_URL}/api/incidents/${id}/packets`, { headers: authHeaders() });
+    if (res.ok) setPackets(await res.json());
+  };
+
+  const answerQuestion = async (packetId: string, i: number, questionText: string) => {
+    const answer = (answerDrafts[i] ?? "").trim();
+    if (!answer) return;
+    setSavingQ(i);
+    try {
+      await answerOpenQuestion(packetId, i, { question_text: questionText, answer });
+      setAnswerDrafts((d) => ({ ...d, [i]: "" }));
+      await reloadPackets();
+    } finally {
+      setSavingQ(null);
+    }
+  };
+
+  const resolveQuestion = async (packetId: string, i: number, questionText: string) => {
+    setSavingQ(i);
+    try {
+      await resolveOpenQuestion(packetId, i, { question_text: questionText });
+      await reloadPackets();
+    } finally {
+      setSavingQ(null);
+    }
+  };
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) router.push("/login");
@@ -474,6 +505,76 @@ export default function IncidentDetailPage() {
                   ))}
                 </div>
               )}
+
+              {/* ── Open questions (AI risk assessment) ───────────────────────────
+                  Operator answers; broker marks resolved. Both read the same
+                  responses off the packet payload. */}
+              {(primaryPacket?.memo?.open_questions?.length ?? 0) > 0 && (() => {
+                const responses = byIndex(primaryPacket.open_question_responses);
+                return (
+                  <div className="card">
+                    <h2 className="text-sm font-semibold text-secondary" style={{ margin: "0 0 var(--space-md)" }}>
+                      Open questions
+                    </h2>
+                    <div className="flex flex-col gap-md">
+                      {primaryPacket.memo.open_questions.map((q: string, i: number) => {
+                        const resp = responses.get(i);
+                        const draft = answerDrafts[i] ?? "";
+                        return (
+                          <div key={i} style={{ paddingBottom: "var(--space-md)", borderBottom: "1px solid var(--border-subtle)" }}>
+                            <div className="flex items-start gap-sm" style={{ justifyContent: "space-between" }}>
+                              <span className="text-sm" style={{ fontWeight: 600 }}>{q}</span>
+                              {resp?.resolved && (
+                                <span className="text-xs" style={{ color: "var(--accent-ink)", whiteSpace: "nowrap" }}>
+                                  ✓ Resolved
+                                </span>
+                              )}
+                            </div>
+                            {resp?.answer && (
+                              <div style={{ marginTop: 8, paddingLeft: 10, borderLeft: "2px solid var(--accent-ink)" }}>
+                                <div className="text-xs uppercase tracking-wide text-muted">
+                                  Answer{resp.answered_by ? ` · ${resp.answered_by}` : ""}
+                                </div>
+                                <p className="text-sm text-secondary" style={{ margin: "2px 0 0", lineHeight: 1.6 }}>{resp.answer}</p>
+                              </div>
+                            )}
+                            {isOperator && !resp?.resolved && (
+                              <div className="flex gap-sm" style={{ marginTop: 10, alignItems: "flex-start" }}>
+                                <textarea
+                                  value={draft}
+                                  onChange={(e) => setAnswerDrafts((d) => ({ ...d, [i]: e.target.value }))}
+                                  placeholder={resp?.answer ? "Update your answer…" : "Type your answer…"}
+                                  style={{ flex: 1, minHeight: 44, padding: "8px 10px", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)", background: "var(--bg-elevated)", color: "var(--text-primary)", font: "inherit", resize: "vertical" }}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  style={{ minHeight: 44 }}
+                                  disabled={!draft.trim() || savingQ === i}
+                                  onClick={() => answerQuestion(primaryPacket.id, i, q)}
+                                >
+                                  {savingQ === i ? "Saving…" : resp?.answer ? "Update" : "Answer"}
+                                </button>
+                              </div>
+                            )}
+                            {isBroker && !resp?.resolved && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ marginTop: 10, minHeight: 44 }}
+                                disabled={savingQ === i}
+                                onClick={() => resolveQuestion(primaryPacket.id, i, q)}
+                              >
+                                {savingQ === i ? "Resolving…" : "Mark resolved"}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ── Recommendation card ───────────────────────────────────────────
                   Broker: full recommendation card (unchanged).
