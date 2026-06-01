@@ -103,8 +103,18 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
       ]
   ).filter((g) => g.items.length > 0);
 
+  // The operator's claim-journey screens (decision + claim-status) live under
+  // /incidents/<id>/* by URL, but they belong to the claim flow — so they light
+  // up "Claims", not "Incidents". The incident itself (/incidents/<id>) stays
+  // under Incidents. Brokers never reach these operator-only routes.
+  const isClaimFlow = /^\/incidents\/[^/]+\/(decision|claim-status)(\/|$)/.test(pathname ?? "");
+
   const isActive = (href: string) => {
     const base = href.split("?")[0];
+    if (isClaimFlow) {
+      if (base === "/claims") return true;
+      if (base === "/incidents") return false;
+    }
     return pathname === base || pathname?.startsWith(base + "/");
   };
 

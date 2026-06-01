@@ -41,6 +41,12 @@ export function MobileBottomNav({ onMore }: { onMore: () => void }) {
 
   const primary = role === "broker" || role === "admin" ? BROKER_PRIMARY : OPERATOR_PRIMARY;
 
+  // Claim-journey screens (decision + claim-status) live under /incidents/* but
+  // belong to Claims — mirror AppShell so the tab bar never lights Incidents for
+  // them. (Operator primary has no Claims tab, so nothing lights — correct: the
+  // screen isn't a top-level destination.)
+  const isClaimFlow = /^\/incidents\/[^/]+\/(decision|claim-status)(\/|$)/.test(pathname ?? "");
+
   // Mirror the venue-context priority used in AppShell NavLinks so deep links
   // keep their venue when switching via bottom-nav.
   const queryVenueId = searchParams.get("venue");
@@ -52,7 +58,9 @@ export function MobileBottomNav({ onMore }: { onMore: () => void }) {
     <nav className="mobile-bottom-nav" aria-label="Primary (mobile)">
       {primary.map(({ key, href, label, icon: Icon }) => {
         const fullHref = `${href}${venueQuery}`;
-        const isActive = pathname === href || pathname?.startsWith(href + "/");
+        const isActive = isClaimFlow
+          ? href === "/claims"
+          : pathname === href || pathname?.startsWith(href + "/");
         return (
           <Link
             key={key}
