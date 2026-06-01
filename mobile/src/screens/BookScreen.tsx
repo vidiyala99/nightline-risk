@@ -15,7 +15,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { ChevronRight } from 'lucide-react-native';
 
 import { HandAccent } from '../components/HandAccent';
 import { Colors } from '../theme/colors';
@@ -65,6 +66,7 @@ function MiniCell({ label, value }: { label: string; value: string }) {
 }
 
 export function BookScreen() {
+  const navigation = useNavigation<any>();
   const [data, setData] = useState<BookFinancials | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -165,20 +167,29 @@ export function BookScreen() {
             </View>
           ))}
 
-          {/* By carrier */}
+          {/* By carrier — tap a carrier to drill into its appetite + book */}
           <Text style={styles.heading}>BY CARRIER</Text>
           {data.by_carrier.map((r) => (
-            <View key={r.carrier_id} style={styles.rowCard}>
+            <Pressable
+              key={r.carrier_id}
+              onPress={() => navigation.navigate('CarrierDetail', { carrierId: r.carrier_id })}
+              style={({ pressed }) => [styles.rowCard, pressed && styles.rowCardPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`${r.carrier_name}, view carrier detail`}
+            >
               <View style={styles.rowTop}>
                 <Text style={styles.rowName} numberOfLines={1}>{r.carrier_name}</Text>
-                <LossPill value={r.loss_ratio} />
+                <View style={styles.rowTopRight}>
+                  <LossPill value={r.loss_ratio} />
+                  <ChevronRight size={16} color={Colors.textMuted} />
+                </View>
               </View>
               <View style={styles.miniRow}>
                 <MiniCell label={`${r.policy_count} ${r.policy_count === 1 ? 'policy' : 'policies'}`} value={fmtUsd(r.written_premium)} />
                 <MiniCell label="Commission" value={fmtUsd(r.commission)} />
                 <MiniCell label="Incurred" value={fmtUsd(r.incurred_losses)} />
               </View>
-            </View>
+            </Pressable>
           ))}
         </>
       )}
@@ -230,7 +241,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle,
   },
+  rowCardPressed: { opacity: 0.6 },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10 },
+  rowTopRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowName: { flex: 1, fontFamily: Fonts.sansSemiBold, fontSize: 14, color: Colors.text },
 
   lossWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
