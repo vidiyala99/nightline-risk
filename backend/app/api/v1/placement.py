@@ -60,6 +60,7 @@ from app.services.submissions import (
     update_submission,
     withdraw_submission,
 )
+from app.services.carriers import carrier_detail
 from app.underwriting.pricing import (
     CARRIER_RATES,
     build_quote_for_carrier,
@@ -472,6 +473,11 @@ def api_carrier_detail(cid: str, session: Session = Depends(get_session)) -> dic
     if c is None:
         raise HTTPException(status_code=404, detail=f"Carrier {cid} not found")
     body = _carrier_to_dict(c)
+    # Book rollup + policy list (the money this carrier is doing in our book) —
+    # additive keys so existing consumers of this shape are unaffected.
+    detail = carrier_detail(session, cid)
+    body["book"] = detail["book"]
+    body["policies"] = detail["policies"]
     # Include the rate table override values (multipliers, fee, commission)
     # so the broker UI can show "Markel charges 1.10x for liquor lines" etc.
     if cid in CARRIER_RATES:
