@@ -8,6 +8,7 @@ import { BrokerVenuesStack } from './BrokerVenuesStack';
 import { SubmissionsStack } from './SubmissionsStack';
 import { PoliciesStack } from './PoliciesStack';
 import { TasksScreen } from '../screens/TasksScreen';
+import { WorkQueueScreen } from '../screens/WorkQueueScreen';
 import { AlertsScreen } from '../screens/AlertsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { MarketScreen } from '../screens/MarketScreen';
@@ -42,6 +43,7 @@ export function BrokerMoreStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreHome" component={MoreScreen} />
+      <Stack.Screen name="WorkQueue" component={WorkQueueScreen} />
       <Stack.Screen name="Tasks" component={TasksScreen} />
       <Stack.Screen name="Submissions" component={SubmissionsStack} />
       <Stack.Screen name="Policies" component={PoliciesStack} />
