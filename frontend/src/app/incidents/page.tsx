@@ -27,6 +27,20 @@ interface Incident {
 }
 
 
+// Short, operator-facing claim label derived from the proposal/claim chain in
+// the venue status feed. Returns null when the incident has no claim at all.
+function operatorClaimLabel(proposalState: string | null, claimStatus: string | null): string | null {
+  if (!proposalState && !claimStatus) return null;
+  if (claimStatus === "closed_paid" || proposalState === "paid") return "paid";
+  if (claimStatus === "closed_denied" || proposalState === "denied") return "denied";
+  if (claimStatus === "closed_dropped") return "withdrawn";
+  if (proposalState === "rejected_by_broker") return "declined";
+  if (proposalState === "filed_with_carrier" || claimStatus) return "filed";
+  if (proposalState === "approved") return "approved";
+  if (proposalState === "needs_more_info") return "info needed";
+  return "with broker"; // pending_broker_review
+}
+
 export default function IncidentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,22 +80,42 @@ export default function IncidentsPage() {
     if (isLoaded && !isSignedIn) router.push("/login");
   }, [isLoaded, isSignedIn, router]);
 
-  // Badge incidents that became carrier claims (scoped broker view only —
-  // /api/claims is broker-gated). Maps incident_id → claim status.
+  // Surface which incidents carry a claim. Broker uses the carrier-claims read
+  // (/api/claims, broker-gated, scoped to a chosen venue); operator uses the
+  // venue status-feed, which exposes the proposal/claim chain for their own
+  // venue. Maps incident_id → short claim label.
   useEffect(() => {
-    if (!isBroker || !filterVenueId) { setClaimByIncident({}); return; }
     let cancelled = false;
-    fetch(`${API_URL}/api/claims?venue_id=${encodeURIComponent(filterVenueId)}`, { headers: authHeaders() })
+    if (isBroker) {
+      if (!filterVenueId) { setClaimByIncident({}); return; }
+      fetch(`${API_URL}/api/claims?venue_id=${encodeURIComponent(filterVenueId)}`, { headers: authHeaders() })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((claims: Array<{ incident_id?: string; status?: string }>) => {
+          if (cancelled) return;
+          const m: Record<string, string> = {};
+          for (const c of claims) if (c.incident_id && c.status) m[c.incident_id] = c.status;
+          setClaimByIncident(m);
+        })
+        .catch(() => {});
+      return () => { cancelled = true; };
+    }
+    // Operator: derive a short claim label from their venue's status feed.
+    const scopeVenue = filterVenueId ?? tenantId;
+    if (!scopeVenue) { setClaimByIncident({}); return; }
+    fetch(`${API_URL}/api/venues/${scopeVenue}/incident-status-feed`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : []))
-      .then((claims: Array<{ incident_id?: string; status?: string }>) => {
+      .then((rows: Array<{ incident_id: string; proposal_state: string | null; claim_status: string | null }>) => {
         if (cancelled) return;
         const m: Record<string, string> = {};
-        for (const c of claims) if (c.incident_id && c.status) m[c.incident_id] = c.status;
+        for (const row of Array.isArray(rows) ? rows : []) {
+          const label = operatorClaimLabel(row.proposal_state, row.claim_status);
+          if (label) m[row.incident_id] = label;
+        }
         setClaimByIncident(m);
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [isBroker, filterVenueId]);
+  }, [isBroker, filterVenueId, tenantId]);
 
   useEffect(() => {
     if (!isBroker) return;
@@ -236,6 +270,13 @@ export default function IncidentsPage() {
   };
 
   const statusLabel: Record<IncidentStatus, string> = { open: "Open", under_review: "Under Review", closed: "Closed" };
+  // Left-icon by status so the card communicates state at a glance (shape + color),
+  // instead of a uniform alarm triangle on every incident.
+  const StatusIcon: Record<IncidentStatus, typeof AlertTriangle> = {
+    open: AlertTriangle,
+    under_review: Clock,
+    closed: CheckCircle2,
+  };
 
   const _base = statusFilter === "all" ? incidents : incidents.filter((i) => i.status === statusFilter);
   // Broker view = decisions across the book: surface incidents most likely to
@@ -505,12 +546,15 @@ export default function IncidentsPage() {
             filteredIncidents.map((incident) => (
               <div
                 key={incident.id}
-                className="incident-card"
+                className={`incident-card incident-card--${incident.status}`}
                 style={{ cursor: "pointer" }}
                 onClick={() => openIncident(incident.id)}
               >
-                <div className="incident-icon">
-                  <AlertTriangle size={20} />
+                <div className={`incident-icon incident-icon--${incident.status}`}>
+                  {(() => {
+                    const Icon = StatusIcon[incident.status] ?? AlertTriangle;
+                    return <Icon size={20} aria-hidden="true" />;
+                  })()}
                 </div>
                 <div className="incident-info">
                   <div className="incident-header-row">
@@ -524,9 +568,17 @@ export default function IncidentsPage() {
                       </span>
                       {claimByIncident[incident.id] && (
                         <span
-                          className="text-xs font-mono uppercase px-2 py-0 rounded"
-                          style={{ color: "var(--brand-secondary)", border: "1px solid var(--brand-secondary)" }}
-                          title="This incident was filed as a carrier claim"
+                          className="text-xs font-mono uppercase"
+                          style={{
+                            color: "var(--accent-ink)",
+                            background: "rgba(200, 240, 0, 0.12)",
+                            border: "1px solid rgba(200, 240, 0, 0.30)",
+                            borderRadius: "999px",
+                            padding: "2px 9px",
+                            fontWeight: 700,
+                            whiteSpace: "nowrap",
+                          }}
+                          title="This incident has a claim with your broker"
                         >
                           Claim · {claimByIncident[incident.id].replace(/_/g, " ")}
                         </span>

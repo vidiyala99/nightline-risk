@@ -1500,21 +1500,45 @@ a:hover { color: var(--text-primary); }
 }
 
 .incident-card {
+  position: relative;
+  overflow: hidden;
   display: flex;
   gap: var(--space-md);
   padding: var(--space-lg);
   background: var(--bg-surface);
-  backdrop-filter: blur(10px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   touch-action: manipulation;
-  transition: border-color 0.35s, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s;
+  transition: border-color 0.3s, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
 }
+
+/* Status accent rail: a thin left edge draws the eye to incidents that still
+   need attention. Closed incidents get no rail, so they recede. */
+.incident-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 0.3s;
+}
+.incident-card--open::before { background: var(--state-error); }
+.incident-card--under_review::before { background: var(--state-warning); }
+
+/* Closed incidents read as calm/settled, not alarming. */
+.incident-card--closed {
+  background: var(--bg-surface-hover);
+  border-color: transparent;
+}
+.incident-card--closed .incident-info h4 { color: var(--text-secondary); }
+.incident-card--closed .incident-desc { color: var(--text-muted); }
 
 .incident-card:hover {
   border-color: var(--border-strong);
   transform: translateY(-2px);
-  box-shadow: 0 18px 48px rgba(0,0,0,0.4);
+  box-shadow: 0 12px 32px rgba(23, 21, 15, 0.10);
 }
 
 .incident-icon {
@@ -1523,11 +1547,15 @@ a:hover { color: var(--text-primary); }
   justify-content: center;
   width: 44px;
   height: 44px;
-  background: rgba(245, 158, 11, 0.1);
   border-radius: var(--radius-md);
-  color: var(--state-warning);
   flex-shrink: 0;
+  /* default = open (most urgent); status modifiers below override */
+  background: rgba(200, 52, 30, 0.10);
+  color: var(--state-error);
 }
+.incident-icon--open { background: rgba(200, 52, 30, 0.10); color: var(--state-error); }
+.incident-icon--under_review { background: rgba(180, 83, 9, 0.12); color: var(--state-warning); }
+.incident-icon--closed { background: rgba(31, 143, 78, 0.12); color: var(--state-success); }
 
 .incident-info {
   flex: 1;
