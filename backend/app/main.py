@@ -174,6 +174,56 @@ def _backfill_incident_packets(session: Session) -> None:
     )
 
 
+def _backfill_missing_proposals(session: Session) -> None:
+    """Self-heal: auto-route any existing packet whose recommendation says
+    'file' at high confidence but which has no ClaimProposal yet.
+
+    `_backfill_incident_packets` only auto-routes incidents it *freshly* packets
+    (it skips any incident that already has a packet). So packets created before
+    auto-routing shipped — e.g. prod rows from an earlier deploy — never get
+    their proposal, and the broker inbox silently misses them while the operator
+    sees the claim 'sent' nowhere. This pass closes that gap on every boot.
+
+    Idempotent and gated: maybe_auto_route_incident skips a packet that already
+    has a proposal and creates nothing for borderline / not-routed packets, so
+    re-running is a no-op. No LLM cost — the recommendation is deterministic.
+    """
+    import logging
+    log = logging.getLogger("backfill")
+    from app.claim_routing import maybe_auto_route_incident
+
+    # Pre-filter to proposal-less packets so the common (already-routed) case
+    # never recomputes a recommendation.
+    proposed_packet_ids = set(session.exec(select(ClaimProposal.packet_id)).all())
+    pending = [
+        pkt for pkt in session.exec(select(UnderwritingPacket)).all()
+        if pkt.id not in proposed_packet_ids
+    ]
+    if not pending:
+        return
+
+    healed = 0
+    for pkt in pending:
+        try:
+            incident = session.get(IncidentRecord, pkt.incident_id)
+            operator_id = (incident.reported_by if incident else None) or "auto-router"
+            maybe_auto_route_incident(session, packet=pkt, operator_id=operator_id)
+            created = session.exec(
+                select(ClaimProposal).where(ClaimProposal.packet_id == pkt.id)
+            ).first()
+            if created is not None:
+                session.commit()
+                healed += 1
+            else:
+                # borderline / not-routed — nothing created, drop any pending state
+                session.rollback()
+        except Exception as exc:  # one bad row must not sink the rest
+            session.rollback()
+            log.warning("Proposal self-heal skipped %s: %s: %s", pkt.id, exc.__class__.__name__, exc)
+    if healed:
+        log.info("Proposal self-heal: created %d missing auto-routed proposal(s).", healed)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.config import validate_startup_env
@@ -290,6 +340,10 @@ async def lifespan(app: FastAPI):
             print(f"[SEED] Inserted {inserted} new seed incident(s).")
         # Backfill packets for any incidents that don't have one yet
         _backfill_incident_packets(session)
+        # Self-heal: auto-route any packet that predates the auto-router (created
+        # by an earlier deploy) so high-confidence 'file' incidents reach the
+        # broker inbox retroactively — not just freshly-packeted ones.
+        _backfill_missing_proposals(session)
 
     # Seed real-NYC prospect venues on boot (idempotent — skips if already
     # present) so a deploy auto-populates them; no manual railway step needed.

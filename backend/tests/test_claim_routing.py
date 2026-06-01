@@ -231,6 +231,74 @@ def test_backfill_auto_routes_high_confidence_incident():
     assert proposal.recommendation_snapshot["should_file"] is True
 
 
+# ─── self-heal: packets created before auto-routing existed ──────────────────
+
+
+def test_backfill_heals_packeted_incident_missing_its_proposal():
+    """A high-confidence 'file' incident that already had a packet — but no
+    proposal — must get its proposal retroactively.
+
+    `_backfill_incident_packets` only auto-routes incidents it *freshly* packets
+    (it skips any incident that already has a packet). So rows packeted before
+    auto-routing shipped (e.g. prod incidents from an earlier deploy) never get a
+    proposal and silently miss the broker inbox. The self-heal pass closes that
+    gap; without it the operator sees 'sent' nowhere while the rec says auto-route.
+    """
+    from datetime import datetime
+    from app.main import _backfill_missing_proposals
+
+    s = _db_session()
+    s.add(IncidentRecord(
+        id="inc-legacy", venue_id="elsewhere-brooklyn",
+        occurred_at=datetime(2026, 4, 22, 23, 10), location="Main Bar",
+        summary="Serious altercation; patron injured, police and EMS on scene.",
+        reported_by="Venue Owner",
+        injury_observed=True, police_called=True, ems_called=True, status="open",
+    ))
+    # Packet exists already (pre-auto-route deploy) but NO proposal.
+    s.add(UnderwritingPacket(
+        id="pkt-legacy", venue_id="elsewhere-brooklyn", incident_id="inc-legacy",
+        rubric_version_id="demo-rubric-v1", status="needs_review",
+        risk_signals={"type": "premises_liability", "severity": "high", "confidence": 0.9},
+        snapshot_hash="h",
+    ))
+    s.commit()
+    assert s.exec(select(ClaimProposal).where(ClaimProposal.packet_id == "pkt-legacy")).first() is None
+
+    _backfill_missing_proposals(s)
+
+    proposal = s.exec(select(ClaimProposal).where(ClaimProposal.packet_id == "pkt-legacy")).first()
+    assert proposal is not None, "self-heal must create the missing auto-routed proposal"
+    assert proposal.state == "pending_broker_review"
+    # Idempotent: a second pass creates no duplicate.
+    _backfill_missing_proposals(s)
+    assert len(s.exec(select(ClaimProposal).where(ClaimProposal.packet_id == "pkt-legacy")).all()) == 1
+
+
+def test_backfill_self_heal_leaves_borderline_packets_alone():
+    """The self-heal must NOT route borderline / low-confidence packets — those
+    stay the operator's call, exactly like the fresh-packet auto-router."""
+    from app.main import _backfill_missing_proposals
+
+    s = _db_session()
+    s.add(IncidentRecord(
+        id="inc-mild", venue_id="elsewhere-brooklyn", occurred_at="2026-05-17T00:00:00Z",
+        location="bar", summary="minor verbal dispute, de-escalated", reported_by="mgr",
+        injury_observed=False, police_called=False, ems_called=False, status="open",
+    ))
+    s.add(UnderwritingPacket(
+        id="pkt-mild", venue_id="elsewhere-brooklyn", incident_id="inc-mild",
+        rubric_version_id="demo-rubric-v1", status="needs_review",
+        risk_signals={"type": "general_incident", "severity": "low", "confidence": 0.55},
+        snapshot_hash="h",
+    ))
+    s.commit()
+
+    _backfill_missing_proposals(s)
+
+    assert s.exec(select(ClaimProposal).where(ClaimProposal.packet_id == "pkt-mild")).all() == []
+
+
 # ─── Task 4: deductible wired into recommendation_for_packet ─────────────────
 
 from app.claim_routing import recommendation_for_packet
