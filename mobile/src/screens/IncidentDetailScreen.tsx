@@ -41,6 +41,42 @@ const CORROBORATION_COLOR: Record<string, string> = {
   INCONCLUSIVE: Colors.textMuted,
 };
 
+// Claim-status tracker — plain-language "where this stands" + a step index,
+// mirroring web frontend/src/app/incidents/[id]/claim-status deriveStatus().
+// Honours ADR-0004: a routed proposal is NOT yet a carrier claim.
+type ClaimTone = 'info' | 'success' | 'warning' | 'error' | 'neutral';
+const CLAIM_TONE_COLOR: Record<ClaimTone, string> = {
+  info: Colors.accentInk,
+  success: Colors.accentInk,
+  warning: Colors.warning,
+  error: Colors.error,
+  neutral: Colors.textSecondary,
+};
+const CLAIM_STEP_LABELS = ['Reported', 'Sent', 'Approved', 'Filed', 'Resolved'];
+
+function deriveClaimStatus(
+  proposalState: string | null,
+  claimStatus: string | null,
+  claimExists: boolean,
+): { tone: ClaimTone; headline: string; detail: string; next: string; currentIndex: number } {
+  const ps = proposalState;
+  if (ps === 'paid' || claimStatus === 'closed_paid')
+    return { tone: 'success', headline: 'Claim paid', detail: 'The carrier settled this claim.', next: 'Resolved — no action required.', currentIndex: 4 };
+  if (ps === 'denied' || claimStatus === 'closed_denied')
+    return { tone: 'error', headline: 'Claim denied by carrier', detail: 'The carrier declined this claim.', next: 'Talk to your broker about a dispute or appeal.', currentIndex: 4 };
+  if (claimStatus === 'closed_dropped')
+    return { tone: 'neutral', headline: 'Claim withdrawn', detail: 'This claim was dropped before settlement.', next: 'Resolved — no action required.', currentIndex: 4 };
+  if (ps === 'rejected_by_broker')
+    return { tone: 'error', headline: 'Declined by your broker', detail: 'Your broker decided not to file. It never became a carrier claim.', next: 'Review the recommendation or talk to your broker.', currentIndex: 1 };
+  if (ps === 'filed_with_carrier' || claimExists)
+    return { tone: 'info', headline: 'Filed with the carrier', detail: "Your broker filed this as a carrier claim. It's now in the carrier's hands.", next: "Awaiting the carrier's decision.", currentIndex: 3 };
+  if (ps === 'approved')
+    return { tone: 'success', headline: 'Approved — filing with the carrier', detail: 'Your broker approved the recommendation; the carrier claim is being opened.', next: 'Your broker has the next move.', currentIndex: 2 };
+  if (ps === 'needs_more_info')
+    return { tone: 'warning', headline: 'Your broker needs more information', detail: 'Your broker asked for additional evidence before filing.', next: 'You have the next move — add the requested evidence.', currentIndex: 1 };
+  return { tone: 'info', headline: "Awaiting your broker's decision", detail: "We sent the recommendation to your broker.", next: "Your broker has the next move.", currentIndex: 1 };
+}
+
 
 export function IncidentDetailScreen({ route, navigation }: any) {
   const { incidentId } = route.params;
@@ -254,6 +290,51 @@ export function IncidentDetailScreen({ route, navigation }: any) {
                 </Pressable>
               </>
             )}
+          </View>
+        );
+      })()}
+
+      {/* Claim status tracker — operator-facing "where this stands" + stepper.
+          Mirrors the web /incidents/[id]/claim-status page. Shown once the
+          incident has entered the claim journey (proposal raised or claim filed). */}
+      {!isBroker && (proposal || claim) && (() => {
+        const s = deriveClaimStatus(proposal?.state ?? null, claim?.status ?? null, !!claim);
+        const toneColor = CLAIM_TONE_COLOR[s.tone];
+        return (
+          <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: toneColor }]}>
+            <Text style={styles.eyebrow}>WHERE THIS STANDS</Text>
+            <Text style={{ color: toneColor, fontFamily: 'HankenGrotesk_700Bold', fontSize: 15, marginBottom: 4 }}>
+              {s.headline}
+            </Text>
+            <Text style={styles.summary}>{s.detail}</Text>
+            <Text style={[styles.eyebrow, { marginTop: 10, marginBottom: 2 }]}>WHAT HAPPENS NEXT</Text>
+            <Text style={styles.summary}>{s.next}</Text>
+
+            <View style={styles.stepperRow}>
+              {CLAIM_STEP_LABELS.map((label, i) => {
+                const done = i < s.currentIndex;
+                const current = i === s.currentIndex;
+                return (
+                  <View
+                    key={label}
+                    style={[styles.stepChip, current && { borderColor: toneColor, backgroundColor: Colors.accentWash }]}
+                  >
+                    <Text style={[styles.stepGlyph, { color: done || current ? Colors.accentInk : Colors.textMuted }]}>
+                      {done ? '✓' : current ? '◉' : '○'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.stepLabel,
+                        { color: done || current ? Colors.accentInk : Colors.textMuted },
+                        current && { fontFamily: 'SpaceMono_700Bold' },
+                      ]}
+                    >
+                      {label}{current ? ' · now' : ''}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
         );
       })()}
@@ -508,6 +589,16 @@ const styles = StyleSheet.create({
 
   summary: { color: Colors.textSecondary, fontSize: 14, lineHeight: 22, fontFamily: 'HankenGrotesk_400Regular' },
   bodyText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, fontFamily: 'HankenGrotesk_400Regular' },
+
+  stepperRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 },
+  stepChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 6,
+    backgroundColor: Colors.bg,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: 'transparent',
+  },
+  stepGlyph: { fontSize: 11, fontFamily: 'SpaceMono_700Bold' },
+  stepLabel: { fontSize: 11, fontFamily: 'SpaceMono_400Regular' },
   metaGrid: { gap: 0 },
 
   signalRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
