@@ -156,10 +156,9 @@ export function AppShell({ children }: AppShellProps) {
   const role = useRole();
   const tenantId = useTenantId();
 
-  // Operators get an explicit "back to home" on every screen except home itself.
-  // (Brokers are out of scope for now; their nav rework comes later.)
-  const isOperator = role === "venue_operator";
-  const showBackHome = isOperator && !!pathname && pathname !== "/dashboard";
+  // Both personas get an explicit "back to home" on every screen except home
+  // itself. /dashboard is home for operators and brokers alike.
+  const showBackHome = !!pathname && pathname !== "/dashboard";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
