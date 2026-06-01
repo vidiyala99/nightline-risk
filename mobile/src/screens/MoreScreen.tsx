@@ -11,8 +11,7 @@ type Row = { route: string; label: string; description: string; icon: LucideIcon
 const OPERATOR_OVERFLOW: Row[] = [
   { route: 'Alerts', label: 'Alerts', description: 'Real-time liability detections', icon: Bell },
   { route: 'Live', label: 'Live Terminal', description: 'Real-time venue floor activity', icon: Activity },
-  { route: 'Proposals', label: 'Claim Proposals', description: 'Incidents recommended for filing', icon: FileText },
-  { route: 'Reports', label: 'Reports', description: 'Risk and loss reporting', icon: FileSearch },
+  { route: 'OperatorClaims', label: 'Claims', description: 'Where each claim you filed stands', icon: FileSpreadsheet },
   { route: 'Settings', label: 'Settings', description: 'Account and preferences', icon: Settings },
 ];
 
