@@ -20,6 +20,7 @@ from app.services.renewals import (
     RenewalsError,
     compute_loss_experience,
     create_renewal,
+    find_live_renewal,
 )
 from app.underwriting.pricing import loss_adjustment_from_loss_ratio
 
@@ -58,6 +59,11 @@ def renewals_due(
     )
     out: list[dict] = []
     for pol in rows:
+        # A policy with a renewal already in flight (or already bound) is no
+        # longer "due" — it's being worked. Surfacing it would nag the broker
+        # forever and invite a duplicate renewal.
+        if find_live_renewal(session, pol.id) is not None:
+            continue
         exp = compute_loss_experience(session, pol.id)
         out.append({
             "policy_id": pol.id,

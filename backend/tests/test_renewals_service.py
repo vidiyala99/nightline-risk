@@ -128,3 +128,36 @@ def test_create_renewal_rejects_non_active_policy(session):
     session.flush()
     with pytest.raises(RenewalsError):
         create_renewal(session, "pol-cancelled", effective_date=date(2026, 1, 1))
+
+
+def test_create_renewal_rejects_when_renewal_already_in_flight(session):
+    """One live renewal per policy. Without this guard a policy could be
+    renewed infinitely — each click spawning a duplicate renewal submission."""
+    _seed_prior_submission(session)
+    pol = _make_active_policy(session, pid="pol-reren")
+    pol.submission_id = "sub-prior"
+    session.add(pol)
+    session.flush()
+
+    create_renewal(session, "pol-reren", effective_date=date(2026, 1, 1), actor_id="user-broker")
+    with pytest.raises(RenewalsError):
+        create_renewal(session, "pol-reren", effective_date=date(2026, 1, 1), actor_id="user-broker")
+
+
+def test_create_renewal_allowed_after_prior_renewal_declined(session):
+    """A renewal that fell through (declined / lost / withdrawn) frees the
+    policy to be re-renewed — the guard only blocks *live* renewals."""
+    _seed_prior_submission(session)
+    pol = _make_active_policy(session, pid="pol-reren2")
+    pol.submission_id = "sub-prior"
+    session.add(pol)
+    session.flush()
+
+    first = create_renewal(session, "pol-reren2", effective_date=date(2026, 1, 1))
+    first.status = "declined"  # carrier declined / venue went elsewhere
+    session.add(first)
+    session.flush()
+
+    second = create_renewal(session, "pol-reren2", effective_date=date(2026, 1, 1))
+    assert second.id != first.id
+    assert second.prior_policy_id == "pol-reren2"

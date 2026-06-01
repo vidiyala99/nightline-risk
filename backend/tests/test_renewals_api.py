@@ -10,6 +10,7 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import select
 
 from app.auth import create_token
 from app.database import get_session
@@ -49,6 +50,15 @@ def _seed_renewable():
     """
     session = next(get_session())
     try:
+        # Clear any renewal submissions left by a prior run. The shared DB
+        # accumulates rows across runs; a stale renewal for pol-renewals-due
+        # would trip the new live-renewal exclusion and make the due-list
+        # tests flake. Each test that needs a renewal creates its own.
+        stale = session.exec(
+            select(Submission).where(Submission.prior_policy_id == "pol-renewals-due")
+        ).all()
+        for s in stale:
+            session.delete(s)
         if session.get(Submission, "sub-renewals-prior") is None:
             session.add(
                 Submission(
@@ -153,6 +163,26 @@ def test_renewals_due_excludes_non_active_policies(client):
     ids = [row["policy_id"] for row in r.json()]
     assert "pol-renewals-due" not in ids
     # _seed_renewable() in subsequent tests will restore status=active
+
+
+def test_renewals_due_excludes_policy_with_live_renewal(client):
+    """Once a policy has a renewal in flight it must drop off the due list —
+    otherwise a renewed policy nags the broker forever (and re-renews)."""
+    _seed_renewable()
+    # Confirm it's on the due list before we renew it.
+    before = client.get("/api/renewals/due?within_days=60", headers=_broker_headers())
+    assert "pol-renewals-due" in [row["policy_id"] for row in before.json()]
+
+    renew = client.post(
+        "/api/policies/pol-renewals-due/renew",
+        headers=_broker_headers(),
+        json={"effective_date": str(date.today() + timedelta(days=31))},
+    )
+    assert renew.status_code == 201, renew.text
+
+    after = client.get("/api/renewals/due?within_days=60", headers=_broker_headers())
+    assert "pol-renewals-due" not in [row["policy_id"] for row in after.json()]
+    # _seed_renewable() in subsequent tests clears the renewal again
 
 
 # ─── POST /api/policies/{id}/renew ───────────────────────────────────────────

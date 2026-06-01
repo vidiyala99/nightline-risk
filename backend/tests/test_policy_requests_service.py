@@ -7,6 +7,7 @@ owns commit/rollback — these tests flush and assert in-session.
 """
 import pytest
 from datetime import date
+from decimal import Decimal
 
 from sqlmodel import Session, SQLModel, create_engine, select
 
@@ -14,6 +15,7 @@ from app.lifecycles import InvalidTransitionError
 from app.models import (
     AuditEvent,
     CertificateOfInsurance,
+    Endorsement,
     Policy,
     PolicyRequest,
     Submission,
@@ -182,20 +184,53 @@ def test_approve_cancellation_cancels_policy(session):
     assert pol.refund_amount is not None
 
 
-def test_approve_coverage_change_is_decision_only(session):
-    _make_active_policy(session)
+def test_approve_coverage_change_issues_endorsement(session):
+    """coverage_change is not a hollow status flip — approval issues a real
+    mid-term endorsement against the policy and adjusts its premium."""
+    pol = _make_active_policy(session)
     req = create_policy_request(
         session, policy_id="pol-1", request_type="coverage_change",
-        requested_by="user_002", payload={"requested": "add liquor liability"},
+        requested_by="user_002",
+        payload={
+            "endorsement_type": "add_coverage",
+            "effective_date": "2025-09-01",
+            "premium_change": "1200.00",
+            "description": "Add liquor liability mid-term",
+            "terms_diff": {
+                "coverage_line": "liquor",
+                "per_occurrence_limit": "1000000",
+                "aggregate_limit": "2000000",
+            },
+        },
     )
     decided = decide_policy_request(
         session, request_id=req.id, decision="approved", decided_by="user_001",
     )
-    # No deterministic mid-term endorsement service exists — approval records
-    # the decision but creates no downstream entity.
     assert decided.status == "approved"
-    assert decided.result_entity_type is None
-    assert decided.result_entity_id is None
+    assert decided.result_entity_type == "endorsement"
+    end = session.get(Endorsement, decided.result_entity_id)
+    assert end is not None
+    assert end.endorsement_type == "add_coverage"
+    assert end.policy_id == "pol-1"
+    assert end.premium_change == Decimal("1200.00")
+    # Premium impact lands on the policy.
+    assert pol.annual_premium == Decimal("11200.00")
+
+
+def test_approve_coverage_change_missing_payload_raises_and_stays_pending(session):
+    """Like COI, a coverage_change with no endorsement detail can't execute —
+    validation runs before the transition so the request stays pending."""
+    _make_active_policy(session)
+    req = create_policy_request(
+        session, policy_id="pol-1", request_type="coverage_change",
+        requested_by="user_002", payload={},  # no endorsement_type / terms_diff
+    )
+    with pytest.raises(PolicyRequestError, match="coverage_change"):
+        decide_policy_request(
+            session, request_id=req.id, decision="approved", decided_by="user_001",
+        )
+    assert req.status == "pending"
+    assert req.decided_at is None
 
 
 def test_approve_coi_missing_payload_raises_and_stays_pending(session):

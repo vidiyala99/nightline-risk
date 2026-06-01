@@ -595,6 +595,22 @@ def test_list_policies_defaults_to_active():
         assert any(p.id == policy.id for p in results)
 
 
+def test_list_policies_default_includes_bound_pending_number():
+    """A just-bound policy (status='bound_pending_number', carrier hasn't
+    issued the number yet) is in-force coverage and must still appear in the
+    default working book. Filtering the default on status=='active' alone
+    made a freshly-bound policy vanish from /policies until a number landed."""
+    with _session() as s:
+        _, q = _make_quoting_submission_with_selected_quote(s)
+        policy = bind_quote(s, q.id, bound_by=USER_ID)  # no policy_number
+        s.commit()
+        assert policy.status == "bound_pending_number"
+        results = list_policies(s)
+        assert any(p.id == policy.id for p in results), (
+            "bound_pending_number policy vanished from the default /policies list"
+        )
+
+
 def test_snapshot_hash_is_invariant_to_coverage_line_ordering():
     """The hash must be deterministic from CONTENT, not from JSON-storage
     insertion order. If a future SQLAlchemy / Postgres version returns

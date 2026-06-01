@@ -143,6 +143,14 @@ def _validate_executable(req: PolicyRequest) -> None:
             raise PolicyRequestError(
                 f"Cannot approve COI request {req.id!r}: payload missing {missing}"
             )
+    if req.request_type == "coverage_change":
+        payload = req.payload or {}
+        missing = [k for k in ("endorsement_type", "terms_diff") if not payload.get(k)]
+        if missing:
+            raise PolicyRequestError(
+                f"Cannot approve coverage_change request {req.id!r}: "
+                f"payload missing {missing} (need the endorsement to issue)"
+            )
 
 
 def _execute_approved_request(
@@ -153,14 +161,17 @@ def _execute_approved_request(
     Returns (result_entity_type, result_entity_id) for deep-linking. Runs
     AFTER the transition; underlying service errors are re-raised as
     PolicyRequestError so the router rolls back the transition + side effect
-    as one atomic unit. coverage_change is decision-only (no deterministic
-    mid-term endorsement service exists) and returns (None, None).
+    as one atomic unit. coverage_change issues a mid-term endorsement and
+    returns ("endorsement", end.id).
     """
+    from decimal import Decimal
+
     # Local imports avoid a circular at module load (services import each other).
     from app.services.policies import (
         PoliciesError,
         cancel_policy,
         issue_certificate,
+        issue_endorsement,
     )
     from app.services.renewals import RenewalsError, create_renewal
 
@@ -208,7 +219,22 @@ def _execute_approved_request(
             )
             return "policy", policy.id
 
-        # coverage_change → decision-only.
+        if req.request_type == "coverage_change":
+            eff = payload.get("effective_date")
+            effective_date = date.fromisoformat(eff) if eff else now_utc().date()
+            end = issue_endorsement(
+                session, req.policy_id,
+                endorsement_type=payload["endorsement_type"],
+                effective_date=effective_date,
+                terms_diff=payload["terms_diff"],
+                premium_change=Decimal(str(payload.get("premium_change", "0.00"))),
+                tax_change=Decimal(str(payload.get("tax_change", "0.00"))),
+                description=payload.get("description") or req.note
+                or "Operator-requested coverage change",
+                issued_by=actor_id,
+            )
+            return "endorsement", end.id
+
         return None, None
     except (RenewalsError, PoliciesError) as e:
         raise PolicyRequestError(
@@ -228,8 +254,8 @@ def decide_policy_request(
 
     On approval, the underlying broker action is executed (renewal →
     Submission, coi → CertificateOfInsurance, cancellation → cancelled
-    Policy) so the decision isn't a hollow status flip. coverage_change is
-    decision-only. The caller (router) owns commit/rollback — an execution
+    Policy, coverage_change → Endorsement) so the decision isn't a hollow
+    status flip. The caller (router) owns commit/rollback — an execution
     failure raises PolicyRequestError so the whole unit rolls back.
     """
     if decision not in VALID_DECISIONS:

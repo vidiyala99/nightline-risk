@@ -10,6 +10,7 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import select
 
 from app.auth import create_token
 from app.database import get_session
@@ -44,6 +45,15 @@ def _seed():
     """Idempotent seed: broker user, two venues, one active policy on VENUE_A."""
     session = next(get_session())
     try:
+        # Clear renewal submissions left by prior runs (or earlier tests in
+        # this run). The shared DB accumulates rows; a stale renewal for
+        # POLICY_ID trips the new one-live-renewal-per-policy guard and makes
+        # the approve-renewal tests fail. Each test spawns its own renewal.
+        stale = session.exec(
+            select(Submission).where(Submission.prior_policy_id == POLICY_ID)
+        ).all()
+        for s in stale:
+            session.delete(s)
         if not session.get(UserRecord, BROKER_ID):
             session.add(UserRecord(
                 id=BROKER_ID, email="broker@example.com",

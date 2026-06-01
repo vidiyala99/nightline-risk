@@ -17,14 +17,36 @@ from decimal import Decimal
 
 from sqlmodel import Session, select
 
+from app.lifecycles import SUBMISSION_TERMINAL_STATES
 from app.models import Claim, Policy, Submission
 from app.money import usd
 from app.packet_core import _add_audit_event
 from app.services.submissions import create_submission
 
+# A renewal submission that fell through frees the policy to be re-renewed.
+# "Lost / declined / withdrawn" are the dead-end terminal states; "bound" is
+# terminal too but means the renewal *succeeded*, so it still counts as live
+# (the policy has already been renewed — don't let it be renewed again).
+_DEAD_RENEWAL_STATES: frozenset[str] = SUBMISSION_TERMINAL_STATES - {"bound"}
+
 
 class RenewalsError(Exception):
     """Base error for the renewals service (router maps -> HTTP 400)."""
+
+
+def find_live_renewal(session: Session, policy_id: str) -> Submission | None:
+    """The in-flight-or-bound renewal submission for a policy, if any.
+
+    A policy may carry at most one live renewal. A prior renewal that was
+    lost / declined / withdrawn is dead and does not count — the policy can
+    be renewed afresh."""
+    rows = session.exec(
+        select(Submission).where(Submission.prior_policy_id == policy_id)
+    )
+    for sub in rows:
+        if sub.status not in _DEAD_RENEWAL_STATES:
+            return sub
+    return None
 
 
 @dataclass(frozen=True)
@@ -88,6 +110,12 @@ def create_renewal(
     if policy.status != "active":
         raise RenewalsError(
             f"Can only renew an active policy; {policy_id} is {policy.status!r}"
+        )
+    existing = find_live_renewal(session, policy_id)
+    if existing is not None:
+        raise RenewalsError(
+            f"Policy {policy_id} already has a renewal in flight "
+            f"({existing.id}, status {existing.status!r}); resolve it first"
         )
     prior_sub = session.get(Submission, policy.submission_id)
     if prior_sub is None:

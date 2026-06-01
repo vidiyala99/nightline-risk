@@ -633,12 +633,17 @@ def list_policies(
     venue_id: Optional[str] = None,
     carrier_id: Optional[str] = None,
 ) -> list[Policy]:
-    """List policies. Default (no status_in): only 'active' policies —
-    that's the broker's working book. Pass status_in=['all'] explicitly
-    to see the full history."""
+    """List policies. Default (no status_in): the in-force working book —
+    'active' AND 'bound_pending_number' (a just-bound policy whose carrier
+    number hasn't landed yet is still real coverage, so it must not vanish
+    from /policies). Pass status_in=['all'] explicitly to see full history."""
+    # ACTIVE_POLICY_STATUSES is the canonical in-force set; lazy import keeps
+    # the services-import-each-other graph acyclic.
+    from app.services.fnol import ACTIVE_POLICY_STATUSES
+
     stmt = select(Policy)
     if status_in is None:
-        stmt = stmt.where(Policy.status == "active")
+        stmt = stmt.where(Policy.status.in_(tuple(ACTIVE_POLICY_STATUSES)))  # type: ignore[attr-defined]
     elif status_in != ["all"]:
         stmt = stmt.where(Policy.status.in_(status_in))  # type: ignore[attr-defined]
     if venue_id is not None:
