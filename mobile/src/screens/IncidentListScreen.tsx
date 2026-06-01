@@ -23,6 +23,22 @@ const STATUS_ACCENT: Record<string, string> = {
   closed: Colors.success,
 };
 
+// Short, operator-facing claim label derived from the proposal/claim chain in
+// the venue status feed. Mirrors web frontend/src/app/incidents/page.tsx so the
+// operator can see which incidents already carry a claim. Returns null when
+// the incident has no claim at all.
+function operatorClaimLabel(proposalState: string | null, claimStatus: string | null): string | null {
+  if (!proposalState && !claimStatus) return null;
+  if (claimStatus === 'closed_paid' || proposalState === 'paid') return 'paid';
+  if (claimStatus === 'closed_denied' || proposalState === 'denied') return 'denied';
+  if (claimStatus === 'closed_dropped') return 'withdrawn';
+  if (proposalState === 'rejected_by_broker') return 'declined';
+  if (proposalState === 'filed_with_carrier' || claimStatus) return 'filed';
+  if (proposalState === 'approved') return 'approved';
+  if (proposalState === 'needs_more_info') return 'info needed';
+  return 'with broker'; // pending_broker_review
+}
+
 export function IncidentListScreen({ navigation, route }: any) {
   const { user } = useAuth();
   const isBroker = user?.role === 'broker' || user?.role === 'admin';
@@ -68,6 +84,28 @@ export function IncidentListScreen({ navigation, route }: any) {
   }, [effectiveVenueId]);
 
   useEffect(() => { fetchIncidents(); }, [fetchIncidents]);
+
+  // Operator claim labels: when a venue is in scope, pull the status feed and
+  // map incident_id → short claim label (paid / filed / with broker / …).
+  const [claimByIncident, setClaimByIncident] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    if (!effectiveVenueId) { setClaimByIncident({}); return; }
+    api.request<Array<{ incident_id: string; proposal_state: string | null; claim_status: string | null }>>(
+      `/api/venues/${effectiveVenueId}/incident-status-feed`,
+    )
+      .then((rows) => {
+        if (cancelled) return;
+        const m: Record<string, string> = {};
+        for (const row of Array.isArray(rows) ? rows : []) {
+          const label = operatorClaimLabel(row.proposal_state, row.claim_status);
+          if (label) m[row.incident_id] = label;
+        }
+        setClaimByIncident(m);
+      })
+      .catch(() => { if (!cancelled) setClaimByIncident({}); });
+    return () => { cancelled = true; };
+  }, [effectiveVenueId]);
 
   const filtered = filter === 'all' ? incidents : incidents.filter(i => i.status === filter);
 
@@ -160,6 +198,13 @@ export function IncidentListScreen({ navigation, route }: any) {
             <Text style={styles.summary} numberOfLines={2}>{item.summary}</Text>
             <View style={styles.cardFooter}>
               <StatusBadge status={item.status} />
+              {claimByIncident[item.id] && (
+                <View style={styles.claimPill}>
+                  <Text style={styles.claimPillText}>
+                    Claim · {claimByIncident[item.id]}
+                  </Text>
+                </View>
+              )}
               {item.injury_observed && (
                 <View style={styles.flag}>
                   <Text style={styles.flagText}>INJURY</Text>
@@ -253,6 +298,15 @@ const styles = StyleSheet.create({
   date: { color: Colors.textMuted, fontSize: 11, fontWeight: '600', letterSpacing: 0.3, fontFamily: 'SpaceMono_400Regular' },
   summary: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'HankenGrotesk_400Regular' },
   cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  claimPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: 'rgba(200,240,0,0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(200,240,0,0.28)',
+  },
+  claimPillText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 0.4, fontFamily: 'SpaceMono_700Bold' },
   flag: {
     paddingHorizontal: 7,
     paddingVertical: 3,
