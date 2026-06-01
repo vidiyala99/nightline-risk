@@ -290,8 +290,14 @@ function AlertsPageInner() {
     if (isLoaded && !isSignedIn) router.push("/login");
   }, [isLoaded, isSignedIn, router]);
 
+  // Alerts are real-time venue floor/liability detections — an operator
+  // surface. Brokers are book-level and don't run the floor; bounce them.
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (isLoaded && isSignedIn && isBroker) router.replace("/dashboard");
+  }, [isLoaded, isSignedIn, isBroker, router]);
+
+  useEffect(() => {
+    if (!isSignedIn || isBroker) return;
     async function loadVenues() {
       try {
         if (isBroker) {
@@ -357,6 +363,11 @@ function AlertsPageInner() {
 
   const criticalCount = alerts.filter((a) => a.severity === "critical" && !a.feedback).length;
   const selectedVenueName = venues.find((v) => v.id === selectedVenueId)?.name ?? selectedVenueId;
+
+  // Brokers are redirected away (operator-only surface) — hold the spinner.
+  if (!isLoaded || isBroker) {
+    return <div className="theme-venue min-h-screen page-loading"><div className="loading-spinner" /></div>;
+  }
 
   return (
     <div className="theme-venue min-h-screen p-xl">

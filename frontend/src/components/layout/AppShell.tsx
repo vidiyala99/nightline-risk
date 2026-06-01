@@ -83,7 +83,6 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
         ] },
         { label: "System", items: [
           { href: "/ingestion", label: "Ingestion", icon: Database },
-          { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
         ] },
       ]
     : [
