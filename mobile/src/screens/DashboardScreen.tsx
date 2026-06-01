@@ -41,12 +41,55 @@ interface VenueSummary {
   name: string;
 }
 
+interface LiveState {
+  current_capacity?: number;
+  max_capacity?: number;
+  infrastructure?: Array<{ name: string; status?: string; is_degraded?: boolean }>;
+  compliance_queue?: unknown[];
+}
+
+// ---- Operator report feed (mirrors web frontend/src/app/dashboard/page.tsx) ----
+interface FeedRow {
+  incident_id: string;
+  summary: string;
+  occurred_at: string;
+  status: string;
+  proposal_state: string | null;
+  claim_status: string | null;
+}
+
+const TERMINAL_INCIDENT = new Set(['closed', 'closed_archived']);
+const TERMINAL_CLAIM = new Set(['closed_paid', 'closed_denied', 'closed_dropped']);
+const TERMINAL_PROPOSAL = new Set(['paid', 'denied', 'rejected_by_broker']);
+
+// A report stays on the home feed only while *live* — closed-and-done belongs
+// in the Incidents archive; a closed incident with a claim still in flight stays.
+function isActiveReport(r: FeedRow): boolean {
+  const incidentActive = !TERMINAL_INCIDENT.has(r.status);
+  const claimActive = !!r.claim_status && !TERMINAL_CLAIM.has(r.claim_status);
+  const proposalActive = !!r.proposal_state && !TERMINAL_PROPOSAL.has(r.proposal_state);
+  return incidentActive || claimActive || proposalActive;
+}
+
+function reportSteps(r: FeedRow): Array<{ label: string; lit: boolean }> {
+  const ps = r.proposal_state ?? '';
+  return [
+    { label: 'Reported', lit: true },
+    { label: 'Sent', lit: !!r.proposal_state },
+    { label: 'Approved', lit: ['approved', 'filed_with_carrier', 'paid', 'denied'].includes(ps) },
+    { label: 'Filed', lit: ['filed_with_carrier', 'paid', 'denied'].includes(ps) || !!r.claim_status },
+    { label: 'Resolved', lit: ['paid', 'denied'].includes(ps) || ['closed_paid', 'closed_denied', 'closed_dropped'].includes(r.claim_status ?? '') },
+  ];
+}
+
 export function DashboardScreen({ navigation }: any) {
   const { user } = useAuth();
   const [riskData, setRiskData] = useState<RiskScore | null>(null);
   const [quoteData, setQuoteData] = useState<PremiumQuote | null>(null);
   const [openIncidents, setOpenIncidents] = useState<number>(0);
   const [complianceCount, setComplianceCount] = useState<number>(0);
+  const [liveState, setLiveState] = useState<LiveState | null>(null);
+  const [feedRows, setFeedRows] = useState<FeedRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -92,11 +135,13 @@ export function DashboardScreen({ navigation }: any) {
     if (!selectedVenueId) return;
     setFetchError(null);
     try {
-      const [risk, quote, incidents, live] = await Promise.all([
+      const [risk, quote, incidents, live, feed] = await Promise.all([
         api.request<any>(`/api/venues/${selectedVenueId}/risk-score`),
         api.request<any>(`/api/venues/${selectedVenueId}/quote`),
         api.request<any[]>(`/api/venues/${selectedVenueId}/incidents?status=open`),
         api.request<any>(`/api/venues/${selectedVenueId}/live`),
+        // Report feed for the claim-journey section; tolerate failure.
+        api.request<FeedRow[]>(`/api/venues/${selectedVenueId}/incident-status-feed`).catch(() => [] as FeedRow[]),
       ]);
 
       // Normalize factors to plain numbers so they never reach JSX as objects
@@ -107,7 +152,9 @@ export function DashboardScreen({ navigation }: any) {
       setRiskData(risk);
       setQuoteData(quote);
       setOpenIncidents(Array.isArray(incidents) ? incidents.length : 0);
+      setLiveState(live ?? null);
       setComplianceCount((live?.compliance_queue ?? []).length);
+      setFeedRows(Array.isArray(feed) ? feed : []);
     } catch (e: any) {
       const msg: string = e?.message ?? '';
       // 404 means the venue hasn't been set up yet — not a real error
@@ -117,6 +164,8 @@ export function DashboardScreen({ navigation }: any) {
         setRiskData(null);
         setQuoteData(null);
         setOpenIncidents(0);
+        setLiveState(null);
+        setFeedRows([]);
       } else {
         setFetchError(msg || 'Failed to load venue data');
       }
@@ -170,6 +219,19 @@ export function DashboardScreen({ navigation }: any) {
   const score = riskData?.total_score ?? 0;
   const factors: Record<string, number> = riskData?.factors ?? {};
   const tierColor = getTierColor(tier);
+
+  // Report feed (claim journey) — only live reports on home; archive holds the rest.
+  const activeReports = feedRows.filter(isActiveReport);
+  const claimsInFlight = activeReports.filter(r => r.proposal_state != null || r.claim_status != null).length;
+  const infoRequested = activeReports.filter(r => r.proposal_state === 'needs_more_info').length;
+
+  // "On the floor" live state. Capacity is only present when the caller may read
+  // floor data (operator on their own venue) — guard on a real max_capacity.
+  const cap = liveState?.current_capacity ?? 0;
+  const maxCap = liveState?.max_capacity ?? 0;
+  const capPct = maxCap > 0 ? Math.min(100, Math.round((cap / maxCap) * 100)) : 0;
+  const infra = liveState?.infrastructure ?? [];
+  const showFloor = maxCap > 0 || infra.length > 0;
 
   return (
     <ScrollView
@@ -265,6 +327,116 @@ export function DashboardScreen({ navigation }: any) {
           })}
         />
       </View>
+
+      {/* On the floor — live operational state (operator-only; capacity is
+          gated server-side via can_read_venue_floor). Mirrors web dashboard. */}
+      {showFloor && (
+        <View style={styles.card}>
+          <Text style={styles.sectionEyebrow}>ON THE FLOOR</Text>
+          {maxCap > 0 && (
+            <>
+              <View style={styles.floorCapRow}>
+                <Text style={styles.floorCapValue}>{cap}<Text style={styles.floorCapMax}> / {maxCap}</Text></Text>
+                <Text style={styles.floorCapPct}>{capPct}%</Text>
+              </View>
+              <View style={styles.floorBarTrack}>
+                <View style={[styles.floorBarFill, { width: `${capPct}%`, backgroundColor: capPct >= 90 ? Colors.error : capPct >= 70 ? Colors.warning : Colors.accent }]} />
+              </View>
+            </>
+          )}
+          {infra.length > 0 && (
+            <View style={styles.infraGrid}>
+              {infra.map((item, i) => {
+                const degraded = item.is_degraded || (item.status && item.status !== 'ok' && item.status !== 'operational');
+                return (
+                  <View key={`${item.name}-${i}`} style={styles.infraChip}>
+                    <View style={[styles.infraDot, { backgroundColor: degraded ? Colors.error : Colors.success }]} />
+                    <Text style={styles.infraName} numberOfLines={1}>{item.name}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Claims in flight — quick doorway to tracking, mirrors web summary band */}
+      {(claimsInFlight > 0 || infoRequested > 0) && (
+        <View style={styles.flightRow}>
+          {claimsInFlight > 0 && (
+            <Pressable
+              style={({ pressed }) => [styles.flightCell, pressed && { opacity: 0.8 }]}
+              onPress={() => navigation.getParent()?.navigate('Incidents', { screen: 'IncidentList', params: { venueId: selectedVenueId } })}
+            >
+              <Text style={styles.flightNum}>{claimsInFlight}</Text>
+              <Text style={styles.flightLabel}>claims in flight · track →</Text>
+            </Pressable>
+          )}
+          {infoRequested > 0 && (
+            <Pressable
+              style={({ pressed }) => [styles.flightCell, styles.flightCellWarn, pressed && { opacity: 0.8 }]}
+              onPress={() => navigation.getParent()?.navigate('Incidents', { screen: 'IncidentList', params: { venueId: selectedVenueId } })}
+            >
+              <Text style={[styles.flightNum, { color: Colors.warning }]}>{infoRequested}</Text>
+              <Text style={styles.flightLabel}>need info →</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+
+      {/* Your reports — what happened next (claim journey step indicators) */}
+      {activeReports.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.sectionEyebrow}>YOUR REPORTS — WHAT HAPPENED NEXT</Text>
+          <View style={{ gap: 12 }}>
+            {activeReports.slice(0, 6).map((r) => {
+              const steps = reportSteps(r);
+              const currentIdx = steps.map(s => s.lit).lastIndexOf(true);
+              const branch = r.proposal_state === 'rejected_by_broker' ? 'Declined'
+                : r.proposal_state === 'needs_more_info' ? 'Info requested' : null;
+              return (
+                <Pressable
+                  key={r.incident_id}
+                  style={({ pressed }) => [styles.reportRow, pressed && { opacity: 0.75 }]}
+                  onPress={() => navigation.getParent()?.navigate('Incidents', {
+                    screen: 'IncidentDetail',
+                    params: { incidentId: r.incident_id, venueId: selectedVenueId },
+                  })}
+                >
+                  <Text style={styles.reportSummary} numberOfLines={1}>{r.summary}</Text>
+                  <View style={styles.stepRow}>
+                    {steps.map((s, i) => (
+                      <Text
+                        key={s.label}
+                        style={[
+                          styles.stepText,
+                          { color: s.lit ? Colors.accentInk : Colors.textMuted },
+                          i === currentIdx && styles.stepCurrent,
+                        ]}
+                      >
+                        {s.lit ? '● ' : '○ '}{s.label}{i === currentIdx ? ' · now' : ''}
+                      </Text>
+                    ))}
+                    {branch && (
+                      <Text style={[styles.stepText, { color: branch === 'Info requested' ? Colors.warning : Colors.error }]}>
+                        · {branch}
+                      </Text>
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+          {activeReports.length > 6 && (
+            <Pressable
+              onPress={() => navigation.getParent()?.navigate('Incidents', { screen: 'IncidentList', params: { venueId: selectedVenueId } })}
+              style={{ marginTop: 10 }}
+            >
+              <Text style={styles.reportMore}>+{activeReports.length - 6} more in Incidents →</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
 
       {/* Onboarding nudge — capture insurance knowns so a broker can shop coverage */}
       {selectedVenueId && <OnboardingCard venueId={selectedVenueId} />}
@@ -532,6 +704,46 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 12,
   },
+
+  // On the floor (live state)
+  floorCapRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  floorCapValue: { color: Colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -1, fontFamily: 'SpaceMono_700Bold' },
+  floorCapMax: { color: Colors.textMuted, fontSize: 16, fontWeight: '500', fontFamily: 'HankenGrotesk_500Medium' },
+  floorCapPct: { color: Colors.textSecondary, fontSize: 13, fontWeight: '700', fontFamily: 'SpaceMono_700Bold' },
+  floorBarTrack: { height: 8, borderRadius: 4, backgroundColor: Colors.borderSubtle, marginTop: 8, overflow: 'hidden' },
+  floorBarFill: { height: 8, borderRadius: 4 },
+  infraGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  infraChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: Colors.bg,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderSubtle,
+  },
+  infraDot: { width: 7, height: 7, borderRadius: 4 },
+  infraName: { color: Colors.textSecondary, fontSize: 11, fontWeight: '600', fontFamily: 'HankenGrotesk_500Medium', maxWidth: 120 },
+
+  // Claims in flight
+  flightRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  flightCell: {
+    flex: 1,
+    backgroundColor: 'rgba(200,240,0,0.06)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(200,240,0,0.22)',
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, gap: 2,
+  },
+  flightCellWarn: { backgroundColor: 'rgba(255,176,32,0.06)', borderColor: 'rgba(255,176,32,0.25)' },
+  flightNum: { color: Colors.accentInk, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, fontFamily: 'SpaceMono_700Bold' },
+  flightLabel: { color: Colors.textMuted, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
+
+  // Report feed
+  reportRow: {
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.borderSubtle,
+    paddingBottom: 12, gap: 6,
+  },
+  reportSummary: { color: Colors.text, fontSize: 14, fontWeight: '600', fontFamily: 'HankenGrotesk_600SemiBold' },
+  stepRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  stepText: { fontSize: 11, fontFamily: 'SpaceMono_400Regular' },
+  stepCurrent: { fontFamily: 'SpaceMono_700Bold' },
+  reportMore: { color: Colors.accentInk, fontSize: 12, fontFamily: 'SpaceMono_400Regular' },
 
   // Shared card
   card: {
