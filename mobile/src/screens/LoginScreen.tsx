@@ -107,6 +107,13 @@ export function LoginScreen({ navigation }: Props) {
                 <Text style={styles.eyeText}>{showPassword ? 'HIDE' : 'SHOW'}</Text>
               </Pressable>
             </View>
+            <Pressable
+              onPress={() => navigation.navigate('ForgotPassword')}
+              style={styles.forgotLink}
+              hitSlop={8}
+            >
+              <Text style={styles.forgotLinkText}>Forgot password?</Text>
+            </Pressable>
           </View>
 
           {hasError && (
@@ -218,6 +225,8 @@ const styles = StyleSheet.create({
   passwordInput: { paddingRight: 64 },
   eyeBtn: { position: 'absolute', right: 16, top: 0, bottom: 0, justifyContent: 'center' },
   eyeText: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: 'SpaceMono_700Bold' },
+  forgotLink: { alignSelf: 'flex-end', paddingVertical: 2 },
+  forgotLinkText: { color: Colors.accentInk, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular' },
 
   inputError: {
     borderColor: 'rgba(255,69,87,0.5)',
