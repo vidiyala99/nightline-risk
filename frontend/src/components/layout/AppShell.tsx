@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Inbox,
   Database,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth, useRole, useTenantId } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
@@ -76,6 +77,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
           { href: "/renewals", label: "Renewals", icon: RefreshCw },
         ] },
         { label: "Book", items: [
+          { href: "/book", label: "Financials", icon: TrendingUp },
           { href: "/venues", label: "Venues", icon: Building2 },
           { href: "/policy-requests", label: "Requests", icon: Inbox },
         ] },
