@@ -1202,6 +1202,14 @@ export default function RiskProfilePage() {
                 Dig into the records behind the score.
               </p>
               <div className="rp-dossier-grid">
+                <Link href={`/risk-profile/${encodeURIComponent(venueId)}/loss-run`} className="rp-dossier-tile" aria-label="View the loss run — claims history">
+                  <TrendingDown size={18} className="rp-dossier-icon" aria-hidden="true" />
+                  <span className="rp-dossier-body">
+                    <span className="rp-dossier-label">Loss run</span>
+                    <span className="rp-dossier-meta font-mono">Claims history · exportable CSV</span>
+                  </span>
+                  <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
+                </Link>
                 <Link href={`/incidents?venue=${encodeURIComponent(venueId)}`} className="rp-dossier-tile" aria-label="View incidents and evidence packets">
                   <AlertTriangle size={18} className="rp-dossier-icon" aria-hidden="true" />
                   <span className="rp-dossier-body">
