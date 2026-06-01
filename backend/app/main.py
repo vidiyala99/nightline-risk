@@ -456,6 +456,9 @@ app.include_router(ingestion_runs_router, prefix="/api", tags=["ingestion-runs"]
 from app.api.v1.alerts import router as alerts_router  # noqa: E402
 app.include_router(alerts_router, prefix="/api", tags=["alerts"])
 
+from app.api.v1.book import router as book_router  # noqa: E402
+app.include_router(book_router, prefix="/api", tags=["book"])
+
 # CORS origins. Standard local web dev (localhost + 127.0.0.1 are distinct
 # origins to a browser) + Expo mobile dev + prod. Machine-specific origins — a
 # LAN IP for a phone on the same wifi, or a local verify server on another port —
