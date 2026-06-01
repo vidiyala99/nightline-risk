@@ -110,9 +110,12 @@ deliberate next iteration, not part of the demo's eval/correctness pitch — siz
 **7a. Business / financial layer — the genuinely-absent part.** A broker's day is revenue, loss
 ratios, and placement, not just clicks. Commission is *stored* per policy
 (`Policy.commission_amount/rate`) and shown on policy detail, but there is no roll-up.
-- [ ] **Book financials view** ★ — written-premium total, commission/revenue roll-up, and loss
-  ratio (incurred losses ÷ earned premium) across the book. The dashboard shows avg *risk*,
-  never *money*. Highest-signal for an insurance audience.
+- [x] **Book financials view** ★ — written + earned premium, commission/revenue roll-up, and
+  loss ratio (incurred ÷ earned, pro-rated by elapsed term) across the in-force book, with
+  per-coverage-line and per-carrier breakdowns. Shipped 2026-06-01: `app/services/book.py` +
+  `GET /api/book/financials` (broker-only, TDD'd) → web `/book` page (nav: Book ▸ Financials)
+  + mobile `BookScreen` (More ▸ Book Financials). Loss ratio uses underwriting bands
+  (<60% healthy / 60–80% watch / >80% high) shown as color **and** text label.
 - [ ] Per-venue loss run as a first-class, exportable artifact (claims history + reserves/paid by
   coverage line). Data exists in `Claim`; needs a broker-facing rollup/export.
 - [ ] Carrier appetite / relationship model — carriers are static seed (`seed_carriers.py`); a

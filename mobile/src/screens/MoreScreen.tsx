@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Activity, FileText, FileSearch, Building2, Send, FileSpreadsheet, Bell, ListChecks, MapPin, Database, Settings, Inbox } from 'lucide-react-native';
+import { ChevronRight, Activity, FileText, FileSearch, Building2, Send, FileSpreadsheet, Bell, ListChecks, MapPin, Database, Settings, Inbox, TrendingUp } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,6 +18,7 @@ const OPERATOR_OVERFLOW: Row[] = [
 
 const BROKER_OVERFLOW: Row[] = [
   { route: 'WorkQueue', label: 'Work Queue', description: 'Triage claim proposals — decide & file', icon: Inbox },
+  { route: 'Book', label: 'Book Financials', description: 'Premium, commission & loss ratio', icon: TrendingUp },
   { route: 'Tasks', label: 'Tasks', description: 'Renewals & requests needing attention', icon: ListChecks },
   { route: 'Submissions', label: 'Submissions', description: 'Place venue risk out to carriers', icon: Send },
   { route: 'Policies', label: 'Policies', description: 'Your in-force book', icon: FileSpreadsheet },
