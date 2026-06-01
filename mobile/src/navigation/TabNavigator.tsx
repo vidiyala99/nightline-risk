@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 // Venue operator screens
 import { DashboardStack } from './DashboardStack';
 import { IncidentsStack } from './IncidentsStack';
-import { VenuesStack } from './VenuesStack';
+import { OperatorClaimsStack } from './OperatorClaimsStack';
 import { OperatorComplianceStack } from './OperatorComplianceStack';
 
 // Broker screens
@@ -126,8 +126,8 @@ function VenueOperatorTabs() {
     <Tab.Navigator screenOptions={useScreenOptions(signOut)}>
       <Tab.Screen name="Dashboard" component={DashboardStack} />
       <Tab.Screen name="Incidents" component={IncidentsStack} />
+      <Tab.Screen name="Claims" component={OperatorClaimsStack} />
       <Tab.Screen name="Compliance" component={OperatorComplianceStack} />
-      <Tab.Screen name="Venues" component={VenuesStack} />
       <Tab.Screen name="More" component={OperatorMoreStack} />
     </Tab.Navigator>
   );

@@ -306,7 +306,7 @@ export function DashboardScreen({ navigation }: any) {
         <StatCard
           value={venuesList.length}
           label={venuesList.length === 1 ? 'YOUR VENUE' : 'YOUR VENUES'}
-          onPress={() => navigation.getParent()?.navigate('Venues')}
+          onPress={() => navigation.getParent()?.navigate('More', { screen: 'Venues' })}
         />
         <StatCard
           value={openIncidents}
@@ -366,7 +366,7 @@ export function DashboardScreen({ navigation }: any) {
           {claimsInFlight > 0 && (
             <Pressable
               style={({ pressed }) => [styles.flightCell, pressed && { opacity: 0.8 }]}
-              onPress={() => navigation.getParent()?.navigate('Incidents', { screen: 'IncidentList', params: { venueId: selectedVenueId } })}
+              onPress={() => navigation.getParent()?.navigate('Claims')}
             >
               <Text style={styles.flightNum}>{claimsInFlight}</Text>
               <Text style={styles.flightLabel}>claims in flight · track →</Text>
@@ -375,7 +375,7 @@ export function DashboardScreen({ navigation }: any) {
           {infoRequested > 0 && (
             <Pressable
               style={({ pressed }) => [styles.flightCell, styles.flightCellWarn, pressed && { opacity: 0.8 }]}
-              onPress={() => navigation.getParent()?.navigate('Incidents', { screen: 'IncidentList', params: { venueId: selectedVenueId } })}
+              onPress={() => navigation.getParent()?.navigate('Claims')}
             >
               <Text style={[styles.flightNum, { color: Colors.warning }]}>{infoRequested}</Text>
               <Text style={styles.flightLabel}>need info →</Text>

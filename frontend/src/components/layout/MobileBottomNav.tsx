@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   AlertTriangle,
   CheckSquare,
-  Building2,
   FileSpreadsheet,
   Menu,
 } from "lucide-react";
@@ -22,8 +21,8 @@ type PrimaryItem = { key: string; href: string; label: string; icon: NavIcon };
 const OPERATOR_PRIMARY: PrimaryItem[] = [
   { key: "dashboard",  href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
   { key: "incidents",  href: "/incidents",  label: "Incidents",  icon: AlertTriangle },
+  { key: "claims",     href: "/claims",     label: "Claims",     icon: FileSpreadsheet },
   { key: "compliance", href: "/compliance", label: "Compliance", icon: CheckSquare },
-  { key: "venues",     href: "/venues",     label: "Venues",     icon: Building2 },
 ];
 
 const BROKER_PRIMARY: PrimaryItem[] = [
@@ -42,9 +41,8 @@ export function MobileBottomNav({ onMore }: { onMore: () => void }) {
   const primary = role === "broker" || role === "admin" ? BROKER_PRIMARY : OPERATOR_PRIMARY;
 
   // Claim-journey screens (decision + claim-status) live under /incidents/* but
-  // belong to Claims — mirror AppShell so the tab bar never lights Incidents for
-  // them. (Operator primary has no Claims tab, so nothing lights — correct: the
-  // screen isn't a top-level destination.)
+  // belong to Claims — mirror AppShell so the tab bar lights Claims (not
+  // Incidents) for them. Both personas now have a Claims tab.
   const isClaimFlow = /^\/incidents\/[^/]+\/(decision|claim-status)(\/|$)/.test(pathname ?? "");
 
   // Mirror the venue-context priority used in AppShell NavLinks so deep links

@@ -11,8 +11,7 @@ import { TasksScreen } from '../screens/TasksScreen';
 import { WorkQueueScreen } from '../screens/WorkQueueScreen';
 import { BookScreen } from '../screens/BookScreen';
 import { CarrierDetailScreen } from '../screens/CarrierDetailScreen';
-import { OperatorClaimsScreen } from '../screens/OperatorClaimsScreen';
-import { ClaimDetailScreen } from '../screens/ClaimDetailScreen';
+import { VenuesStack } from './VenuesStack';
 import { AlertsScreen } from '../screens/AlertsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { MarketScreen } from '../screens/MarketScreen';
@@ -37,12 +36,7 @@ export function OperatorMoreStack() {
       <Stack.Screen name="MoreHome" component={MoreScreen} />
       <Stack.Screen name="Alerts" component={AlertsScreen} />
       <Stack.Screen name="Live" component={LiveStack} />
-      <Stack.Screen name="OperatorClaims" component={OperatorClaimsScreen} />
-      {/* Claim rows drill into the incident's "where this stands" tracker, which
-          can open the proposal's ClaimDetail. Registered locally so back returns
-          to Claims, not the Incidents tab. */}
-      <Stack.Screen name="IncidentDetail" component={IncidentDetailScreen} />
-      <Stack.Screen name="ClaimDetail" component={ClaimDetailScreen} />
+      <Stack.Screen name="Venues" component={VenuesStack} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
