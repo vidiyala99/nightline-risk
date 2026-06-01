@@ -16,6 +16,8 @@ Last updated: 2026-05-31.
 - [x] Storage abstraction: all file I/O behind `app/storage.py` (`LocalStorage`); S3 is a one-class swap.
 - [x] ETL hardening: startup-seeds connector runs (demo page populated), rejection-reason observability, extract retry/backoff. De-flaked `test_run_pos_moves_a_venue_score`.
 - [x] Test scaffolding: Vitest (frontend), jest-expo (mobile).
+- [x] Broker spine hardening (gut-check 2026-05-31): `broker-decision` endpoint gated `require_broker` (was **unauthenticated** — anyone, incl. an operator, could approve a claim), actor now from the token; `needs_more_info` broker "withdraw → re-queue" escape; duplicate Review Decision card removed; `authHeaders()` on the underwriter proposal mutations; `/underwriter` lights Work Queue in nav; dead login "Back home" link removed.
+- [x] Work Queue Postgres-500 fix: `recommendation_snapshot` JSON-string coerced (`_coerce_snapshot`) so the priority sort no longer 500s on Neon; the CORS-less 500 had been hanging the spinner — load now shows Retry. Verified live (`?sort=priority` 500→200, 13 proposals).
 
 ---
 
@@ -95,6 +97,58 @@ connector. Tracked under "Real operational connectors" in `go-live-readiness.md`
 > First move when we start: the **Slack incoming-webhook adapter** on the existing `dispatch_alert`
 > seam — subscription-free, demoable, and it's the one output box that's genuinely absent rather than
 > just renamed (ticketing) or simulated (scheduling) or already built (reporting).
+
+### 7. Broker business iteration — make it read like a real brokerage (added 2026-05-31)
+
+Context: the gut-check (4-agent audit, 2026-05-31) found the broker **transactional spine**
+(submission → quote → bind → policy → FNOL → claim) is largely complete and now *operable*
+(see Recently shipped). What's missing is the layer a real insurance broker lives in daily —
+plus a ring of unreachable lifecycle edges. This track is that iteration. Scope call: this is a
+deliberate next iteration, not part of the demo's eval/correctness pitch — size it to the audience
+(an insurance recruiter will notice the absent financial layer; an AI-infra audience won't).
+
+**7a. Business / financial layer — the genuinely-absent part.** A broker's day is revenue, loss
+ratios, and placement, not just clicks. Commission is *stored* per policy
+(`Policy.commission_amount/rate`) and shown on policy detail, but there is no roll-up.
+- [ ] **Book financials view** ★ — written-premium total, commission/revenue roll-up, and loss
+  ratio (incurred losses ÷ earned premium) across the book. The dashboard shows avg *risk*,
+  never *money*. Highest-signal for an insurance audience.
+- [ ] Per-venue loss run as a first-class, exportable artifact (claims history + reserves/paid by
+  coverage line). Data exists in `Claim`; needs a broker-facing rollup/export.
+- [ ] Carrier appetite / relationship model — carriers are static seed (`seed_carriers.py`); a
+  broker can't model which carrier wants which class/geo. Even light "appetite tags + match score
+  on a submission" makes placement feel real.
+- [ ] 🔒 Billing / premium accounting / invoicing — likely needs Stripe; gate it.
+
+**7b. Lifecycle negative edges — defined but unreachable (placement audit).** These make the spine
+*incomplete*, not just unpolished:
+- [ ] **Renewal hand-off leaves the prior policy dangling** ★ — `renewalsApi.renew` creates a
+  renewal submission but never advances the old policy, so it stays on the "due" list forever and
+  can be re-renewed infinitely (`services/renewals.py:81`). Real data-integrity bug.
+- [ ] `bound_pending_number` policies are excluded from the default `/policies` list
+  (`services/policies.py:640`) — a just-bound policy vanishes until a number is assigned.
+- [ ] No UI path to mark a submission `lost`/`declined`, or a policy `expired`/`non_renewed`/
+  `lapsed` (or reinstate) — all defined in `lifecycles.py`, none reachable; expired policies show
+  "Active" forever and win/loss analytics are corrupted.
+- [ ] `coverage_change` policy-request approval is a silent no-op (`services/policy_requests.py:211`
+  returns `(None, None)`) — operator sees "Approved" but no endorsement issues.
+
+**7c. Remaining gut-check polish (medium/low).**
+- [ ] Broker dashboard has no empty-book / fetch-error state (a failed `/api/portfolio` renders a
+  healthy-looking empty Book).
+- [ ] MobileBottomNav broker tabs are wrong (Incidents/Compliance aren't broker desktop
+  destinations; missing Work Queue/Submissions) — `MobileBottomNav.tsx:29-34`.
+- [ ] Broker `/incidents` is orphaned on desktop (no sidebar item) but a primary tab on mobile —
+  decide: add to nav or remove.
+- [ ] Dashboard money via `Number(string)` float coercion; `/alerts` uses off-theme hardcoded hex;
+  cancel/assign-number via `window.prompt`.
+- [ ] FNOL filing returns the new claim but the UI never links to `/claims/{id}`; broker venue
+  risk-profile never links to the venue's policy.
+- [ ] Split the `/claims` dual-design file (broker table + operator tracker co-located).
+
+**Pending correctness sweep (cross-cutting):** more un-coerced `Column(JSON)` reads likely 500 on
+Postgres — the Neon class (see the Work Queue fix + `project_neon_json_string_regressions` memory).
+Grep model JSON attrs for `.get(`/iteration and coerce at the read boundary.
 
 ---
 
