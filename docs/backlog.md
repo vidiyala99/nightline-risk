@@ -162,6 +162,53 @@ These made the spine *incomplete*, not just unpolished:
 Postgres — the Neon class (see the Work Queue fix + `project_neon_json_string_regressions` memory).
 Grep model JSON attrs for `.get(`/iteration and coerce at the read boundary.
 
+### 8. AI-native broker-workflow layer — audit + agent roadmap (added 2026-06-01)
+
+**Audit verdict.** We're a deep **system of record** for the full placement→policy→claims
+lifecycle (ACORD 125/126 generation, defense-package PDFs, calibrated risk, eval harness — well
+past "just a CRUD app"). What's thin is the **system of action in the broker's own tools** — email,
+spreadsheets, scheduling, phone. The gaps cluster exactly at that boundary: everything *inside* the
+app is built; everything that reaches into Outlook/Excel/phone is missing. That boundary is the
+AI-native frontier, and it maps onto strengths already shipped (extraction, ingestion connectors,
+eval/calibration harness).
+
+Capability map (evidence = real endpoints): ✅ submissions + ACORD; carriers/appetite + quotes;
+bind + full policy lifecycle; COIs; FNOL/reserves/payments/defense-package; compliance; book
+financials; loss-run + CSV; renewals (in-app). 🟡 appetite match is boolean (graded score pending);
+renewals/chase are in-app only. ❌ spreadsheet (loss-run/SOV) ingestion; outbound follow-up email +
+scheduling; inbound email/phone; carrier-side integration.
+
+**Foundation (shipped 2026-06-01):**
+- [x] Open-questions answer/resolve loop — operator answers AI memo questions, broker resolves; both
+  read the same state off the packet payload (`OpenQuestionResponse` + `app/open_questions.py`;
+  routes on `packets.py`; web `underwriter`/`incidents/[id]` + mobile incident/report screens). This
+  is the in-app **missing-info chase substrate** — it already models *what's outstanding and who owns
+  it*, which is the hard part of the broker's #1 time-sink.
+
+**Next (human layer first, per 2026-06-01 decision):**
+- [ ] **Two-way open questions** ★ — generalize the loop so *either* persona can open a question
+  (`source` ai|broker + `asked_by`); counterparty answers; resolve. Mirror of "operator adds
+  evidence." Broker affordance on `underwriter` + `BrokerReportDetailScreen`; operator surfaces
+  already render the list. (Operator-answerable, not a note-to-self.)
+
+**Then — agent assistants (each a gated `Worker` + `evals/scorers` entry, same shape as
+`underwriter_memo_agent`; suggestion→human-confirm→audit, NEVER autonomous on the defense package):**
+- [ ] **Answer-drafting agent** (highest value, lowest risk) — pre-fills an operator answer from the
+  evidence + vision analysis already attached; human confirms. Leverages existing extraction.
+- [ ] **Sufficiency judge** (LLM-as-judge, the differentiator) — scores whether an answer resolves
+  the question; suggests "ready to resolve" or flags the gap. Advisory, calibration-gated.
+- [ ] **Follow-up / nudge agent** — detects stale outstanding items (un-answered questions, un-returned
+  carrier quotes, COI/renewal due) and **drafts the chase email + proposes a send time**. This is the
+  *outbound arm* the chase substrate is missing (needs the gated Resend email path).
+- [ ] **Spreadsheet-ingestion agent** — upload a messy loss run / SOV → structured rows into
+  submissions or loss-run. Pure "messy → structured"; reuses ingestion + extraction discipline.
+- [ ] **Inbound email parser** — a forwarded submission/quote email → structured submission /
+  quote-response. (Gated on inbound-email infra.)
+
+Guardrail: any agent autonomy (e.g. auto-resolving a clearly-satisfied, low-severity question) sits
+**behind the calibration gate** with an eval scorer measuring accuracy — agents accelerate the loop,
+evals keep them honest. The defense-package audit trail is non-negotiable.
+
 ---
 
 ## Gated — needs an account/keys (revisit when available)
