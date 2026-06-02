@@ -107,6 +107,10 @@ def underwrite_quote(
     outside quote.
     """
     if decision == "quote":
+        if coverage_terms:
+            q = session.get(CarrierQuote, quote_id)
+            sub = session.get(Submission, q.submission_id) if q else None
+            validate_coverage_terms(coverage_terms, coverage_lines=(sub.coverage_lines if sub else []))
         return record_carrier_response(
             session, quote_id, status="quoted",
             premium_breakdown=premium_breakdown,

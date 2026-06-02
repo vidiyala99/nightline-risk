@@ -246,3 +246,30 @@ def test_broker_response_requeues_to_pending():
         s.commit()
         assert out.status == "pending"
         assert "6 SIA guards" in (out.info_response_note or "")
+
+
+# ─── coverage_terms validation in the underwrite path ───────────────────────
+
+def test_underwrite_rejects_malformed_terms():
+    with _session() as s:
+        q = _requested_quote(s)
+        with pytest.raises(SubmissionsError):
+            underwrite_quote(
+                s, q.id, decision="quote",
+                premium_breakdown=_well_formed_breakdown(),
+                coverage_terms={"subjectivities": [{"text": "x", "status": "bogus"}]},
+                underwriter_id="u-carrier",
+            )
+
+
+def test_underwrite_persists_valid_terms():
+    with _session() as s:
+        q = _requested_quote(s)
+        out = underwrite_quote(
+            s, q.id, decision="quote",
+            premium_breakdown=_well_formed_breakdown(),
+            coverage_terms={"subjectivities": [{"text": "Inspection", "status": "open"}]},
+            underwriter_id="u-carrier",
+        )
+        s.commit()
+        assert out.coverage_terms["subjectivities"][0]["status"] == "open"
