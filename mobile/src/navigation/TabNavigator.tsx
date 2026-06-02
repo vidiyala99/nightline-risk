@@ -9,6 +9,7 @@ import {
   CheckSquare,
   Building2,
   FileSpreadsheet,
+  Landmark,
   Menu,
 } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +26,9 @@ import { BrokerComplianceStack } from './BrokerComplianceStack';
 
 // Carrier-side claims — broker-only (Phase 3)
 import { CarrierClaimsStack } from './CarrierClaimsStack';
+
+// Carrier persona — Nightline's own underwriting desk (Phase 1)
+import { UnderwritingStack } from './UnderwritingStack';
 
 // More overflow — nested stacks (Live/Proposals/Reports/Venues live here)
 import { OperatorMoreStack, BrokerMoreStack } from './MoreStack';
@@ -44,6 +48,7 @@ const ICONS: Record<string, LucideIcon> = {
   Compliance: CheckSquare,
   Venues: Building2,
   Claims: FileSpreadsheet,
+  Desk: Landmark,
   More: Menu,
 };
 
@@ -61,6 +66,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 // home labeled "The Book" to match the web sidebar and bottom nav.
 const TAB_LABELS: Record<string, string> = {
   Portfolio: 'The Book',
+  Desk: 'Underwriting',
 };
 
 // Auto-shrinks to fit the tab cell instead of truncating with an ellipsis,
@@ -146,9 +152,22 @@ function BrokerTabs() {
   );
 }
 
+// Carrier = Nightline's own underwriting desk. A single-destination persona;
+// the desk is its home (mirrors the web carrier nav).
+function CarrierTabs() {
+  const { signOut } = useAuth();
+  return (
+    <Tab.Navigator screenOptions={useScreenOptions(signOut)}>
+      <Tab.Screen name="Desk" component={UnderwritingStack} />
+    </Tab.Navigator>
+  );
+}
+
 export function TabNavigator() {
   const { user } = useAuth();
+  const isCarrier = user?.role === 'carrier';
   const isBroker = user?.role === 'broker' || user?.role === 'admin';
+  if (isCarrier) return <CarrierTabs />;
   return isBroker ? <BrokerTabs /> : <VenueOperatorTabs />;
 }
 

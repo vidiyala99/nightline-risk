@@ -43,6 +43,17 @@ DEMO_USERS = [
         "tenant_id": "elsewhere-brooklyn",
         "password": "demo123",
     },
+    {
+        # Carrier persona — Nightline's own underwriting desk (vertically
+        # integrated insurer). Distinct from the broker: the carrier decides
+        # underwriting, the broker places. See backlog track 9.
+        "id": "user_003",
+        "email": "underwriter@nightline.risk",
+        "name": "Sam Rivera",
+        "role": "carrier",
+        "tenant_id": None,
+        "password": "demo123",
+    },
 ]
 
 USER_COUNTER = len(DEMO_USERS) + 1

@@ -8,7 +8,7 @@ import { accountApi } from "@/lib/account";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toastError, toastSuccess } from "@/lib/toast";
-import { Building2, Shield, ArrowRight } from "lucide-react";
+import { Building2, Shield, Landmark, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -170,6 +170,14 @@ export default function LoginPage() {
                     <Shield size={18} />
                     <span>Broker</span>
                   </button>
+                  <button
+                    type="button"
+                    className={`lc-login__role-cell ${role === "carrier" ? "is-active" : ""}`}
+                    onClick={() => setRole("carrier")}
+                  >
+                    <Landmark size={18} />
+                    <span>Carrier</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -200,6 +208,15 @@ export default function LoginPage() {
                 onClick={() => performSignIn({ email: "broker@nightline.risk", password: "demo123" })}
               >
                 Broker portfolio <ArrowRight size={13} />
+              </button>
+              <button
+                type="button"
+                className="lc-login__demo-btn"
+                data-tone="indigo"
+                disabled={loading}
+                onClick={() => performSignIn({ email: "underwriter@nightline.risk", password: "demo123" })}
+              >
+                Carrier desk <ArrowRight size={13} />
               </button>
             </div>
           </div>

@@ -175,3 +175,43 @@ def test_queue_excludes_decided_quotes():
         s.commit()
         rows = underwriting_queue(s)
         assert all(r["quote_id"] != q.id for r in rows)
+
+
+# ─── queue enrichment (risk + suggested premium for the decision form) ───────
+
+def test_queue_row_carries_venue_name_and_risk():
+    """The desk needs venue context + the calibrated risk read (tier + score)
+    so the underwriter sees what they're pricing without a second fetch."""
+    with _session() as s:
+        q = _requested_quote(s)
+        row = next(r for r in underwriting_queue(s) if r["quote_id"] == q.id)
+        assert row["venue_name"]  # human-readable, not just the id
+        assert row["risk"]["tier"] in ("A", "B", "C", "D")
+        assert isinstance(row["risk"]["total_score"], (int, float))
+
+
+def test_queue_row_carries_suggested_premium_breakdown():
+    """The eval-gated pricing engine pre-computes a suggested quote so the
+    underwriter can accept-as-suggested in one tap — the differentiator."""
+    with _session() as s:
+        q = _requested_quote(s)
+        row = next(r for r in underwriting_queue(s) if r["quote_id"] == q.id)
+        suggested = row["suggested_premium_breakdown"]
+        assert suggested is not None
+        # money stored as strings (broker-platform JSON convention)
+        assert isinstance(suggested["total"], str)
+        assert suggested["lines"]  # per-line breakdown present
+
+
+def test_queue_suggested_premium_failure_isolated_for_unknown_venue():
+    """An unknown venue degrades the row to suggested=None rather than 500-ing
+    the whole queue (Neon-class read-boundary discipline)."""
+    with _session() as s:
+        q = _requested_quote(s)
+        sub = s.get(Submission, q.submission_id)
+        sub.venue_id = "venue-not-in-seed-data"
+        s.add(sub)
+        s.commit()
+        row = next(r for r in underwriting_queue(s) if r["quote_id"] == q.id)
+        assert row["suggested_premium_breakdown"] is None
+        assert row["venue_id"] == "venue-not-in-seed-data"

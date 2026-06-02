@@ -366,6 +366,13 @@ function DashboardPageInner() {
     if (isLoaded && !isSignedIn) router.push("/login");
   }, [isLoaded, isSignedIn, router]);
 
+  // The carrier persona has no portfolio/venue dashboard — its home is the
+  // underwriting desk. Bounce a signed-in carrier there. (admin keeps the
+  // broker dashboard; only the dedicated carrier role redirects.)
+  useEffect(() => {
+    if (isLoaded && isSignedIn && role === "carrier") router.replace("/underwriting");
+  }, [isLoaded, isSignedIn, role, router]);
+
   useEffect(() => {
     let cancelled = false;
     async function fetchDashboard() {
@@ -439,6 +446,12 @@ function DashboardPageInner() {
   const handleSignOut = () => { signOut(); router.push("/login"); };
 
   if (!isSignedIn || loading) {
+    return <div className="lc-shell min-h-screen page-loading"><div className="loading-spinner" /></div>;
+  }
+
+  // Carrier has no dashboard — it's being redirected to the underwriting desk.
+  // Render the spinner (not the "No Venue" empty state) while the effect fires.
+  if (role === "carrier") {
     return <div className="lc-shell min-h-screen page-loading"><div className="loading-spinner" /></div>;
   }
 

@@ -248,12 +248,23 @@ the persona work *surfaces* it behind a role.
   single-sourced; `GET /api/underwriting/queue` + `POST /api/quotes/{qid}/underwrite` (carrier-only).
   Closes the placement loop internally: broker submits → carrier underwrites → broker binds. 12 TDD
   tests (6 service + 6 API), full suite 1083 green.
-- [ ] **UI ★** — carrier role routing on login (lands on the desk, not broker/operator shells; the
-  cross-cutting piece — auth context + per-persona nav, web + mobile); underwriting **queue**
-  (submissions awaiting decision + risk + AI assessment + eval-gated suggested premium); **decision
-  form** (quote @ terms prefilled from pricing, editable / decline w/ reason). Web then mobile parity.
-- [ ] Backend enrichment for the desk: suggested premium_breakdown from `pricing.py` on the queue/
-  decision payload so the underwriter can accept-as-suggested in one tap (shows the eval differentiator).
+- [x] **UI ★ (shipped 2026-06-02)** — carrier role routing + the desk, web + mobile.
+  - Auth/routing: `carrier` added to `UserRole` (`AuthContext`) + `useIsCarrier` (admin counts);
+    login role option + "Carrier desk" demo button; `carrier` demo user (`underwriter@nightline.risk`
+    / demo123, `user_003`); carrier nav group in `AppShell`; `/dashboard` bounces a carrier →
+    `/underwriting` (spinner, no "No Venue" flash). Mobile: `CarrierTabs` (single "Underwriting"
+    destination) branch in `TabNavigator`.
+  - Web desk: `/underwriting` queue (venue · coverage · TierBadge+score · engine-suggested premium)
+    + `/underwriting/[qid]` decision form (suggested per-line breakdown; **Quote** at an editable
+    total that proportionally rescales lines so the backend sum-check always passes; **Decline** w/
+    reason). Guarded carrier-only. Shared client lib `src/lib/underwriting.ts`.
+  - Mobile parity: `UnderwritingStack` + `UnderwritingDeskScreen` (FlatList) + `UnderwriteDecisionScreen`
+    (reuses the `Field` primitive); `api/underwriting.ts` mirrors the web lib incl. the rescale.
+- [x] Backend enrichment for the desk (shipped 2026-06-02) — `underwriting_queue` rows now carry
+  `venue_name`, `risk` (tier + total_score), and `suggested_premium_breakdown` from
+  `build_quote_for_carrier` (the same engine the broker's build-indicative uses). Failure-isolated:
+  an unknown venue degrades to `suggested=None` rather than 500-ing the queue. +4 TDD tests, full
+  suite 1089 green.
 
 **Phase 2 — carrier claims/adjuster authority:** the carrier desk *sets* reserves, *approves*
 payments, *adjudicates* (approve/deny) — the things the broker now merely "logs". Reconciles the
@@ -311,14 +322,15 @@ See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
 
 ## Recommended order
 
-Updated 2026-06-02. Track 1 (evals, the headline) and track 2 (correctness) are essentially done; the
-spine + lifecycle edges (7a/7b) and the carrier backend (9 Phase 1) are shipped. Live focus:
+Updated 2026-06-02 (carrier Phase 1 UI shipped). Track 1 (evals, the headline) and track 2
+(correctness) are done; spine + lifecycle edges (7a/7b) and the **whole carrier Phase 1** (backend +
+web/mobile desk UI) are shipped. Live focus:
 
-1. **Carrier persona — Phase 1 UI** (track 9 ★) — role routing + underwriting queue + decision form,
-   web then mobile. The visible half of the shipped backend; biggest demo payoff.
-2. **Policy-doc vector RAG** (track 10) — design approved; next is the implementation plan → TDD build.
+1. **Policy-doc vector RAG** (track 10) — design approved; next is the implementation plan → TDD build.
    Strong pitch artifact (vector pipeline + retrieval eval delta).
-3. **Two-way open questions + agent assistants** (track 8) — the AI-native frontier on the broker side.
+2. **Two-way open questions + agent assistants** (track 8) — the AI-native frontier on the broker side.
+3. **Carrier Phase 2** (track 9) — carrier claims/adjuster authority (sets reserves, approves payments),
+   plus the desk enrichment hook (premium_breakdown is already on the queue) and an appetite match-score.
 
 Good filler (independent, no subscription): track 7c polish, the cross-cutting Neon JSON-string
 correctness sweep, track 3 (deterministic memo quality), track 4 (test-coverage breadth). The Slack

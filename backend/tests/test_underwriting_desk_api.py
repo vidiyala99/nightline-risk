@@ -125,3 +125,15 @@ def test_queue_is_carrier_only(client_qid):
     assert any(row["quote_id"] == qid for row in ok.json())
     denied = client.get("/api/underwriting/queue", headers=_broker_headers())
     assert denied.status_code == 403
+
+
+def test_queue_row_is_enriched_for_the_desk(client_qid):
+    """The queue payload carries everything the decision form needs: venue name,
+    the calibrated risk read, and the engine's suggested premium (prefill)."""
+    client, qid = client_qid
+    ok = client.get("/api/underwriting/queue", headers=_carrier_headers())
+    row = next(r for r in ok.json() if r["quote_id"] == qid)
+    assert row["venue_name"]
+    assert row["risk"]["tier"] in ("A", "B", "C", "D")
+    assert row["suggested_premium_breakdown"]["total"]
+    assert row["coverage_lines"] == ["gl", "liquor"]

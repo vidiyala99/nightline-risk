@@ -35,6 +35,7 @@ const ROLE_LABELS: Record<string, string> = {
   broker: "Broker",
   admin: "Admin",
   venue_operator: "Venue Operator",
+  carrier: "Carrier · Underwriting",
 };
 
 type NavVariant = "full" | "rail" | "drawer";
@@ -63,8 +64,15 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
   type Group = { label: string; items: Item[] };
 
   const isBrokerNav = role === "broker" || role === "admin";
+  // Carrier = Nightline's own underwriting desk. A focused persona: the desk is
+  // their home. They don't see the broker/operator shells.
+  const isCarrierNav = role === "carrier";
 
-  const groups: Group[] = (isBrokerNav
+  const groups: Group[] = (isCarrierNav
+    ? [
+        { label: "", items: [{ href: "/underwriting", label: "Underwriting Desk", icon: Inbox }] },
+      ]
+    : isBrokerNav
     ? [
         { label: "", items: [{ href: "/dashboard", label: "Home", icon: LayoutDashboard }] },
         { label: "Claims pipeline", items: [

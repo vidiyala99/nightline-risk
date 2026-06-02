@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-export type UserRole = "broker" | "venue_operator" | "admin";
+export type UserRole = "broker" | "venue_operator" | "carrier" | "admin";
 
 export interface User {
   id: string;
@@ -138,6 +138,13 @@ export function useIsBroker(): boolean {
 export function useIsVenueOperator(): boolean {
   const { role } = useAuth();
   return role === "venue_operator";
+}
+
+export function useIsCarrier(): boolean {
+  // Nightline's own underwriting desk. admin can see every desk; the carrier
+  // sees only theirs (and is bounced off the broker/operator shells).
+  const { role } = useAuth();
+  return role === "carrier" || role === "admin";
 }
 
 export function useIsAdmin(): boolean {
