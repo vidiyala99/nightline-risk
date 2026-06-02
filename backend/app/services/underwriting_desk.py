@@ -36,7 +36,10 @@ def underwrite_quote(
     decision='decline' → decline with a reason.
 
     Delegates to record_carrier_response so the quote/submission lifecycle and
-    audit trail stay single-sourced; attributes the underwriter.
+    audit trail stay single-sourced; attributes the underwriter and stamps the
+    audit event with decision_source='carrier_desk' — the trail proving this was
+    the carrier exercising delegated authority in-app, not a broker relaying an
+    outside quote.
     """
     if decision == "quote":
         return record_carrier_response(
@@ -45,6 +48,7 @@ def underwrite_quote(
             coverage_terms=coverage_terms,
             underwriter_name=underwriter_id,
             recorded_by=underwriter_id,
+            decision_source="carrier_desk",
         )
     if decision == "decline":
         return record_carrier_response(
@@ -52,6 +56,7 @@ def underwrite_quote(
             decline_reason=decline_reason,
             underwriter_name=underwriter_id,
             recorded_by=underwriter_id,
+            decision_source="carrier_desk",
         )
     raise SubmissionsError(
         f"Unknown underwriting decision {decision!r} (expected 'quote' or 'decline')"

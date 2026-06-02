@@ -458,8 +458,15 @@ def record_carrier_response(
     expires_at=None,
     underwriter_name: Optional[str] = None,
     recorded_by: str,
+    decision_source: str = "broker_relay",
 ) -> CarrierQuote:
-    """Broker records a carrier's response to a quote request.
+    """Records a carrier's response to a quote request.
+
+    `decision_source` stamps the audit event with the decision's provenance:
+    'broker_relay' (default) when a broker keys in what an external carrier
+    said, vs 'carrier_desk' when Nightline's own underwriter desk renders the
+    decision under delegated authority. The bind step downstream relies on this
+    distinction, so every response carries it.
 
     For status='quoted', validates the premium_breakdown sum-check before
     persisting (raises PremiumBreakdownMismatchError otherwise — broker
@@ -502,6 +509,7 @@ def record_carrier_response(
         actor_id=recorded_by,
         metadata={
             "decline_reason": decline_reason if status == "declined" else None,
+            "decision_source": decision_source,
         },
     )
 

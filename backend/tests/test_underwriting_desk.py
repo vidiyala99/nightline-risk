@@ -13,12 +13,15 @@ from datetime import date
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
-from app.models import CarrierQuote, Submission, Venue
+from sqlmodel import select
+
+from app.models import AuditEvent, CarrierQuote, Submission, Venue
 from app.seed_carriers import seed_broker_platform_data
 from app.seed_data import VENUES
 from app.services.submissions import (
     SubmissionsError,
     create_submission,
+    record_carrier_response,
     submit_to_market,
 )
 from app.services.underwriting_desk import underwrite_quote, underwriting_queue
@@ -104,6 +107,48 @@ def test_underwrite_rejects_unknown_decision():
         q = _requested_quote(s)
         with pytest.raises(SubmissionsError):
             underwrite_quote(s, q.id, decision="ponder", underwriter_id="u-carrier")
+
+
+# ─── decision provenance (delegated-authority audit trail) ──────────────────
+
+def _decision_audit(s: Session, quote_id: str, event_type: str) -> AuditEvent:
+    """The audit event emitted for a carrier_quote decision."""
+    return s.exec(
+        select(AuditEvent)
+        .where(AuditEvent.entity_type == "carrier_quote")
+        .where(AuditEvent.entity_id == quote_id)
+        .where(AuditEvent.event_type == event_type)
+    ).one()
+
+
+def test_carrier_desk_decision_audited_as_carrier_desk():
+    """A decision made on the in-app underwriter desk is provably the carrier
+    exercising delegated authority — not a broker relaying an outside quote."""
+    with _session() as s:
+        q = _requested_quote(s)
+        underwrite_quote(
+            s, q.id, decision="quote",
+            premium_breakdown=_well_formed_breakdown(),
+            underwriter_id="u-carrier",
+        )
+        s.commit()
+        evt = _decision_audit(s, q.id, "carrier_quote.quoted")
+        assert evt.event_metadata["decision_source"] == "carrier_desk"
+
+
+def test_broker_relay_decision_audited_as_broker_relay():
+    """The legacy path — broker keying in what an external carrier said — stays
+    distinguishable from an in-app carrier decision in the audit trail."""
+    with _session() as s:
+        q = _requested_quote(s)
+        record_carrier_response(
+            s, q.id, status="quoted",
+            premium_breakdown=_well_formed_breakdown(),
+            recorded_by="u-broker",
+        )
+        s.commit()
+        evt = _decision_audit(s, q.id, "carrier_quote.quoted")
+        assert evt.event_metadata["decision_source"] == "broker_relay"
 
 
 # ─── underwriting_queue ─────────────────────────────────────────────────────
