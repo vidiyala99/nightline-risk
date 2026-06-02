@@ -216,6 +216,8 @@ interface ClaimFeedRow {
   status: string;
   proposal_state: string | null;
   claim_status: string | null;
+  coverage_decision: "covered" | "denied" | "reservation_of_rights" | null;
+  coverage_rationale: string | null;
 }
 type ClaimsFilter = "active" | "all" | "resolved";
 
@@ -247,6 +249,31 @@ function claimSteps(r: ClaimFeedRow): { label: string; lit: boolean }[] {
     { label: "Filed", lit: ["filed_with_carrier", "paid", "denied"].includes(ps) || !!r.claim_status },
     { label: "Resolved", lit: ["paid", "denied"].includes(ps) || TERMINAL_CLAIM_STATUS.has(cs) },
   ];
+}
+
+function CoverageBadge({ decision, rationale }: { decision: ClaimFeedRow["coverage_decision"]; rationale: string | null }) {
+  if (!decision) return null;
+  const map: Record<NonNullable<typeof decision>, { label: string; color: string; bg: string }> = {
+    covered:                { label: "Covered",                color: "var(--state-success, #16a34a)", bg: "rgba(22,163,74,0.10)" },
+    reservation_of_rights:  { label: "Reservation of rights",  color: "var(--state-warning, #ca8a04)", bg: "rgba(202,138,4,0.10)" },
+    denied:                 { label: "Denied",                 color: "var(--state-error, #dc2626)",  bg: "rgba(220,38,38,0.10)" },
+  };
+  const { label, color, bg } = map[decision];
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      <span className="text-xs" style={{
+        display: "inline-block", padding: "2px 8px", borderRadius: 10, fontWeight: 700,
+        color, background: bg, border: `1px solid ${color}`, letterSpacing: "0.01em",
+      }}>
+        Coverage: {label}
+      </span>
+      {rationale && (
+        <span className="text-xs" style={{ color: "var(--text-secondary)", fontStyle: "italic" }}>
+          — {rationale}
+        </span>
+      )}
+    </span>
+  );
 }
 
 function OperatorClaimsTracker() {
@@ -342,6 +369,9 @@ function OperatorClaimsTracker() {
                   <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
                     <span className="text-sm" title={r.summary} style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.summary}</span>
                     <span className="text-xs" style={{ color: label.color, fontWeight: 600 }}>{label.text}</span>
+                    {r.coverage_decision && (
+                      <CoverageBadge decision={r.coverage_decision} rationale={r.coverage_rationale} />
+                    )}
                     <div className="flex items-center" aria-hidden="true" style={{ gap: 8, flexWrap: "wrap" }}>
                       {steps.map((s, i) => (
                         <span key={s.label} className="text-xs" style={{ color: s.lit ? "var(--accent-ink)" : "var(--text-muted)", fontWeight: i === currentIdx ? 700 : 400 }}>
