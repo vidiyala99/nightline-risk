@@ -1010,7 +1010,7 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
           return (
             <div className="lc-card"><div className="lc-card__inner">
               <div className="flex justify-between items-start mb-md">
-                <span className="lc-stat-label">Premium Quote</span>
+                <span className="lc-stat-label">Indicative premium</span>
                 <span className="lc-tier" style={{ color: TIER_COLOR[quote.tier] }}>{quote.venue_type.replace(/_/g, " ")}</span>
               </div>
               <div className="flex items-baseline gap-sm" style={{ marginBottom: 8 }}>

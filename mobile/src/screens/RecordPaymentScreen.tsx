@@ -68,7 +68,7 @@ export function RecordPaymentScreen({ route, navigation }: any) {
           <Text style={styles.eyebrow}>RECORD PAYMENT</Text>
           <Text style={styles.title}>Payment</Text>
           <Text style={styles.subtitle}>
-            Indemnity to claimant, expense to defense, or a recovery (subrogation / salvage).
+            What the carrier disbursed — indemnity to claimant, expense to defense, or a recovery (subrogation / salvage).
           </Text>
         </View>
 

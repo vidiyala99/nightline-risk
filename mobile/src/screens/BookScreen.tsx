@@ -107,8 +107,8 @@ export function BookScreen() {
       <View style={styles.headerWrap}>
         <Text style={styles.eyebrow}>BROKER · BOOK</Text>
         <Text style={styles.title}>Financials</Text>
-        <HandAccent>premium vs losses</HandAccent>
-        <Text style={styles.subtitle}>Written premium, commission, and loss ratio across the in-force book.</Text>
+        <HandAccent>your book at a glance</HandAccent>
+        <Text style={styles.subtitle}>Your commission and the premium you've placed across the book — with the carriers' loss ratios you monitor for renewal health.</Text>
       </View>
 
       {error ? (

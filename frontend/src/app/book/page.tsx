@@ -133,7 +133,8 @@ export default function BookFinancialsPage() {
             Book <em>Financials</em>
           </h1>
           <p className="lc-sub">
-            Written premium, commission revenue, and loss ratio across the in-force book.
+            Your commission revenue and the written premium you&apos;ve placed across the in-force
+            book — with the carriers&apos; loss ratios you monitor to keep renewals healthy.
           </p>
         </div>
         <div className="lc-hero__meta">

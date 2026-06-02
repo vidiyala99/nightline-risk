@@ -634,8 +634,8 @@ function RecordPaymentModal(p: ModalProps) {
   return (
     <ActionModal
       open={p.open}
-      title="Record payment"
-      subtitle="Indemnity to claimant, expense to defense, or a recovery (subrogation / salvage)."
+      title="Record carrier payment"
+      subtitle="What the carrier disbursed — indemnity to claimant, expense to defense, or a recovery (subrogation / salvage)."
       onClose={p.onClose}
       guardDismiss={dirty}
       busy={submitting}

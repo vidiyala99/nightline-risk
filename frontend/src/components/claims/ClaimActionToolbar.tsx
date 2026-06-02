@@ -35,14 +35,14 @@ interface Spec {
 const SPECS: Spec[] = [
   {
     id: "record_reserve",
-    label: "Record reserve",
+    label: "Log carrier reserve",
     Icon: Lock,
     shortcut: "R",
     handler: (p) => p.onRecordReserve,
   },
   {
     id: "record_payment",
-    label: "Record payment",
+    label: "Log carrier payment",
     Icon: Coins,
     shortcut: "P",
     handler: (p) => p.onRecordPayment,

@@ -322,7 +322,7 @@ export function DashboardScreen({ navigation }: any) {
             <Text style={styles.savingsPerYear}>/yr</Text>
           </Text>
           <Text style={styles.savingsSub}>
-            vs. market rate of ${quoteData.market_rate_annual?.toLocaleString()} — {quoteData.savings_pct}% discount through evidence-first underwriting
+            vs. a standard market rate of ${quoteData.market_rate_annual?.toLocaleString()} — {quoteData.savings_pct}% better when we place your risk on its real operational data
           </Text>
         </View>
       )}
@@ -591,7 +591,7 @@ export function DashboardScreen({ navigation }: any) {
       ) : quoteData ? (
         <View style={[styles.card, styles.quoteCard]}>
           <View style={styles.quoteHeader}>
-            <Text style={styles.sectionEyebrow}>PREMIUM QUOTE</Text>
+            <Text style={styles.sectionEyebrow}>INDICATIVE PREMIUM</Text>
             <View
               style={[
                 styles.tierBadge,
@@ -617,7 +617,7 @@ export function DashboardScreen({ navigation }: any) {
             ${quoteData.annual_premium?.toLocaleString() ?? '—'}
           </Text>
           <Text style={styles.premiumSub}>
-            / year
+            / year · indicative, subject to carrier quote
           </Text>
 
           <Text style={styles.premiumMonthly}>
