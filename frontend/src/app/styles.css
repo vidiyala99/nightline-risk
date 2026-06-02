@@ -2791,7 +2791,11 @@ a:hover { color: var(--text-primary); }
 .lc-shell {
   position: relative;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* `clip`, not `hidden`: overflow-x:hidden forces overflow-y to compute to
+     `auto` (CSS spec), turning .lc-shell into a nested vertical scroll container
+     that traps wheel events and snaps long pages back to the top. `clip` hides
+     horizontal overflow without creating a scroll container. */
+  overflow-x: clip;
 }
 
 @keyframes lc-grid-drift {
