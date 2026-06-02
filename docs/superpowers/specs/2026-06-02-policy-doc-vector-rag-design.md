@@ -69,6 +69,32 @@ computed in NumPy, so the pipeline runs identically on SQLite (tests) and Postgr
   constraint that forced the S3 storage abstraction) and is a parallel store to
   keep in sync. Least aligned.
 
+## 3.1 Retrieval-paradigm rationale (vector vs vectorless vs LLM-wiki)
+
+This vector pipeline is **the recall layer of a hybrid**, not a bet that embeddings
+are the best paradigm for policy text. Three paradigms were weighed:
+
+- **Vector (embeddings + cosine):** cheap, fast, **runs offline with no keys** (the
+  hashing stub). Good recall at scale; chunk-level citations.
+- **Vectorless / reasoning-based (PageIndex):** an LLM reasons over a hierarchical
+  document **tree** (table-of-contents style). Strongest fit for long, *structured*
+  docs — financial reports, **legal contracts**, policy wording — and its tree nodes
+  (`node_id`, `page_start/end`, `clause_id`) *are* our citation structure. But it
+  needs an **LLM at query time**, which is currently gated (no keys). Already
+  half-scaffolded in `app/policy_document.py` (regex tree today; live PageIndex is a
+  later phase).
+- **LLM Wiki (Karpathy, 2026):** an LLM compiles raw sources into curated Markdown
+  summary articles, then queries those. **Rejected for policy text** on
+  citation-fidelity grounds: the compile step replaces verbatim clause text with an
+  LLM's *summary*, so a compliance citation would point at a paraphrase, not
+  "§4.2(b) · p.14–15". Noted as a candidate for a *different* corpus later —
+  compounding venue/operator **institutional knowledge** (the non-authoritative
+  `SemanticKnowledgeBase` sources), where verbatim fidelity matters less.
+
+**Chosen direction:** embeddings = **recall** (offline, cheap, runs now); the
+PageIndex tree = **precision + citation reasoning** (keys-gated, future phase). This
+v1 ships the recall half. The two halves compose into a hybrid; neither is wasted.
+
 ## 4. Components
 
 Each unit has one purpose and a defined interface, mirroring existing patterns.
@@ -197,6 +223,10 @@ QUERY:   query text → provider.embed([query]) → query_vec
 - **Chroma** — not used.
 - **Live PDF / PageIndex ingestion** — separate phase; we embed the existing
   markdown-derived `SourceRecord` leaves.
+- **PageIndex reasoning-retrieval (the precision half of the hybrid, §3.1)** —
+  keys-gated, future phase. This v1 is the recall half only.
+- **LLM-Wiki paradigm** — rejected for policy text (citation fidelity, §3.1); not
+  built. Possible future fit for the institutional-knowledge corpus, out of scope here.
 - **Hybrid TF-IDF + vector fusion / re-ranking** — future note, not v1.
 - **Re-embedding migrations on model change** — v1 ignores non-matching-model
   records and falls back; a backfill script is future work.
