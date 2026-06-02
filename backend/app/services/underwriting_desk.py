@@ -12,6 +12,7 @@ convention).
 from __future__ import annotations
 
 import logging
+from datetime import date as _date
 
 from sqlmodel import Session, select
 
@@ -27,6 +28,61 @@ logger = logging.getLogger(__name__)
 
 # Quotes still awaiting the carrier's decision (no response yet).
 AWAITING_QUOTE_STATES: tuple[str, ...] = ("requested", "pending")
+
+_SUBJ_STATUSES = {"open", "met", "waived"}
+_MOD_KINDS = {"credit", "debit"}
+
+
+def _is_money(v) -> bool:
+    try:
+        float(v)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def validate_coverage_terms(terms: dict, *, coverage_lines: list[str]) -> None:
+    """Validate the structured-terms object stored in CarrierQuote.coverage_terms.
+    Raises SubmissionsError on any malformed field. Empty/missing keys are allowed."""
+    if not terms:
+        return
+    lines = terms.get("lines") or {}
+    for line_id, spec in lines.items():
+        if line_id not in coverage_lines:
+            raise SubmissionsError(
+                f"terms.lines has '{line_id}' not in the submission's coverage lines"
+            )
+        for k in ("limit", "deductible"):
+            if k in spec and spec[k] is not None and not _is_money(spec[k]):
+                raise SubmissionsError(f"terms.lines.{line_id}.{k} must be a money string")
+    for subj in terms.get("subjectivities") or []:
+        if not (subj.get("text") or "").strip():
+            raise SubmissionsError("each subjectivity needs non-empty text")
+        if subj.get("status") not in _SUBJ_STATUSES:
+            raise SubmissionsError(
+                f"subjectivity status must be one of {sorted(_SUBJ_STATUSES)}"
+            )
+    for key in ("exclusions", "endorsements"):
+        if any(not str(x).strip() for x in (terms.get(key) or [])):
+            raise SubmissionsError(f"terms.{key} entries must be non-empty strings")
+    for mod in terms.get("schedule_mods") or []:
+        if mod.get("kind") not in _MOD_KINDS:
+            raise SubmissionsError(
+                f"schedule_mod kind must be one of {sorted(_MOD_KINDS)}"
+            )
+        try:
+            if float(mod.get("pct")) < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise SubmissionsError("schedule_mod pct must be a number >= 0")
+    vu = terms.get("valid_until")
+    if vu is not None:
+        try:
+            parsed = _date.fromisoformat(vu)
+        except (TypeError, ValueError):
+            raise SubmissionsError("valid_until must be an ISO date (YYYY-MM-DD)")
+        if parsed < now_utc().date():
+            raise SubmissionsError("valid_until cannot be in the past")
 
 
 def underwrite_quote(
