@@ -5,10 +5,12 @@ on a fresh boot/redeploy. This script is the on-demand path — e.g. to add a
 newly-introduced demo persona (the `carrier` underwriting-desk account) to a
 long-running database without waiting for a redeploy.
 
-Idempotent: inserts a demo user by id when missing; otherwise keeps the email
-and role in sync with DEMO_USERS (so a renamed account / new role is repaired).
-Passwords are reset to the demo password only when the row is created — an
-existing account's password is left alone.
+Idempotent: inserts a demo user by id when missing; otherwise keeps the email,
+role, AND password in sync with DEMO_USERS. The password is (re)set to the demo
+password whenever it doesn't already verify — demo accounts have fixed, known
+credentials, so a pre-existing row (e.g. an id that a real registration claimed
+before this persona existed) is repaired into a working demo login rather than
+silently 401-ing.
 
 Run from the backend directory:
     python -m scripts.seed_demo_users
@@ -23,7 +25,7 @@ import sys
 
 from sqlmodel import Session
 
-from app.auth import DEMO_USERS, create_password_hash
+from app.auth import DEMO_USERS, create_password_hash, verify_password
 from app.database import engine
 from app.models import UserRecord
 
@@ -44,16 +46,21 @@ def seed(session: Session) -> dict:
             ))
             created.append(f"{demo['id']} ({demo['email']} · {demo['role']})")
             continue
-        changed = False
+        fixes: list[str] = []
         if existing.email != demo["email"]:
             existing.email = demo["email"]
-            changed = True
+            fixes.append("email")
         if existing.role != demo["role"]:
             existing.role = demo["role"]
-            changed = True
-        if changed:
+            fixes.append("role")
+        # Demo accounts must always log in with the demo password. Reset it only
+        # when it doesn't already verify (avoids a needless write each run).
+        if not verify_password(demo["password"], existing.password_hash):
+            existing.password_hash = create_password_hash(demo["password"])
+            fixes.append("password")
+        if fixes:
             session.add(existing)
-            repaired.append(f"{demo['id']} ({demo['email']} · {demo['role']})")
+            repaired.append(f"{demo['id']} ({demo['email']} · {demo['role']}) [{', '.join(fixes)}]")
     session.commit()
     return {"created": created, "repaired": repaired}
 
