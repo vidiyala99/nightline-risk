@@ -292,23 +292,30 @@ book; AI submission-triage as the 2026 frontier) found Phase 1 models underwriti
 → counter/refer/request-info → renewals → portfolio) is mostly *missing*. Sequenced as follow-on
 specs (each its own spec → plan → build), **AI memo pulled earlier per 2026-06-02 decision**:
 
-- [ ] **Phase 1.5 — Carrier desk v2 ★** — spec approved
-  ([`2026-06-02-carrier-desk-v2-design.md`](specs/2026-06-02-carrier-desk-v2-design.md)),
-  implementation pending (writing-plans next). Decision-dossier endpoint (risk factors + loss run +
-  incidents + compliance + requested-vs-suggested), **full structured terms** in `coverage_terms`
-  (per-line limits/deductibles, typed subjectivities, exclusions, endorsements, documentation-only
-  schedule mods, valid-until), carrier⇄broker **request-info loop** (`info_requested` status), the
-  "B" decision-hero layout (web+mobile), scoped design pass (richer queue rows, back-home fix,
-  queue-derived desk KPI strip).
-- [ ] **AI underwriting memo** (pulled earlier — the differentiator) — gated `Worker` + `evals/scorers`
-  entry that summarizes the risk and *recommends terms* on the v2 decision dossier; Track-8-shaped
-  (suggestion→human-confirm→audit, calibration-gated). Builds directly on the Phase-1.5 dossier surface.
+- [x] **Phase 1.5 — Carrier desk v2 ★ (shipped 2026-06-02)** — spec
+  ([`2026-06-02-carrier-desk-v2-design.md`](specs/2026-06-02-carrier-desk-v2-design.md)) + 13-task plan
+  built/pushed (full suite green): decision-dossier endpoint, **full structured terms** in
+  `coverage_terms`, carrier⇄broker **request-info loop** (`info_requested`), "B" decision-hero layout
+  (web+mobile), richer queue rows + KPI strip + back-home fix. Then a **decision-first reframe** (lead
+  with the suggested quote + Quote/Decline/Request-info; structured terms collapsed into opt-in
+  "Tailor terms"; clickable KPIs → dossier accordions) + a `ui-ux-pro-max` a11y/enum-humanization pass.
+- [ ] **Phase 2 — Carrier claims adjudication ★** — spec approved
+  ([`2026-06-02-carrier-claims-adjudication-design.md`](specs/2026-06-02-carrier-claims-adjudication-design.md)),
+  implementation pending (writing-plans next). **The carrier's 2nd core job (bear the risk / pay
+  losses).** Adjuster desk on the existing claim machinery: **coverage decision** (covered / denied /
+  reservation-of-rights, gates indemnity, denial closes) + carrier-owned reserve/payment/close stamped
+  `decision_source=carrier_desk` (broker relay preserved), an **adjuster queue**, carrier **Claims**
+  nav desk (web+mobile, extends the lean nav), and **operator visibility** of the coverage outcome +
+  rationale. Settlement-authority/escalation deferred.
+- [ ] **AI underwriting memo** (the differentiator) — gated `Worker` + `evals/scorers` entry that
+  summarizes the risk and *recommends terms* on the v2 decision dossier; Track-8-shaped
+  (suggestion→human-confirm→audit, calibration-gated). Builds on the Phase-1.5 dossier surface.
 - [ ] **C5 — carrier portfolio / book** — written/earned premium *underwritten*, loss ratio vs
-  target, quote-to-bind (hit) ratio, mix by line/venue-type/tier, accumulation. Brings the real
-  loss-ratio/hit-ratio KPIs + the fuller carrier nav & mobile tabs that Phase 1.5 left lean.
+  target, quote-to-bind (hit) ratio, mix by line/venue-type/tier, accumulation. The **management
+  layer** above claims (consumes the carrier-owned incurred losses Phase 2 makes real); fills the nav.
 - [ ] **C4 — renewal underwriting** — renewals due → re-rate on loss experience
   (`loss_adjustment_from_loss_ratio` exists) → renew / non-renew / re-terms.
-- (then) **Phase 2** carrier claims/adjuster authority → **Phase 3** own-paper capstone (below).
+- (then) **Phase 3** own-paper capstone (below).
 
 **Deferred depth — smaller specs, lower priority (tracked, not committed):**
 - [ ] C6 appetite / eligibility / clearance (graded appetite-match is already the open 7a item —
