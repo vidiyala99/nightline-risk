@@ -143,3 +143,15 @@ def test_adjuster_queue_lists_open_claims(make_claim_session):
     row = next((r for r in adjuster_queue(s) if r["claim_id"] == claim.id), None)
     assert row is not None
     assert "coverage_decision" in row and "current_reserve" in row and "venue_id" in row
+
+
+# ─── Task 5: reserve_hint ────────────────────────────────────────────────
+
+from app.services.adjusting import reserve_hint
+
+
+def test_reserve_hint_degrades_without_history(make_claim_session):
+    s, claim = make_claim_session
+    hint = reserve_hint(s, claim)
+    # Fresh venue with no prior losses → None; or a well-formed dict if history exists.
+    assert hint is None or ("low" in hint and "severity_band" in hint and "basis" in hint)

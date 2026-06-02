@@ -141,6 +141,46 @@ def close_claim_as_carrier(session: Session, claim_id: str, *, disposition: str,
     )
 
 
+def reserve_hint(session, claim) -> dict | None:
+    """Advisory reserve range + severity band from the venue's prior losses for
+    this coverage line + the linked incident's severity. Deterministic,
+    failure-isolated (None on no history / any error). NEVER auto-sets."""
+    try:
+        from app.services.loss_run import venue_loss_run
+        from app.models import IncidentRecord
+        policy = session.get(Policy, claim.policy_id)
+        if policy is None:
+            return None
+        lr = venue_loss_run(session, policy.venue_id)
+        line = next(
+            (r for r in lr.get("by_coverage_line", []) if r["coverage_line"] == claim.coverage_line),
+            None,
+        )
+        if not line or int(line.get("claim_count", 0)) <= 0:
+            return None
+        mean = Decimal(line["incurred"]) / Decimal(max(int(line["claim_count"]), 1))
+        low = (mean * Decimal("0.6")).quantize(Decimal("1"))
+        high = (mean * Decimal("1.6")).quantize(Decimal("1"))
+
+        band, signals = "moderate", []
+        inc = session.get(IncidentRecord, claim.incident_id) if claim.incident_id else None
+        if inc is not None:
+            if getattr(inc, "weapon_involved", None):
+                band = "severe"
+                signals.append("weapon involved")
+            elif getattr(inc, "injury_observed", False):
+                band = "elevated"
+                signals.append("injury observed")
+            if getattr(inc, "police_called", False):
+                signals.append("police called")
+        basis = f"{line['claim_count']} prior {claim.coverage_line} loss(es)"
+        if signals:
+            basis += "; " + ", ".join(signals)
+        return {"low": str(low), "high": str(high), "severity_band": band, "basis": basis}
+    except Exception:  # noqa: BLE001 — advisory only, never block the desk
+        return None
+
+
 def adjuster_queue(session: Session) -> list[dict]:
     """Open (non-closed) claims awaiting carrier adjudication, enriched."""
     from app.services.claims import list_claims
