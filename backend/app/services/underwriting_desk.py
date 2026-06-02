@@ -16,7 +16,7 @@ from datetime import date as _date
 
 from sqlmodel import Session, select
 
-from app.models import Carrier, CarrierQuote, Submission, Venue
+from app.models import Carrier, CarrierQuote, ComplianceSignal, IncidentRecord, Submission, Venue
 from app.services.submissions import (
     SubmissionsError,
     _transition_carrier_quote,
@@ -263,3 +263,93 @@ def respond_to_info_request(session: Session, quote_id: str, *, note: str, respo
     q.info_response_note = note
     session.add(q)
     return q
+
+
+# ---------------------------------------------------------------------------
+# Decision-dossier composer
+# ---------------------------------------------------------------------------
+
+AWAITING_QUOTE_STATES_DECIDABLE = ("requested", "pending", "info_requested")
+
+
+def decision_dossier(session: Session, quote_id: str) -> dict | None:
+    """Full decision context for one quote, composed server-side. Returns None if
+    the quote doesn't exist. Every section is failure-isolated (degrades to
+    null/empty, never raises out of this function)."""
+    q = session.get(CarrierQuote, quote_id)
+    if q is None:
+        return None
+    sub = session.get(Submission, q.submission_id)
+    venue_id = sub.venue_id if sub else None
+    venue_name, _risk = _venue_read(session, venue_id)
+    return {
+        "quote": {
+            "id": q.id, "status": q.status,
+            "premium_breakdown": q.premium_breakdown, "coverage_terms": q.coverage_terms,
+            "decline_reason": q.decline_reason, "underwriter_name": q.underwriter_name,
+            "info_request_note": q.info_request_note, "info_response_note": q.info_response_note,
+        },
+        "submission": {
+            "id": sub.id if sub else None, "venue_id": venue_id,
+            "effective_date": sub.effective_date.isoformat() if sub and sub.effective_date else None,
+            "coverage_lines": sub.coverage_lines if sub else [],
+            "requested_limits": sub.requested_limits if sub else {},
+            "status": sub.status if sub else None,
+        },
+        "venue": {"id": venue_id, "name": venue_name, "venue_type": _venue_type(venue_id)},
+        "risk": _full_risk(session, venue_id),
+        "loss_run": _loss_run_section(session, venue_id),
+        "incidents": _incidents_section(session, venue_id),
+        "compliance": _compliance_section(session, venue_id),
+        "suggested_premium_breakdown": _suggested_breakdown(session, sub, q.carrier_id) if sub else None,
+        "decidable": q.status in AWAITING_QUOTE_STATES_DECIDABLE,
+    }
+
+
+def _venue_type(venue_id):
+    from app.seed_data import VENUES
+    return VENUES.get(venue_id, {}).get("venue_type", "") if venue_id else ""
+
+
+def _full_risk(session, venue_id) -> dict:
+    try:
+        from app.seed_data import VENUES
+        from app.underwriting.scoring import get_risk_score
+        if venue_id not in VENUES:
+            return {"tier": "B", "total_score": 0, "factors": {}}
+        r = get_risk_score(venue_id, VENUES, session=session)
+        return {"tier": r.get("tier", "B"), "total_score": r.get("total_score", 0), "factors": r.get("factors", {})}
+    except Exception:  # noqa: BLE001
+        return {"tier": "B", "total_score": 0, "factors": {}}
+
+
+def _loss_run_section(session, venue_id) -> dict | None:
+    try:
+        from app.services.loss_run import venue_loss_run
+        lr = venue_loss_run(session, venue_id)
+        return {"summary": lr["summary"], "by_coverage_line": lr["by_coverage_line"]}
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _incidents_section(session, venue_id) -> dict:
+    try:
+        rows = session.exec(
+            select(IncidentRecord).where(IncidentRecord.venue_id == venue_id)
+            .where(IncidentRecord.status == "open")
+        ).all()
+        recent = sorted(rows, key=lambda i: i.created_at, reverse=True)[:5]
+        return {"open_count": len(rows),
+                "recent": [{"id": i.id, "summary": i.summary, "occurred_at": i.occurred_at} for i in recent]}
+    except Exception:  # noqa: BLE001
+        return {"open_count": 0, "recent": []}
+
+
+def _compliance_section(session, venue_id) -> dict:
+    try:
+        from app.services.compliance_signals import open_signals_for
+        rows = open_signals_for(venue_id, session)
+        return {"status": "clear" if not rows else "open_items",
+                "open_items": [{"title": r.title, "severity": r.severity} for r in rows]}
+    except Exception:  # noqa: BLE001
+        return {"status": "unknown", "open_items": []}

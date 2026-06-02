@@ -9,7 +9,7 @@ from the broker, who places but does not underwrite.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
 from app.auth import require_carrier
@@ -20,7 +20,7 @@ from app.services.submissions import (
     PremiumBreakdownMismatchError,
     SubmissionsError,
 )
-from app.services.underwriting_desk import request_info, underwrite_quote, underwriting_queue
+from app.services.underwriting_desk import decision_dossier, request_info, underwrite_quote, underwriting_queue
 
 router = APIRouter()
 
@@ -88,3 +88,15 @@ def post_request_info(
     session.commit()
     session.refresh(q)
     return _quote_to_dict(q)
+
+
+@router.get("/underwriting/quotes/{quote_id}")
+def get_decision_dossier(
+    quote_id: str,
+    _user: dict = Depends(require_carrier),
+    session: Session = Depends(get_session),
+) -> dict:
+    d = decision_dossier(session, quote_id)
+    if d is None:
+        raise HTTPException(status_code=404, detail=f"Quote {quote_id} not found")
+    return d

@@ -163,3 +163,15 @@ def test_info_response_is_broker_only(client_qid):
     client.post(f"/api/quotes/{qid}/request-info", headers=_carrier_headers(), json={"note": "x"})
     denied = client.post(f"/api/quotes/{qid}/info-response", headers=_carrier_headers(), json={"note": "y"})
     assert denied.status_code == 403
+
+
+def test_dossier_endpoint_carrier_only(client_qid):
+    client, qid = client_qid
+    ok = client.get(f"/api/underwriting/quotes/{qid}", headers=_carrier_headers())
+    assert ok.status_code == 200
+    body = ok.json()
+    assert body["risk"]["tier"] in ("A", "B", "C", "D")
+    assert body["suggested_premium_breakdown"]["total"]
+    assert body["decidable"] is True
+    denied = client.get(f"/api/underwriting/quotes/{qid}", headers=_broker_headers())
+    assert denied.status_code == 403
