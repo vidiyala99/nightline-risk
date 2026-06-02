@@ -430,6 +430,22 @@ def require_broker(authorization: str = Header(None)):
     return decoded
 
 
+def require_carrier(authorization: str = Header(None)):
+    """Raises 401 without a valid token, or 403 if the caller is not a carrier/admin.
+
+    Gates Nightline's own underwriting desk (the carrier persona). Distinct from
+    require_broker: the carrier *decides* underwriting; the broker *places*.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    decoded = verify_token(authorization.split(" ")[1])
+    if not decoded:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    if decoded.get("role") not in ("carrier", "admin"):
+        raise HTTPException(status_code=403, detail="Carrier access required")
+    return decoded
+
+
 def _get_current_user_record(authorization: str, session: Session):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid token")
