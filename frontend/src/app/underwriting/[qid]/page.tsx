@@ -3,6 +3,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Landmark, MessageSquarePlus, ShieldCheck, XCircle } from "lucide-react";
+
+// Map raw backend enums to human-readable labels
+const SUBJECTIVITY_STATUS_LABELS: Record<string, string> = {
+  open: "Open",
+  met: "Met",
+  waived: "Waived",
+};
+
+const SEVERITY_LABELS: Record<string, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+function toTitleCase(s: string): string {
+  return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const MONEY_KEY_PATTERNS = ["incurred", "reserve", "paid", "premium", "amount", "value"];
 import { useAuth, useIsCarrier } from "@/contexts/AuthContext";
 import { TierBadge, Tier as UiTier } from "@/components/ui/TierBadge";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -59,7 +78,7 @@ function SubjectivityStatusChip({ status }: { status: Subjectivity["status"] }) 
         whiteSpace: "nowrap",
       }}
     >
-      {status}
+      {SUBJECTIVITY_STATUS_LABELS[status] ?? toTitleCase(status)}
     </span>
   );
 }
@@ -340,15 +359,6 @@ export default function UnderwriteDecisionPage() {
       {/* ------------------------------------------------------------------ */}
       {/* Header */}
       {/* ------------------------------------------------------------------ */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-sm"
-        style={{ marginBottom: "var(--space-md)", minHeight: 44 }}
-        onClick={() => router.push("/underwriting")}
-      >
-        <ArrowLeft size={16} /> Desk
-      </button>
-
       <section className="lc-hero" style={{ marginBottom: "var(--space-lg)" }}>
         <div>
           <span className="lc-eyebrow">
@@ -381,8 +391,14 @@ export default function UnderwriteDecisionPage() {
           <div className="lc-meta-cell">
             <span className="lc-stat-label">Compliance</span>
             <span className="flex items-center" style={{ gap: 6 }}>
-              <strong className="font-mono">{dossier.compliance.status}</strong>
-              {dossier.compliance.open_items.length > 0 && (
+              {dossier.compliance.status === "clear" ? (
+                <strong
+                  className="font-mono"
+                  style={{ color: "var(--state-success, inherit)", whiteSpace: "nowrap" }}
+                >
+                  Clear
+                </strong>
+              ) : dossier.compliance.open_items.length > 0 ? (
                 <span
                   className="text-xs font-mono"
                   style={{
@@ -390,10 +406,13 @@ export default function UnderwriteDecisionPage() {
                     border: "1px solid var(--state-warning)",
                     borderRadius: "var(--radius-sm)",
                     padding: "1px 6px",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {dossier.compliance.open_items.length} open
                 </span>
+              ) : (
+                <strong className="font-mono" style={{ whiteSpace: "nowrap" }}>—</strong>
               )}
             </span>
           </div>
@@ -616,9 +635,9 @@ export default function UnderwriteDecisionPage() {
                     disabled={submitting !== null}
                     style={{ ...selectStyle, width: 90, flex: "none" }}
                   >
-                    <option value="open">open</option>
-                    <option value="met">met</option>
-                    <option value="waived">waived</option>
+                    <option value="open">Open</option>
+                    <option value="met">Met</option>
+                    <option value="waived">Waived</option>
                   </select>
                   <SubjectivityStatusChip status={sub.status} />
                   <button
@@ -810,8 +829,8 @@ export default function UnderwriteDecisionPage() {
                       disabled={submitting !== null}
                       style={{ ...selectStyle, width: 80, flex: "none" }}
                     >
-                      <option value="credit">credit</option>
-                      <option value="debit">debit</option>
+                      <option value="credit">Credit</option>
+                      <option value="debit">Debit</option>
                     </select>
                     <input
                       type="number"
@@ -1107,16 +1126,19 @@ export default function UnderwriteDecisionPage() {
                 className="flex gap-lg"
                 style={{ marginBottom: "var(--space-md)", flexWrap: "wrap" }}
               >
-                {Object.entries(dossier.loss_run.summary).map(([k, v]) => (
-                  <div key={k}>
-                    <span className="lc-stat-label">{k.replace(/_/g, " ")}</span>
-                    <strong className="font-mono text-sm">
-                      {typeof v === "number" && k.includes("incurred")
-                        ? fmtMoney(String(v), true)
-                        : String(v)}
-                    </strong>
-                  </div>
-                ))}
+                {Object.entries(dossier.loss_run.summary).map(([k, v]) => {
+                  const isMoneyKey = MONEY_KEY_PATTERNS.some((p) => k.includes(p));
+                  return (
+                    <div key={k}>
+                      <span className="lc-stat-label">{toTitleCase(k)}</span>
+                      <strong className="font-mono text-sm">
+                        {isMoneyKey && (typeof v === "number" || typeof v === "string")
+                          ? fmtMoney(String(v), true)
+                          : String(v)}
+                      </strong>
+                    </div>
+                  );
+                })}
               </div>
               {/* By-line table */}
               {Array.isArray(dossier.loss_run.by_coverage_line) &&
@@ -1252,7 +1274,7 @@ export default function UnderwriteDecisionPage() {
                         flex: "none",
                       }}
                     >
-                      {item.severity}
+                      {SEVERITY_LABELS[item.severity] ?? toTitleCase(item.severity)}
                     </span>
                     <p className="text-sm" style={{ margin: 0 }}>{item.title}</p>
                   </div>
