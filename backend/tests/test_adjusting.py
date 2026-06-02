@@ -155,3 +155,43 @@ def test_reserve_hint_degrades_without_history(make_claim_session):
     hint = reserve_hint(s, claim)
     # Fresh venue with no prior losses → None; or a well-formed dict if history exists.
     assert hint is None or ("low" in hint and "severity_band" in hint and "basis" in hint)
+
+
+# ─── Coverage-first lifecycle (the carrier-desk order) ───────────────────
+#
+# The desk gates reserve/payment/close behind a recorded coverage decision, so
+# the real order is decide → reserve → pay → close. decide_coverage lands the
+# claim in under_investigation; posting a reserve / indemnity from there must
+# advance the lifecycle, otherwise closed_paid is unreachable.
+
+from app.services.adjusting import close_claim_as_carrier
+
+
+def test_coverage_first_reserve_advances_to_reserved(make_claim_session):
+    s, claim = make_claim_session
+    decide_coverage(s, claim.id, decision="covered", rationale="covered", adjuster_id="u-carrier")
+    out = adjust_reserve(s, claim.id, new_reserve=Decimal("25000"), change_reason="init", adjuster_id="u-carrier")
+    s.commit()
+    assert out.status == "reserved"
+
+
+def test_coverage_first_full_flow_reaches_closed_paid(make_claim_session):
+    s, claim = make_claim_session
+    decide_coverage(s, claim.id, decision="covered", rationale="covered", adjuster_id="u-carrier")
+    adjust_reserve(s, claim.id, new_reserve=Decimal("20000"), change_reason="init", adjuster_id="u-carrier")
+    approve_payment(s, claim.id, amount=Decimal("16000"), payment_type="indemnity",
+                    paid_on=date(2026, 6, 2), description="settlement", adjuster_id="u-carrier")
+    closed = close_claim_as_carrier(s, claim.id, disposition="paid",
+                                    final_indemnity=Decimal("16000"), adjuster_id="u-carrier")
+    s.commit()
+    assert closed.status == "closed_paid"
+
+
+def test_coverage_first_indemnity_without_reserve_advances_to_settling(make_claim_session):
+    s, claim = make_claim_session
+    decide_coverage(s, claim.id, decision="covered", rationale="covered", adjuster_id="u-carrier")
+    # Pay indemnity straight from under_investigation (no reserve posted first).
+    approve_payment(s, claim.id, amount=Decimal("5000"), payment_type="indemnity",
+                    paid_on=date(2026, 6, 2), description="advance", adjuster_id="u-carrier")
+    s.commit()
+    assert s.get(type(claim), claim.id).status == "settling"

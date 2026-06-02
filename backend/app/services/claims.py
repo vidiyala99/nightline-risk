@@ -255,6 +255,15 @@ def record_carrier_reserve(
             session, claim, to="reserved", actor_id=recorded_by,
             metadata={"first_reserve": str(claim.current_reserve)},
         )
+    # Coverage-decided-first path: the carrier desk decides coverage (→
+    # under_investigation) BEFORE posting a reserve. Posting the reserve from
+    # under_investigation must also advance to 'reserved', otherwise the claim
+    # is stranded in under_investigation and can never reach settling/closed_paid.
+    if claim.status == "under_investigation":
+        _transition_claim(
+            session, claim, to="reserved", actor_id=recorded_by,
+            metadata={"first_reserve": str(claim.current_reserve)},
+        )
 
     claim.snapshot_hash = _compute_claim_snapshot_hash(claim)
     session.add(claim)
@@ -336,8 +345,10 @@ def record_payment(
     else:  # recovery
         claim.recoveries_to_date = (claim.recoveries_to_date + amount).quantize(Decimal("0.01"))
 
-    # First indemnity payment moves the claim into 'settling' if reserved.
-    if payment_type == "indemnity" and claim.status == "reserved":
+    # First indemnity payment moves the claim into 'settling'. Reachable from
+    # 'reserved' (reserve-first) or 'under_investigation' (coverage-first desk
+    # flow where indemnity is paid before a reserve is posted).
+    if payment_type == "indemnity" and claim.status in {"reserved", "under_investigation"}:
         _transition_claim(
             session, claim, to="settling", actor_id=recorded_by,
             metadata={"first_indemnity_payment": str(amount)},
