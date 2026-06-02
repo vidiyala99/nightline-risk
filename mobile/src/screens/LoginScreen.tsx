@@ -36,6 +36,23 @@ export function LoginScreen({ navigation }: Props) {
     if (error) setError(null);
   }
 
+  // Single sign-in path used by both the form and the demo buttons. Takes
+  // explicit creds so the demo buttons sign in immediately (no stale-state
+  // race from setEmail/setPassword), matching the web login behavior.
+  async function runSignIn(em: string, pw: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      await signIn(em.trim(), pw);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e: any) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setError('Invalid email or password. Check your credentials and try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleLogin() {
     if (!email || !password) {
       setError('Please enter your email and password.');
@@ -46,17 +63,15 @@ export function LoginScreen({ navigation }: Props) {
       setError('Enter a valid email address (e.g. you@venue.com).');
       return;
     }
-    setLoading(true);
-    setError(null);
-    try {
-      await signIn(email.trim(), password);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (e: any) {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setError('Invalid email or password. Check your credentials and try again.');
-    } finally {
-      setLoading(false);
-    }
+    await runSignIn(email, password);
+  }
+
+  // Fill the fields (so the user sees which account) AND sign in directly.
+  function demoSignIn(em: string, pw: string) {
+    setEmail(em);
+    setPassword(pw);
+    clearError();
+    runSignIn(em, pw);
   }
 
   const hasError = !!error;
@@ -153,18 +168,28 @@ export function LoginScreen({ navigation }: Props) {
           <Text style={styles.demoLabel}>DEMO ACCESS</Text>
           <View style={styles.demoRow}>
             <Pressable
-              style={({ pressed }) => [styles.demoBtn, pressed && styles.demoBtnPressed]}
-              onPress={() => { setEmail('venue@elsewhere.com'); setPassword('demo123'); clearError(); }}
+              style={({ pressed }) => [styles.demoBtn, pressed && styles.demoBtnPressed, loading && styles.btnDisabled]}
+              disabled={loading}
+              onPress={() => demoSignIn('venue@elsewhere.com', 'demo123')}
             >
               <Text style={styles.demoBtnRole}>VENUE OPS</Text>
               <Text style={styles.demoBtnSub}>Elsewhere Brooklyn</Text>
             </Pressable>
             <Pressable
-              style={({ pressed }) => [styles.demoBtn, pressed && styles.demoBtnPressed]}
-              onPress={() => { setEmail('broker@nightline.risk'); setPassword('demo123'); clearError(); }}
+              style={({ pressed }) => [styles.demoBtn, pressed && styles.demoBtnPressed, loading && styles.btnDisabled]}
+              disabled={loading}
+              onPress={() => demoSignIn('broker@nightline.risk', 'demo123')}
             >
               <Text style={styles.demoBtnRole}>BROKER</Text>
               <Text style={styles.demoBtnSub}>Nightline Risk</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.demoBtn, pressed && styles.demoBtnPressed, loading && styles.btnDisabled]}
+              disabled={loading}
+              onPress={() => demoSignIn('underwriter@nightline.risk', 'demo123')}
+            >
+              <Text style={styles.demoBtnRole}>CARRIER</Text>
+              <Text style={styles.demoBtnSub}>Underwriting desk</Text>
             </Pressable>
           </View>
         </View>
