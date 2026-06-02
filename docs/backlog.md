@@ -299,14 +299,16 @@ specs (each its own spec → plan → build), **AI memo pulled earlier per 2026-
   (web+mobile), richer queue rows + KPI strip + back-home fix. Then a **decision-first reframe** (lead
   with the suggested quote + Quote/Decline/Request-info; structured terms collapsed into opt-in
   "Tailor terms"; clickable KPIs → dossier accordions) + a `ui-ux-pro-max` a11y/enum-humanization pass.
-- [ ] **Phase 2 — Carrier claims adjudication ★** — spec approved
-  ([`2026-06-02-carrier-claims-adjudication-design.md`](specs/2026-06-02-carrier-claims-adjudication-design.md)),
-  implementation pending (writing-plans next). **The carrier's 2nd core job (bear the risk / pay
-  losses).** Adjuster desk on the existing claim machinery: **coverage decision** (covered / denied /
-  reservation-of-rights, gates indemnity, denial closes) + carrier-owned reserve/payment/close stamped
-  `decision_source=carrier_desk` (broker relay preserved), an **adjuster queue**, carrier **Claims**
-  nav desk (web+mobile, extends the lean nav), and **operator visibility** of the coverage outcome +
-  rationale. Settlement-authority/escalation deferred.
+- [x] **Phase 2 — Carrier claims adjudication ★ (shipped 2026-06-02)** — spec
+  ([`2026-06-02-carrier-claims-adjudication-design.md`](specs/2026-06-02-carrier-claims-adjudication-design.md))
+  + 13-task plan built/pushed (full suite **1129 green**; web src + mobile tsc clean). **The carrier's
+  2nd core job (bear the risk / pay losses).** Adjuster desk on the existing claim machinery:
+  **coverage decision** (covered / denied / reservation-of-rights, gates indemnity, denial closes) +
+  carrier-owned reserve/payment/close stamped `decision_source=carrier_desk` (broker relay preserved),
+  an **adjuster queue**, carrier **Claims** nav desk (web `/adjusting` + mobile Claims tab — extends
+  the lean nav to Desk · Claims), an **advisory reserve/severity hint** (deterministic, from loss-run
+  + incident severity), and **operator visibility** of the coverage outcome + rationale (web tracker;
+  mobile via the shared claim detail). Settlement-authority/escalation deferred.
 - [ ] **AI underwriting memo** (the differentiator) — gated `Worker` + `evals/scorers` entry that
   summarizes the risk and *recommends terms* on the v2 decision dossier; Track-8-shaped
   (suggestion→human-confirm→audit, calibration-gated). Builds on the Phase-1.5 dossier surface.
