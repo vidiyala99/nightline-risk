@@ -471,6 +471,10 @@ class CarrierQuote(SQLModel, table=True):
     # risk score has since changed.
 
     underwriter_name: Optional[str] = None           # the human at the carrier
+    info_request_note: Optional[str] = None
+    info_response_note: Optional[str] = None
+    info_requested_by: Optional[str] = None
+    info_requested_at: Optional[str] = None   # ISO string, not datetime — the migration adds a TEXT column
     quote_pdf_path: Optional[str] = None             # uploaded carrier quote (blob storage)
 
 

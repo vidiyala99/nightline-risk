@@ -70,6 +70,11 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     # loop → 502. Mirrors the proven incidentrecord.weapon_involved BOOLEAN row.
     # Existing rows read NULL; the hydration overlay coerces via bool(...).
     ("venue", "onboarding_complete", "BOOLEAN", ""),
+    # Carrier desk v2 — request-info loop. Added 2026-06-02.
+    ("carrierquote", "info_request_note", "TEXT", ""),
+    ("carrierquote", "info_response_note", "TEXT", ""),
+    ("carrierquote", "info_requested_by", "TEXT", ""),
+    ("carrierquote", "info_requested_at", "TEXT", ""),
 ]
 
 

@@ -48,23 +48,25 @@ SUBMISSION_TERMINAL_STATES: frozenset[str] = frozenset(
 # ─── CarrierQuote lifecycle ──────────────────────────────────────────────
 
 QuoteStatus = Literal[
-    "requested",     # submitted to carrier, no response yet
-    "pending",       # carrier reviewing
-    "quoted",        # received with price + terms
-    "declined",      # carrier said no — terminal
-    "expired",       # quote validity passed — terminal
-    "bound",         # this is the one we picked — terminal
-    "withdrawn",     # broker withdrew — terminal
+    "requested",      # submitted to carrier, no response yet
+    "pending",        # carrier reviewing
+    "info_requested", # carrier asked the broker for missing info; paused
+    "quoted",         # received with price + terms
+    "declined",       # carrier said no — terminal
+    "expired",        # quote validity passed — terminal
+    "bound",          # this is the one we picked — terminal
+    "withdrawn",      # broker withdrew — terminal
 ]
 
 QUOTE_TRANSITIONS: dict[str, set[str]] = {
-    "requested": {"pending", "quoted", "declined", "expired", "withdrawn"},
-    "pending":   {"quoted", "declined", "expired", "withdrawn"},
-    "quoted":    {"bound", "expired", "withdrawn"},
-    "declined":  set(),
-    "expired":   set(),
-    "bound":     set(),
-    "withdrawn": set(),
+    "requested":      {"pending", "info_requested", "quoted", "declined", "expired", "withdrawn"},
+    "pending":        {"info_requested", "quoted", "declined", "expired", "withdrawn"},
+    "info_requested": {"pending", "quoted", "declined", "expired", "withdrawn"},
+    "quoted":         {"bound", "expired", "withdrawn"},
+    "declined":       set(),
+    "expired":        set(),
+    "bound":          set(),
+    "withdrawn":      set(),
 }
 
 QUOTE_TERMINAL_STATES: frozenset[str] = frozenset(
