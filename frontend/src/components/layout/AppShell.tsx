@@ -165,8 +165,9 @@ export function AppShell({ children }: AppShellProps) {
   const tenantId = useTenantId();
 
   // Both personas get an explicit "back to home" on every screen except home
-  // itself. /dashboard is home for operators and brokers alike.
-  const showBackHome = !!pathname && pathname !== "/dashboard";
+  // itself. Carriers home to /underwriting; operators and brokers to /dashboard.
+  const homeHref = role === "carrier" ? "/underwriting" : "/dashboard";
+  const showBackHome = !!pathname && pathname !== homeHref;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
@@ -257,7 +258,7 @@ export function AppShell({ children }: AppShellProps) {
       <main className="main-content">
         {showBackHome && (
           <Link
-            href="/dashboard"
+            href={homeHref}
             className="appshell-back-home flex items-center gap-xs text-secondary text-sm"
             style={{ textDecoration: "none", padding: "16px clamp(20px, 4vw, 56px) 0", minHeight: 44 }}
           >

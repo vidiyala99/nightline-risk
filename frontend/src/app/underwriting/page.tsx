@@ -11,28 +11,86 @@ import {
   type QueueRow,
 } from "@/lib/underwriting";
 
+type StatusChipProps = { status: QueueRow["status"] };
+
+const STATUS_META: Record<
+  QueueRow["status"],
+  { label: string; color: string; bg: string }
+> = {
+  requested: {
+    label: "new",
+    color: "var(--text-muted)",
+    bg: "color-mix(in srgb, var(--text-muted) 12%, transparent)",
+  },
+  pending: {
+    label: "reviewing",
+    color: "var(--text-secondary)",
+    bg: "color-mix(in srgb, var(--text-secondary) 10%, transparent)",
+  },
+  info_requested: {
+    label: "info requested",
+    color: "var(--state-warning)",
+    bg: "color-mix(in srgb, var(--state-warning) 14%, transparent)",
+  },
+};
+
+function StatusChip({ status }: StatusChipProps) {
+  const meta = STATUS_META[status] ?? STATUS_META.pending;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "2px 8px",
+        borderRadius: 99,
+        fontSize: "var(--text-xs, 11px)",
+        fontWeight: 600,
+        letterSpacing: "0.02em",
+        color: meta.color,
+        background: meta.bg,
+        flexShrink: 0,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {meta.label}
+    </span>
+  );
+}
+
 function Row({ row, onOpen }: { row: QueueRow; onOpen: (qid: string) => void }) {
   const suggested = row.suggested_premium_breakdown?.total ?? null;
+  const statusMeta = STATUS_META[row.status] ?? STATUS_META.pending;
+  const effectiveDateLabel = row.effective_date
+    ? new Date(row.effective_date).toLocaleDateString()
+    : null;
   return (
     <button
       type="button"
       className="wq-row"
       onClick={() => onOpen(row.quote_id)}
-      aria-label={`Underwrite submission for ${row.venue_name}, risk tier ${row.risk.tier}`}
+      aria-label={`Underwrite ${row.venue_name}, ${statusMeta.label}`}
     >
-      <span
-        className="font-display"
-        style={{
-          fontWeight: 600,
-          flex: 1,
-          minWidth: 0,
-          fontSize: "var(--text-sm)",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {row.venue_name}
+      <span style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 2 }}>
+        <span
+          className="font-display"
+          style={{
+            fontWeight: 600,
+            fontSize: "var(--text-sm)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {row.venue_name}
+        </span>
+        {effectiveDateLabel && (
+          <span
+            className="text-xs text-muted"
+            style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs, 11px)" }}
+          >
+            eff. {effectiveDateLabel}
+          </span>
+        )}
       </span>
       <span
         className="text-xs text-muted hide-on-phone"
@@ -40,6 +98,7 @@ function Row({ row, onOpen }: { row: QueueRow; onOpen: (qid: string) => void }) 
       >
         {row.coverage_lines.map(lineLabel).join(" · ") || "—"}
       </span>
+      <StatusChip status={row.status} />
       <span className="flex items-center" style={{ gap: 6, flexShrink: 0 }}>
         <TierBadge tier={row.risk.tier as UiTier} />
         <span className="font-mono text-muted" style={{ fontSize: "var(--text-sm)" }}>
@@ -98,6 +157,19 @@ export default function UnderwritingQueuePage() {
 
   const open = (qid: string) => router.push(`/underwriting/${qid}`);
 
+  // Desk KPI strip — derived from queue rows only.
+  const awaitingDecision = rows.filter(
+    (r) => r.status === "requested" || r.status === "pending"
+  ).length;
+  const infoRequested = rows.filter((r) => r.status === "info_requested").length;
+  const oldestDate = rows
+    .map((r) => r.effective_date)
+    .filter(Boolean)
+    .sort()[0];
+  const oldestLabel = oldestDate
+    ? new Date(oldestDate as string).toLocaleDateString()
+    : "—";
+
   if (!isLoaded || loading || !isCarrier) {
     return (
       <div className="page-loading">
@@ -146,9 +218,25 @@ export default function UnderwritingQueuePage() {
         <div className="lc-hero__meta">
           <div className="lc-meta-cell">
             <span className="lc-stat-label">Awaiting decision</span>
-            <strong style={{ color: rows.length > 0 ? "var(--state-warning)" : undefined }}>
-              {String(rows.length).padStart(2, "0")}
+            <strong
+              className="font-mono"
+              style={{ color: awaitingDecision > 0 ? "var(--state-warning)" : undefined }}
+            >
+              {String(awaitingDecision).padStart(2, "0")}
             </strong>
+          </div>
+          <div className="lc-meta-cell">
+            <span className="lc-stat-label">Info requested</span>
+            <strong
+              className="font-mono"
+              style={{ color: infoRequested > 0 ? "var(--state-warning)" : undefined }}
+            >
+              {String(infoRequested).padStart(2, "0")}
+            </strong>
+          </div>
+          <div className="lc-meta-cell">
+            <span className="lc-stat-label">Oldest in queue</span>
+            <strong className="font-mono">{oldestLabel}</strong>
           </div>
         </div>
       </section>
