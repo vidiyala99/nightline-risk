@@ -495,10 +495,15 @@ export default function UnderwriteDecisionPage() {
                       style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-xs)" }}
                     >
                       <div>
-                        <label className="text-xs text-muted" style={{ display: "block", marginBottom: 2 }}>
+                        <label
+                          htmlFor={`uw-line-${line}-limit`}
+                          className="text-xs text-muted"
+                          style={{ display: "block", marginBottom: 2 }}
+                        >
                           Limit
                         </label>
                         <input
+                          id={`uw-line-${line}-limit`}
                           type="text"
                           placeholder="e.g. 1000000"
                           value={coverageLines[line]?.limit ?? ""}
@@ -513,10 +518,15 @@ export default function UnderwriteDecisionPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-muted" style={{ display: "block", marginBottom: 2 }}>
+                        <label
+                          htmlFor={`uw-line-${line}-deductible`}
+                          className="text-xs text-muted"
+                          style={{ display: "block", marginBottom: 2 }}
+                        >
                           Deductible
                         </label>
                         <input
+                          id={`uw-line-${line}-deductible`}
                           type="text"
                           placeholder="e.g. 5000"
                           value={coverageLines[line]?.deductible ?? ""}
@@ -531,10 +541,15 @@ export default function UnderwriteDecisionPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-muted" style={{ display: "block", marginBottom: 2 }}>
+                        <label
+                          htmlFor={`uw-line-${line}-sublimit`}
+                          className="text-xs text-muted"
+                          style={{ display: "block", marginBottom: 2 }}
+                        >
                           Sublimit
                         </label>
                         <input
+                          id={`uw-line-${line}-sublimit`}
                           type="text"
                           placeholder="optional"
                           value={coverageLines[line]?.sublimit ?? ""}
@@ -568,7 +583,8 @@ export default function UnderwriteDecisionPage() {
                   className="btn btn-ghost btn-sm text-xs"
                   onClick={addSubjectivity}
                   disabled={submitting !== null}
-                  style={{ minHeight: 28, padding: "2px 8px" }}
+                  aria-label="Add subjectivity"
+                  style={{ minHeight: 44, minWidth: 44, padding: "2px 8px" }}
                 >
                   + Add
                 </button>
@@ -584,6 +600,7 @@ export default function UnderwriteDecisionPage() {
                 >
                   <input
                     type="text"
+                    aria-label={`Subjectivity ${i + 1} description`}
                     placeholder="Describe the subjectivity…"
                     value={sub.text}
                     onChange={(e) => updateSubjectivity(i, { text: e.target.value })}
@@ -592,6 +609,7 @@ export default function UnderwriteDecisionPage() {
                   />
                   <select
                     value={sub.status}
+                    aria-label={`Subjectivity ${i + 1} status`}
                     onChange={(e) =>
                       updateSubjectivity(i, { status: e.target.value as Subjectivity["status"] })
                     }
@@ -608,8 +626,8 @@ export default function UnderwriteDecisionPage() {
                     className="btn btn-ghost btn-sm"
                     onClick={() => removeSubjectivity(i)}
                     disabled={submitting !== null}
-                    style={{ minHeight: 28, padding: "2px 6px", color: "var(--state-error)" }}
-                    aria-label="Remove subjectivity"
+                    style={{ minHeight: 44, minWidth: 44, padding: "2px 6px", color: "var(--state-error)" }}
+                    aria-label={`Remove subjectivity ${i + 1}`}
                   >
                     ×
                   </button>
@@ -617,177 +635,210 @@ export default function UnderwriteDecisionPage() {
               ))}
             </div>
 
-            {/* Exclusions */}
-            <div style={{ marginBottom: "var(--space-md)" }}>
-              <div
-                className="flex items-center justify-between"
-                style={{ marginBottom: "var(--space-xs)" }}
+            {/* Additional terms — collapsed by default */}
+            <details style={{ marginBottom: "var(--space-md)" }}>
+              <summary
+                style={{
+                  cursor: "pointer",
+                  fontSize: "var(--text-xs)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  color: "var(--text-secondary)",
+                  userSelect: "none",
+                  listStyle: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "var(--space-xs) 0",
+                  borderTop: "1px solid var(--border-subtle)",
+                  borderBottom: "1px solid var(--border-subtle)",
+                  marginBottom: "var(--space-sm)",
+                }}
               >
-                <p className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>
-                  Exclusions
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm text-xs"
-                  onClick={addExclusion}
-                  disabled={submitting !== null}
-                  style={{ minHeight: 28, padding: "2px 8px" }}
-                >
-                  + Add
-                </button>
-              </div>
-              {exclusions.length === 0 && (
-                <p className="text-xs text-muted" style={{ margin: 0 }}>None</p>
-              )}
-              {exclusions.map((ex, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-sm"
-                  style={{ marginBottom: "var(--space-xs)" }}
-                >
-                  <input
-                    type="text"
-                    placeholder="Exclusion description…"
-                    value={ex}
-                    onChange={(e) => updateExclusion(i, e.target.value)}
-                    disabled={submitting !== null}
-                    style={{ ...inputStyle, flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => removeExclusion(i)}
-                    disabled={submitting !== null}
-                    style={{ minHeight: 28, padding: "2px 6px", color: "var(--state-error)" }}
-                    aria-label="Remove exclusion"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
+                <span>Additional terms (exclusions, endorsements, schedule credits/debits)</span>
+                <span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
+              </summary>
 
-            {/* Endorsements */}
-            <div style={{ marginBottom: "var(--space-md)" }}>
-              <div
-                className="flex items-center justify-between"
-                style={{ marginBottom: "var(--space-xs)" }}
-              >
-                <p className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>
-                  Endorsements
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm text-xs"
-                  onClick={addEndorsement}
-                  disabled={submitting !== null}
-                  style={{ minHeight: 28, padding: "2px 8px" }}
-                >
-                  + Add
-                </button>
-              </div>
-              {endorsements.length === 0 && (
-                <p className="text-xs text-muted" style={{ margin: 0 }}>None</p>
-              )}
-              {endorsements.map((en, i) => (
+              {/* Exclusions */}
+              <div style={{ marginBottom: "var(--space-md)" }}>
                 <div
-                  key={i}
-                  className="flex items-center gap-sm"
+                  className="flex items-center justify-between"
                   style={{ marginBottom: "var(--space-xs)" }}
                 >
-                  <input
-                    type="text"
-                    placeholder="Endorsement description…"
-                    value={en}
-                    onChange={(e) => updateEndorsement(i, e.target.value)}
-                    disabled={submitting !== null}
-                    style={{ ...inputStyle, flex: 1 }}
-                  />
+                  <p className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>
+                    Exclusions
+                  </p>
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => removeEndorsement(i)}
+                    className="btn btn-ghost btn-sm text-xs"
+                    onClick={addExclusion}
                     disabled={submitting !== null}
-                    style={{ minHeight: 28, padding: "2px 6px", color: "var(--state-error)" }}
-                    aria-label="Remove endorsement"
+                    aria-label="Add exclusion"
+                    style={{ minHeight: 44, minWidth: 44, padding: "2px 8px" }}
                   >
-                    ×
+                    + Add
                   </button>
                 </div>
-              ))}
-            </div>
+                {exclusions.length === 0 && (
+                  <p className="text-xs text-muted" style={{ margin: 0 }}>None</p>
+                )}
+                {exclusions.map((ex, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-sm"
+                    style={{ marginBottom: "var(--space-xs)" }}
+                  >
+                    <input
+                      type="text"
+                      aria-label={`Exclusion ${i + 1}`}
+                      placeholder="Exclusion description…"
+                      value={ex}
+                      onChange={(e) => updateExclusion(i, e.target.value)}
+                      disabled={submitting !== null}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => removeExclusion(i)}
+                      disabled={submitting !== null}
+                      style={{ minHeight: 44, minWidth: 44, padding: "2px 6px", color: "var(--state-error)" }}
+                      aria-label={`Remove exclusion ${i + 1}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
 
-            {/* Schedule mods */}
-            <div style={{ marginBottom: "var(--space-md)" }}>
-              <div
-                className="flex items-center justify-between"
-                style={{ marginBottom: "var(--space-xs)" }}
-              >
-                <p className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>
-                  Schedule modifications
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm text-xs"
-                  onClick={addScheduleMod}
-                  disabled={submitting !== null}
-                  style={{ minHeight: 28, padding: "2px 8px" }}
-                >
-                  + Add
-                </button>
-              </div>
-              {scheduleMods.length === 0 && (
-                <p className="text-xs text-muted" style={{ margin: 0 }}>None</p>
-              )}
-              {scheduleMods.map((mod, i) => (
+              {/* Endorsements */}
+              <div style={{ marginBottom: "var(--space-md)" }}>
                 <div
-                  key={i}
-                  className="flex items-center gap-sm"
+                  className="flex items-center justify-between"
                   style={{ marginBottom: "var(--space-xs)" }}
                 >
-                  <input
-                    type="text"
-                    placeholder="Category…"
-                    value={mod.category}
-                    onChange={(e) => updateScheduleMod(i, { category: e.target.value })}
-                    disabled={submitting !== null}
-                    style={{ ...inputStyle, flex: 1 }}
-                  />
-                  <select
-                    value={mod.kind}
-                    onChange={(e) =>
-                      updateScheduleMod(i, { kind: e.target.value as ScheduleMod["kind"] })
-                    }
-                    disabled={submitting !== null}
-                    style={{ ...selectStyle, width: 80, flex: "none" }}
-                  >
-                    <option value="credit">credit</option>
-                    <option value="debit">debit</option>
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="%"
-                    min={0}
-                    max={100}
-                    step="0.1"
-                    value={mod.pct}
-                    onChange={(e) => updateScheduleMod(i, { pct: e.target.value })}
-                    disabled={submitting !== null}
-                    style={{ ...inputStyle, width: 64, flex: "none" }}
-                  />
+                  <p className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>
+                    Endorsements
+                  </p>
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => removeScheduleMod(i)}
+                    className="btn btn-ghost btn-sm text-xs"
+                    onClick={addEndorsement}
                     disabled={submitting !== null}
-                    style={{ minHeight: 28, padding: "2px 6px", color: "var(--state-error)" }}
-                    aria-label="Remove schedule mod"
+                    aria-label="Add endorsement"
+                    style={{ minHeight: 44, minWidth: 44, padding: "2px 8px" }}
                   >
-                    ×
+                    + Add
                   </button>
                 </div>
-              ))}
-            </div>
+                {endorsements.length === 0 && (
+                  <p className="text-xs text-muted" style={{ margin: 0 }}>None</p>
+                )}
+                {endorsements.map((en, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-sm"
+                    style={{ marginBottom: "var(--space-xs)" }}
+                  >
+                    <input
+                      type="text"
+                      aria-label={`Endorsement ${i + 1}`}
+                      placeholder="Endorsement description…"
+                      value={en}
+                      onChange={(e) => updateEndorsement(i, e.target.value)}
+                      disabled={submitting !== null}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => removeEndorsement(i)}
+                      disabled={submitting !== null}
+                      style={{ minHeight: 44, minWidth: 44, padding: "2px 6px", color: "var(--state-error)" }}
+                      aria-label={`Remove endorsement ${i + 1}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Schedule mods */}
+              <div style={{ marginBottom: "var(--space-sm)" }}>
+                <div
+                  className="flex items-center justify-between"
+                  style={{ marginBottom: "var(--space-xs)" }}
+                >
+                  <p className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>
+                    Schedule modifications
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm text-xs"
+                    onClick={addScheduleMod}
+                    disabled={submitting !== null}
+                    aria-label="Add schedule modification"
+                    style={{ minHeight: 44, minWidth: 44, padding: "2px 8px" }}
+                  >
+                    + Add
+                  </button>
+                </div>
+                {scheduleMods.length === 0 && (
+                  <p className="text-xs text-muted" style={{ margin: 0 }}>None</p>
+                )}
+                {scheduleMods.map((mod, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-sm"
+                    style={{ marginBottom: "var(--space-xs)" }}
+                  >
+                    <input
+                      type="text"
+                      aria-label={`Schedule mod ${i + 1} category`}
+                      placeholder="Category…"
+                      value={mod.category}
+                      onChange={(e) => updateScheduleMod(i, { category: e.target.value })}
+                      disabled={submitting !== null}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <select
+                      value={mod.kind}
+                      aria-label={`Schedule mod ${i + 1} kind`}
+                      onChange={(e) =>
+                        updateScheduleMod(i, { kind: e.target.value as ScheduleMod["kind"] })
+                      }
+                      disabled={submitting !== null}
+                      style={{ ...selectStyle, width: 80, flex: "none" }}
+                    >
+                      <option value="credit">credit</option>
+                      <option value="debit">debit</option>
+                    </select>
+                    <input
+                      type="number"
+                      aria-label={`Schedule mod ${i + 1} percentage`}
+                      placeholder="%"
+                      min={0}
+                      max={100}
+                      step="0.1"
+                      value={mod.pct}
+                      onChange={(e) => updateScheduleMod(i, { pct: e.target.value })}
+                      disabled={submitting !== null}
+                      style={{ ...inputStyle, width: 64, flex: "none" }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => removeScheduleMod(i)}
+                      disabled={submitting !== null}
+                      style={{ minHeight: 44, minWidth: 44, padding: "2px 6px", color: "var(--state-error)" }}
+                      aria-label={`Remove schedule mod ${i + 1}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </details>
 
             {/* Valid until */}
             <div>
@@ -947,7 +998,11 @@ export default function UnderwriteDecisionPage() {
           </div>
 
           {formError && (
-            <p className="text-xs" style={{ color: "var(--state-error)", marginTop: "var(--space-md)" }}>
+            <p
+              role="alert"
+              className="text-xs"
+              style={{ color: "var(--state-error)", marginTop: "var(--space-md)" }}
+            >
               {formError}
             </p>
           )}
