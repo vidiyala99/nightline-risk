@@ -24,7 +24,7 @@ from app.services.submissions import (
     record_carrier_response,
     submit_to_market,
 )
-from app.services.underwriting_desk import underwrite_quote, underwriting_queue
+from app.services.underwriting_desk import underwrite_quote, underwriting_queue, request_info, respond_to_info_request
 
 VENUE_ID = "elsewhere-brooklyn"
 
@@ -215,3 +215,34 @@ def test_queue_suggested_premium_failure_isolated_for_unknown_venue():
         row = next(r for r in underwriting_queue(s) if r["quote_id"] == q.id)
         assert row["suggested_premium_breakdown"] is None
         assert row["venue_id"] == "venue-not-in-seed-data"
+
+
+# ─── request_info + respond_to_info_request ─────────────────────────────────
+
+def test_request_info_pauses_quote_with_note_and_audit():
+    with _session() as s:
+        q = _requested_quote(s)
+        out = request_info(s, q.id, note="Need a current security-staffing roster.", underwriter_id="u-carrier")
+        s.commit()
+        assert out.status == "info_requested"
+        assert "security-staffing" in (out.info_request_note or "")
+        evt = _decision_audit(s, q.id, "carrier_quote.info_requested")
+        assert evt.event_metadata["decision_source"] == "carrier_desk"
+
+
+def test_request_info_requires_a_note():
+    with _session() as s:
+        q = _requested_quote(s)
+        with pytest.raises(SubmissionsError):
+            request_info(s, q.id, note="  ", underwriter_id="u-carrier")
+
+
+def test_broker_response_requeues_to_pending():
+    with _session() as s:
+        q = _requested_quote(s)
+        request_info(s, q.id, note="roster?", underwriter_id="u-carrier")
+        s.commit()
+        out = respond_to_info_request(s, q.id, note="Roster attached: 6 SIA guards.", responder_id="u-broker")
+        s.commit()
+        assert out.status == "pending"
+        assert "6 SIA guards" in (out.info_response_note or "")

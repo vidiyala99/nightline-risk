@@ -16,7 +16,12 @@ import logging
 from sqlmodel import Session, select
 
 from app.models import Carrier, CarrierQuote, Submission, Venue
-from app.services.submissions import SubmissionsError, record_carrier_response
+from app.services.submissions import (
+    SubmissionsError,
+    _transition_carrier_quote,
+    record_carrier_response,
+)
+from app.time import now_utc
 
 logger = logging.getLogger(__name__)
 
@@ -162,3 +167,39 @@ def underwriting_queue(session: Session) -> list[dict]:
         })
     rows.sort(key=lambda r: r["quote_id"])
     return rows
+
+
+def request_info(session: Session, quote_id: str, *, note: str, underwriter_id: str) -> CarrierQuote:
+    """Carrier pauses a quote and asks the broker for missing info."""
+    note = (note or "").strip()
+    if not note:
+        raise SubmissionsError("A request-info note is required.")
+    q = session.get(CarrierQuote, quote_id)
+    if q is None:
+        raise SubmissionsError(f"Quote {quote_id} not found")
+    _transition_carrier_quote(
+        session, q, to="info_requested", actor_id=underwriter_id,
+        metadata={"decision_source": "carrier_desk", "note": note},
+    )
+    q.info_request_note = note
+    q.info_requested_by = underwriter_id
+    q.info_requested_at = now_utc().isoformat()
+    session.add(q)
+    return q
+
+
+def respond_to_info_request(session: Session, quote_id: str, *, note: str, responder_id: str) -> CarrierQuote:
+    """Broker answers the carrier's info request; the quote re-queues to 'pending'."""
+    note = (note or "").strip()
+    if not note:
+        raise SubmissionsError("A response note is required.")
+    q = session.get(CarrierQuote, quote_id)
+    if q is None:
+        raise SubmissionsError(f"Quote {quote_id} not found")
+    _transition_carrier_quote(
+        session, q, to="pending", actor_id=responder_id,
+        metadata={"note": note, "re_queued_from": "info_requested"},
+    )
+    q.info_response_note = note
+    session.add(q)
+    return q
