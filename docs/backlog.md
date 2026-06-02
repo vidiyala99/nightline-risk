@@ -315,6 +315,14 @@ specs (each its own spec → plan → build), **AI memo pulled earlier per 2026-
   layer** above claims (consumes the carrier-owned incurred losses Phase 2 makes real); fills the nav.
 - [ ] **C4 — renewal underwriting** — renewals due → re-rate on loss experience
   (`loss_adjustment_from_loss_ratio` exists) → renew / non-renew / re-terms.
+- [ ] **Claims intelligence (the differentiator on the claims desk)** — the claims analog of the AI
+  underwriting memo. Phase 2 ships a *lightweight advisory reserve/severity hint* (deterministic, from
+  loss-run history + incident severity); the full version is its own spec: a reserve-suggestion model,
+  **severity / litigation-risk prediction**, a **coverage-analysis assist** ("does the policy
+  respond?"), and **fraud flags** — all **powered by the incident evidence + vision analysis + defense
+  package Nightline already owns** (most carriers adjudicate blind to that). This is where the carrier
+  desk goes from *able* to adjudicate → *smart* at it; addresses the real carrier pains (reserving
+  accuracy, claims leakage, severity/social-inflation) that owning the workflow alone doesn't solve.
 - (then) **Phase 3** own-paper capstone (below).
 
 **Deferred depth — smaller specs, lower priority (tracked, not committed):**

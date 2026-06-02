@@ -18,6 +18,12 @@ This is also the missing link in the through-line `underwrite → bear → adjud
 2. **Carrier-owned adjudication with provenance** — carrier-gated reserve/payment/close stamped `decision_source="carrier_desk"`; the broker relay path (`broker_relay`) is preserved unchanged.
 3. **Adjuster queue + carrier Claims desk** (web + mobile); carrier nav gains a **Claims** destination.
 4. **Operator visibility** — the insured sees the coverage outcome + rationale (esp. on denial).
+5. **Lightweight reserve/severity hint (advisory)** — a deterministic reserve-*range* + severity-band
+   suggestion shown next to the Set-reserve action, derived from data Nightline already owns (the
+   venue's loss-run history for the coverage line + the linked incident's severity). Advisory only —
+   never gates or auto-sets the reserve. A first taste of the claims-intelligence layer; the full
+   version (trained reserve model + severity/litigation prediction + coverage-analysis assist + fraud
+   flags) is a **follow-on spec**, not this one.
 
 **Out (deferred):**
 - Settlement-authority limits + escalation (claims analog of underwriting authority C8) — later refinement.
@@ -64,6 +70,19 @@ New nullable columns on `Claim` (+ `_COLUMN_MIGRATIONS` rows for table `claim`, 
 
 Error mapping: `ClaimsError → 400`, `InvalidTransitionError → 422` via `error_response`. The broker's `/api/claims/*` routes are untouched.
 
+### 3.5a Reserve/severity hint (advisory, deterministic)
+
+`reserve_hint(session, claim) -> dict | None` in `adjusting.py`:
+- Pulls the venue's prior losses for this coverage line via `venue_loss_run(...)`'s
+  `by_coverage_line` (mean/range of `incurred`), and the linked incident's severity (from the
+  claim's `incident_id` / defense packet `risk_signals.severity` when present).
+- Returns `{ "low": str, "high": str, "severity_band": "low|moderate|elevated|severe", "basis": str }`
+  — e.g. `{low:"15000", high:"40000", severity_band:"elevated", basis:"3 prior A&B losses; injury observed"}`.
+- **Failure-isolated**: no history / no incident → `None` (UI shows "no comparable history"); never raises.
+- **Advisory only**: surfaced next to the Set-reserve action and in the adjuster dossier; it does NOT
+  prefill, gate, or auto-set the reserve. Deterministic (no keys); an eval scorer can measure its
+  calibration vs realized incurred later — the upgrade path to the full claims-intelligence spec.
+
 ### 3.5 Operator visibility
 
 Include `coverage_decision` + `coverage_rationale` in the venue-scoped claim reads — `GET /api/venues/{id}/claims` (already `require_venue_access`) and the claim detail the operator can see. The operator claim tracker (web `OperatorClaimsTracker`; mobile operator tracker) renders a **coverage badge** (Covered / Denied / Reservation of rights — color + text) + the **rationale**, surfaced especially on denial so the insured learns *why*.
@@ -84,6 +103,7 @@ TDD, RED→GREEN; full backend suite stays green (the `broker_relay` default is 
 - Provenance: carrier actions stamp `carrier_desk`; broker path stamps `broker_relay`.
 - Adjuster queue + `/api/adjusting/*`: carrier-only (403 broker/operator, 401 anon); decide→reserve→pay→close round-trip; coverage gate → 400.
 - Operator visibility: venue-scoped claim reads include the coverage fields; owner can read, non-owner can't.
+- Reserve hint: `reserve_hint` returns a range + severity band from loss-run history; degrades to `None` with no history (no raise); advisory — never mutates reserve state.
 - Migrations: new `claim` columns registered in `_COLUMN_MIGRATIONS`.
 - Frontend/mobile: `tsc` clean both.
 
@@ -92,10 +112,11 @@ TDD, RED→GREEN; full backend suite stays green (the `broker_relay` default is 
 1. Backend: `Claim` coverage columns + `_COLUMN_MIGRATIONS` (TDD).
 2. Backend: `decision_source` threaded through reserve/payment/close (default `broker_relay`) + audit metadata (TDD; regression-guard existing claims tests).
 3. Backend: `app/services/adjusting.py` — `decide_coverage` (+ auto-advance + denial-closes), adjuster wrappers, indemnity gate, `adjuster_queue` (TDD).
-4. Backend: `app/api/v1/adjusting.py` carrier-gated routes (TDD) + include coverage fields in venue-scoped claim reads.
-5. Web: carrier Claims nav item; `/adjusting` queue; `/adjusting/[cid]` detail (decide-coverage-first); operator coverage badge/rationale in `OperatorClaimsTracker`.
-6. Mobile: `CarrierTabs` Claims tab; adjuster queue + detail screens; operator coverage badge/rationale.
-7. Verify: full suite green, tsc clean both, manual loop (FNOL → carrier adjudicates coverage→reserve→pay→close → operator sees outcome).
+4. Backend: `reserve_hint` (deterministic, from `venue_loss_run` + incident severity; failure-isolated) (TDD).
+5. Backend: `app/api/v1/adjusting.py` carrier-gated routes (TDD) + include coverage fields in venue-scoped claim reads + `reserve_hint` in the adjuster dossier.
+6. Web: carrier Claims nav item; `/adjusting` queue; `/adjusting/[cid]` detail (decide-coverage-first, with the advisory reserve hint next to Set-reserve); operator coverage badge/rationale in `OperatorClaimsTracker`.
+7. Mobile: `CarrierTabs` Claims tab; adjuster queue + detail screens (incl. the advisory reserve hint); operator coverage badge/rationale.
+8. Verify: full suite green, tsc clean both, manual loop (FNOL → carrier adjudicates coverage→reserve→pay→close → operator sees outcome).
 
 ## 6. Landmines (pre-noted)
 - New `claim` columns need `_COLUMN_MIGRATIONS` allowlist rows or existing-table SELECTs fail "no such column" on Postgres.
