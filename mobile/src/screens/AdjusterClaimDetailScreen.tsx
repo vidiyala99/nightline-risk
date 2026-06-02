@@ -448,11 +448,22 @@ export function AdjusterClaimDetailScreen({ route, navigation }: any) {
           </View>
         )}
 
+        {/* ── Coverage gate ── reserve / payment / close stay locked until the
+            coverage determination is recorded (required before adjudication). */}
+        {!closed && !hasCoverage && (
+          <View style={styles.lockBanner}>
+            <Text style={styles.lockBannerText}>
+              Record the coverage determination above to unlock reserve, payment,
+              and close actions.
+            </Text>
+          </View>
+        )}
+
         {/* ── Reserve section ── */}
         {!closed && (
           <>
             <SectionTitle>Adjust reserve</SectionTitle>
-            <View style={styles.sectionBox}>
+            <View style={[styles.sectionBox, !hasCoverage && styles.sectionBoxLocked]}>
               {hint && (
                 <View style={styles.hintCard}>
                   <Text style={styles.hintTitle}>Reserve advisory</Text>
@@ -501,7 +512,7 @@ export function AdjusterClaimDetailScreen({ route, navigation }: any) {
         {!closed && (
           <>
             <SectionTitle>Record payment</SectionTitle>
-            <View style={styles.sectionBox}>
+            <View style={[styles.sectionBox, !hasCoverage && styles.sectionBoxLocked]}>
               <View style={styles.chipPickerRow}>
                 {PAYMENT_TYPES.map((pt) => {
                   const sel = payType === pt.value;
@@ -615,7 +626,7 @@ export function AdjusterClaimDetailScreen({ route, navigation }: any) {
         {!closed && (
           <>
             <SectionTitle>Close claim</SectionTitle>
-            <View style={styles.sectionBox}>
+            <View style={[styles.sectionBox, !hasCoverage && styles.sectionBoxLocked]}>
               {closeError && <Text style={styles.inlineError}>{closeError}</Text>}
               <Pressable
                 style={[styles.actionBtn, styles.actionBtnDestructive, closeSubmitting && styles.actionBtnBusy]}
@@ -1046,6 +1057,26 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 14,
     overflow: 'hidden',
+  },
+  sectionBoxLocked: { opacity: 0.45, pointerEvents: 'none' },
+  lockBanner: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.warning,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+  },
+  lockBannerText: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 16,
   },
   sectionHint: {
     fontFamily: Fonts.sansRegular,
