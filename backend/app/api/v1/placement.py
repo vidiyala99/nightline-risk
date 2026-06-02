@@ -61,6 +61,7 @@ from app.services.submissions import (
     withdraw_submission,
 )
 from app.services.carriers import carrier_detail
+from app.services.underwriting_desk import respond_to_info_request
 from app.underwriting.pricing import (
     CARRIER_RATES,
     build_quote_for_carrier,
@@ -550,3 +551,15 @@ def api_acord_126_preview(sid: str, session: Session = Depends(get_session)) -> 
         },
         "submission_id": sub.id,
     }
+
+
+@router.post("/quotes/{qid}/info-response", dependencies=[Depends(require_broker)])
+def api_info_response(qid: str, payload: dict, session: Session = Depends(get_session)) -> dict:
+    try:
+        q = respond_to_info_request(session, qid, note=str(payload.get("note", "")), responder_id="broker")
+    except SubmissionsError as e:
+        session.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    session.commit()
+    session.refresh(q)
+    return _quote_to_dict(q)

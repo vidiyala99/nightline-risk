@@ -137,3 +137,29 @@ def test_queue_row_is_enriched_for_the_desk(client_qid):
     assert row["risk"]["tier"] in ("A", "B", "C", "D")
     assert row["suggested_premium_breakdown"]["total"]
     assert row["coverage_lines"] == ["gl", "liquor"]
+
+
+def test_carrier_requests_info_then_broker_responds(client_qid):
+    client, qid = client_qid
+    r = client.post(f"/api/quotes/{qid}/request-info", headers=_carrier_headers(),
+                    json={"note": "Need the security-staffing roster."})
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "info_requested"
+
+    rb = client.post(f"/api/quotes/{qid}/info-response", headers=_broker_headers(),
+                     json={"note": "Roster attached."})
+    assert rb.status_code == 200, rb.text
+    assert rb.json()["status"] == "pending"
+
+
+def test_request_info_is_carrier_only(client_qid):
+    client, qid = client_qid
+    denied = client.post(f"/api/quotes/{qid}/request-info", headers=_broker_headers(), json={"note": "x"})
+    assert denied.status_code == 403
+
+
+def test_info_response_is_broker_only(client_qid):
+    client, qid = client_qid
+    client.post(f"/api/quotes/{qid}/request-info", headers=_carrier_headers(), json={"note": "x"})
+    denied = client.post(f"/api/quotes/{qid}/info-response", headers=_carrier_headers(), json={"note": "y"})
+    assert denied.status_code == 403

@@ -20,7 +20,7 @@ from app.services.submissions import (
     PremiumBreakdownMismatchError,
     SubmissionsError,
 )
-from app.services.underwriting_desk import underwrite_quote, underwriting_queue
+from app.services.underwriting_desk import request_info, underwrite_quote, underwriting_queue
 
 router = APIRouter()
 
@@ -35,6 +35,8 @@ def _quote_to_dict(q: CarrierQuote) -> dict:
         "coverage_terms": q.coverage_terms,
         "decline_reason": q.decline_reason,
         "underwriter_name": q.underwriter_name,
+        "info_request_note": q.info_request_note,
+        "info_response_note": q.info_response_note,
     }
 
 
@@ -67,6 +69,22 @@ def post_underwrite(
         raise error_response("premium_breakdown_mismatch", str(e), status_code=422)
     except SubmissionsError as e:
         raise error_response("underwriting_invalid", str(e), status_code=400)
+    session.commit()
+    session.refresh(q)
+    return _quote_to_dict(q)
+
+
+@router.post("/quotes/{quote_id}/request-info")
+def post_request_info(
+    quote_id: str,
+    payload: dict,
+    user: dict = Depends(require_carrier),
+    session: Session = Depends(get_session),
+) -> dict:
+    try:
+        q = request_info(session, quote_id, note=str(payload.get("note", "")), underwriter_id=str(user.get("sub")))
+    except SubmissionsError as e:
+        raise error_response("request_info_invalid", str(e), status_code=400)
     session.commit()
     session.refresh(q)
     return _quote_to_dict(q)
