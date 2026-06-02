@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, AlertTriangle, ShieldCheck, ShieldOff, ShieldAlert } from "lucide-react";
 
@@ -460,6 +460,10 @@ export default function AdjusterClaimDetailPage() {
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Track whether the initial load has completed so that reload-after-mutation
+  // does NOT flip `loading` back to true (which would unmount the content DOM
+  // and reset scrollTop to 0 — the scroll-jump bug).
+  const initialLoadDone = useRef(false);
 
   // Coverage decision form
   const [decisionChoice, setDecisionChoice] = useState<CoverageDecision>("covered");
@@ -495,18 +499,23 @@ export default function AdjusterClaimDetailPage() {
     if (isLoaded && isSignedIn && !isCarrier) router.replace("/dashboard");
   }, [isLoaded, isSignedIn, isCarrier, router]);
 
-  // Load claim
+  // Load claim.
+  // Only show the full-page spinner on the very first fetch. Subsequent calls
+  // (after mutations) silently refresh `data` in the background so the content
+  // stays mounted and scroll position is preserved.
   const load = useCallback(async () => {
     if (!cid) return;
     setLoadError(null);
-    setLoading(true);
+    const isRefresh = initialLoadDone.current;
+    if (!isRefresh) setLoading(true);
     try {
       const result = await fetchAdjusterClaim(cid);
       setData(result);
+      initialLoadDone.current = true;
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load claim.");
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
   }, [cid]);
 
