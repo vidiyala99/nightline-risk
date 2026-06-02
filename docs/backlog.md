@@ -9,6 +9,14 @@ Last updated: 2026-05-31.
 
 ## Recently shipped (context for picking back up)
 
+- [x] **Session 2026-06-01** (newest first): carrier underwriter-desk **backend** (track 9, `5d2f55b`);
+  broker-honest copy reframe (`958418f`); open-questions answer/resolve loop (track 8, `f4be266`);
+  operator bottom-nav reorder — promote Claims, demote Venues, web+mobile (`20c5503`); operator persona
+  parity — drop Reports leak + "Claims" status surface (`32ce45e`); mobile dashboard shows bound policy
+  not estimate once in force (`8a35af8`); mobile carrier-detail parity (`9b42bc2`); removed stale
+  `render.yaml` (`e4b00b7`). Also: mobile `.env` host fix (login was hitting the retired Railway
+  project — local-only, see [[project_mobile_env_host_drift]]). Backlog tracks 8 (agent roadmap) + 9
+  (carrier persona) added.
 - [x] Web↔mobile consistency: Book navigation fix, role-aware naming, factor-glyph parity, 3 new mobile screens (Settings, Market, Ingestion).
 - [x] Settings made real: `PATCH /api/auth/me` + change-password (web + mobile); fake sub-sections neutralized.
 - [x] Password reset flow (built; emails gated on `RESEND_API_KEY` — logs the reset URL until then).
@@ -208,6 +216,48 @@ scheduling; inbound email/phone; carrier-side integration.
 Guardrail: any agent autonomy (e.g. auto-resolving a clearly-satisfied, low-severity question) sits
 **behind the calibration gate** with an eval scorer measuring accuracy — agents accelerate the loop,
 evals keep them honest. The defense-package audit trail is non-negotiable.
+
+> Note: the **carrier persona** (track 9) was prioritized ahead of two-way questions + agents on
+> 2026-06-01. Resume order is the user's call.
+
+### 9. Carrier persona — vertically-integrated AI-native insurer (added 2026-06-01)
+
+**Thesis.** Per the founders, the destination is "the first AI-native **carrier** for commercial
+insurance." Nightline is on the broker → MGA → carrier ladder; "one-stop / full-stack" is coherent
+because Nightline owns *its own* value chain — operator (insured), broker (distribution), carrier
+(underwriting + risk-bearing). This is **Nightline-as-the-carrier**, NOT a third-party-carrier
+marketplace (no external carrier logins). The carrier engine already existed implicitly
+(`pricing.py` + risk + eval harness = underwriting brain; reserves/payments/FNOL/defense = claims);
+the persona work *surfaces* it behind a role.
+
+**Scope-honesty pre-work (shipped 2026-06-01, commit 958418f):**
+- [x] Broker-honest copy reframe — relay vs decide. Quote → "indicative premium · subject to carrier
+  quote"; book → commission (our revenue) + carriers' loss ratios we *monitor*; reserves/payments →
+  "log carrier reserve/payment". Flip the same copy when claiming the carrier rung. Engine unchanged.
+
+**Phase 1 — carrier underwriter desk:**
+- [x] **Backend (shipped 2026-06-01, commit 5d2f55b)** — new `carrier` role + `require_carrier`;
+  `app/services/underwriting_desk.py` (`underwrite_quote` quote-with-terms/decline + `underwriting_queue`),
+  a thin wrapper over `record_carrier_response` so lifecycle + submission escalation + audit stay
+  single-sourced; `GET /api/underwriting/queue` + `POST /api/quotes/{qid}/underwrite` (carrier-only).
+  Closes the placement loop internally: broker submits → carrier underwrites → broker binds. 12 TDD
+  tests (6 service + 6 API), full suite 1083 green.
+- [ ] **UI ★** — carrier role routing on login (lands on the desk, not broker/operator shells; the
+  cross-cutting piece — auth context + per-persona nav, web + mobile); underwriting **queue**
+  (submissions awaiting decision + risk + AI assessment + eval-gated suggested premium); **decision
+  form** (quote @ terms prefilled from pricing, editable / decline w/ reason). Web then mobile parity.
+- [ ] Backend enrichment for the desk: suggested premium_breakdown from `pricing.py` on the queue/
+  decision payload so the underwriter can accept-as-suggested in one tap (shows the eval differentiator).
+
+**Phase 2 — carrier claims/adjuster authority:** the carrier desk *sets* reserves, *approves*
+payments, *adjudicates* (approve/deny) — the things the broker now merely "logs". Reconciles the
+relay/decide split with an in-app owner.
+
+**Phase 3 — own-paper capstone:** policy issuance on Nightline paper, declarations, portfolio/
+solvency view. The "we are the carrier" finish.
+
+**Open decision:** role name — currently `carrier`; rename to `underwriter` if the persona should
+read that way. Cheapest to flip *before* the UI hardcodes it.
 
 ---
 
