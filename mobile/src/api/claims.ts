@@ -38,6 +38,9 @@ export interface Claim {
   adjuster_name: string | null;
   adjuster_email: string | null;
   defense_package_id: string | null;
+  /** Coverage determination set by the carrier adjuster. */
+  coverage_decision: 'covered' | 'denied' | 'reservation_of_rights' | null;
+  coverage_rationale: string | null;
   snapshot_hash: string;
 }
 

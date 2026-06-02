@@ -205,7 +205,15 @@ export function CarrierClaimDetailScreen({ route, navigation }: any) {
             {claim.reopen_count > 0 && (
               <Text style={styles.reopenBadge}>↻ {claim.reopen_count}</Text>
             )}
+            {claim.coverage_decision != null && (
+              <CoverageBadge decision={claim.coverage_decision} />
+            )}
           </View>
+          {claim.coverage_decision != null && claim.coverage_rationale && (
+            <Text style={styles.coverageRationale} numberOfLines={3}>
+              {claim.coverage_rationale}
+            </Text>
+          )}
           <Text style={styles.headerSub}>
             {claim.coverage_line.toUpperCase()} ·{' '}
             {new Date(claim.date_of_loss).toLocaleDateString(undefined, {
@@ -427,6 +435,25 @@ function LifecycleStrip({
           );
         })}
       </View>
+    </View>
+  );
+}
+
+// ─── Coverage badge ──────────────────────────────────────────────────────
+
+type CoverageDecisionValue = 'covered' | 'denied' | 'reservation_of_rights';
+
+function coverageBadgeProps(d: CoverageDecisionValue): { color: string; label: string } {
+  if (d === 'covered') return { color: Colors.success, label: 'Covered' };
+  if (d === 'reservation_of_rights') return { color: Colors.warning, label: 'Reservation of rights' };
+  return { color: Colors.error, label: 'Denied' };
+}
+
+function CoverageBadge({ decision }: { decision: CoverageDecisionValue }) {
+  const { color, label } = coverageBadgeProps(decision);
+  return (
+    <View style={[styles.coverageBadge, { borderColor: color }]}>
+      <Text style={[styles.coverageBadgeText, { color }]}>{label}</Text>
     </View>
   );
 }
@@ -739,4 +766,22 @@ const styles = StyleSheet.create({
   },
   pdfBtnBusy: { opacity: 0.5 },
   pdfBtnText: { color: Colors.accentInk, fontFamily: Fonts.sansMedium, fontSize: 13 },
+
+  // Coverage decision badge (Step 6)
+  coverageBadge: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  coverageBadgeText: { fontFamily: Fonts.monoBold, fontSize: 9, letterSpacing: 0.8 },
+  coverageRationale: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    marginBottom: 4,
+    lineHeight: 17,
+    fontStyle: 'italic',
+  },
 });

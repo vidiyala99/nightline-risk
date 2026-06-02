@@ -30,6 +30,9 @@ import { CarrierClaimsStack } from './CarrierClaimsStack';
 // Carrier persona — Nightline's own underwriting desk (Phase 1)
 import { UnderwritingStack } from './UnderwritingStack';
 
+// Carrier persona — adjuster desk (Phase 2)
+import { AdjustingStack } from './AdjustingStack';
+
 // More overflow — nested stacks (Live/Proposals/Reports/Venues live here)
 import { OperatorMoreStack, BrokerMoreStack } from './MoreStack';
 
@@ -67,6 +70,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 const TAB_LABELS: Record<string, string> = {
   Portfolio: 'The Book',
   Desk: 'Underwriting',
+  Claims: 'Claims',
 };
 
 // Auto-shrinks to fit the tab cell instead of truncating with an ellipsis,
@@ -152,13 +156,14 @@ function BrokerTabs() {
   );
 }
 
-// Carrier = Nightline's own underwriting desk. A single-destination persona;
-// the desk is its home (mirrors the web carrier nav).
+// Carrier = Nightline's own underwriting + adjuster desks.
+// Two tabs: Underwriting (quotes) + Claims (adjudication).
 function CarrierTabs() {
   const { signOut } = useAuth();
   return (
     <Tab.Navigator screenOptions={useScreenOptions(signOut)}>
       <Tab.Screen name="Desk" component={UnderwritingStack} />
+      <Tab.Screen name="Claims" component={AdjustingStack} />
     </Tab.Navigator>
   );
 }
