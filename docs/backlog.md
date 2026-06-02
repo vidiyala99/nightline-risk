@@ -3,12 +3,18 @@
 Working checklist for the subscription-free work (no API keys, no S3/email/SMS
 accounts yet). Gated/integration items live in [`go-live-readiness.md`](./go-live-readiness.md).
 
-Last updated: 2026-05-31.
+Last updated: 2026-06-02.
 
 ---
 
 ## Recently shipped (context for picking back up)
 
+- [x] **Session 2026-06-02** (newest first): carrier decision-provenance hardening (`46005ca`) —
+  `decision_source` (broker_relay default / carrier_desk) stamped on carrier-quote responses through
+  the shared `record_carrier_response`, so the audit trail distinguishes a carrier delegated-authority
+  decision from a broker relay (pre-bind foundation for MGA authority); +2 TDD tests, 1085 green. Also:
+  carrier role name **decided** → stays `carrier` (track 9); policy-doc **vector RAG design spec**
+  committed (track 10) — design approved, implementation plan pending.
 - [x] **Session 2026-06-01** (newest first): carrier underwriter-desk **backend** (track 9, `5d2f55b`);
   broker-honest copy reframe (`958418f`); open-questions answer/resolve loop (track 8, `f4be266`);
   operator bottom-nav reorder — promote Claims, demote Venues, web+mobile (`20c5503`); operator persona
@@ -260,6 +266,36 @@ solvency view. The "we are the carrier" finish.
 broker→MGA→carrier thesis language and the Phase 3 own-paper framing; the persona reads as the
 institution, not just the seat. Phase 1 UI may hardcode `carrier` freely.
 
+**Phase 1 follow-on — decision provenance (shipped 2026-06-02, commit `46005ca`):**
+- [x] `record_carrier_response` gains `decision_source` (`broker_relay` default / `carrier_desk`),
+  stamped into the `carrier_quote.{quoted,declined}` audit event. The carrier desk
+  (`underwrite_quote`) stamps `carrier_desk`; the legacy broker-relay path keeps `broker_relay`. The
+  audit trail now *proves* a carrier delegated-authority decision vs a broker transcribing an outside
+  quote — the load-bearing distinction for Phase 2 bind / MGA authority. Shared lifecycle core
+  unforked; +2 TDD tests, full suite 1085 green.
+
+### 10. Policy-doc vector RAG — recall layer of a hybrid (added 2026-06-02)
+
+Embedding-backed semantic retrieval over policy-document clause chunks (the existing `SourceRecord`
+leaves), with citation anchoring, measured by the existing `evals/retrieval_scorers.py` (NDCG@5 / MRR).
+Cross-cutting (ties track 1 evals + the policy-doc subsystem), surfaced during the track-9 carrier
+conversation.
+
+**Paradigm call (see spec §3.1):** vector = **recall** (offline, runs now with a deterministic
+hashing embedding, no keys); PageIndex tree = **precision + citation reasoning** (keys-gated, future);
+LLM-Wiki **rejected** for policy text on citation-fidelity grounds (its compile step replaces verbatim
+clause text with a summary), parked for the institutional-knowledge corpus.
+
+- [x] Design spec — `docs/superpowers/specs/2026-06-02-policy-doc-vector-rag-design.md` (approved).
+- [ ] Implementation plan (writing-plans) — pending.
+- [ ] Build (TDD): `HashingEmbeddingProvider` + `EmbeddingRecord` table + `VectorKnowledgeBase`
+  (same `retrieve` interface) + embed-on-ingest hook (failure-isolated) + `get_knowledge_base`
+  selector (vector-when-present-else-TF-IDF). Landmines pre-noted: column-level FK ordering,
+  Neon JSON-string coercion at the read boundary.
+- [ ] Success = `retrieval_scorers` prints TF-IDF baseline vs vector; with a real key, vector ≥ TF-IDF
+  NDCG@5 on the gold set (the pitch number).
+- [ ] Out of scope (v1): pgvector-native backend (later swap), Chroma, live PDF/PageIndex ingestion.
+
 ---
 
 ## Gated — needs an account/keys (revisit when available)
@@ -275,4 +311,15 @@ See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
 
 ## Recommended order
 
-Quick confidence-builder: **track 2 (correctness)** → headline work: **track 1 (evals)**. Tracks 3–4 are good filler. All four are independent; none need a subscription.
+Updated 2026-06-02. Track 1 (evals, the headline) and track 2 (correctness) are essentially done; the
+spine + lifecycle edges (7a/7b) and the carrier backend (9 Phase 1) are shipped. Live focus:
+
+1. **Carrier persona — Phase 1 UI** (track 9 ★) — role routing + underwriting queue + decision form,
+   web then mobile. The visible half of the shipped backend; biggest demo payoff.
+2. **Policy-doc vector RAG** (track 10) — design approved; next is the implementation plan → TDD build.
+   Strong pitch artifact (vector pipeline + retrieval eval delta).
+3. **Two-way open questions + agent assistants** (track 8) — the AI-native frontier on the broker side.
+
+Good filler (independent, no subscription): track 7c polish, the cross-cutting Neon JSON-string
+correctness sweep, track 3 (deterministic memo quality), track 4 (test-coverage breadth). The Slack
+incoming-webhook adapter (track 5 ★) remains the cheapest "closes a visibly-absent box" win.
