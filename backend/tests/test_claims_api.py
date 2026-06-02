@@ -243,3 +243,35 @@ def test_venue_claims_open_only_excludes_closed(client):
     )
     assert r.status_code == 200
     assert a not in {row["id"] for row in r.json()}
+
+
+# ─── Coverage decision surface ──────────────────────────────────────────
+
+
+def _carrier_headers():
+    token = create_token("user-carrier-claims-api", "carrier@example.com", "carrier", None)
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_venue_claims_include_coverage(client):
+    """Carrier decides coverage; operator reads it back via venue-scoped list."""
+    a, _ = _seed_two_policies_with_claims()
+
+    # 1. Carrier decides coverage (denied) via adjudication endpoint.
+    r = client.post(
+        f"/api/adjusting/claims/{a}/decide-coverage",
+        json={"decision": "denied", "rationale": "Excluded cause — assault exclusion applies."},
+        headers=_carrier_headers(),
+    )
+    assert r.status_code == 200, r.text
+
+    # 2. Operator reads their venue's claims.
+    r = client.get(f"/api/venues/{VENUE_A}/claims", headers=_operator_headers())
+    assert r.status_code == 200, r.text
+
+    # 3. The row for claim `a` must expose coverage_decision and coverage_rationale.
+    rows = {row["id"]: row for row in r.json()}
+    assert a in rows, "claim not found in venue claims list"
+    row = rows[a]
+    assert row["coverage_decision"] == "denied"
+    assert "assault exclusion" in (row["coverage_rationale"] or "")

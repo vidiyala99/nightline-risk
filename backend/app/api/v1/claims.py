@@ -104,6 +104,8 @@ def _claim_to_dict(c: Claim) -> dict:
         "adjuster_name": c.adjuster_name,
         "adjuster_email": c.adjuster_email,
         "defense_package_id": c.defense_package_id,
+        "coverage_decision": c.coverage_decision,
+        "coverage_rationale": c.coverage_rationale,
         "snapshot_hash": c.snapshot_hash,
     }
 
