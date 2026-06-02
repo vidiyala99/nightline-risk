@@ -90,6 +90,10 @@ export function UnderwritingDeskScreen({ navigation }: any) {
           }
           renderItem={({ item }) => {
             const suggested = item.suggested_premium_breakdown?.total ?? null;
+            const sc = statusChip(item.status);
+            const effDate = item.effective_date
+              ? new Date(item.effective_date).toLocaleDateString()
+              : null;
             return (
               <Pressable
                 style={styles.row}
@@ -99,15 +103,24 @@ export function UnderwritingDeskScreen({ navigation }: any) {
                   <Text style={styles.venue} numberOfLines={1}>
                     {item.venue_name}
                   </Text>
-                  <View style={[styles.tierPill, { borderColor: tierColor(item.risk.tier) }]}>
-                    <Text style={[styles.tierText, { color: tierColor(item.risk.tier) }]}>
-                      {item.risk.tier}
-                    </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {/* Status chip: color + text */}
+                    <View style={[styles.statusChip, { borderColor: sc.color }]}>
+                      <Text style={[styles.statusChipText, { color: sc.color }]}>{sc.label}</Text>
+                    </View>
+                    <View style={[styles.tierPill, { borderColor: tierColor(item.risk.tier) }]}>
+                      <Text style={[styles.tierText, { color: tierColor(item.risk.tier) }]}>
+                        {item.risk.tier}
+                      </Text>
+                    </View>
                   </View>
                 </View>
                 <Text style={styles.lines} numberOfLines={1}>
                   {item.coverage_lines.map(lineLabel).join(' · ') || 'Coverage TBD'}
                 </Text>
+                {effDate && (
+                  <Text style={styles.effectiveDate}>eff. {effDate}</Text>
+                )}
                 <View style={styles.rowBottom}>
                   <Text style={styles.scoreLabel}>
                     RISK <Text style={styles.score}>{item.risk.total_score}</Text>
@@ -124,6 +137,16 @@ export function UnderwritingDeskScreen({ navigation }: any) {
       )}
     </View>
   );
+}
+
+/** Color + word for a queue row status chip. */
+function statusChip(status: string): { color: string; label: string } {
+  const s = (status ?? '').toLowerCase();
+  if (s === 'requested') return { color: Colors.textMuted, label: 'NEW' };
+  if (s === 'pending') return { color: Colors.info, label: 'REVIEWING' };
+  if (s === 'info_requested') return { color: Colors.warning, label: 'INFO REQ' };
+  // fallback
+  return { color: Colors.textSecondary, label: s.toUpperCase() };
 }
 
 const styles = StyleSheet.create({
@@ -164,7 +187,20 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   tierText: { fontFamily: Fonts.monoBold, fontSize: 12 },
-  lines: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 12, marginBottom: 10 },
+  statusChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  statusChipText: { fontFamily: Fonts.monoBold, fontSize: 9, letterSpacing: 0.8 },
+  lines: { color: Colors.textSecondary, fontFamily: Fonts.sansMedium, fontSize: 12, marginBottom: 4 },
+  effectiveDate: {
+    color: Colors.textMuted,
+    fontFamily: Fonts.monoRegular,
+    fontSize: 10,
+    marginBottom: 8,
+  },
   rowBottom: {
     flexDirection: 'row',
     alignItems: 'flex-end',
