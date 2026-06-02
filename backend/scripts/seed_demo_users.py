@@ -25,49 +25,13 @@ import sys
 
 from sqlmodel import Session
 
-from app.auth import DEMO_USERS, create_password_hash, verify_password
 from app.database import engine
-from app.models import UserRecord
-
-
-def seed(session: Session) -> dict:
-    created: list[str] = []
-    repaired: list[str] = []
-    for demo in DEMO_USERS:
-        existing = session.get(UserRecord, demo["id"])
-        if existing is None:
-            session.add(UserRecord(
-                id=demo["id"],
-                email=demo["email"],
-                password_hash=create_password_hash(demo["password"]),
-                name=demo["name"],
-                role=demo["role"],
-                tenant_id=demo["tenant_id"],
-            ))
-            created.append(f"{demo['id']} ({demo['email']} · {demo['role']})")
-            continue
-        fixes: list[str] = []
-        if existing.email != demo["email"]:
-            existing.email = demo["email"]
-            fixes.append("email")
-        if existing.role != demo["role"]:
-            existing.role = demo["role"]
-            fixes.append("role")
-        # Demo accounts must always log in with the demo password. Reset it only
-        # when it doesn't already verify (avoids a needless write each run).
-        if not verify_password(demo["password"], existing.password_hash):
-            existing.password_hash = create_password_hash(demo["password"])
-            fixes.append("password")
-        if fixes:
-            session.add(existing)
-            repaired.append(f"{demo['id']} ({demo['email']} · {demo['role']}) [{', '.join(fixes)}]")
-    session.commit()
-    return {"created": created, "repaired": repaired}
+from app.seed_users import seed_demo_users
 
 
 def main() -> int:
     with Session(engine) as session:
-        result = seed(session)
+        result = seed_demo_users(session)
     if result["created"]:
         print("[seed] created demo users:")
         for row in result["created"]:

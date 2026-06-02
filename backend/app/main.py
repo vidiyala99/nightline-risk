@@ -235,7 +235,7 @@ async def lifespan(app: FastAPI):
     # so they run on every session bootstrap, not only the FastAPI lifespan path.
 
     import json as _json
-    from app.auth import DEMO_USERS, create_password_hash
+    from app.auth import DEMO_USERS
     import app.auth as _auth
 
     with next(get_session()) as session:
@@ -255,29 +255,14 @@ async def lifespan(app: FastAPI):
         seed_broker_platform_data(session)
         session.commit()
 
-        # Seed demo users.
-        # After the 2026-05-21 project rename (Third Space Risk → Nightline
-        # Risk), the demo broker email moved from broker@thirdspace.risk
-        # to broker@nightline.risk. Existing rows on a long-running database
-        # (Railway prod) keep the old email because the seed loop below only
-        # inserts when the id is missing. The small UPDATE in the elif keeps
-        # the persisted row's email in sync with DEMO_USERS on every boot —
-        # idempotent (no-op once the migration has run once).
-        for demo in DEMO_USERS:
-            existing = session.get(UserRecord, demo["id"])
-            if existing is None:
-                session.add(UserRecord(
-                    id=demo["id"],
-                    email=demo["email"],
-                    password_hash=create_password_hash(demo["password"]),
-                    name=demo["name"],
-                    role=demo["role"],
-                    tenant_id=demo["tenant_id"],
-                ))
-            elif existing.email != demo["email"]:
-                existing.email = demo["email"]
-                session.add(existing)
-        session.commit()
+        # Seed demo users (self-healing + idempotent). On a long-running DB
+        # (Railway/Neon) this keeps existing rows in sync with DEMO_USERS —
+        # email (e.g. the 2026-05-21 broker rename), role, and password — so a
+        # newly-added persona whose id was previously claimed by a real
+        # registration is repaired into a working login rather than 401-ing.
+        # Shared with scripts/seed_demo_users.py (single source of truth).
+        from app.seed_users import seed_demo_users
+        seed_demo_users(session)
 
         # Sync USER_COUNTER
         all_users = session.exec(select(UserRecord)).all()
