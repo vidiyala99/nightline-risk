@@ -633,6 +633,11 @@ class Claim(SQLModel, table=True):
     adjuster_name: Optional[str] = None
     adjuster_email: Optional[str] = None
 
+    coverage_decision: Optional[str] = None      # null | "covered" | "denied" | "reservation_of_rights"
+    coverage_rationale: Optional[str] = None
+    coverage_decided_by: Optional[str] = None
+    coverage_decided_at: Optional[str] = None     # ISO string (TEXT column — not datetime; avoids Postgres TEXT/datetime mismatch)
+
     # ON DELETE RESTRICT: packets referenced by claims cannot be deleted,
     # or the claim's frozen defense story loses its referent.
     defense_package_id: Optional[str] = Field(

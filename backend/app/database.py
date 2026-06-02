@@ -75,6 +75,11 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     ("carrierquote", "info_response_note", "TEXT", ""),
     ("carrierquote", "info_requested_by", "TEXT", ""),
     ("carrierquote", "info_requested_at", "TEXT", ""),
+    # Carrier claims adjudication — coverage decision. Added 2026-06-02.
+    ("claim", "coverage_decision", "TEXT", ""),
+    ("claim", "coverage_rationale", "TEXT", ""),
+    ("claim", "coverage_decided_by", "TEXT", ""),
+    ("claim", "coverage_decided_at", "TEXT", ""),
 ]
 
 
