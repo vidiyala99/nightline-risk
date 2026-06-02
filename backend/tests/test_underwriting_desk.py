@@ -273,3 +273,15 @@ def test_underwrite_persists_valid_terms():
         )
         s.commit()
         assert out.coverage_terms["subjectivities"][0]["status"] == "open"
+
+
+def test_queue_includes_info_requested_so_carrier_keeps_visibility():
+    """A quote the carrier asked info on stays on the desk (waiting on broker),
+    surfaced with its info_requested status rather than vanishing."""
+    with _session() as s:
+        q = _requested_quote(s)
+        request_info(s, q.id, note="roster?", underwriter_id="u-carrier")
+        s.commit()
+        row = next((r for r in underwriting_queue(s) if r["quote_id"] == q.id), None)
+        assert row is not None
+        assert row["status"] == "info_requested"

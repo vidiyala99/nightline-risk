@@ -27,7 +27,10 @@ from app.time import now_utc
 logger = logging.getLogger(__name__)
 
 # Quotes still awaiting the carrier's decision (no response yet).
-AWAITING_QUOTE_STATES: tuple[str, ...] = ("requested", "pending")
+# Quotes the carrier desk shows: awaiting a decision (requested/pending) PLUS
+# info_requested ("waiting on broker") so the carrier keeps visibility of what
+# they've asked for — surfaced with a distinct status chip in the UI.
+AWAITING_QUOTE_STATES: tuple[str, ...] = ("requested", "pending", "info_requested")
 
 _SUBJ_STATUSES = {"open", "met", "waived"}
 _MOD_KINDS = {"credit", "debit"}
