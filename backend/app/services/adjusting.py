@@ -5,13 +5,17 @@ from __future__ import annotations
 
 from sqlmodel import Session
 
-from app.models import Claim
+from app.models import Claim, Policy
 from app.packet_core import _add_audit_event
+from decimal import Decimal
+
 from app.services.claims import (
     ClaimsError,
     _compute_claim_snapshot_hash,
     _transition_claim,
     close_claim,
+    record_carrier_reserve,
+    record_payment,
 )
 from app.time import now_utc
 
@@ -96,3 +100,63 @@ def decide_coverage(
             decision_source="carrier_desk",
         )
     return claim
+
+
+# ─── Task 4 additions ────────────────────────────────────────────────────
+
+_COVERAGE_OK = {"covered", "reservation_of_rights"}
+
+
+def adjust_reserve(session: Session, claim_id: str, *, new_reserve, change_reason: str, adjuster_id: str):
+    """Carrier sets/adjusts the reserve (carrier_desk)."""
+    return record_carrier_reserve(
+        session, claim_id, new_reserve=new_reserve, change_reason=change_reason,
+        received_from=adjuster_id, received_at=now_utc(), recorded_by=adjuster_id,
+        decision_source="carrier_desk",
+    )
+
+
+def approve_payment(session: Session, claim_id: str, *, amount, payment_type: str, paid_on, description: str, adjuster_id: str):
+    """Carrier approves a payment (carrier_desk). Indemnity requires coverage
+    affirmed (covered / reservation_of_rights); expense + recovery allowed regardless."""
+    if payment_type == "indemnity":
+        claim = session.get(Claim, claim_id)
+        if claim is None:
+            raise ClaimsError(f"Unknown Claim {claim_id!r}")
+        if claim.coverage_decision not in _COVERAGE_OK:
+            raise ClaimsError(
+                "cannot approve an indemnity payment before coverage is affirmed (covered / reservation of rights)"
+            )
+    return record_payment(
+        session, claim_id, amount=amount, payment_type=payment_type, paid_on=paid_on,
+        description=description, recorded_by=adjuster_id, decision_source="carrier_desk",
+    )
+
+
+def close_claim_as_carrier(session: Session, claim_id: str, *, disposition: str, final_indemnity=None, adjuster_id: str):
+    """Carrier closes a claim (carrier_desk)."""
+    return close_claim(
+        session, claim_id, disposition=disposition, final_indemnity=final_indemnity,
+        closed_by=adjuster_id, decision_source="carrier_desk",
+    )
+
+
+def adjuster_queue(session: Session) -> list[dict]:
+    """Open (non-closed) claims awaiting carrier adjudication, enriched."""
+    from app.services.claims import list_claims
+    from app.seed_data import VENUES
+    rows: list[dict] = []
+    for c in list_claims(session, open_only=True):
+        policy = session.get(Policy, c.policy_id)
+        venue_id = policy.venue_id if policy else None
+        venue_name = VENUES.get(venue_id, {}).get("name", venue_id) if venue_id else None
+        total_paid = (c.indemnity_paid_to_date + c.expense_paid_to_date - c.recoveries_to_date)
+        rows.append({
+            "claim_id": c.id, "carrier_claim_number": c.carrier_claim_number,
+            "venue_id": venue_id, "venue_name": venue_name, "coverage_line": c.coverage_line,
+            "status": c.status, "coverage_decision": c.coverage_decision,
+            "current_reserve": str(c.current_reserve),
+            "total_paid": str(total_paid.quantize(Decimal("0.01"))),
+        })
+    rows.sort(key=lambda r: r["claim_id"])
+    return rows

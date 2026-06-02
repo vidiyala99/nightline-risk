@@ -104,3 +104,42 @@ def test_bad_decision_rejected(make_claim_session):
     s, claim = make_claim_session
     with pytest.raises(ClaimsError):
         decide_coverage(s, claim.id, decision="maybe", rationale="x", adjuster_id="u-carrier")
+
+
+# ─── Task 4: approve_payment / adjust_reserve / adjuster_queue ──────────
+
+
+from datetime import date, datetime
+from decimal import Decimal
+from app.services.adjusting import approve_payment, adjust_reserve, adjuster_queue
+
+
+def test_indemnity_allowed_after_coverage(make_claim_session):
+    s, claim = make_claim_session
+    decide_coverage(s, claim.id, decision="reservation_of_rights", rationale="investigating", adjuster_id="u-carrier")
+    adjust_reserve(s, claim.id, new_reserve=Decimal("5000"), change_reason="init", adjuster_id="u-carrier")
+    s.commit()
+    approve_payment(s, claim.id, amount=Decimal("500"), payment_type="expense",
+                    paid_on=date(2026, 6, 1), description="defense", adjuster_id="u-carrier")
+    approve_payment(s, claim.id, amount=Decimal("1000"), payment_type="indemnity",
+                    paid_on=date(2026, 6, 2), description="settlement", adjuster_id="u-carrier")
+    s.commit()
+
+
+def test_indemnity_rejected_with_no_coverage(make_claim_session):
+    s, claim = make_claim_session
+    from app.services.claims import record_carrier_reserve
+    record_carrier_reserve(s, claim.id, new_reserve=Decimal("5000"), change_reason="init",
+                           received_from="x", received_at=datetime(2026, 6, 1), recorded_by="u-brk")
+    s.commit()
+    import pytest
+    with pytest.raises(ClaimsError):
+        approve_payment(s, claim.id, amount=Decimal("1000"), payment_type="indemnity",
+                        paid_on=date(2026, 6, 2), description="settlement", adjuster_id="u-carrier")
+
+
+def test_adjuster_queue_lists_open_claims(make_claim_session):
+    s, claim = make_claim_session
+    row = next((r for r in adjuster_queue(s) if r["claim_id"] == claim.id), None)
+    assert row is not None
+    assert "coverage_decision" in row and "current_reserve" in row and "venue_id" in row
