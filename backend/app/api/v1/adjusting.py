@@ -26,6 +26,54 @@ from app.models import Claim, ClaimPayment, Policy, ReserveChange
 router = APIRouter()
 
 
+def _incident_report(session, claim) -> dict | None:
+    """The AI incident report + numbers behind this claim (risk signal, memo,
+    expected-payout recommendation, evidence). Failure-isolated → None."""
+    try:
+        from app.models import UnderwritingPacket
+        from sqlmodel import select as _select
+        from app.claim_routing import recommendation_for_packet
+        from app.claim_recommendation import recommendation_to_dict
+        packet = None
+        if claim.defense_package_id:
+            packet = session.get(UnderwritingPacket, claim.defense_package_id)
+        if packet is None and claim.incident_id:
+            packet = session.exec(
+                _select(UnderwritingPacket).where(UnderwritingPacket.incident_id == claim.incident_id)
+            ).first()
+        if packet is None:
+            return None
+        rs = packet.risk_signals or {}
+        rec = None
+        try:
+            rec = recommendation_to_dict(recommendation_for_packet(session, packet))
+        except Exception:
+            rec = None
+        return {
+            "packet_id": packet.id,
+            "severity": rs.get("severity"),
+            "confidence": rs.get("confidence"),
+            "explanation": rs.get("explanation"),
+            "memo_summary": (packet.memo or {}).get("summary"),
+            "recommendation": rec,                 # expected_payout numbers etc.
+            "citation_count": len(packet.citation_ids or []),
+            "corroboration_status": packet.corroboration_status,
+        }
+    except Exception:
+        return None
+
+
+def _venue_name(session, venue_id):
+    from app.seed_data import VENUES
+    if not venue_id:
+        return None
+    from app.models import Venue
+    row = session.get(Venue, venue_id)
+    if row and getattr(row, "name", None):
+        return row.name
+    return VENUES.get(venue_id, {}).get("name", venue_id)
+
+
 def _claim_out(c: Claim) -> dict:
     return {
         "id": c.id,
@@ -63,6 +111,8 @@ def get_adjuster_claim(
     return {
         "claim": _claim_out(c),
         "venue_id": pol.venue_id if pol else None,
+        "venue_name": _venue_name(session, pol.venue_id if pol else None),
+        "incident_report": _incident_report(session, c),
         "date_of_loss": c.date_of_loss.isoformat() if c.date_of_loss else None,
         "payments": [
             {

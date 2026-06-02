@@ -198,3 +198,14 @@ def test_close_claim_as_carrier(client_claim):
     )
     assert r.status_code == 200, r.text
     assert "closed" in r.json()["status"]
+
+
+def test_adjuster_dossier_includes_report_and_venue_name(client_claim):
+    client, cid = client_claim
+    body = client.get(f"/api/adjusting/claims/{cid}", headers=_carrier_headers()).json()
+    assert "venue_name" in body            # resolved display name, not just the id
+    assert "incident_report" in body       # AI report section (None if no packet linked)
+    # if a packet is linked, it carries the numbers:
+    if body["incident_report"] is not None:
+        assert "recommendation" in body["incident_report"]
+        assert "severity" in body["incident_report"]
