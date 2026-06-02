@@ -49,6 +49,34 @@ export interface ReserveChange {
   changed_at: string;
 }
 
+/** Expected payout range from the AI incident report recommendation. */
+export interface IncidentReportPayout {
+  low_usd: number | null;
+  median_usd: number | null;
+  high_usd: number | null;
+}
+
+/** AI recommendation attached to an incident report. */
+export interface IncidentReportRecommendation {
+  should_file: boolean;
+  probability: number | null;
+  expected_payout: IncidentReportPayout;
+  net_expected_value_usd: number | null;
+  confidence: number | null;
+}
+
+/** AI-generated incident report linked to the claim via a packet. */
+export interface IncidentReport {
+  packet_id: string;
+  severity: string | null;
+  confidence: number | null;
+  explanation: string | null;
+  memo_summary: string | null;
+  recommendation: IncidentReportRecommendation | null;
+  citation_count: number;
+  corroboration_status: string | null;
+}
+
 export interface AdjusterClaimDetail {
   id: string;
   carrier_claim_number: string | null;
@@ -78,10 +106,12 @@ export interface AdjusterClaimDetail {
 export interface AdjusterClaimResponse {
   claim: AdjusterClaimDetail;
   venue_id: string | null;
+  venue_name?: string | null;
   date_of_loss: string;
   payments: Payment[];
   reserve_history: ReserveChange[];
   reserve_hint: ReserveHint | null;
+  incident_report?: IncidentReport | null;
 }
 
 export async function fetchAdjusterQueue(): Promise<AdjusterQueueRow[]> {

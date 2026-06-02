@@ -34,7 +34,7 @@ import * as Haptics from 'expo-haptics';
 
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/typography';
-import { lineLabel } from '../api/underwriting';
+import { lineLabel, fmtMoney } from '../api/underwriting';
 import {
   fetchAdjusterClaim,
   decideCoverage,
@@ -44,6 +44,7 @@ import {
   type AdjusterClaimDetail,
   type AdjusterClaimResponse,
   type CoverageDecision,
+  type IncidentReport,
 } from '../api/adjusting';
 import {
   CLAIM_STATUS_LABEL,
@@ -317,7 +318,14 @@ export function AdjusterClaimDetailScreen({ route, navigation }: any) {
             <Text style={styles.glyph}>{CLAIM_STATUS_GLYPH[status]}  </Text>
             CARRIER · ADJUDICATION
           </Text>
-          <Text style={styles.masthead}>{claim.carrier_claim_number ?? claim.id}</Text>
+          {/* Title: venue name (or venue_id / claim id fallback) */}
+          <Text style={styles.masthead}>
+            {data?.venue_name ?? data?.venue_id ?? claim.id}
+          </Text>
+          {/* Sub-line: claim number in mono */}
+          <Text style={styles.mastheadSub}>
+            {claim.carrier_claim_number ?? claim.id}
+          </Text>
           <View style={styles.headerChipRow}>
             {/* Status chip */}
             <View style={[styles.chip, { borderColor: Colors.textSecondary }]}>
@@ -335,9 +343,10 @@ export function AdjusterClaimDetailScreen({ route, navigation }: any) {
             )}
           </View>
           <Text style={styles.headerSub}>
-            {lineLabel(claim.coverage_line).toUpperCase()} ·{' '}
+            {lineLabel(claim.coverage_line).toUpperCase()}
+            {data?.venue_name ? ` · ${data.venue_name}` : ''}
+            {' · '}
             {new Date(claim.date_of_loss).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-            {'  ·  '}{claim.policy_id}
           </Text>
         </View>
 
@@ -365,6 +374,10 @@ export function AdjusterClaimDetailScreen({ route, navigation }: any) {
           <Tile label="Expense paid" value={formatLedgerMoney(claim.expense_paid_to_date)} />
           <Tile label="Recoveries" value={formatLedgerMoney(claim.recoveries_to_date)} />
         </View>
+
+        {/* ── AI Incident Report (decision-support context, above coverage) ── */}
+        <SectionTitle>AI incident report</SectionTitle>
+        <IncidentReportCard report={data?.incident_report ?? null} />
 
         {/* ── Coverage determination (FIRST / primary section) ── */}
         <SectionTitle>Coverage determination</SectionTitle>
@@ -694,6 +707,259 @@ function LifecycleStrip({ status, pos, reopenCount }: { status: ClaimStatus; pos
   );
 }
 
+// ─── Severity chip helpers ────────────────────────────────────────────────
+
+function severityColor(severity: string | null): string {
+  if (!severity) return Colors.textMuted;
+  const s = severity.toLowerCase();
+  if (s === 'critical' || s === 'high') return Colors.error;
+  if (s === 'medium') return Colors.warning;
+  if (s === 'low') return Colors.accentInk;
+  return Colors.textMuted;
+}
+
+// ─── Incident report card ─────────────────────────────────────────────────
+
+function IncidentReportCard({ report }: { report: IncidentReport | null | undefined }) {
+  if (!report) {
+    return (
+      <Text style={irStyles.absent}>No AI incident report linked to this claim.</Text>
+    );
+  }
+
+  const sevColor = severityColor(report.severity);
+  const confidencePct = report.confidence != null ? Math.round(report.confidence * 100) : null;
+  const rec = report.recommendation ?? null;
+
+  return (
+    <View style={irStyles.card}>
+      {/* Severity chip + confidence */}
+      <View style={irStyles.chipRow}>
+        <View style={[irStyles.sevChip, { borderColor: sevColor, backgroundColor: sevColor + '18' }]}>
+          <Text style={[irStyles.sevChipText, { color: sevColor }]}>
+            {report.severity ? report.severity.toUpperCase() : 'UNKNOWN'}
+          </Text>
+        </View>
+        {confidencePct != null && (
+          <Text style={irStyles.confidence}>{confidencePct}% confidence</Text>
+        )}
+      </View>
+
+      {/* Memo summary prose */}
+      {!!report.memo_summary && (
+        <Text style={irStyles.memo}>{report.memo_summary}</Text>
+      )}
+
+      {/* Explanation (fallback if no memo) */}
+      {!report.memo_summary && !!report.explanation && (
+        <Text style={irStyles.memo}>{report.explanation}</Text>
+      )}
+
+      {/* Recommendation payout + probability */}
+      {rec && (
+        <View style={irStyles.recBlock}>
+          <Text style={irStyles.recLabel}>EXPECTED PAYOUT</Text>
+          <View style={irStyles.payoutRow}>
+            <View style={irStyles.payoutCell}>
+              <Text style={irStyles.payoutBand}>LOW</Text>
+              <Text style={irStyles.payoutMono}>
+                {rec.expected_payout.low_usd != null
+                  ? fmtMoney(rec.expected_payout.low_usd)
+                  : '—'}
+              </Text>
+            </View>
+            <View style={[irStyles.payoutCell, irStyles.payoutCellMedian]}>
+              <Text style={[irStyles.payoutBand, { color: Colors.text }]}>MEDIAN</Text>
+              <Text style={[irStyles.payoutMono, irStyles.payoutMonoMedian]}>
+                {rec.expected_payout.median_usd != null
+                  ? fmtMoney(rec.expected_payout.median_usd)
+                  : '—'}
+              </Text>
+            </View>
+            <View style={irStyles.payoutCell}>
+              <Text style={irStyles.payoutBand}>HIGH</Text>
+              <Text style={irStyles.payoutMono}>
+                {rec.expected_payout.high_usd != null
+                  ? fmtMoney(rec.expected_payout.high_usd)
+                  : '—'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={irStyles.nevRow}>
+            {rec.net_expected_value_usd != null && (
+              <Text style={irStyles.nevText}>
+                Net EV{' '}
+                <Text style={irStyles.nevMono}>
+                  {rec.net_expected_value_usd >= 0 ? '+' : ''}
+                  {fmtMoney(rec.net_expected_value_usd)}
+                </Text>
+              </Text>
+            )}
+            {rec.probability != null && (
+              <Text style={irStyles.probText}>
+                {Math.round(rec.probability * 100)}% paid-out
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Footer: citations + corroboration */}
+      <View style={irStyles.footer}>
+        <Text style={irStyles.footerText}>{report.citation_count} citations</Text>
+        {!!report.corroboration_status && (
+          <Text style={irStyles.footerText}>{report.corroboration_status}</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const irStyles = StyleSheet.create({
+  absent: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginBottom: 4,
+  },
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    paddingTop: 14,
+    paddingBottom: 10,
+    overflow: 'hidden',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  sevChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sevChipText: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 9,
+    letterSpacing: 1.0,
+  },
+  confidence: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  memo: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 19,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  recBlock: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 12,
+    backgroundColor: Colors.bg,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+  },
+  recLabel: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    color: Colors.textSecondary,
+    marginBottom: 10,
+  },
+  payoutRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  payoutCell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  payoutCellMedian: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    borderRadius: 6,
+    backgroundColor: Colors.surface,
+    paddingVertical: 4,
+  },
+  payoutBand: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 8,
+    letterSpacing: 1.2,
+    color: Colors.textMuted,
+    marginBottom: 3,
+  },
+  payoutMono: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontVariant: ['tabular-nums'],
+  },
+  payoutMonoMedian: {
+    fontSize: 15,
+    color: Colors.text,
+  },
+  nevRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  nevText: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  nevMono: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 12,
+    color: Colors.text,
+    fontVariant: ['tabular-nums'],
+  },
+  probText: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 11,
+    color: Colors.accentInk,
+    fontVariant: ['tabular-nums'],
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    marginTop: 4,
+  },
+  footerText: {
+    fontFamily: Fonts.monoRegular,
+    fontSize: 10,
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+  },
+});
+
 // ─── Styles ───────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -706,13 +972,21 @@ const styles = StyleSheet.create({
   eyebrow: { fontFamily: Fonts.monoBold, fontSize: 10, letterSpacing: 1.4, color: Colors.textSecondary, marginBottom: 6 },
   glyph: { color: Colors.accentInk },
   masthead: {
-    fontFamily: Fonts.monoBold,
-    fontSize: 16,
+    fontFamily: Fonts.displayBold,
+    fontSize: 22,
+    letterSpacing: -0.5,
     color: Colors.text,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  mastheadSub: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 11,
+    color: Colors.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
-    paddingBottom: 8,
+    paddingBottom: 10,
   },
   headerChipRow: { flexDirection: 'row', gap: 8, marginBottom: 6, flexWrap: 'wrap' },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
