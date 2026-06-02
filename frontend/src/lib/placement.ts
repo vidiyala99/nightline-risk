@@ -33,7 +33,8 @@ export type QuoteStatus =
   | "declined"
   | "expired"
   | "bound"
-  | "withdrawn";
+  | "withdrawn"
+  | "info_requested";
 
 export interface RequestedLimitsLine {
   per_occurrence?: string;
@@ -91,6 +92,7 @@ export interface CarrierQuote {
   responded_at: string | null;
   expires_at: string | null;
   decline_reason: string | null;
+  info_request_note: string | null;
   premium_breakdown: PremiumBreakdown | Record<string, never>;
   coverage_terms: Record<string, unknown>;
   underwriter_name: string | null;

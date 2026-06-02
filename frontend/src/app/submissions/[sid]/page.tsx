@@ -32,6 +32,9 @@ import {
   placementApi,
 } from "@/lib/placement";
 import { policiesApi } from "@/lib/policies";
+import { authHeaders } from "@/lib/authFetch";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 
 // ─── Carrier quote card (per-carrier comparison cell) ───────────────────
@@ -43,6 +46,7 @@ function CarrierQuoteCardComponent({
   onSelect,
   onRecordResponse,
   onBind,
+  onInfoResponse,
 }: {
   quote: CarrierQuote;
   carrierName: string;
@@ -50,11 +54,30 @@ function CarrierQuoteCardComponent({
   onSelect: () => void;
   onRecordResponse: (status: "quoted" | "declined") => void;
   onBind: () => void;
+  onInfoResponse: (note: string) => Promise<void>;
 }) {
   const breakdown = quote.premium_breakdown as PremiumBreakdown | undefined;
   const total = breakdown?.total;
   const lines = breakdown?.lines ?? {};
   const fees = breakdown?.fees;
+
+  const [infoNote, setInfoNote] = useState("");
+  const [submittingInfo, setSubmittingInfo] = useState(false);
+  const [infoError, setInfoError] = useState<string | null>(null);
+
+  const handleInfoResponse = async () => {
+    if (!infoNote.trim()) return;
+    setSubmittingInfo(true);
+    setInfoError(null);
+    try {
+      await onInfoResponse(infoNote.trim());
+      setInfoNote("");
+    } catch (e) {
+      setInfoError(e instanceof Error ? e.message : "Request failed");
+    } finally {
+      setSubmittingInfo(false);
+    }
+  };
 
   return (
     <div
@@ -74,9 +97,10 @@ function CarrierQuoteCardComponent({
           quote.status === "quoted" ? "success" :
           quote.status === "declined" ? "warning" :
           quote.status === "bound" ? "success" :
-          quote.status === "withdrawn" ? "neutral" : "info"
+          quote.status === "withdrawn" ? "neutral" :
+          quote.status === "info_requested" ? "warning" : "info"
         }>
-          {quote.status}
+          {quote.status === "info_requested" ? "info requested" : quote.status}
         </StatusPill>
       </div>
 
@@ -119,6 +143,54 @@ function CarrierQuoteCardComponent({
       {quote.decline_reason && (
         <div className="carrier-quote-card__decline">
           {quote.decline_reason}
+        </div>
+      )}
+
+      {/* Carrier info-request respond surface */}
+      {quote.status === "info_requested" && (
+        <div
+          style={{
+            borderTop: "1px solid var(--border-subtle)",
+            paddingTop: "var(--space-md)",
+            marginTop: "var(--space-sm)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-sm)",
+          }}
+        >
+          {quote.info_request_note && (
+            <p className="text-xs text-secondary" style={{ margin: 0 }}>
+              <span className="text-xs uppercase tracking-wide" style={{ color: "var(--state-warning)" }}>
+                Carrier asked:{" "}
+              </span>
+              <span style={{ fontStyle: "italic" }}>
+                &ldquo;{quote.info_request_note}&rdquo;
+              </span>
+            </p>
+          )}
+          <textarea
+            className="input-field"
+            rows={2}
+            placeholder="Your response to the carrier…"
+            value={infoNote}
+            onChange={(e) => setInfoNote(e.target.value)}
+            disabled={submittingInfo}
+            style={{ resize: "none" }}
+          />
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            style={{ minHeight: 44 }}
+            disabled={submittingInfo || !infoNote.trim()}
+            onClick={handleInfoResponse}
+          >
+            {submittingInfo ? "Sending…" : "Respond & re-queue"}
+          </button>
+          {infoError && (
+            <p className="text-xs" style={{ color: "var(--state-error)", margin: 0 }}>
+              {infoError}
+            </p>
+          )}
         </div>
       )}
 
@@ -313,6 +385,22 @@ export default function SubmissionDetailPage() {
     } catch (e) {
       alert(e instanceof PlacementApiError ? e.message : "Select failed");
     }
+  };
+
+  const handleInfoResponse = async (quote: CarrierQuote, note: string) => {
+    const res = await fetch(`${API_URL}/api/quotes/${quote.id}/info-response`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ note }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = typeof err?.detail === "string"
+        ? err.detail
+        : (err?.message ?? `Request failed (${res.status})`);
+      throw new Error(msg);
+    }
+    await load();
   };
 
   const handleBind = async (quote: CarrierQuote) => {
@@ -512,6 +600,7 @@ export default function SubmissionDetailPage() {
                   onSelect={() => handleSelect(q)}
                   onRecordResponse={(status) => handleRecordResponse(q, status)}
                   onBind={() => handleBind(q)}
+                  onInfoResponse={(note) => handleInfoResponse(q, note)}
                 />
               );
             })}
