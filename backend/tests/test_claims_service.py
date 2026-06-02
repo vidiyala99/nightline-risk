@@ -537,3 +537,42 @@ def test_list_claims_open_only_and_status_mutually_exclusive():
     _active_policy(s)
     with pytest.raises(ClaimsError, match="mutually exclusive"):
         list_claims(s, open_only=True, status_in=["notified"])
+
+
+# ─── decision_source provenance ─────────────────────────────────────────
+
+
+from app.models import AuditEvent  # noqa: E402
+
+
+def _last_event(s, claim_id, event_type):
+    return s.exec(
+        select(AuditEvent).where(AuditEvent.entity_type == "claim")
+        .where(AuditEvent.entity_id == claim_id)
+        .where(AuditEvent.event_type == event_type)
+    ).all()[-1]
+
+
+def test_reserve_defaults_to_broker_relay():
+    s = _session()
+    claim = _filed_claim(s)
+    s.commit()
+    record_carrier_reserve(
+        s, claim.id, new_reserve=Decimal("1000"), change_reason="init",
+        received_from="adjuster", received_at=datetime(2026, 6, 1), recorded_by="u-brk",
+    )
+    s.commit()
+    assert _last_event(s, claim.id, "claim.reserve_recorded").event_metadata["decision_source"] == "broker_relay"
+
+
+def test_reserve_can_be_carrier_desk():
+    s = _session()
+    claim = _filed_claim(s)
+    s.commit()
+    record_carrier_reserve(
+        s, claim.id, new_reserve=Decimal("1000"), change_reason="init",
+        received_from="adjuster", received_at=datetime(2026, 6, 1),
+        recorded_by="u-carrier", decision_source="carrier_desk",
+    )
+    s.commit()
+    assert _last_event(s, claim.id, "claim.reserve_recorded").event_metadata["decision_source"] == "carrier_desk"

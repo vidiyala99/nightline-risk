@@ -210,6 +210,7 @@ def record_carrier_reserve(
     received_from: str,
     received_at: datetime,
     recorded_by: str,
+    decision_source: str = "broker_relay",
 ) -> Claim:
     """Broker records a reserve set/change communicated BY the carrier.
     Brokers don't set reserves; carriers do. Inserts a ReserveChange row
@@ -270,6 +271,7 @@ def record_carrier_reserve(
             "change_reason": change_reason,
             "received_from": received_from,
             "snapshot_hash": claim.snapshot_hash,
+            "decision_source": decision_source,
         },
     )
     return claim
@@ -290,6 +292,7 @@ def record_payment(
     paid_on: date,
     description: str,
     recorded_by: str,
+    decision_source: str = "broker_relay",
 ) -> ClaimPayment:
     """Insert a ClaimPayment row and update the matching running total.
     Recoveries are stored as POSITIVE amounts on Claim.recoveries_to_date
@@ -355,6 +358,7 @@ def record_payment(
             "amount": str(amount),
             "paid_on": paid_on.isoformat(),
             "snapshot_hash": claim.snapshot_hash,
+            "decision_source": decision_source,
         },
     )
     return payment
@@ -377,6 +381,7 @@ def close_claim(
     disposition: str,
     final_indemnity: Optional[Decimal] = None,
     closed_by: str,
+    decision_source: str = "broker_relay",
 ) -> Claim:
     """disposition: 'paid' | 'denied' | 'dropped'. Computes total_incurred
     = indemnity_paid_to_date + expense_paid_to_date - recoveries_to_date.
@@ -417,6 +422,7 @@ def close_claim(
             "disposition": disposition,
             "final_indemnity": str(final_indemnity) if final_indemnity is not None else None,
             "total_incurred": str(total_incurred),
+            "decision_source": decision_source,
         },
     )
 
