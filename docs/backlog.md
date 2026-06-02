@@ -3,12 +3,36 @@
 Working checklist for the subscription-free work (no API keys, no S3/email/SMS
 accounts yet). Gated/integration items live in [`go-live-readiness.md`](./go-live-readiness.md).
 
-Last updated: 2026-06-02.
+Last updated: 2026-06-02 (evening).
 
 ---
 
 ## Recently shipped (context for picking back up)
 
+- [x] **Session 2026-06-02 (evening)** — adjuster-desk polish + a real lifecycle bug, all on the
+  carrier persona (`underwriter@nightline.risk`). Three commits:
+  - **Scroll-jump fix** (`e9114e7`): `.lc-shell` used `overflow-x: hidden`, which per CSS spec forces
+    `overflow-y` to `auto` → a nested scroll container that trapped wheel events and snapped long pages
+    to the top. Changed to `overflow-x: clip` (no scroll container). Diagnosed by driving the live site
+    with Playwright (wheel pinned at 0; keyboard/programmatic worked). Fixes **every** `.lc-shell` page.
+  - **Coverage gate** (`607ae54`): reserve / payment / close on the adjuster detail are now **locked
+    until the coverage determination is recorded** (heading already said "required before adjudication").
+    Web = `inert` + `pointer-events:none` + dimmed + lock banner; mobile = dimmed non-interactive
+    sections + banner. ui-ux-pro-max `progressive-disclosure` + `disabled-states`.
+  - **Lifecycle fix** (`904114c`, the important one): the gate forces *coverage-first*, but the claim
+    auto-transitions only advanced the *reserve-first* path — so after deciding coverage a claim was
+    stranded in `under_investigation` and **`closed_paid` was unreachable**. Fixed `record_carrier_reserve`
+    (`under_investigation → reserved`) + `record_payment` (indemnity `under_investigation → settling`);
+    +3 regression tests. **Full suite 1133 green.** Also added **`scripts/seed_adjuster_demo.py`**:
+    8 idempotent `ADJ-DEMO-*` claims across Mirage/HoY/Market/Elsewhere spanning every state (notified ×2,
+    covered/under_investigation, reserved, settling w/ payment+reserve history, reservation-of-rights,
+    closed_paid, closed_denied) — drives the real services so audit/history/hashes are genuine.
+  - [ ] **PICK UP HERE — seed prod** (ops, not code): the seed is committed but only run against the
+    *local* DB. To populate the live site, from `backend/` in a terminal:
+    `$env:DATABASE_URL="<Neon DATABASE_PUBLIC_URL>"; python -m scripts.seed_adjuster_demo` (use the
+    **public** Neon URL, not `railway run`). Open question left for the user: optionally wire this seed
+    into the backend startup (idempotent, failure-isolated) so it auto-populates on deploy — tradeoff is
+    +4 demo policies/submissions showing on the broker's placement screens.
 - [x] **Session 2026-06-02** (newest first): carrier decision-provenance hardening (`46005ca`) —
   `decision_source` (broker_relay default / carrier_desk) stamped on carrier-quote responses through
   the shared `record_carrier_response`, so the audit trail distinguishes a carrier delegated-authority
