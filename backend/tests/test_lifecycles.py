@@ -73,7 +73,7 @@ def test_submission_terminal_states_match_empty_transition_sets():
 
 def test_quote_requested_can_progress_or_be_declined():
     assert QUOTE_TRANSITIONS["requested"] == {
-        "pending", "quoted", "declined", "expired", "withdrawn"
+        "pending", "info_requested", "quoted", "declined", "expired", "withdrawn"
     }
 
 
