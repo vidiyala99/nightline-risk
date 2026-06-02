@@ -670,7 +670,23 @@ export default function AdjusterClaimDetailPage() {
   }
 
   const claim = data.claim;
-  const venueName = data.venue_id ?? "—";
+  const venueName: string = data.venue_name ?? data.venue_id ?? "—";
+  const incidentReport: {
+    packet_id?: string;
+    severity?: string | null;
+    confidence?: number | null;
+    explanation?: string | null;
+    memo_summary?: string | null;
+    recommendation?: {
+      should_file: boolean;
+      probability: number;
+      expected_payout: { low_usd: number; median_usd: number; high_usd: number };
+      net_expected_value_usd: number;
+      confidence: number;
+    } | null;
+    citation_count?: number;
+    corroboration_status?: string | null;
+  } | null = data.incident_report ?? null;
   const dateOfLoss = data.date_of_loss
     ? new Date(data.date_of_loss).toLocaleDateString(undefined, {
         year: "numeric",
@@ -738,11 +754,22 @@ export default function AdjusterClaimDetailPage() {
             <span className="lc-eyebrow__sep" />
             CLAIM ADJUDICATION
           </span>
-          <h1 className="lc-display" style={{ wordBreak: "break-all" }}>
-            {claim.id}
+          <h1 className="lc-display">
+            {venueName}
           </h1>
+          <p
+            style={{
+              fontFamily: "var(--font-mono, monospace)",
+              fontSize: "var(--text-xs)",
+              color: "var(--text-muted)",
+              margin: "2px 0 0",
+              letterSpacing: "0.03em",
+            }}
+          >
+            {claim.id}
+          </p>
           <p className="lc-sub">
-            {toTitleCase(claim.coverage_line)} · Venue {venueName} · {dateOfLoss}
+            {toTitleCase(claim.coverage_line)} · {venueName} · {dateOfLoss}
           </p>
         </div>
 
@@ -787,7 +814,301 @@ export default function AdjusterClaimDetailPage() {
       </section>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 3. Hero action: Decide coverage (only when pending)                */}
+      {/* 3. AI Incident Report — decision support, placed ABOVE coverage    */}
+      {/* ------------------------------------------------------------------ */}
+      {incidentReport ? (() => {
+        const sev = (incidentReport.severity ?? "").toLowerCase();
+        const sevColor =
+          sev === "critical" || sev === "high"
+            ? "var(--state-error)"
+            : sev === "medium"
+            ? "var(--state-warning)"
+            : sev === "low"
+            ? "var(--brand-primary)"
+            : "var(--text-muted)";
+        const confPct = incidentReport.confidence != null
+          ? Math.round(incidentReport.confidence * 100)
+          : null;
+        const rec = incidentReport.recommendation ?? null;
+        const netEvRaw = rec?.net_expected_value_usd ?? 0;
+        const netEvStr =
+          rec != null
+            ? (netEvRaw >= 0 ? "+" : "−") +
+              "$" +
+              Math.abs(netEvRaw).toLocaleString()
+            : null;
+        return (
+          <div
+            className="lc-card"
+            style={{
+              marginBottom: "var(--space-xl)",
+              borderLeft: `3px solid ${sev ? sevColor : "var(--border-subtle)"}`,
+              position: "relative",
+            }}
+          >
+            <div className="lc-card__inner">
+              {/* Header row */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "var(--space-sm)",
+                  borderBottom: "1px solid var(--border-subtle)",
+                  paddingBottom: "var(--space-sm)",
+                  marginBottom: "var(--space-md)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
+                  <span
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Incident report
+                  </span>
+                  {sev && (
+                    <span
+                      style={{
+                        fontSize: "var(--text-xs)",
+                        fontWeight: 600,
+                        border: `1px solid ${sevColor}`,
+                        color: sevColor,
+                        background: `color-mix(in srgb, ${sevColor} 10%, transparent)`,
+                        borderRadius: "var(--radius-sm)",
+                        padding: "2px 8px",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {sev}
+                    </span>
+                  )}
+                </div>
+                {confPct != null && (
+                  <span
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      fontFamily: "var(--font-mono, monospace)",
+                      color: sevColor || "var(--text-secondary)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    {confPct}% confidence
+                  </span>
+                )}
+              </div>
+
+              {/* Memo summary */}
+              {incidentReport.memo_summary && (
+                <p
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    color: "var(--text-secondary)",
+                    lineHeight: 1.55,
+                    margin: "0 0 var(--space-md) 0",
+                  }}
+                >
+                  {incidentReport.memo_summary}
+                </p>
+              )}
+
+              {/* Expected payout numbers — only when recommendation present */}
+              {rec && (
+                <div
+                  style={{
+                    background: "var(--bg-elevated, var(--bg-surface))",
+                    padding: "var(--space-md)",
+                    borderRadius: "var(--radius-sm)",
+                    marginBottom: "var(--space-md)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--space-sm)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "var(--text-xs)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      Expected payout
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono, monospace)",
+                        fontVariantNumeric: "tabular-nums",
+                        fontSize: "var(--text-sm)",
+                      }}
+                    >
+                      ${rec.expected_payout.low_usd.toLocaleString()}
+                      <span style={{ color: "var(--text-secondary)" }}> – </span>
+                      ${rec.expected_payout.high_usd.toLocaleString()}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "var(--text-xs)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      Median
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono, monospace)",
+                        fontVariantNumeric: "tabular-nums",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 700,
+                        color: "var(--accent-ink)",
+                      }}
+                    >
+                      ${rec.expected_payout.median_usd.toLocaleString()}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      borderTop: "1px solid var(--border-subtle)",
+                      paddingTop: "var(--space-sm)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "var(--text-xs)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      Net EV
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono, monospace)",
+                        fontVariantNumeric: "tabular-nums",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 700,
+                        color:
+                          netEvRaw >= 0
+                            ? "var(--brand-primary)"
+                            : "var(--state-error)",
+                      }}
+                    >
+                      {netEvStr}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {rec && (
+                <p
+                  style={{
+                    fontSize: "var(--text-xs)",
+                    color: "var(--text-secondary)",
+                    margin: "0 0 var(--space-md) 0",
+                    fontFamily: "var(--font-mono, monospace)",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {Math.round(rec.probability * 100)}% paid-out probability
+                </p>
+              )}
+
+              {/* Footer: citation count + corroboration */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-sm)",
+                  flexWrap: "wrap",
+                  borderTop: "1px solid var(--border-subtle)",
+                  paddingTop: "var(--space-sm)",
+                }}
+              >
+                {(incidentReport.citation_count ?? 0) > 0 && (
+                  <span
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      color: "var(--text-muted)",
+                      fontFamily: "var(--font-mono, monospace)",
+                    }}
+                  >
+                    {incidentReport.citation_count} citation
+                    {incidentReport.citation_count !== 1 ? "s" : ""}
+                  </span>
+                )}
+                {incidentReport.corroboration_status && (
+                  <span
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      fontWeight: 600,
+                      border: `1px solid ${
+                        incidentReport.corroboration_status === "CONSISTENT"
+                          ? "var(--brand-primary)"
+                          : incidentReport.corroboration_status === "CONTRADICTED"
+                          ? "var(--state-error)"
+                          : "var(--state-warning)"
+                      }`,
+                      color:
+                        incidentReport.corroboration_status === "CONSISTENT"
+                          ? "var(--brand-primary)"
+                          : incidentReport.corroboration_status === "CONTRADICTED"
+                          ? "var(--state-error)"
+                          : "var(--state-warning)",
+                      borderRadius: "var(--radius-sm)",
+                      padding: "1px 6px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {incidentReport.corroboration_status}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })() : (
+        <p
+          style={{
+            fontSize: "var(--text-sm)",
+            color: "var(--text-muted)",
+            fontStyle: "italic",
+            marginBottom: "var(--space-xl)",
+          }}
+        >
+          No AI incident report linked to this claim.
+        </p>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* 4. Hero action: Decide coverage (only when pending)                */}
       {/* ------------------------------------------------------------------ */}
       {!hasCoverageDecision && (
         <div className="lc-card" style={{ marginBottom: "var(--space-xl)" }}>
@@ -987,7 +1308,7 @@ export default function AdjusterClaimDetailPage() {
       )}
 
       {/* ------------------------------------------------------------------ */}
-      {/* 4. Adjudication action cards                                       */}
+      {/* 5. Adjudication action cards                                       */}
       {/* ------------------------------------------------------------------ */}
       {!isClosed && (
         <div
@@ -1393,7 +1714,7 @@ export default function AdjusterClaimDetailPage() {
       )}
 
       {/* ------------------------------------------------------------------ */}
-      {/* 5. History accordions — secondary                                  */}
+      {/* 6. History accordions — secondary                                  */}
       {/* ------------------------------------------------------------------ */}
       <div className="flex flex-col gap-md">
         {/* Payment ledger */}

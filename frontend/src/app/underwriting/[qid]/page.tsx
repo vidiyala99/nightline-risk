@@ -413,6 +413,31 @@ export default function UnderwriteDecisionPage() {
   return (
     <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
       {/* ------------------------------------------------------------------ */}
+      {/* 0. Back link                                                        */}
+      {/* ------------------------------------------------------------------ */}
+      <div style={{ paddingTop: "var(--space-lg)", marginBottom: "var(--space-sm)" }}>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => router.push("/underwriting")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--space-xs)",
+            fontSize: "var(--text-sm)",
+            color: "var(--text-secondary)",
+            background: "none",
+            border: "none",
+            padding: 0,
+            minHeight: 44,
+          }}
+        >
+          <ArrowLeft size={14} aria-hidden />
+          Desk
+        </button>
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
       {/* 1. Header */}
       {/* ------------------------------------------------------------------ */}
       <section className="lc-hero" style={{ marginBottom: "var(--space-lg)" }}>

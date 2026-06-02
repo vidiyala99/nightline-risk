@@ -170,7 +170,7 @@ export function AppShell({ children }: AppShellProps) {
   // Both personas get an explicit "back to home" on every screen except home
   // itself. Carriers home to /underwriting; operators and brokers to /dashboard.
   const homeHref = role === "carrier" ? "/underwriting" : "/dashboard";
-  const showBackHome = !!pathname && pathname !== homeHref;
+  const showBackHome = !!pathname && pathname !== homeHref && role !== "carrier";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
