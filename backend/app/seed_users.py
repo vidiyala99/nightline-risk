@@ -6,8 +6,8 @@ Single source of truth for demo-account seeding, called from BOTH:
 
 Self-healing + idempotent. For each demo account:
   - missing id  → insert with the demo password
-  - existing id → sync email and role, and (re)set the password to the demo
-    password when it doesn't already verify.
+  - existing id → sync email, name, and role, and (re)set the password to the
+    demo password when it doesn't already verify.
 
 That last point matters: a demo id can pre-date the persona (a real
 registration may have claimed `user_003` before `carrier` existed), leaving a
@@ -46,6 +46,9 @@ def seed_demo_users(session: Session) -> dict:
         if existing.email != demo["email"]:
             existing.email = demo["email"]
             fixes.append("email")
+        if existing.name != demo["name"]:
+            existing.name = demo["name"]
+            fixes.append("name")
         if existing.role != demo["role"]:
             existing.role = demo["role"]
             fixes.append("role")
