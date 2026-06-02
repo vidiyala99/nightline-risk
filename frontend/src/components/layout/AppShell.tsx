@@ -70,7 +70,10 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
 
   const groups: Group[] = (isCarrierNav
     ? [
-        { label: "", items: [{ href: "/underwriting", label: "Underwriting Desk", icon: Inbox }] },
+        { label: "", items: [
+          { href: "/underwriting", label: "Underwriting Desk", icon: Inbox },
+          { href: "/adjusting", label: "Claims", icon: FileSpreadsheet },
+        ] },
       ]
     : isBrokerNav
     ? [
