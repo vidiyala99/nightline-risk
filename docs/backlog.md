@@ -256,8 +256,9 @@ relay/decide split with an in-app owner.
 **Phase 3 — own-paper capstone:** policy issuance on Nightline paper, declarations, portfolio/
 solvency view. The "we are the carrier" finish.
 
-**Open decision:** role name — currently `carrier`; rename to `underwriter` if the persona should
-read that way. Cheapest to flip *before* the UI hardcodes it.
+**Decided 2026-06-02:** role name stays `carrier` (not `underwriter`) — matches the
+broker→MGA→carrier thesis language and the Phase 3 own-paper framing; the persona reads as the
+institution, not just the seat. Phase 1 UI may hardcode `carrier` freely.
 
 ---
 
