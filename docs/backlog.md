@@ -285,6 +285,45 @@ institution, not just the seat. Phase 1 UI may hardcode `carrier` freely.
   quote — the load-bearing distinction for Phase 2 bind / MGA authority. Shared lifecycle core
   unforked; +2 TDD tests, full suite 1085 green.
 
+**Gap review → carrier roadmap (2026-06-02).** A gap analysis (2026-grounded: E&S rate-softening +
+selective terms; social-inflation/nuclear-verdict pressure on hospitality A&B/liquor — Nightline's
+book; AI submission-triage as the 2026 frontier) found Phase 1 models underwriting as
+"quote-or-decline a pre-priced submission." The real job (full risk picture → terms & subjectivities
+→ counter/refer/request-info → renewals → portfolio) is mostly *missing*. Sequenced as follow-on
+specs (each its own spec → plan → build), **AI memo pulled earlier per 2026-06-02 decision**:
+
+- [ ] **Phase 1.5 — Carrier desk v2 ★** — spec approved
+  ([`2026-06-02-carrier-desk-v2-design.md`](specs/2026-06-02-carrier-desk-v2-design.md)),
+  implementation pending (writing-plans next). Decision-dossier endpoint (risk factors + loss run +
+  incidents + compliance + requested-vs-suggested), **full structured terms** in `coverage_terms`
+  (per-line limits/deductibles, typed subjectivities, exclusions, endorsements, documentation-only
+  schedule mods, valid-until), carrier⇄broker **request-info loop** (`info_requested` status), the
+  "B" decision-hero layout (web+mobile), scoped design pass (richer queue rows, back-home fix,
+  queue-derived desk KPI strip).
+- [ ] **AI underwriting memo** (pulled earlier — the differentiator) — gated `Worker` + `evals/scorers`
+  entry that summarizes the risk and *recommends terms* on the v2 decision dossier; Track-8-shaped
+  (suggestion→human-confirm→audit, calibration-gated). Builds directly on the Phase-1.5 dossier surface.
+- [ ] **C5 — carrier portfolio / book** — written/earned premium *underwritten*, loss ratio vs
+  target, quote-to-bind (hit) ratio, mix by line/venue-type/tier, accumulation. Brings the real
+  loss-ratio/hit-ratio KPIs + the fuller carrier nav & mobile tabs that Phase 1.5 left lean.
+- [ ] **C4 — renewal underwriting** — renewals due → re-rate on loss experience
+  (`loss_adjustment_from_loss_ratio` exists) → renew / non-renew / re-terms.
+- (then) **Phase 2** carrier claims/adjuster authority → **Phase 3** own-paper capstone (below).
+
+**Deferred depth — smaller specs, lower priority (tracked, not committed):**
+- [ ] C6 appetite / eligibility / clearance (graded appetite-match is already the open 7a item —
+  turn `check_appetite`'s boolean into a 0–100 match + reasons on the carrier picker).
+- [ ] C7 decline taxonomy (structured reason codes) + quote/declination history (win-loss log).
+- [ ] C8 underwriting authority limits + refer-to-senior workflow (the delegated-authority engine the
+  `decision_source` provenance was built to support).
+
+**Conditional — needs accounts / v1-scope expansion:** C11 surplus-lines compliance filings
+(diligent-search/affidavit/SL-tax — SL tax is already *computed* in pricing), C12 loss-control /
+inspections, C13 reinsurance / capacity / bordereaux (the 2026 MGA-reporting pressure).
+
+**Non-goal (not a deferral):** refactoring the broker `/underwriter` page — it's fine as-is; touching
+it would be unrelated scope creep.
+
 ### 10. Policy-doc vector RAG — recall layer of a hybrid (added 2026-06-02)
 
 Embedding-backed semantic retrieval over policy-document clause chunks (the existing `SourceRecord`
@@ -322,15 +361,17 @@ See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
 
 ## Recommended order
 
-Updated 2026-06-02 (carrier Phase 1 UI shipped). Track 1 (evals, the headline) and track 2
-(correctness) are done; spine + lifecycle edges (7a/7b) and the **whole carrier Phase 1** (backend +
-web/mobile desk UI) are shipped. Live focus:
+Updated 2026-06-02 (carrier Phase 1 UI shipped; carrier desk v2 spec approved). Track 1 (evals, the
+headline) and track 2 (correctness) are done; spine + lifecycle edges (7a/7b) and the **whole carrier
+Phase 1** (backend + web/mobile desk UI) are shipped. Live focus:
 
-1. **Policy-doc vector RAG** (track 10) — design approved; next is the implementation plan → TDD build.
+1. **Carrier desk v2** (track 9 Phase 1.5 ★) — spec approved
+   ([`2026-06-02-carrier-desk-v2-design.md`](specs/2026-06-02-carrier-desk-v2-design.md)); next is the
+   implementation plan → TDD build. Then the **carrier AI underwriting memo** (pulled earlier — the
+   differentiator), then C5 portfolio, then C4 renewals (see Track 9 roadmap).
+2. **Policy-doc vector RAG** (track 10) — design approved; implementation plan → TDD build.
    Strong pitch artifact (vector pipeline + retrieval eval delta).
-2. **Two-way open questions + agent assistants** (track 8) — the AI-native frontier on the broker side.
-3. **Carrier Phase 2** (track 9) — carrier claims/adjuster authority (sets reserves, approves payments),
-   plus the desk enrichment hook (premium_breakdown is already on the queue) and an appetite match-score.
+3. **Two-way open questions + agent assistants** (track 8) — the AI-native frontier on the broker side.
 
 Good filler (independent, no subscription): track 7c polish, the cross-cutting Neon JSON-string
 correctness sweep, track 3 (deterministic memo quality), track 4 (test-coverage breadth). The Slack
