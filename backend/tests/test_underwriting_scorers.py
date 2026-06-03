@@ -14,10 +14,16 @@ from app.evals.underwriting_scorers import run_underwriting_evals, _faithful
 
 def test_deterministic_stack_scores_high():
     report = run_underwriting_evals()
-    # The deterministic recommender should match the independently-labeled answer
-    # key strongly. We assert a meaningful floor (not 100% — labels are independent).
-    assert report["posture_accuracy"] >= 0.75
-    assert report["rate_adequacy_accuracy"] >= 0.6
+    # The deterministic recommender matches the independently-labeled answer key
+    # strongly but NOT perfectly: the boundary scenarios surface two principled
+    # disagreements (a 0.75 incurred/indicated ratio the flat 0.8 debit cutoff
+    # calls "adequate", and a single $30k loss the $50k adverse-severity bar
+    # treats as a clean quote). Both rules are defensible, so we accept the
+    # misses and assert the REAL achieved floors (11/12 each) rather than fudge
+    # labels to force 1.0. A sub-1.0 score on honest boundary cases is more
+    # credible than a 1.0 on softball ones.
+    assert report["posture_accuracy"] >= 11 / 12
+    assert report["rate_adequacy_accuracy"] >= 11 / 12
     assert report["faithfulness"] == 1.0   # deterministic is faithful by construction
     assert set(report) >= {"posture_accuracy", "rate_adequacy_accuracy", "faithfulness"}
 

@@ -73,4 +73,55 @@ UNDERWRITING_SCENARIOS = [
         "expected_rate_adequacy": "adequate",
         "why": "Frequency signal (2 claims) at an elevated tier — conditions warranted, rate ok.",
     },
+
+    # ── Boundary / stress scenarios (probe the decision thresholds) ──────────
+    # Labels below are assigned from underwriting first principles, NOT from the
+    # recommender's rules, so a disagreement is a real signal about the rule.
+    {
+        "id": "rate-ratio-0p75-just-under-debit",
+        "inputs": {"tier": "B", "total_score": 70, "coverage_lines": ["gl"],
+                   "loss_by_line": {"gl": {"claim_count": 1, "incurred": "15000"}},
+                   "indicated_total": "20000", "in_appetite": True},
+        "expected_posture": "quote",
+        "expected_rate_adequacy": "lean_debit",
+        "why": ("Boundary: incurred/indicated = 0.75, just under the 0.8 debit "
+                "cutoff. A 75% prior-loss-to-premium ratio is genuinely thin — "
+                "sound underwriting leans debit here. (Recommender's flat 0.8 "
+                "cutoff calls it 'adequate' → documented miss; see commit note.)"),
+    },
+    {
+        "id": "rate-ratio-0p85-just-over-debit",
+        "inputs": {"tier": "B", "total_score": 70, "coverage_lines": ["gl"],
+                   "loss_by_line": {"gl": {"claim_count": 1, "incurred": "17000"}},
+                   "indicated_total": "20000", "in_appetite": True},
+        "expected_posture": "quote",
+        "expected_rate_adequacy": "lean_debit",
+        "why": ("Boundary: incurred/indicated = 0.85, just over the 0.8 cutoff. "
+                "Clearly thin → lean debit. Single non-frequency loss under $50k "
+                "is not adverse, so a clean quote (no conditions) is right."),
+    },
+    {
+        "id": "tier-b-single-midsize-loss-debatable",
+        "inputs": {"tier": "B", "total_score": 68, "coverage_lines": ["gl"],
+                   "loss_by_line": {"gl": {"claim_count": 1, "incurred": "30000"}},
+                   "indicated_total": "40000", "in_appetite": True},
+        "expected_posture": "quote_with_conditions",
+        "expected_rate_adequacy": "adequate",
+        "why": ("Debatable posture: one $30k GL loss at tier B. First principles "
+                "say a $30k nightlife loss is material enough to attach a "
+                "loss-control/security subjectivity even at count 1. Recommender's "
+                "$50k adverse-severity bar treats it as a clean quote → documented "
+                "miss; the $50k bar is defensible so the rule is left as-is."),
+    },
+    {
+        "id": "tier-d-clean-in-appetite",
+        "inputs": {"tier": "D", "total_score": 30, "coverage_lines": ["gl"],
+                   "loss_by_line": {}, "indicated_total": "16000", "in_appetite": True},
+        "expected_posture": "quote_with_conditions",
+        "expected_rate_adequacy": "adequate",
+        "why": ("Worst-tier but CLEAN and in appetite: blanket logic must NOT "
+                "auto-decline — a clean tier-D risk is writable with a loss-control "
+                "inspection condition. Confirms decline is gated on D *and* adverse, "
+                "not tier alone."),
+    },
 ]
