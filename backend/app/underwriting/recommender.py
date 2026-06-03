@@ -66,20 +66,70 @@ def _posture(inputs: RecommenderInputs, adverse: bool) -> str:
     return "quote"
 
 
+def _rate_adequacy(total_incurred: Decimal, indicated_total: Decimal) -> tuple[str, str]:
+    if indicated_total <= 0:
+        return "adequate", "No indicated premium to assess."
+    if total_incurred == 0:
+        return "adequate", (
+            f"No prior loss history; indicated premium ${indicated_total:,.0f} stands as adequate."
+        )
+    ratio = total_incurred / indicated_total
+    if ratio >= Decimal("0.8"):
+        return "lean_debit", (
+            f"Prior incurred (${total_incurred:,.0f}) is high relative to the indicated "
+            f"premium (${indicated_total:,.0f}); the rate looks thin — lean debit."
+        )
+    if ratio <= Decimal("0.3"):
+        return "lean_credit", (
+            f"Prior incurred (${total_incurred:,.0f}) is low relative to the indicated "
+            f"premium (${indicated_total:,.0f}); room to credit a clean account."
+        )
+    return "adequate", (
+        f"Indicated premium (${indicated_total:,.0f}) is broadly adequate for the "
+        f"loss picture (${total_incurred:,.0f} incurred)."
+    )
+
+
 def recommend(inputs: RecommenderInputs) -> UnderwritingRecommendation:
     adverse = _is_adverse(inputs.loss_by_line)
     posture = _posture(inputs, adverse)
     subjectivities = _subjectivities(inputs, adverse) if posture == "quote_with_conditions" else []
-    # rate-adequacy + summary/rationale filled in Task 3
+    total_incurred = _total_incurred(inputs.loss_by_line)
+    rate_adequacy, rate_note = _rate_adequacy(total_incurred, inputs.indicated_total)
+
+    claim_count = sum(int(v.get("claim_count", 0)) for v in inputs.loss_by_line.values())
+    summary = (
+        f"Tier {inputs.tier} risk (score {inputs.total_score}) across "
+        f"{', '.join(inputs.coverage_lines) or 'no lines'}. "
+        f"{claim_count} prior loss(es), ${total_incurred:,.0f} incurred. "
+        f"Indicated premium ${inputs.indicated_total:,.0f}."
+    )
+    posture_phrase = {
+        "quote": "Clean enough to quote on standard terms.",
+        "quote_with_conditions": "Writable, but attach the subjectivities below.",
+        "decline": "Recommend declining — exposure outweighs the risk appetite at this tier and loss level.",
+    }[posture]
+    rationale = f"{posture_phrase} {rate_note}"
+
+    grounding = {
+        "tier": inputs.tier,
+        "total_score": inputs.total_score,
+        "coverage_lines": list(inputs.coverage_lines),
+        "claim_count": claim_count,
+        "total_incurred": str(total_incurred),
+        "indicated_total": str(inputs.indicated_total),
+        "in_appetite": inputs.in_appetite,
+    }
+
     return UnderwritingRecommendation(
         posture=posture,
-        summary="",
-        rationale="",
+        summary=summary,
+        rationale=rationale,
         subjectivities=subjectivities,
-        rate_adequacy="adequate",
-        rate_adequacy_note="",
+        rate_adequacy=rate_adequacy,
+        rate_adequacy_note=rate_note,
         confidence=0.75,
-        grounding={},
+        grounding=grounding,
         provider=PROVIDER_NAME,
         mode="deterministic",
     )

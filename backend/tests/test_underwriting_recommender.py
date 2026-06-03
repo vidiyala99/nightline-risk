@@ -61,3 +61,39 @@ def test_worst_tier_with_adverse_loss_declines():
         loss_by_line={"gl": {"claim_count": 3, "incurred": Decimal("120000")}},
     ))
     assert r.posture == "decline"
+
+
+def test_rate_adequacy_lean_debit_when_losses_heavy_vs_premium():
+    r = recommend(_inputs(
+        indicated_total=Decimal("10000"),
+        loss_by_line={"gl": {"claim_count": 1, "incurred": Decimal("9000")}},
+    ))
+    assert r.rate_adequacy == "lean_debit"
+
+
+def test_rate_adequacy_lean_credit_when_premium_generous():
+    r = recommend(_inputs(
+        indicated_total=Decimal("10000"),
+        loss_by_line={"gl": {"claim_count": 1, "incurred": Decimal("1000")}},
+    ))
+    assert r.rate_adequacy == "lean_credit"
+
+
+def test_rate_adequacy_adequate_with_no_losses():
+    r = recommend(_inputs(loss_by_line={}, indicated_total=Decimal("10000")))
+    assert r.rate_adequacy == "adequate"
+
+
+def test_summary_and_grounding_reference_real_numbers():
+    r = recommend(_inputs(
+        tier="C", total_score=68,
+        loss_by_line={"gl": {"claim_count": 2, "incurred": Decimal("60000")}},
+        indicated_total=Decimal("18500"),
+    ))
+    assert "C" in r.summary
+    assert "60000" in r.summary or "60,000" in r.summary
+    # faithfulness: every number in grounding, prose references only grounded values
+    assert r.grounding["tier"] == "C"
+    assert r.grounding["total_score"] == 68
+    assert r.grounding["indicated_total"] == "18500"
+    assert r.grounding["total_incurred"] == "60000"
