@@ -9,6 +9,10 @@ Last updated: 2026-06-02 (evening).
 
 ## Recently shipped (context for picking back up)
 
+- [x] **Session 2026-06-03** — three things:
+  - **★ Carrier AI underwriting memo (Track 9 differentiator) — SHIPPED** (spec `2026-06-03-carrier-ai-underwriting-memo-design.md`, plan `…-carrier-ai-underwriting-memo.md`). Advisory `UnderwritingRecommendation` (posture quote/conditions/decline + subjectivities + rate-adequacy + grounded rationale; engine still owns the premium) on the v2 quote dossier. **Deterministic-first, pure recommender** (`app/underwriting/recommender.py`) over a typed input bundle → eval scenarios feed it directly (no DB). **3 eval scorers** (posture / faithfulness / rate-adequacy) over **12 labeled scenarios incl. boundary/stress cases**: **posture 0.917, rate-adequacy 0.917, faithfulness 1.0** — the two misses are *documented, defensible* threshold disagreements (a 0.75 loss-ratio labeled lean-debit vs rule "adequate"; a single $30k loss labeled conditions vs "quote"), NOT fudged to 100%. Audit snapshots recommendation-vs-decision (`followed`). Web + mobile advisory card. 1151 tests green; web card verified live on the dossier. Reviewed (spec+quality) — fixes applied (dead param, fixture tier↔score realism, faithfulness regex now catches single-digit/tier hallucinations). **Fast-follows:** wire the 3 scorers into `runner.py`/`baseline.py`/`--compare-baseline` + `/evals` scoreboard (number not drift-gated yet); wire real `check_appetite` (recommender handles `in_appetite=None` in v1); LLM provider upgrade behind the same seam (faithfulness scorer guards it).
+  - **Landing page — SHIPPED** (`/` was `redirect→dashboard→login`; recruiters/founders hit a bare password box). New standalone Nightline landing at `/` (thesis pillars + the loop + eval-gated diff + inline one-click demo personas); signed-in users still route to their role home. No fabricated social proof. Verified live; carrier demo one-click → `/underwriting`.
+  - **Logout/auth-bounce → landing, not `/login`** — now that `/` is public, all `router.push("/login")` guards + the 3 `handleSignOut`s go to `/` (kept: landing Sign-in link, reset-password redirect). Mobile app unaffected.
 - [x] **Session 2026-06-02 (evening)** — adjuster-desk polish + a real lifecycle bug, all on the
   carrier persona (`underwriter@nightline.risk`). Three commits:
   - **Scroll-jump fix** (`e9114e7`): `.lc-shell` used `overflow-x: hidden`, which per CSS spec forces
@@ -333,9 +337,10 @@ specs (each its own spec → plan → build), **AI memo pulled earlier per 2026-
   the lean nav to Desk · Claims), an **advisory reserve/severity hint** (deterministic, from loss-run
   + incident severity), and **operator visibility** of the coverage outcome + rationale (web tracker;
   mobile via the shared claim detail). Settlement-authority/escalation deferred.
-- [ ] **AI underwriting memo** (the differentiator) — gated `Worker` + `evals/scorers` entry that
-  summarizes the risk and *recommends terms* on the v2 decision dossier; Track-8-shaped
-  (suggestion→human-confirm→audit, calibration-gated). Builds on the Phase-1.5 dossier surface.
+- [x] **AI underwriting memo** (the differentiator) — **SHIPPED 2026-06-03** (see Recently shipped).
+  Advisory `UnderwritingRecommendation` on the v2 dossier; deterministic recommender + 3 eval
+  scorers (posture/faithfulness/rate-adequacy, 12 scenarios, 0.917/0.917/1.0); web+mobile card;
+  audit snapshot. Fast-follows: CI-baseline wiring + `/evals` scoreboard, real appetite, LLM upgrade.
 - [ ] **C5 — carrier portfolio / book** — written/earned premium *underwritten*, loss ratio vs
   target, quote-to-bind (hit) ratio, mix by line/venue-type/tier, accumulation. The **management
   layer** above claims (consumes the carrier-owned incurred losses Phase 2 makes real); fills the nav.
