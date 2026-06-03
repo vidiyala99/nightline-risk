@@ -285,6 +285,19 @@ def decision_dossier(session: Session, quote_id: str) -> dict | None:
     sub = session.get(Submission, q.submission_id)
     venue_id = sub.venue_id if sub else None
     venue_name, _risk = _venue_read(session, venue_id)
+    risk = _full_risk(session, venue_id)
+    loss_run = _loss_run_section(session, venue_id)
+    suggested_premium_breakdown = _suggested_breakdown(session, sub, q.carrier_id) if sub else None
+
+    from app.services.underwriting_memo import recommendation_from_dossier_parts
+    _rec = recommendation_from_dossier_parts(
+        risk=risk,
+        loss_run=loss_run,
+        coverage_lines=(sub.coverage_lines if sub else []),
+        suggested_premium_breakdown=suggested_premium_breakdown,
+        in_appetite=None,  # appetite wiring is a fast-follow; recommender handles None
+    )
+
     return {
         "quote": {
             "id": q.id, "status": q.status,
@@ -300,11 +313,12 @@ def decision_dossier(session: Session, quote_id: str) -> dict | None:
             "status": sub.status if sub else None,
         },
         "venue": {"id": venue_id, "name": venue_name, "venue_type": _venue_type(venue_id)},
-        "risk": _full_risk(session, venue_id),
-        "loss_run": _loss_run_section(session, venue_id),
+        "risk": risk,
+        "loss_run": loss_run,
         "incidents": _incidents_section(session, venue_id),
         "compliance": _compliance_section(session, venue_id),
-        "suggested_premium_breakdown": _suggested_breakdown(session, sub, q.carrier_id) if sub else None,
+        "suggested_premium_breakdown": suggested_premium_breakdown,
+        "underwriting_recommendation": _rec.model_dump() if _rec else None,
         "decidable": q.status in AWAITING_QUOTE_STATES_DECIDABLE,
     }
 
