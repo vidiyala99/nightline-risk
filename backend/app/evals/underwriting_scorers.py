@@ -25,11 +25,23 @@ def _inputs_from(raw: dict) -> RecommenderInputs:
     )
 
 
-def _faithful(rec, grounding_numbers: set[str]) -> bool:
-    """Every multi-digit number in the prose must be a grounded value."""
+def _faithful(rec, grounding_numbers: set[str], grounded_tier: str) -> bool:
+    """Faithfulness guard for the (future) LLM prose path.
+
+    Two checks, both must hold:
+    1. Every integer in the prose — INCLUDING single digits (a hallucinated
+       "7 prior losses" must NOT pass) — is a grounded value.
+    2. The tier letter mentioned in the prose ("Tier X") is the grounded tier;
+       a model that narrates the wrong tier is unfaithful even if its numbers
+       happen to be grounded.
+    """
     prose = f"{rec.summary} {rec.rationale}"
-    nums = {n.replace(",", "") for n in re.findall(r"[\d,]{2,}", prose)}
-    return nums.issubset(grounding_numbers)
+    # `\d[\d,]*` catches single digits and comma-grouped numbers alike.
+    nums = {n.replace(",", "") for n in re.findall(r"\d[\d,]*", prose)}
+    if not nums.issubset(grounding_numbers):
+        return False
+    tiers_in_prose = set(re.findall(r"\bTier\s+([A-D])\b", prose))
+    return tiers_in_prose <= {grounded_tier}
 
 
 def run_underwriting_evals() -> dict:
@@ -46,7 +58,7 @@ def run_underwriting_evals() -> dict:
                     str(rec.grounding.get("indicated_total", "")),
                     str(rec.grounding.get("claim_count", ""))}
         grounded = {g for g in grounded if g}
-        if _faithful(rec, grounded):
+        if _faithful(rec, grounded, str(rec.grounding.get("tier", ""))):
             faithful_hits += 1
     return {
         "posture_accuracy": posture_hits / n,
