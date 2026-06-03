@@ -109,6 +109,15 @@ export interface Dossier {
   };
   compliance: { status: string; open_items: { title: string; severity: string }[] };
   suggested_premium_breakdown: SuggestedBreakdown | null;
+  underwriting_recommendation: {
+    posture: 'quote' | 'quote_with_conditions' | 'decline';
+    summary: string;
+    rationale: string;
+    subjectivities: string[];
+    rate_adequacy: 'adequate' | 'lean_debit' | 'lean_credit';
+    rate_adequacy_note: string;
+    confidence: number;
+  } | null;
   decidable: boolean;
 }
 

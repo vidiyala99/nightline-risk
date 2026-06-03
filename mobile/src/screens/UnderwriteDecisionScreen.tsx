@@ -752,6 +752,38 @@ export function UnderwriteDecisionScreen({ route, navigation }: any) {
           />
         </View>
 
+        {/* ── AI UNDERWRITING RECOMMENDATION (advisory, never auto-fills) ── */}
+        {dossier.underwriting_recommendation && (
+          <View
+            style={[
+              styles.card,
+              {
+                borderLeftWidth: 3,
+                borderLeftColor:
+                  dossier.underwriting_recommendation.posture === 'quote'
+                    ? Colors.success
+                    : dossier.underwriting_recommendation.posture === 'decline'
+                    ? Colors.error
+                    : Colors.warning,
+              },
+            ]}
+          >
+            <Text style={styles.eyebrow}>AI RECOMMENDATION · ADVISORY</Text>
+            <Text style={styles.recPosture}>
+              {dossier.underwriting_recommendation.posture.replace(/_/g, ' ').toUpperCase()}
+              {'  ·  rate: '}
+              {dossier.underwriting_recommendation.rate_adequacy.replace('_', ' ')}
+            </Text>
+            <Text style={styles.recBody}>{dossier.underwriting_recommendation.summary}</Text>
+            <Text style={styles.recBody}>{dossier.underwriting_recommendation.rationale}</Text>
+            {dossier.underwriting_recommendation.subjectivities.map((s, i) => (
+              <Text key={i} style={styles.recBullet}>
+                • {s}
+              </Text>
+            ))}
+          </View>
+        )}
+
         {/* ── ACTIONS ── */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>DECISION</Text>
@@ -1040,6 +1072,30 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     color: Colors.textSecondary,
     marginBottom: 12,
+  },
+
+  // AI recommendation (advisory) card
+  recPosture: {
+    fontFamily: Fonts.monoBold,
+    fontSize: 13,
+    letterSpacing: 0.8,
+    color: Colors.text,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  recBody: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  recBullet: {
+    fontFamily: Fonts.sansRegular,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 4,
   },
 
   // Suggested premium rows
