@@ -6,7 +6,7 @@ the scorer)."""
 UNDERWRITING_SCENARIOS = [
     {
         "id": "clean-tier-a",
-        "inputs": {"tier": "A", "total_score": 18, "coverage_lines": ["gl"],
+        "inputs": {"tier": "A", "total_score": 90, "coverage_lines": ["gl"],
                    "loss_by_line": {}, "indicated_total": "9000", "in_appetite": True},
         "expected_posture": "quote",
         "expected_rate_adequacy": "adequate",
@@ -14,7 +14,7 @@ UNDERWRITING_SCENARIOS = [
     },
     {
         "id": "clean-tier-b-generous-rate",
-        "inputs": {"tier": "B", "total_score": 35, "coverage_lines": ["gl", "liquor"],
+        "inputs": {"tier": "B", "total_score": 72, "coverage_lines": ["gl", "liquor"],
                    "loss_by_line": {"gl": {"claim_count": 1, "incurred": "1500"}},
                    "indicated_total": "12000", "in_appetite": True},
         "expected_posture": "quote",
@@ -23,7 +23,7 @@ UNDERWRITING_SCENARIOS = [
     },
     {
         "id": "prior-ab-elevated",
-        "inputs": {"tier": "B", "total_score": 52, "coverage_lines": ["gl"],
+        "inputs": {"tier": "B", "total_score": 66, "coverage_lines": ["gl"],
                    "loss_by_line": {"gl": {"claim_count": 2, "incurred": "60000"}},
                    "indicated_total": "18500", "in_appetite": True},
         "expected_posture": "quote_with_conditions",
@@ -32,7 +32,7 @@ UNDERWRITING_SCENARIOS = [
     },
     {
         "id": "prior-liquor-loss",
-        "inputs": {"tier": "C", "total_score": 64, "coverage_lines": ["liquor"],
+        "inputs": {"tier": "C", "total_score": 50, "coverage_lines": ["liquor"],
                    "loss_by_line": {"liquor": {"claim_count": 1, "incurred": "40000"}},
                    "indicated_total": "22000", "in_appetite": True},
         "expected_posture": "quote_with_conditions",
@@ -41,7 +41,7 @@ UNDERWRITING_SCENARIOS = [
     },
     {
         "id": "elevated-tier-c-clean",
-        "inputs": {"tier": "C", "total_score": 60, "coverage_lines": ["gl"],
+        "inputs": {"tier": "C", "total_score": 52, "coverage_lines": ["gl"],
                    "loss_by_line": {}, "indicated_total": "15000", "in_appetite": True},
         "expected_posture": "quote_with_conditions",
         "expected_rate_adequacy": "adequate",
@@ -49,7 +49,7 @@ UNDERWRITING_SCENARIOS = [
     },
     {
         "id": "severe-tier-d-adverse",
-        "inputs": {"tier": "D", "total_score": 88, "coverage_lines": ["gl", "liquor"],
+        "inputs": {"tier": "D", "total_score": 22, "coverage_lines": ["gl", "liquor"],
                    "loss_by_line": {"gl": {"claim_count": 3, "incurred": "120000"}},
                    "indicated_total": "30000", "in_appetite": True},
         "expected_posture": "decline",
@@ -58,7 +58,7 @@ UNDERWRITING_SCENARIOS = [
     },
     {
         "id": "out-of-appetite",
-        "inputs": {"tier": "B", "total_score": 40, "coverage_lines": ["gl"],
+        "inputs": {"tier": "B", "total_score": 65, "coverage_lines": ["gl"],
                    "loss_by_line": {}, "indicated_total": "11000", "in_appetite": False},
         "expected_posture": "decline",
         "expected_rate_adequacy": "adequate",
