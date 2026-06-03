@@ -44,7 +44,7 @@ _SUBJECTIVITY_BY_LINE = {
 }
 
 
-def _subjectivities(inputs: RecommenderInputs, adverse: bool) -> list[str]:
+def _subjectivities(inputs: RecommenderInputs) -> list[str]:
     subs: list[str] = []
     for line, agg in inputs.loss_by_line.items():
         if int(agg.get("claim_count", 0)) >= 1 and line in _SUBJECTIVITY_BY_LINE:
@@ -93,7 +93,7 @@ def _rate_adequacy(total_incurred: Decimal, indicated_total: Decimal) -> tuple[s
 def recommend(inputs: RecommenderInputs) -> UnderwritingRecommendation:
     adverse = _is_adverse(inputs.loss_by_line)
     posture = _posture(inputs, adverse)
-    subjectivities = _subjectivities(inputs, adverse) if posture == "quote_with_conditions" else []
+    subjectivities = _subjectivities(inputs) if posture == "quote_with_conditions" else []
     total_incurred = _total_incurred(inputs.loss_by_line)
     rate_adequacy, rate_note = _rate_adequacy(total_incurred, inputs.indicated_total)
 
