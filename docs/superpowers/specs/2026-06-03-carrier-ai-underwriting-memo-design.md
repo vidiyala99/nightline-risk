@@ -124,20 +124,76 @@ the dossier; `fallback_reason` is surfaced.
 
 ## Eval (the differentiator) — 3 scorers, deterministic stack, CI-gated
 
-New labeled **underwriting scenarios** (fixtures): ~8–12 submissions spanning appetite
-in/out × clean/adverse loss × tier bands, each labeled with the **expected posture** and
-**expected rate-adequacy direction**. Scorers (in `app/evals/`):
+### Scenario fixtures
 
-1. **`posture_match`** — `recommendation.posture == scenario.expected_posture`.
-2. **`recommendation_faithfulness`** — every quantitative claim in summary/rationale
-   (loss figures, tier, indicated premium) must trace to the scenario inputs / `grounding`
-   (no hallucinated numbers). Deterministic mode is faithful by construction; this guards
-   LLM mode + catches template drift.
-3. **`rate_adequacy_match`** — `recommendation.rate_adequacy == scenario.expected_direction`.
+A new set of **labeled underwriting scenarios** (~8–12), spanning appetite in/out ×
+clean/adverse loss × tier bands. Each scenario is a frozen input bundle + the
+ground-truth labels a real underwriter would assign:
 
-Wire into `evals/runner.py` + `baseline.py`; `--compare-baseline` exits 1 on any drop
-(same CI gate as the existing scorers). Refresh the `/evals` scoreboard + public baseline.
-Target: a real, reproducible deterministic-stack score (the pitch number); higher with a key.
+```python
+{
+  "id": "uw-nightclub-prior-ab",
+  # ── inputs the recommender sees ──
+  "venue_risk": {"tier": "high", "total_score": 72},
+  "loss_run": {"gl": {"claim_count": 1, "incurred": "48000"}, "liquor": {...}},
+  "coverage_lines": ["gl", "liquor"],
+  "requested_limits": {"gl": {"per_occurrence": "1000000", ...}},
+  "indicated_premium": {"total": "18500", "by_line": {...}},
+  "appetite": {"in_appetite": true, "reasons": []},
+  # ── ground-truth labels (the answer key) ──
+  "expected_posture": "quote_with_conditions",
+  "expected_rate_adequacy": "lean_debit",
+  "expected_subjectivity_themes": ["security_staffing"],   # optional, for inspection
+}
+```
+
+**Labeling-honesty rule (load-bearing):** `expected_*` labels are assigned from
+**underwriting first principles** — "what would a real underwriter do with this risk" —
+**NOT** by reading the deterministic recommender's rules. Labeling by reverse-engineering
+the code makes the scorer circular (it would only confirm "the code does what the code
+does"). Labeled independently, the scorer measures whether the rules encode real judgment.
+A short note in each fixture records *why* that label was chosen.
+
+### The 3 scorers (`app/evals/`)
+
+**1. `posture_match`** — *did the memo recommend the right underwriting decision?*
+The single highest-stakes call. For each scenario, run the recommender on its inputs and
+compare `recommendation.posture` to `expected_posture`.
+- **Scoring:** **strict 3-way exact match** (`quote` / `quote_with_conditions` /
+  `decline`), binary per scenario (1.0 = exact, else 0.0). Chosen over partial/severity-
+  weighted credit for v1 because it yields one unambiguous accuracy number and the 3
+  classes are few enough that "close" credit adds noise, not signal. (Severity-weighting —
+  where `decline`↔`quote` is a worse miss than an adjacent miss — is a documented future
+  option, not v1.)
+- **Aggregate:** `posture_accuracy = matches / total_scenarios` — the headline pitch number.
+- **Example:** nightclub, in appetite, one prior A&B loss, tier *high* → a real UW writes
+  it with security conditions → `expected_posture = "quote_with_conditions"`. Recommender
+  says `quote_with_conditions` → ✅; says `quote` (missed conditions) or `decline` (too
+  harsh) → ❌.
+
+**2. `recommendation_faithfulness`** — *are the memo's factual claims grounded, not
+hallucinated?* Every quantitative claim in `summary`/`rationale` (loss figures, tier,
+indicated premium, claim counts) must trace to the scenario inputs as captured in the
+recommendation's `grounding` dict.
+- **Scoring:** extract the numeric/string facts asserted in the prose; each must match a
+  value present in `grounding` (which is itself built from the inputs). Score = fraction
+  of asserted facts that are grounded; a scenario passes at a threshold (e.g. 1.0 = fully
+  grounded). Deterministic mode is faithful **by construction** (the template only
+  interpolates `grounding` values) → this scorer mainly guards the **LLM** path and
+  catches template/interpolation drift. It is the safety scorer of the set.
+
+**3. `rate_adequacy_match`** — *did the memo read the rate correctly?* Compare
+`recommendation.rate_adequacy` to `expected_rate_adequacy`.
+- **Scoring:** **strict 3-way exact match** (`adequate` / `lean_debit` / `lean_credit`),
+  binary per scenario. Aggregate = `rate_adequacy_accuracy`.
+
+### Wiring
+
+Register the 3 scorers + scenarios in `evals/runner.py` and snapshot to `baseline.py`;
+`--compare-baseline` exits 1 on any per-scorer drop (same CI gate as the existing
+scorers). Refresh the `/evals` scoreboard + `public/eval-baseline.json`. Target: a real,
+reproducible **deterministic-stack** score (the pitch number — runs with no API key) that
+improves further with an LLM provider.
 
 ## API
 
