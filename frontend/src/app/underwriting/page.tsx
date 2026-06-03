@@ -126,7 +126,7 @@ export default function UnderwritingQueuePage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   // Carrier-only desk. Brokers/operators are bounced to their own home.

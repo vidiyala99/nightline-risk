@@ -47,7 +47,7 @@ export default function CarrierDetailPage() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   // Carrier book is a broker surface — operators never place coverage.

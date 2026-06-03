@@ -197,7 +197,7 @@ export default function AdjustingQueuePage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   // Carrier-only desk. Brokers/operators bounce to their own home.

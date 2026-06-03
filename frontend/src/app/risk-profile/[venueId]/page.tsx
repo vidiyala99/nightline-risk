@@ -336,7 +336,7 @@ export default function RiskProfilePage() {
   }, [isBroker, ingestedSources.length, hasAutoFocused]);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {

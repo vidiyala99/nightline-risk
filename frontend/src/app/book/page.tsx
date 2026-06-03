@@ -60,7 +60,7 @@ export default function BookFinancialsPage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   // Broker-only money surface. Operators are venue-scoped — bounce to home.

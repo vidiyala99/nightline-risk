@@ -24,7 +24,7 @@ export default function SettingsPage() {
     ...(!isBroker ? [{ id: "coverage", label: "Coverage", icon: ShieldCheck }] : []),
   ];
 
-  const handleSignOut = () => { signOut(); router.push("/login"); };
+  const handleSignOut = () => { signOut(); router.push("/"); };
 
   if (!isSignedIn) {
     return <div className="page-loading"><div className="loading-spinner" /></div>;

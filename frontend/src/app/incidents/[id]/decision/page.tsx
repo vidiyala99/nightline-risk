@@ -34,7 +34,7 @@ export default function DecisionPage() {
   const [riskScore, setRiskScore] = useState<{ total_score: number; tier: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { if (isLoaded && !isSignedIn) router.push("/login"); }, [isLoaded, isSignedIn, router]);
+  useEffect(() => { if (isLoaded && !isSignedIn) router.push("/"); }, [isLoaded, isSignedIn, router]);
   useEffect(() => { if (isLoaded && isSignedIn && !isOperator) router.replace(`/incidents/${id}`); }, [isLoaded, isSignedIn, isOperator, id, router]);
 
   useEffect(() => {

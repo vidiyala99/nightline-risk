@@ -363,7 +363,7 @@ function DashboardPageInner() {
   }, [isBroker, tenantId, extraIdsKey]);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   // The carrier persona has no portfolio/venue dashboard — its home is the
@@ -443,7 +443,7 @@ function DashboardPageInner() {
     return () => { cancelled = true; window.removeEventListener("focus", onFocus); };
   }, [isBroker, selectedVenueId, venuesList.length]);
 
-  const handleSignOut = () => { signOut(); router.push("/login"); };
+  const handleSignOut = () => { signOut(); router.push("/"); };
 
   if (!isSignedIn || loading) {
     return <div className="lc-shell min-h-screen page-loading"><div className="loading-spinner" /></div>;

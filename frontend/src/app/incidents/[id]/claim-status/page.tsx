@@ -84,7 +84,7 @@ export default function ClaimStatusPage() {
   const [claim, setClaim] = useState<IncidentClaim | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { if (isLoaded && !isSignedIn) router.push("/login"); }, [isLoaded, isSignedIn, router]);
+  useEffect(() => { if (isLoaded && !isSignedIn) router.push("/"); }, [isLoaded, isSignedIn, router]);
   useEffect(() => { if (isLoaded && isSignedIn && !isOperator) router.replace(`/incidents/${id}`); }, [isLoaded, isSignedIn, isOperator, id, router]);
 
   useEffect(() => {

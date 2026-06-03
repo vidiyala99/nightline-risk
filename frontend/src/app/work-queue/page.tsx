@@ -140,7 +140,7 @@ export default function WorkQueuePage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   // Broker-only decision surface (persona-correct). Operators are scoped to

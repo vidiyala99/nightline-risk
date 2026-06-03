@@ -287,7 +287,7 @@ function AlertsPageInner() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   // Alerts are real-time venue floor/liability detections — an operator

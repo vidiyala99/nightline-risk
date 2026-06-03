@@ -35,7 +35,7 @@ export default function VenueProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {

@@ -77,7 +77,7 @@ export default function IncidentsPage() {
   useEffect(() => {
     // Wait for auth to hydrate before redirecting — otherwise a cold load /
     // refresh / deep-link bounces a logged-in user to /login (hydration race).
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   // Surface which incidents carry a claim. Broker uses the carrier-claims read

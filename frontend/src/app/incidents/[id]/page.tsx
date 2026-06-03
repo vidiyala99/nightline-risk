@@ -206,7 +206,7 @@ export default function IncidentDetailPage() {
   };
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) router.push("/login");
+    if (isLoaded && !isSignedIn) router.push("/");
   }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {

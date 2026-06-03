@@ -14,7 +14,7 @@ function TerminalRedirectInner() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (!isSignedIn) { router.push("/login"); return; }
+    if (!isSignedIn) { router.push("/"); return; }
     const target = venueParam ?? tenantId;
     // Hard role gate: terminal is operator-only. Brokers get sent to the
     // broker-appropriate detail view (risk profile) or back to the book.
