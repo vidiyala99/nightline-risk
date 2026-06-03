@@ -114,7 +114,7 @@ def underwrite_quote(
             q = session.get(CarrierQuote, quote_id)
             sub = session.get(Submission, q.submission_id) if q else None
             validate_coverage_terms(coverage_terms, coverage_lines=(sub.coverage_lines if sub else []))
-        return record_carrier_response(
+        q = record_carrier_response(
             session, quote_id, status="quoted",
             premium_breakdown=premium_breakdown,
             coverage_terms=coverage_terms,
@@ -122,17 +122,47 @@ def underwrite_quote(
             recorded_by=underwriter_id,
             decision_source="carrier_desk",
         )
-    if decision == "decline":
-        return record_carrier_response(
+    elif decision == "decline":
+        q = record_carrier_response(
             session, quote_id, status="declined",
             decline_reason=decline_reason,
             underwriter_name=underwriter_id,
             recorded_by=underwriter_id,
             decision_source="carrier_desk",
         )
-    raise SubmissionsError(
-        f"Unknown underwriting decision {decision!r} (expected 'quote' or 'decline')"
-    )
+    else:
+        raise SubmissionsError(
+            f"Unknown underwriting decision {decision!r} (expected 'quote' or 'decline')"
+        )
+
+    # Snapshot what the advisory recommendation WAS vs what the carrier DID
+    # (feeds calibration). Failure-isolated — never block the decision.
+    try:
+        from app.packet_core import _add_audit_event
+        dossier = decision_dossier(session, quote_id)
+        rec = (dossier or {}).get("underwriting_recommendation")
+        if rec is not None:
+            followed = (
+                (decision == "quote" and rec["posture"] in {"quote", "quote_with_conditions"})
+                or (decision == "decline" and rec["posture"] == "decline")
+            )
+            _add_audit_event(
+                session=session,
+                actor_id=underwriter_id, actor_type="user",
+                entity_type="quote", entity_id=quote_id,
+                event_type="quote.underwriting_recommendation",
+                event_metadata={
+                    "recommended_posture": rec["posture"],
+                    "recommended_rate_adequacy": rec["rate_adequacy"],
+                    "decision": decision,
+                    "followed": followed,
+                    "decision_source": "carrier_desk",
+                },
+            )
+    except Exception:  # noqa: BLE001 — advisory telemetry, never block underwriting
+        pass
+
+    return q
 
 
 def _suggested_breakdown(

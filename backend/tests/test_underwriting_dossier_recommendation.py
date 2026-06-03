@@ -18,13 +18,13 @@ from app.services.underwriting_desk import decision_dossier, underwrite_quote
 VENUE_ID = "elsewhere-brooklyn"
 
 
-def _well_formed_breakdown(total: str = "5894.84") -> dict:
+def _well_formed_breakdown(total: str = "4000.00") -> dict:
     return {
         "lines": {
             "gl": {"base": "5500.00", "tier_multiplier": "0.7", "premium": "3850.00"},
         },
         "fees": {"policy_fee": "150.00"},
-        "subtotal": "5600.00",
+        "subtotal": "3850.00",
         "total": total,
         "commission_rate": "0.15",
     }
@@ -65,7 +65,7 @@ def test_underwrite_quote_emits_recommendation_snapshot(session_with_quote):
     session, quote_id = session_with_quote
     underwrite_quote(
         session, quote_id, decision="quote", underwriter_id="user_003",
-        premium_breakdown={"total": "12000"}, coverage_terms=None,
+        premium_breakdown=_well_formed_breakdown(), coverage_terms=None,
     )
     session.commit()
     rows = session.exec(select(AuditEvent).where(AuditEvent.entity_id == quote_id)).all()
