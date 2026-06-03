@@ -553,6 +553,113 @@ export default function UnderwriteDecisionPage() {
       </section>
 
       {/* ------------------------------------------------------------------ */}
+      {/* 2.5 AI underwriting recommendation — advisory, never auto-fills     */}
+      {/* ------------------------------------------------------------------ */}
+      {dossier.underwriting_recommendation && (() => {
+        const r = dossier.underwriting_recommendation!;
+        const postureColor =
+          r.posture === "quote"
+            ? "var(--state-success)"
+            : r.posture === "decline"
+            ? "var(--state-error)"
+            : "var(--state-warning)";
+        const postureLabel =
+          r.posture === "quote"
+            ? "Quote"
+            : r.posture === "decline"
+            ? "Decline"
+            : "Quote with conditions";
+        return (
+          <div
+            className="lc-card"
+            style={{ marginBottom: "var(--space-lg)", borderLeft: `3px solid ${postureColor}` }}
+          >
+            <div className="lc-card__inner">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-sm)",
+                  marginBottom: "var(--space-sm)",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "var(--text-xs)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  AI recommendation · advisory
+                </span>
+                <span
+                  style={{
+                    fontSize: "var(--text-xs)",
+                    fontWeight: 600,
+                    border: `1px solid ${postureColor}`,
+                    color: postureColor,
+                    background: `color-mix(in srgb, ${postureColor} 12%, transparent)`,
+                    borderRadius: "var(--radius-sm)",
+                    padding: "2px 8px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {postureLabel}
+                </span>
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    fontSize: "var(--text-xs)",
+                    fontFamily: "var(--font-mono, monospace)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  rate: {r.rate_adequacy.replace("_", " ")}
+                </span>
+              </div>
+              <p
+                style={{
+                  fontSize: "var(--text-sm)",
+                  color: "var(--text-secondary)",
+                  lineHeight: 1.55,
+                  margin: "0 0 var(--space-sm)",
+                }}
+              >
+                {r.summary}
+              </p>
+              <p
+                style={{
+                  fontSize: "var(--text-sm)",
+                  color: "var(--text-primary)",
+                  lineHeight: 1.55,
+                  margin: "0 0 var(--space-sm)",
+                }}
+              >
+                {r.rationale}
+              </p>
+              {r.subjectivities.length > 0 && (
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: "var(--space-md)",
+                    fontSize: "var(--text-sm)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {r.subjectivities.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ------------------------------------------------------------------ */}
       {/* 3. Decision row — Suggested premium (left) + Decision card (right) */}
       {/* ------------------------------------------------------------------ */}
       <div
