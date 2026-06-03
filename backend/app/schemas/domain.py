@@ -82,6 +82,22 @@ class UnderwritingMemo(BaseModel):
     model: Optional[str] = None
     fallback_reason: Optional[str] = None  # populated when LLM call failed and we fell back
 
+class UnderwritingRecommendation(BaseModel):
+    """Carrier submission-underwriting decision support (distinct from the
+    incident-layer UnderwritingMemo). Advisory: the carrier always confirms."""
+    posture: str          # "quote" | "quote_with_conditions" | "decline"
+    summary: str
+    rationale: str
+    subjectivities: List[str] = []
+    rate_adequacy: str    # "adequate" | "lean_debit" | "lean_credit"
+    rate_adequacy_note: str
+    confidence: float
+    grounding: dict = {}
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    mode: Optional[str] = None          # "deterministic" | "llm"
+    fallback_reason: Optional[str] = None
+
 class InfrastructureItem(BaseModel):
     name: str
     status: str
