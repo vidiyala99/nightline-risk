@@ -99,6 +99,12 @@ def _existing_columns(conn, table: str) -> set[str]:
 # are GC'd. Identity-based membership (Engine uses default __hash__/__eq__).
 _bootstrapped_engines: "weakref.WeakSet" = weakref.WeakSet()
 
+# Engines whose compliance-signal backfill has run a full pass (venues existed).
+# Separate from _bootstrapped_engines because the backfill must RETRY while venues
+# are still unseeded (the lifespan creates the schema before seeding venues), then
+# settle once. Keyed per engine for the same test-isolation reason.
+_backfilled_engines: "weakref.WeakSet" = weakref.WeakSet()
+
 
 def create_db_and_tables():
     # get_session() calls this on every request. The expensive, one-time part —
@@ -128,11 +134,16 @@ def create_db_and_tables():
                 except Exception:
                     pass
         _bootstrapped_engines.add(engine)
-    # The backfill runs on EVERY call (NOT guarded) so it self-heals: the lifespan
-    # calls create_db_and_tables before venues are seeded (backfill skips them),
-    # then a later get_session call seeds them once they exist. Kept to ~2 queries
-    # (bulk) below so the per-request cost stays low even cross-region.
-    _backfill_compliance_signals()
+    # Backfill compliance signals ONCE per engine — NOT per request. It still
+    # self-heals across the seed-ordering gap: while venues are unseeded the pass
+    # returns False (not marked) so it retries; once venues exist a full pass runs,
+    # returns True, and the engine is marked done. Running it unguarded on every
+    # request added 2 cross-region SELECTs over ~291 venues to EVERY endpoint —
+    # ~1ms when co-located, but it compounded into the operator dashboard's 20-30s
+    # load on a cold/​waking Neon under ~10 concurrent calls.
+    if engine not in _backfilled_engines:
+        if _backfill_compliance_signals():
+            _backfilled_engines.add(engine)
 
 
 def _backfill_compliance_signals():
@@ -156,7 +167,7 @@ def _backfill_compliance_signals():
     with Session(engine) as session:
         existing_venue_ids = set(session.exec(select(Venue.id)).all())
         if not existing_venue_ids:
-            return  # venues not seeded yet — a later call self-heals
+            return False  # venues not seeded yet — a later call self-heals
         venues_with_signals = set(
             session.exec(select(ComplianceSignal.venue_id).distinct()).all()
         )
@@ -179,6 +190,7 @@ def _backfill_compliance_signals():
         if new_signals:
             session.add_all(new_signals)
             session.commit()
+        return True  # venues existed → a full pass ran; engine can be marked done
 
 
 def get_session():
