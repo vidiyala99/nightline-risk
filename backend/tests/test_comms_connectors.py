@@ -236,3 +236,73 @@ def test_build_comms_source_set_env_returns_mcp(monkeypatch):
     src = build_comms_source("slack", ["v1"])
     assert isinstance(src, McpCommsSource)
     assert src.source == "slack" and src.sse_url == "http://x"
+
+
+# --- Follow-up #3: rubric auto-retrain from review corrections (corrections -> eval fixtures) ---
+from app.evals.comms_classifier_eval import (
+    FIXTURES,
+    corrections_fixtures,
+    score_against,
+    score_with_corrections,
+)
+
+
+def _resolved(rid: str, text: str, kind: str, status: str = "confirmed") -> CommsReviewItem:
+    return CommsReviewItem(
+        id=rid, venue_id="v1", source="slack", external_id=rid,
+        raw_text=text, proposed_kind=kind, confidence=0.5,
+        status=status, resolved_kind=kind, fields={})
+
+
+def test_corrections_fixtures_pulls_resolved_labels():
+    s = _mem_session()
+    s.add(_resolved("c-a", "a fight broke out", "incident", status="confirmed"))
+    s.add(_resolved("c-b", "fire extinguisher expired", "compliance", status="corrected"))
+    # pending / unresolved rows must be ignored
+    s.add(CommsReviewItem(id="c-pend", venue_id="v1", source="slack", external_id="c-pend",
+                          raw_text="ambiguous", proposed_kind="incident", confidence=0.5,
+                          status="pending", resolved_kind=None, fields={}))
+    s.commit()
+    pairs = corrections_fixtures(s)
+    assert sorted(pairs) == sorted([("a fight broke out", "incident"),
+                                    ("fire extinguisher expired", "compliance")])
+
+
+def test_score_with_corrections_blends_seed_and_corrections():
+    s = _mem_session()
+    s.add(_resolved("c-1", "a fight broke out near the bar", "incident"))
+    s.add(_resolved("c-2", "fire extinguisher tag expired", "compliance", status="corrected"))
+    s.add(_resolved("c-3", "restock the napkins", "noise"))
+    s.commit()
+    report = score_with_corrections(s)
+    assert report["correction_count"] == 3
+    assert report["combined"]["n"] == len(FIXTURES) + 3
+    assert report["seed"]["n"] == len(FIXTURES)
+    assert report["corrections"] is not None and report["corrections"]["n"] == 3
+
+
+def test_score_with_corrections_no_corrections():
+    s = _mem_session()
+    report = score_with_corrections(s)
+    assert report["correction_count"] == 0
+    assert report["combined"]["n"] == len(FIXTURES)
+    assert report["combined"]["n"] == report["seed"]["n"]
+    assert report["corrections"] is None
+
+
+def test_score_against_scores_arbitrary_fixtures():
+    out = score_against([("a fight broke out", "incident"),
+                         ("restock napkins", "noise")])
+    assert out["n"] == 2 and out["accuracy"] == 1.0
+
+
+def test_comms_eval_endpoint_broker_only(client):
+    r = client.get("/api/comms/eval", headers=_broker_h())
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert "seed" in body and "combined" in body and "correction_count" in body
+    assert body["seed"]["n"] == len(FIXTURES)
+
+
+def test_comms_eval_endpoint_requires_auth(client):
+    assert client.get("/api/comms/eval").status_code in (401, 403)

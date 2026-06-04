@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 
 from app.auth import can_access_venue, current_user_optional, require_broker
 from app.database import get_session
+from app.evals.comms_classifier_eval import score_with_corrections
 from app.ingestion.comms.connector import run_comms
 from app.ingestion.comms.router import _create_compliance, _create_incident
 from app.ingestion.comms.types import CommsClassification, CommsItem
@@ -39,6 +40,16 @@ def comms_ingest(
 ):
     venue_ids = [body.venue_id] if body.venue_id else _all_venue_ids(session)
     return run_comms(body.source, session, venue_ids=venue_ids)
+
+
+@router.get("/comms/eval")
+def comms_eval(
+    session: Session = Depends(get_session),
+    _: dict = Depends(require_broker),
+):
+    """How the classifier performs against the seed rubric and the accumulated
+    real triage decisions (confirmed/corrected review items). Read-only."""
+    return score_with_corrections(session)
 
 
 @router.get("/comms/review")
