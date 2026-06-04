@@ -177,17 +177,22 @@ export function AppShell({ children }: AppShellProps) {
   const role = useRole();
   const tenantId = useTenantId();
 
-  // Staff are a least-privilege persona: their nav only links to Report / My
-  // Reports, but web routes are reachable by direct URL (or a stale one), so the
-  // sidebar alone isn't a guard. Redirect staff off any non-staff route — this
-  // is what stops a staff user from landing on /dashboard, /coverage, etc. and
-  // seeing operator policy info. Mobile is already safe (StaffTabs has no such
-  // screens). Settings stays allowed (it's in their More overflow).
+  // Focused personas (staff, carrier) have a narrow nav, but web routes are
+  // reachable by direct URL (or a stale one) — the sidebar alone isn't a guard.
+  // Redirect them off any route outside their allowed set, to their own home.
+  // This stops a staff user landing on /dashboard (operator policy info) or a
+  // carrier landing on /dashboard / /policies. Operator/broker/admin: no guard
+  // (full access). Mobile is already safe (their tab navigators omit the screens).
   useEffect(() => {
-    if (role !== "staff" || !pathname) return;
-    const STAFF_ALLOWED = ["/report", "/my-reports", "/settings"];
-    const allowed = STAFF_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"));
-    if (!allowed) router.replace("/report");
+    if (!pathname) return;
+    const FOCUSED_ALLOWED: Record<string, string[]> = {
+      staff: ["/report", "/my-reports", "/settings"],
+      carrier: ["/underwriting", "/adjusting", "/settings"],
+    };
+    const allowedList = role ? FOCUSED_ALLOWED[role] : undefined;
+    if (!allowedList) return;
+    const allowed = allowedList.some((p) => pathname === p || pathname.startsWith(p + "/"));
+    if (!allowed) router.replace(roleHome(role));
   }, [role, pathname, router]);
 
   // Each persona gets an explicit "back to home" on every screen except home
