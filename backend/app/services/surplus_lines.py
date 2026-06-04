@@ -31,6 +31,17 @@ class SurplusLinesError(Exception):
     """Domain error for surplus-lines operations (maps to HTTP 400)."""
 
 
+def _as_dict(value) -> dict:
+    """Coerce a JSON column to a dict. Column(JSON) round-trips as a dict on
+    SQLite but can surface as a JSON string on Postgres/Neon — coerce at the
+    read boundary (the standing JSON-string guard). terms_snapshot is read from
+    a DB-loaded Policy on the prod seed path, so this matters there."""
+    if isinstance(value, str):
+        import json
+        return json.loads(value) if value else {}
+    return value or {}
+
+
 def _declination_count(session: Session, submission_id: str) -> int:
     return len(
         session.exec(
@@ -63,9 +74,9 @@ def create_filing_for_policy(
     if existing is not None:
         return existing
 
-    bd = (policy.terms_snapshot or {}).get("premium_breakdown", {})
+    bd = _as_dict(_as_dict(policy.terms_snapshot).get("premium_breakdown"))
     subtotal = Decimal(bd.get("subtotal", "0.00"))
-    policy_fee = Decimal((bd.get("fees", {}) or {}).get("policy_fee", "0.00"))
+    policy_fee = Decimal(_as_dict(bd.get("fees")).get("policy_fee", "0.00"))
     base = usd(subtotal + policy_fee)
     charges = compute_sl_charges(base)
 

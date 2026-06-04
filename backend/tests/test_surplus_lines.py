@@ -333,6 +333,21 @@ def test_api_list_file_confirm_flow():
     assert r.json()["status"] == "confirmed"
 
 
+def test_create_filing_coerces_string_terms_snapshot():
+    # On Neon, the Policy.terms_snapshot Column(JSON) can come back as a string.
+    # create_filing_for_policy (called on a DB-loaded policy by the prod seed)
+    # must coerce it rather than crash on str.get(...).
+    import json
+    with Session(engine) as s:
+        pol = _throwaway_es_policy(s)
+        # simulate the Postgres string round-trip on the in-memory object
+        pol.terms_snapshot = json.dumps(  # type: ignore[assignment]
+            {"premium_breakdown": {"subtotal": "2000.00", "fees": {"policy_fee": "200.00"}}}
+        )
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        assert filing.taxable_premium == Decimal("2200.00")  # coerced from the JSON string
+
+
 def test_doc_map_coerces_json_string():
     # Guards the Neon JSON-string class: Column(JSON) can surface as a string
     # on Postgres. _doc_map must coerce string -> dict (and pass dict/None through).
