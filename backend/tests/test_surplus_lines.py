@@ -3,9 +3,12 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine, select
 
+from app.auth import create_token
 from app.database import engine
+from app.main import app
 from app.lifecycles import (
     InvalidTransitionError,
     SL_FILING_TERMINAL_STATES,
@@ -295,3 +298,48 @@ def test_filings_needing_attention_flags_pending():
         attention = filings_needing_attention(s)
         ids = {row["policy_id"] for row in attention}
         assert pol.id in ids
+
+
+# --- Task 11: API router ---
+def _broker_h():
+    return {"Authorization": f"Bearer {create_token('user_001', 'b@x.com', 'broker', None)}"}
+
+
+def test_api_list_file_confirm_flow():
+    with Session(engine) as s:
+        pol = _throwaway_es_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        for i in range(3):
+            record_declination(s, pol.submission_id, carrier_name=f"A{i}",
+                               reason="appetite", declined_at=pol.effective_date)
+        recompute_diligent_search(s, filing)
+        s.commit()
+        fid = filing.id
+
+    client = TestClient(app)
+    headers = _broker_h()
+
+    r = client.get("/api/surplus-lines/filings", headers=headers)
+    assert r.status_code == 200, r.text
+    assert any(f["id"] == fid for f in r.json())
+
+    r = client.post(f"/api/surplus-lines/filings/{fid}/file", headers=headers)
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "filed"
+
+    r = client.post(f"/api/surplus-lines/filings/{fid}/confirm",
+                    json={"transaction_id": "ELANY-9"}, headers=headers)
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "confirmed"
+
+
+def test_api_file_guard_returns_400():
+    with Session(engine) as s:
+        pol = _throwaway_es_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        s.commit()
+        fid = filing.id
+    client = TestClient(app)
+    headers = _broker_h()
+    r = client.post(f"/api/surplus-lines/filings/{fid}/file", headers=headers)
+    assert r.status_code == 400, r.text
