@@ -9,9 +9,15 @@ from uuid import uuid4
 from sqlmodel import Session, select
 
 from app.lifecycles import SL_FILING_TRANSITIONS, assert_valid_transition
-from app.models import Declination, Policy, SurplusLinesFiling
+from app.models import Carrier, Declination, Policy, SurplusLinesFiling, Venue
 from app.money import usd
 from app.packet_core import _add_audit_event
+from app.storage import get_storage
+from app.surplus_lines_docs import (
+    render_diligent_search_affidavit,
+    render_nonadmitted_disclosure,
+    render_sl_tax_statement,
+)
 from app.time import now_utc
 from app.underwriting.surplus_lines import (
     compute_sl_charges,
@@ -126,8 +132,29 @@ def _transition_filing(
 
 
 def _generate_documents(session: Session, filing: SurplusLinesFiling) -> dict:
-    """Filled in by Task 8. Returns {kind: storage_path}."""
-    return {}
+    """Render the 3 NY E&S statutory PDFs and persist them via get_storage().
+
+    Returns {kind: storage_ref} where the ref is whatever the storage backend
+    stored in place of the bytes (an absolute path for LocalStorage, an object
+    key for S3) — retrievable later via get_storage().read(ref)."""
+    policy = session.get(Policy, filing.policy_id)
+    venue = session.get(Venue, filing.venue_id)
+    carrier = session.get(Carrier, policy.carrier_id) if policy else None
+    declines = session.exec(
+        select(Declination).where(Declination.submission_id == policy.submission_id)
+    ).all() if policy else []
+
+    storage = get_storage()
+    docs = {
+        "affidavit": render_diligent_search_affidavit(filing, declines, venue),
+        "tax_statement": render_sl_tax_statement(filing, policy, venue),
+        "disclosure": render_nonadmitted_disclosure(filing, policy, venue, carrier),
+    }
+    paths: dict[str, str] = {}
+    for kind, pdf in docs.items():
+        key = f"surplus_lines/{filing.id}/{kind}.pdf"
+        paths[kind] = storage.save(key, pdf)
+    return paths
 
 
 def file_filing(session: Session, filing_id: str, *, actor_id: str) -> SurplusLinesFiling:

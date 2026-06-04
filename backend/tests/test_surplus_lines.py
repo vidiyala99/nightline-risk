@@ -210,3 +210,18 @@ def test_document_renderers_return_pdf_bytes():
             ("disclosure", render_nonadmitted_disclosure(filing, pol, venue, carrier)),
         ]:
             assert isinstance(pdf, bytes) and pdf[:4] == b"%PDF", kind
+
+
+def test_filing_stores_three_documents():
+    with Session(engine) as s:
+        pol = _throwaway_es_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        for i in range(3):
+            record_declination(s, pol.submission_id, carrier_name=f"A{i}",
+                               reason="appetite", declined_at=pol.effective_date)
+        recompute_diligent_search(s, filing)
+        s.commit()
+        filed = file_filing(s, filing.id, actor_id="user_001")
+        assert set(filed.documents.keys()) == {"affidavit", "tax_statement", "disclosure"}
+        for path in filed.documents.values():
+            assert isinstance(path, str) and path
