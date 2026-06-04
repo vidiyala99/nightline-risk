@@ -11,6 +11,8 @@ import {
   AlertTriangle,
   CheckSquare,
   FileSpreadsheet,
+  FileSearch,
+  Inbox,
   Menu,
 } from "lucide-react";
 import { useRole, useTenantId } from "@/contexts/AuthContext";
@@ -25,11 +27,19 @@ const OPERATOR_PRIMARY: PrimaryItem[] = [
   { key: "compliance", href: "/compliance", label: "Compliance", icon: CheckSquare },
 ];
 
+// Broker primary surfaces are their daily pipeline: the book, the triage queue,
+// new placements, and claims. Incidents/Compliance (operator-filed review) move
+// to the More overflow.
+// NOTE: the RN BrokerTabs (TabNavigator.tsx) still uses the older
+// Incidents/Compliance set — mirroring this promotion requires a navigation
+// restructure (new WorkQueue/Submissions tab stacks + relocating the
+// getParent().navigate('Incidents'/'Compliance') calls) and an Expo smoke-test,
+// so it's intentionally pending rather than shipped unverified.
 const BROKER_PRIMARY: PrimaryItem[] = [
-  { key: "dashboard",  href: "/dashboard",  label: "The Book",   icon: LayoutDashboard },
-  { key: "incidents",  href: "/incidents",  label: "Incidents",  icon: AlertTriangle },
-  { key: "claims",     href: "/claims",     label: "Claims",     icon: FileSpreadsheet },
-  { key: "compliance", href: "/compliance", label: "Compliance", icon: CheckSquare },
+  { key: "dashboard",   href: "/dashboard",   label: "The Book",    icon: LayoutDashboard },
+  { key: "work-queue",  href: "/work-queue",  label: "Work Queue",  icon: Inbox },
+  { key: "submissions", href: "/submissions", label: "Submissions", icon: FileSearch },
+  { key: "claims",      href: "/claims",      label: "Claims",      icon: FileSpreadsheet },
 ];
 
 export function MobileBottomNav({ onMore }: { onMore: () => void }) {

@@ -932,13 +932,12 @@ a:hover { color: var(--text-primary); }
   min-width: 0;
   background: transparent;
 }
-/* Reserve space for the fixed mobile bottom-nav */
+/* Phone: no top bar, so add a small top inset (respecting the notch/safe area)
+   and reserve space for the fixed bottom-nav. */
 .app-shell[data-bottom-nav="on"] .main-content {
+  padding-top: max(var(--space-md), env(safe-area-inset-top, 0px));
   padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
 }
-
-.mobile-nav-bar { display: none; }
-.sidebar-overlay { display: none; }
 
 /* ============================================
    SIDEBAR — RAIL VARIANT (md: 900–1180px)
@@ -991,63 +990,8 @@ a:hover { color: var(--text-primary); }
   height: 18px;
 }
 
-/* ============================================
-   SIDEBAR — DRAWER VARIANT (xs/sm: <900px)
-   ============================================ */
-@media (max-width: 899.98px) {
-  .sidebar--drawer { display: none; }
-  .sidebar--drawer.open {
-    display: flex;
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    width: min(280px, 86vw);
-    height: 100vh;
-    background: var(--bg-base);
-    border-right: 1px solid var(--border-subtle);
-    overflow-y: auto;
-    padding: var(--space-lg);
-  }
-  .app-shell[data-sidebar-variant="drawer"] .sidebar-overlay {
-    /* Only meaningful in JS — block element is conditionally rendered.
-       Provide the visual treatment here so the inline display:none default
-       is overridden once the overlay exists in the DOM. */
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 99;
-  }
-  .mobile-nav-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-md) var(--space-lg);
-    border-bottom: 1px solid var(--border-subtle);
-    background: var(--bg-base);
-    position: sticky;
-    top: 0;
-    z-index: 50;
-  }
-  .mobile-nav-bar .brand {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-  .hamburger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 6px;
-    color: var(--text-primary);
-    min-width: 44px;
-    min-height: 44px;
-  }
-}
+/* Phone (<900px) navigation is the fixed bottom nav (+ More sheet); the sidebar
+   is not rendered there, so the drawer/hamburger variant has been removed. */
 
 @media (max-width: 640px) {
   .page-header { flex-direction: column; gap: var(--space-md); align-items: flex-start; }
@@ -3470,8 +3414,8 @@ a:hover { color: var(--text-primary); }
   .lc-triage__list { height: auto; max-height: none; }
   .lc-triage__preview { display: none; }
   .lc-triage__head { padding: 14px 0 12px; }
-  /* Sit below the sticky mobile top bar (.mobile-nav-bar) when pinned. */
-  .lc-triage__head { top: 56px; }
+  /* No mobile top bar on phone — the sticky header pins to the viewport top. */
+  .lc-triage__head { top: 0; }
   .lc-triage__chips { margin-left: 0; width: 100%; }
 
   /* Operator "On The Floor" live-status hero stacks below 900px */

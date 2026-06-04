@@ -1,16 +1,20 @@
 "use client";
 
-// Mobile "More" overflow sheet — mirrors mobile/src/screens/MoreScreen.tsx
-// (same row set, same role split, same card layout). Used in place of the
-// desktop sidebar drawer when the bottom-nav More button is tapped on phone
-// widths, so the web experience matches the React Native app.
+// Mobile "More" overflow sheet — mirrors mobile/src/screens/MoreScreen.tsx.
+// On phone widths the bottom nav (+ this sheet) is the *only* navigation; there
+// is no sidebar/hamburger, so every off-tab destination must live here.
+// Broker overflow matches RN row-for-row. Operator overflow differs by platform:
+// web surfaces Coverage (its own route), RN surfaces Live Terminal (web reaches
+// the floor via /terminal elsewhere) — both keep their persona's screens reachable.
 
 import Link from "next/link";
 import { useEffect } from "react";
 import {
   Activity,
+  AlertTriangle,
   Bell,
   Building2,
+  CheckSquare,
   ChevronRight,
   Database,
   FileSearch,
@@ -19,8 +23,9 @@ import {
   ListChecks,
   LogOut,
   MapPin,
-  Send,
   Settings,
+  ShieldCheck,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { useRole, useAuth } from "@/contexts/AuthContext";
@@ -31,13 +36,16 @@ type Row = { href: string; label: string; description: string; icon: LucideIcon 
 const OPERATOR_OVERFLOW: Row[] = [
   { href: "/alerts",          label: "Alerts",          description: "Real-time liability detections",  icon: Bell },
   { href: "/venues",          label: "Venues",          description: "Your venue profile & roster",      icon: Building2 },
+  { href: "/coverage",        label: "Coverage",        description: "Coverage lines & limits",          icon: ShieldCheck },
   { href: "/settings",        label: "Settings",        description: "Account and preferences",          icon: Settings },
 ];
 
 const BROKER_OVERFLOW: Row[] = [
-  { href: "/tasks",           label: "Tasks",           description: "Renewals & requests needing attention", icon: ListChecks },
-  { href: "/submissions",     label: "Submissions",     description: "Place venue risk out to carriers",       icon: Send },
+  { href: "/book",            label: "Book Financials", description: "Premium, commission & loss ratio",       icon: TrendingUp },
   { href: "/policies",        label: "Policies",        description: "Your in-force book",                     icon: FileSpreadsheet },
+  { href: "/tasks",           label: "Tasks",           description: "Renewals & requests needing attention", icon: ListChecks },
+  { href: "/incidents",       label: "Incidents",       description: "Operator-filed incidents to review",     icon: AlertTriangle },
+  { href: "/compliance",      label: "Compliance",      description: "Venue compliance items",                 icon: CheckSquare },
   { href: "/venues",          label: "Venues",          description: "Book and prospect venues",               icon: Building2 },
   { href: "/market",          label: "Market",          description: "NYC nightlife prospects & savings",      icon: MapPin },
   { href: "/claim-proposals", label: "Claim Proposals", description: "Operator-filed proposals",               icon: FileText },

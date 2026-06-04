@@ -13,8 +13,6 @@ import {
   FileSpreadsheet,
   LogOut,
   Bell,
-  Menu,
-  X,
   RefreshCw,
   ShieldCheck,
   Inbox,
@@ -171,7 +169,6 @@ export function AppShell({ children }: AppShellProps) {
   // itself. Carriers home to /underwriting; operators and brokers to /dashboard.
   const homeHref = role === "carrier" ? "/underwriting" : "/dashboard";
   const showBackHome = !!pathname && pathname !== homeHref && role !== "carrier";
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   // Breakpoint gating. SSR + first paint render as "full" sidebar.
@@ -214,7 +211,7 @@ export function AppShell({ children }: AppShellProps) {
           <NavLinks
             role={role}
             tenantId={tenantId}
-            onNavigate={() => setMobileOpen(false)}
+            onNavigate={() => {}}
             variant={sidebarVariant}
           />
         </Suspense>
@@ -240,23 +237,17 @@ export function AppShell({ children }: AppShellProps) {
       data-sidebar-variant={sidebarVariant}
       data-bottom-nav={showBottomNav ? "on" : "off"}
     >
-      {/* Mobile top bar — visible only when sidebar is in drawer mode */}
-      <div className="mobile-nav-bar">
-        <span className="brand">Nightline</span>
-        <button className="hamburger" onClick={() => setMobileOpen(o => !o)} aria-label="Menu">
-          {mobileOpen ? <X size={22} color="var(--text-primary)" /> : <Menu size={22} color="var(--text-primary)" />}
-        </button>
-      </div>
-
-      {/* Mobile overlay */}
-      {mobileOpen && <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} />}
-
-      <aside
-        className={`sidebar sidebar--${sidebarVariant}${mobileOpen ? " open" : ""}`}
-        aria-label="Primary navigation"
-      >
-        {sidebarContent}
-      </aside>
+      {/* Phone uses the bottom nav (+ More sheet) as its sole navigation, so the
+          desktop/tablet sidebar is not rendered there — avoids a redundant
+          hamburger-drawer duplicating the bottom nav. */}
+      {!showBottomNav && (
+        <aside
+          className={`sidebar sidebar--${sidebarVariant}`}
+          aria-label="Primary navigation"
+        >
+          {sidebarContent}
+        </aside>
+      )}
 
       <main className="main-content">
         {showBackHome && (
@@ -277,8 +268,8 @@ export function AppShell({ children }: AppShellProps) {
         </Suspense>
       )}
 
-      {/* Phone "More" overflow — mirrors mobile MoreScreen instead of the
-          desktop sidebar drawer. Sidebar drawer stays for tablet (md). */}
+      {/* Phone "More" overflow — mirrors mobile MoreScreen. Tablet (md) and up
+          use the sidebar (rail/full) above; phone has no sidebar at all. */}
       {showBottomNav && (
         <MobileMoreSheet open={moreSheetOpen} onClose={() => setMoreSheetOpen(false)} />
       )}
