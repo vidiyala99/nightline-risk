@@ -19,7 +19,7 @@ def test_compute_sl_charges_known_base():
     # base = subtotal + policy_fee
     charges = compute_sl_charges(Decimal("5650.00"))
     assert charges.tax == Decimal("203.40")          # 5650 * 0.036
-    assert charges.stamping_fee == Decimal("8.48")    # 5650 * 0.0015 = 8.475 -> 8.48 (banker's)
+    assert charges.stamping_fee == Decimal("8.48")    # usd(5650 * 0.0015) = usd(8.475) = 8.48
     assert charges.total_charges == Decimal("211.88")
 
 
