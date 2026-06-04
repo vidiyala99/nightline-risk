@@ -1,12 +1,16 @@
+from datetime import date
 from decimal import Decimal
 
+from sqlmodel import Session, SQLModel, create_engine
+
+from app.models import Declination, SurplusLinesFiling
+from app.underwriting.pricing import NY_SURPLUS_LINES_TAX
 from app.underwriting.surplus_lines import (
     NY_STAMPING_FEE,
     REQUIRED_DECLINATIONS,
     compute_sl_charges,
     diligent_search_complete,
 )
-from app.underwriting.pricing import NY_SURPLUS_LINES_TAX
 
 
 def test_tax_rate_is_corrected():
@@ -29,28 +33,20 @@ def test_diligent_search_rules():
     assert diligent_search_complete(0, export_list_exempt=True) is True
 
 
-from datetime import date
-from uuid import uuid4
-
-from sqlmodel import Session
-
-from app.database import engine
-from app.models import Declination, SurplusLinesFiling
-
-
 def test_models_persist():
-    # Unique ids per run: policy_id is UNIQUE-constrained and the shared
-    # database.db persists across runs, so fixed PKs collide on re-run.
-    u = uuid4().hex[:8]
-    with Session(engine) as s:
+    # Self-sufficient in-memory engine (peer pattern: test_ingestion_models.py)
+    # — isolated, builds its own schema, no dependency on the shared database.db.
+    eng = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(eng)
+    with Session(eng) as s:
         f = SurplusLinesFiling(
-            id=f"slf-{u}", policy_id=f"pol-{u}", venue_id=f"v-{u}",
+            id="slf-1", policy_id="pol-1", venue_id="v-1",
             taxable_premium=Decimal("5650.00"), surplus_lines_tax=Decimal("203.40"),
             stamping_fee=Decimal("8.48"), total_charges=Decimal("211.88"),
             filing_deadline=date(2026, 7, 1),
         )
         d = Declination(
-            id=f"decl-{u}", submission_id=f"sub-{u}",
+            id="decl-1", submission_id="sub-1",
             carrier_name="Acme Admitted", declined_at=date(2026, 5, 1),
             reason="outside appetite",
         )
