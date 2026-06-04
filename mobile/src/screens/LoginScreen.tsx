@@ -191,6 +191,14 @@ export function LoginScreen({ navigation }: Props) {
               <Text style={styles.demoBtnRole}>CARRIER</Text>
               <Text style={styles.demoBtnSub}>Underwriting desk</Text>
             </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.demoBtn, pressed && styles.demoBtnPressed, loading && styles.btnDisabled]}
+              disabled={loading}
+              onPress={() => demoSignIn('staff@elsewhere.com', 'demo123')}
+            >
+              <Text style={styles.demoBtnRole}>FLOOR STAFF</Text>
+              <Text style={styles.demoBtnSub}>Elsewhere Brooklyn</Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -330,9 +338,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: 'SpaceMono_700Bold',
   },
-  demoRow: { flexDirection: 'row', gap: 10 },
+  demoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   demoBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '47%',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(200,240,0,0.2)',
     borderRadius: 10,

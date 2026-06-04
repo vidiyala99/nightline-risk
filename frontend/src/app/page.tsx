@@ -11,6 +11,7 @@ import {
   Target,
   Building2,
   Briefcase,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -19,6 +20,7 @@ const DEMOS: { label: string; email: string; home: string; icon: typeof Building
   { label: "Venue operator", email: "venue@elsewhere.com", home: "/dashboard", icon: Building2 },
   { label: "Broker portfolio", email: "broker@nightline.risk", home: "/dashboard", icon: Briefcase },
   { label: "Carrier desk", email: "underwriter@nightline.risk", home: "/underwriting", icon: Landmark },
+  { label: "Floor staff", email: "staff@elsewhere.com", home: "/report", icon: Users },
 ];
 
 const PILLARS = [
@@ -225,7 +227,7 @@ export default function LandingPage() {
           Step inside the demo.
         </h2>
         <p className="lc-sub" style={{ marginTop: 10, maxWidth: "52ch" }}>
-          One click drops you into the live product as any of the three personas. Real data, no signup.
+          One click drops you into the live product as any persona. Real data, no signup.
         </p>
         {error && (
           <p role="alert" style={{ color: "var(--state-error)", fontSize: "var(--text-sm)", marginTop: "var(--space-sm)" }}>
