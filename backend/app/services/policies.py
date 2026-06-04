@@ -48,6 +48,7 @@ from app.lifecycles import (
     assert_valid_transition,
 )
 from app.models import (
+    Carrier,
     CarrierQuote,
     CertificateOfInsurance,
     Endorsement,
@@ -343,6 +344,13 @@ def bind_quote(
     policy.snapshot_hash = _compute_policy_snapshot_hash(policy)
     session.add(policy)
     session.flush()
+
+    # Step 5b: NY E&S placements require a surplus-lines filing. Created
+    # atomically with the bind (no separate commit). Admitted carriers exempt.
+    carrier = session.get(Carrier, quote.carrier_id)
+    if carrier is not None and carrier.market_type == "e&s":
+        from app.services.surplus_lines import create_filing_for_policy
+        create_filing_for_policy(session, policy, actor_id=bound_by)
 
     # Step 6: emit the audit event.
     _add_audit_event(

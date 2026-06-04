@@ -131,6 +131,65 @@ def test_create_filing_computes_charges_and_deadline():
         assert filing.filing_deadline == pol.bound_at.date() + timedelta(days=45)
 
 
+def test_bind_autocreates_filing_for_es():
+    with Session(engine) as s:
+        pol = _bound_demo_policy(s)  # burns-wilcox is e&s, bound via bind_quote
+        carrier = s.get(Carrier, pol.carrier_id)
+        assert carrier.market_type == "e&s"
+        filing = s.exec(
+            select(SurplusLinesFiling).where(SurplusLinesFiling.policy_id == pol.id)
+        ).first()
+        assert filing is not None  # the bind hook created it
+
+
+def test_bind_no_filing_for_admitted():
+    """An admitted-carrier bind must NOT create a SurplusLinesFiling.
+
+    Self-contained in-memory engine (peer pattern: test_policies_service.py)
+    so it's isolated and rerun-safe. markel-specialty is an admitted carrier.
+    """
+    from sqlmodel import SQLModel as _SQLModel
+    from app.models import Submission, CarrierQuote, UserRecord
+    from app.seed_carriers import seed_broker_platform_data
+    from app.services.policies import bind_quote
+
+    eng = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    _SQLModel.metadata.create_all(eng)
+    with Session(eng) as s:
+        s.add(Venue(id="v-adm", name="Admitted Venue"))
+        s.add(UserRecord(
+            id="u-adm", email="a@x.com", password_hash="x", name="B", role="broker",
+        ))
+        seed_broker_platform_data(s)
+        sub = Submission(
+            id="sub-adm", venue_id="v-adm", effective_date=date(2026, 11, 1),
+            coverage_lines=["gl", "liquor"], status="quoting",
+        )
+        s.add(sub); s.flush()
+        q = CarrierQuote(
+            id="q-adm", submission_id=sub.id, carrier_id="markel-specialty",
+            status="quoted", is_selected=True,
+            premium_breakdown={
+                "subtotal": "5600.00", "total": "5894.84",
+                "fees": {"policy_fee": "150.00"},
+                "commission_rate": "0.15", "commission_amount": "839.23",
+            },
+            coverage_terms={"gl": {"per_occurrence": "1000000"}},
+        )
+        s.add(q); s.commit()
+
+        carrier = s.get(Carrier, "markel-specialty")
+        assert carrier.market_type == "admitted"
+
+        pol = bind_quote(s, "q-adm", bound_by="u-adm")
+        s.commit()
+
+        filing = s.exec(
+            select(SurplusLinesFiling).where(SurplusLinesFiling.policy_id == pol.id)
+        ).first()
+        assert filing is None  # admitted carriers are exempt from SL filing
+
+
 def test_diligent_search_recompute_and_idempotent_create():
     # Isolated throwaway policy (unique ids) so the False->True transition and
     # the idempotent-create check are rerun-safe on the shared database.db
