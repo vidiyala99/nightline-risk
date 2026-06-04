@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Activity, FileText, FileSearch, Building2, Send, FileSpreadsheet, Bell, ListChecks, MapPin, Database, Settings, Inbox, TrendingUp } from 'lucide-react-native';
+import { ChevronRight, Activity, AlertTriangle, CheckSquare, FileText, FileSearch, Building2, FileSpreadsheet, Bell, ListChecks, MapPin, Database, Settings, TrendingUp } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -16,11 +16,11 @@ const OPERATOR_OVERFLOW: Row[] = [
 ];
 
 const BROKER_OVERFLOW: Row[] = [
-  { route: 'WorkQueue', label: 'Work Queue', description: 'Triage claim proposals — decide & file', icon: Inbox },
   { route: 'Book', label: 'Book Financials', description: 'Premium, commission & loss ratio', icon: TrendingUp },
-  { route: 'Tasks', label: 'Tasks', description: 'Renewals & requests needing attention', icon: ListChecks },
-  { route: 'Submissions', label: 'Submissions', description: 'Place venue risk out to carriers', icon: Send },
   { route: 'Policies', label: 'Policies', description: 'Your in-force book', icon: FileSpreadsheet },
+  { route: 'Tasks', label: 'Tasks', description: 'Renewals & requests needing attention', icon: ListChecks },
+  { route: 'IncidentList', label: 'Incidents', description: 'Operator-filed incidents to review', icon: AlertTriangle },
+  { route: 'ComplianceList', label: 'Compliance', description: 'Venue compliance items', icon: CheckSquare },
   { route: 'Venues', label: 'Venues', description: 'Book and prospect venues', icon: Building2 },
   { route: 'Market', label: 'Market', description: 'NYC nightlife prospects & savings', icon: MapPin },
   { route: 'Proposals', label: 'Claim Proposals', description: 'Operator-filed proposals', icon: FileText },

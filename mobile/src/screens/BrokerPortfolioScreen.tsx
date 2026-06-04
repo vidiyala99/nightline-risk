@@ -143,8 +143,8 @@ export function BrokerPortfolioScreen({ navigation }: any) {
 
       <View style={styles.statsRow}>
         <StatCard value={totalVenues} label="TOTAL VENUES" onPress={() => navigation.getParent()?.navigate('Venues')} />
-        <StatCard value={openIncidents} label="OPEN INCIDENTS" tone={openIncidents > 0 ? 'error' : 'default'} onPress={() => navigation.getParent()?.navigate('Incidents')} />
-        <StatCard value={complianceActions} label="COMPLIANCE" tone={complianceActions > 0 ? 'warning' : 'default'} onPress={() => navigation.getParent()?.navigate('Compliance')} />
+        <StatCard value={openIncidents} label="OPEN INCIDENTS" tone={openIncidents > 0 ? 'error' : 'default'} onPress={() => navigation.getParent()?.navigate('More', { screen: 'IncidentList' })} />
+        <StatCard value={complianceActions} label="COMPLIANCE" tone={complianceActions > 0 ? 'warning' : 'default'} onPress={() => navigation.getParent()?.navigate('More', { screen: 'ComplianceList' })} />
       </View>
 
       <View style={styles.actionRow}>

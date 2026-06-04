@@ -9,6 +9,8 @@ import {
   CheckSquare,
   Building2,
   FileSpreadsheet,
+  FileSearch,
+  Inbox,
   Landmark,
   Menu,
 } from 'lucide-react-native';
@@ -22,7 +24,8 @@ import { OperatorComplianceStack } from './OperatorComplianceStack';
 
 // Broker screens
 import { PortfolioStack } from './PortfolioStack';
-import { BrokerComplianceStack } from './BrokerComplianceStack';
+import { WorkQueueStack } from './WorkQueueStack';
+import { SubmissionsStack } from './SubmissionsStack';
 
 // Carrier-side claims — broker-only (Phase 3)
 import { CarrierClaimsStack } from './CarrierClaimsStack';
@@ -47,6 +50,8 @@ type LucideIcon = typeof LayoutDashboard;
 const ICONS: Record<string, LucideIcon> = {
   Dashboard: LayoutDashboard,
   Portfolio: LayoutDashboard,
+  WorkQueue: Inbox,
+  Submissions: FileSearch,
   Incidents: AlertTriangle,
   Compliance: CheckSquare,
   Venues: Building2,
@@ -69,6 +74,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 // home labeled "The Book" to match the web sidebar and bottom nav.
 const TAB_LABELS: Record<string, string> = {
   Portfolio: 'The Book',
+  WorkQueue: 'Work Queue',
   Desk: 'Underwriting',
   Claims: 'Claims',
 };
@@ -148,9 +154,9 @@ function BrokerTabs() {
   return (
     <Tab.Navigator screenOptions={useScreenOptions(signOut)}>
       <Tab.Screen name="Portfolio" component={PortfolioStack} />
-      <Tab.Screen name="Incidents" component={IncidentsStack} />
+      <Tab.Screen name="WorkQueue" component={WorkQueueStack} />
+      <Tab.Screen name="Submissions" component={SubmissionsStack} />
       <Tab.Screen name="Claims" component={CarrierClaimsStack} />
-      <Tab.Screen name="Compliance" component={BrokerComplianceStack} />
       <Tab.Screen name="More" component={BrokerMoreStack} />
     </Tab.Navigator>
   );
