@@ -11,8 +11,8 @@ from app.ingestion.comms.types import CommsClassification
 
 # Tune against app/evals/comms_classifier_eval.py.
 AUTO_CREATE_THRESHOLD: dict[str, float] = {
-    "incident": 0.90,
-    "compliance": 0.85,
+    "incident": 0.75,
+    "compliance": 0.75,
     "noise": 0.75,
 }
 

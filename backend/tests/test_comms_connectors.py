@@ -96,3 +96,23 @@ def test_router_creates_records_per_kind():
     r4 = route(s, CommsItem(external_id="r1", text="someone seemed hurt maybe", **base),
                CommsClassification(kind="incident", confidence=0.5))
     assert r4["action"] == "review" and s.get(CommsReviewItem, r4["review_id"]).status == "pending"
+
+
+# --- Task 5 ---
+def test_run_comms_processes_and_dedupes():
+    from app.ingestion.comms.connector import run_comms
+    s = _mem_session()
+    # seed the FK venue so incident/compliance inserts satisfy it on strict dialects
+    from app.models import Venue
+    s.add(Venue(id="v1", name="v1")); s.commit()
+
+    summary = run_comms("slack", s, venue_ids=["v1"])
+    assert summary["extracted"] == 3                  # 3 sample slack items
+    assert summary["incident"] + summary["compliance"] + summary["noise"] + summary["review"] == 3
+    assert summary["incident"] >= 1 and summary["compliance"] >= 1
+
+    # re-run same window -> created records (incident, compliance) are deduped;
+    # noise leaves no row so it harmlessly re-evaluates. No new records created.
+    again = run_comms("slack", s, venue_ids=["v1"])
+    assert again["incident"] == 0 and again["compliance"] == 0
+    assert again["skipped"] >= 2   # the incident + compliance items
