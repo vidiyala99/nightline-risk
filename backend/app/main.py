@@ -763,6 +763,11 @@ def _packet_to_dict(packet: UnderwritingPacket, session: Session | None = None) 
         open_question_responses = [
             response_to_dict(r) for r in list_responses(session=session, packet_id=packet.id)
         ]
+    # corroboration_flags is a TEXT-migrated JSON column, so on Postgres it can
+    # come back as a JSON string (an `or []` guard wouldn't catch that) — coerce
+    # at the read boundary. The other JSON fields here are real-JSON columns on
+    # fresh tables, which psycopg deserializes correctly (verified against prod).
+    from app.defense_package import _as_list
     return {
         "id": packet.id,
         "venue_id": packet.venue_id,
@@ -778,7 +783,7 @@ def _packet_to_dict(packet: UnderwritingPacket, session: Session | None = None) 
         "snapshot_hash": packet.snapshot_hash,
         "generated_at": packet.generated_at.isoformat(),
         "corroboration_status": packet.corroboration_status,
-        "corroboration_flags": packet.corroboration_flags or [],
+        "corroboration_flags": _as_list(packet.corroboration_flags),
         "claim_recommendation": recommendation_to_dict(recommendation),
         "routing_status": route_status(recommendation),
         "claim_proposal": _claim_proposal_to_dict(latest_proposal) if latest_proposal else None,
