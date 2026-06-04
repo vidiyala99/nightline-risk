@@ -2,7 +2,7 @@
 the API/test owns the transaction."""
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
@@ -34,7 +34,7 @@ def _declination_count(session: Session, submission_id: str) -> int:
 
 def record_declination(
     session: Session, submission_id: str, *, carrier_name: str, reason: str,
-    declined_at, carrier_naic: str | None = None, recorded_by: str | None = None,
+    declined_at: date, carrier_naic: str | None = None, recorded_by: str | None = None,
 ) -> Declination:
     row = Declination(
         id=f"decl-{uuid4().hex[:12]}", submission_id=submission_id,
@@ -87,7 +87,9 @@ def recompute_diligent_search(
     session: Session, filing: SurplusLinesFiling,
 ) -> SurplusLinesFiling:
     pol = session.get(Policy, filing.policy_id)
-    declines = _declination_count(session, pol.submission_id) if pol else 0
+    if pol is None:
+        raise SurplusLinesError(f"Filing {filing.id!r} references unknown policy {filing.policy_id!r}")
+    declines = _declination_count(session, pol.submission_id)
     filing.diligent_search_complete = diligent_search_complete(
         declines, export_list_exempt=filing.export_list_exempt
     )
