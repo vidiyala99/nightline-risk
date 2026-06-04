@@ -180,3 +180,12 @@ def test_invalid_transition_raises():
         s.commit()
         with pytest.raises(InvalidTransitionError):  # pending -> confirmed not allowed
             confirm_filing(s, filing.id, transaction_id="X", actor_id="user_001")
+
+
+def test_void_filing():
+    with Session(engine) as s:
+        pol = _throwaway_es_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        s.commit()
+        voided = void_filing(s, filing.id, reason="duplicate", actor_id="user_001")
+        assert voided.status == "void"

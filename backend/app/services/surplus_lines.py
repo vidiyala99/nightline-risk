@@ -110,8 +110,9 @@ def _get_filing(session: Session, filing_id: str) -> SurplusLinesFiling:
 def _transition_filing(
     session: Session, filing: SurplusLinesFiling, *, to: str, actor_id: str, metadata: dict,
 ) -> None:
+    from_status = filing.status
     assert_valid_transition(
-        SL_FILING_TRANSITIONS, filing.status, to, entity_name="surplus_lines_filing"
+        SL_FILING_TRANSITIONS, from_status, to, entity_name="surplus_lines_filing"
     )
     filing.status = to
     filing.updated_at = now_utc()
@@ -119,7 +120,8 @@ def _transition_filing(
     _add_audit_event(
         session=session, actor_id=actor_id, actor_type="user",
         entity_type="surplus_lines_filing", entity_id=filing.id,
-        event_type=f"surplus_lines_filing.{to}", event_metadata=metadata,
+        event_type=f"surplus_lines_filing.{to}",
+        event_metadata={"from": from_status, "to": to, **metadata},
     )
 
 
