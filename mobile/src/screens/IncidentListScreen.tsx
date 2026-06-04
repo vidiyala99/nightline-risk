@@ -198,6 +198,11 @@ export function IncidentListScreen({ navigation, route }: any) {
             <Text style={styles.summary} numberOfLines={2}>{item.summary}</Text>
             <View style={styles.cardFooter}>
               <StatusBadge status={item.status} />
+              {item.reported_by_staff_id && (
+                <View style={styles.staffPill}>
+                  <Text style={styles.staffPillText}>STAFF</Text>
+                </View>
+              )}
               {claimByIncident[item.id] && (
                 <View style={styles.claimPill}>
                   <Text style={styles.claimPillText}>
@@ -307,6 +312,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,240,0,0.28)',
   },
   claimPillText: { color: Colors.accentInk, fontSize: 10, fontWeight: '700', letterSpacing: 0.4, fontFamily: 'SpaceMono_700Bold' },
+  staffPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+  },
+  staffPillText: { color: Colors.textSecondary, fontSize: 9, fontWeight: '700', letterSpacing: 0.8, fontFamily: 'SpaceMono_700Bold' },
   flag: {
     paddingHorizontal: 7,
     paddingVertical: 3,
