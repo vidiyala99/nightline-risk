@@ -39,6 +39,10 @@ import { AdjustingStack } from './AdjustingStack';
 // More overflow — nested stacks (Live/Proposals/Reports/Venues live here)
 import { OperatorMoreStack, BrokerMoreStack } from './MoreStack';
 
+// Staff persona — floor employees who file reports (reuses ReportIncidentScreen).
+import { ReportIncidentScreen } from '../screens/ReportIncidentScreen';
+import { MyReportsScreen } from '../screens/MyReportsScreen';
+
 // Mobile bottom nav — role-aware primary set capped at 5 (4 destinations + More).
 // Keep in sync with the web bottom nav in
 // frontend/src/components/layout/MobileBottomNav.tsx (same order, icons, labels).
@@ -57,6 +61,8 @@ const ICONS: Record<string, LucideIcon> = {
   Venues: Building2,
   Claims: FileSpreadsheet,
   Desk: Landmark,
+  Report: AlertTriangle,
+  MyReports: FileSpreadsheet,
   More: Menu,
 };
 
@@ -75,6 +81,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 const TAB_LABELS: Record<string, string> = {
   Portfolio: 'The Book',
   WorkQueue: 'Work Queue',
+  MyReports: 'My Reports',
   Desk: 'Underwriting',
   Claims: 'Claims',
 };
@@ -174,10 +181,24 @@ function CarrierTabs() {
   );
 }
 
+// Staff = a venue's floor employee. The most focused persona: file a report,
+// see their own. Reuses ReportIncidentScreen (it posts to user.tenant_id).
+function StaffTabs() {
+  const { signOut } = useAuth();
+  return (
+    <Tab.Navigator screenOptions={useScreenOptions(signOut)}>
+      <Tab.Screen name="Report" component={ReportIncidentScreen} />
+      <Tab.Screen name="MyReports" component={MyReportsScreen} />
+    </Tab.Navigator>
+  );
+}
+
 export function TabNavigator() {
   const { user } = useAuth();
+  const isStaff = user?.role === 'staff';
   const isCarrier = user?.role === 'carrier';
   const isBroker = user?.role === 'broker' || user?.role === 'admin';
+  if (isStaff) return <StaffTabs />;
   if (isCarrier) return <CarrierTabs />;
   return isBroker ? <BrokerTabs /> : <VenueOperatorTabs />;
 }

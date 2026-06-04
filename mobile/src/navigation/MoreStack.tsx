@@ -12,6 +12,7 @@ import { CarrierDetailScreen } from '../screens/CarrierDetailScreen';
 import { VenuesStack } from './VenuesStack';
 import { AlertsScreen } from '../screens/AlertsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { TeamScreen } from '../screens/TeamScreen';
 import { MarketScreen } from '../screens/MarketScreen';
 import { IngestionScreen } from '../screens/IngestionScreen';
 import { BrokerVenueDetailScreen } from '../screens/BrokerVenueDetailScreen';
@@ -36,6 +37,7 @@ export function OperatorMoreStack() {
       <Stack.Screen name="Alerts" component={AlertsScreen} />
       <Stack.Screen name="Live" component={LiveStack} />
       <Stack.Screen name="Venues" component={VenuesStack} />
+      <Stack.Screen name="Team" component={TeamScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
