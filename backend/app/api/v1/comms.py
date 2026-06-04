@@ -19,6 +19,7 @@ router = APIRouter()
 
 class IngestBody(BaseModel):
     source: str = "all"          # slack | tickets | sms | all
+    venue_id: str | None = None  # optional: ingest one venue (default = whole book)
 
 
 class ResolveBody(BaseModel):
@@ -36,7 +37,8 @@ def comms_ingest(
     session: Session = Depends(get_session),
     _: dict = Depends(require_broker),
 ):
-    return run_comms(body.source, session, venue_ids=_all_venue_ids(session))
+    venue_ids = [body.venue_id] if body.venue_id else _all_venue_ids(session)
+    return run_comms(body.source, session, venue_ids=venue_ids)
 
 
 @router.get("/comms/review")

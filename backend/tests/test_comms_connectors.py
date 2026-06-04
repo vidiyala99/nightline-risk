@@ -120,10 +120,21 @@ def test_run_comms_processes_and_dedupes():
 
 # --- Task 6 ---
 import pytest
+from uuid import uuid4
 from fastapi.testclient import TestClient
 from app.auth import create_token
 from app.database import get_session
 from app.main import app
+
+
+def _seed_venue(vid: str) -> None:
+    from app.models import Venue
+    s = next(get_session())
+    try:
+        if s.get(Venue, vid) is None:
+            s.add(Venue(id=vid, name=vid)); s.commit()
+    finally:
+        s.close()
 
 
 @pytest.fixture
@@ -136,25 +147,44 @@ def _broker_h():
     return {"Authorization": f"Bearer {create_token('u-brk-comms', 'b@x.com', 'broker', None)}"}
 
 
-def test_comms_ingest_and_review_resolve(client):
-    # ingest a slack batch for a seeded venue (elsewhere-brooklyn exists in demo seed)
-    r = client.post("/api/comms/ingest", json={"source": "slack"}, headers=_broker_h())
+def test_comms_ingest_scoped_to_venue(client):
+    # Scope to a throwaway venue so seeded venues' compliance/incident state is
+    # untouched (the endpoint would otherwise ingest the whole book and pollute
+    # other tests' fixtures, e.g. nowadays' compliance-signal count).
+    v = f"comms-it-{uuid4().hex[:8]}"
+    _seed_venue(v)
+    r = client.post("/api/comms/ingest", json={"source": "slack", "venue_id": v}, headers=_broker_h())
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["extracted"] >= 1
+    assert body["extracted"] == 3 and body["incident"] >= 1
 
-    # review queue is readable
     rv = client.get("/api/comms/review", headers=_broker_h())
-    assert rv.status_code == 200
-    items = rv.json()
-    assert isinstance(items, list)
+    assert rv.status_code == 200 and isinstance(rv.json(), list)
 
-    # resolving a review item (if any) with dismiss creates nothing
-    if items:
-        rid = items[0]["id"]
-        res = client.post(f"/api/comms/review/{rid}/resolve",
-                          json={"decision": "dismiss"}, headers=_broker_h())
-        assert res.status_code == 200 and res.json()["status"] == "dismissed"
+
+def test_comms_resolve_confirm_creates_incident(client):
+    from app.models import CommsReviewItem, IncidentRecord
+    v = f"comms-rv-{uuid4().hex[:8]}"
+    _seed_venue(v)
+    rid = f"cr-it-{uuid4().hex[:8]}"
+    s = next(get_session())
+    try:
+        s.add(CommsReviewItem(
+            id=rid, venue_id=v, source="slack", external_id="ext-1",
+            raw_text="ambiguous scuffle by the bar", proposed_kind="incident",
+            confidence=0.5, fields={"category": "general"}))
+        s.commit()
+    finally:
+        s.close()
+    res = client.post(f"/api/comms/review/{rid}/resolve",
+                      json={"decision": "confirm"}, headers=_broker_h())
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "confirmed"
+    s2 = next(get_session())
+    try:
+        assert s2.get(IncidentRecord, "inc-comms-slack-ext-1") is not None
+    finally:
+        s2.close()
 
 
 def test_comms_ingest_requires_auth(client):
