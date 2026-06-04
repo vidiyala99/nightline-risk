@@ -532,6 +532,48 @@ class Policy(SQLModel, table=True):
     bound_at: datetime = Field(default_factory=now_utc)
 
 
+class SurplusLinesFiling(SQLModel, table=True):
+    """The NY E&S regulatory filing for one bound E&S Policy: tax + ELANY
+    stamping fee owed, the 45-day filing deadline, and diligent-search status.
+    Lifecycle in app.lifecycles.SL_FILING_TRANSITIONS."""
+    id: str = Field(primary_key=True)                  # "slf-<uuid12>"
+    policy_id: str = Field(foreign_key="policy.id", index=True, unique=True)
+    venue_id: str = Field(foreign_key="venue.id", index=True)
+    state: str = Field(default="NY")
+    status: str = Field(default="pending", index=True)
+
+    taxable_premium: Decimal = Field(sa_column=Column(Numeric(12, 2), nullable=False))
+    surplus_lines_tax: Decimal = Field(sa_column=Column(Numeric(12, 2), nullable=False))
+    stamping_fee: Decimal = Field(sa_column=Column(Numeric(12, 2), nullable=False))
+    total_charges: Decimal = Field(sa_column=Column(Numeric(12, 2), nullable=False))
+
+    filing_deadline: date
+    filed_at: Optional[datetime] = None
+    confirmed_at: Optional[datetime] = None
+
+    diligent_search_complete: bool = False
+    export_list_exempt: bool = False
+    transaction_id: Optional[str] = None               # mock ELANY confirmation
+    documents: dict = Field(default_factory=dict, sa_column=Column(JSON))
+
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
+
+
+class Declination(SQLModel, table=True):
+    """An authorized (admitted) insurer's decline of a Submission. NY §2118
+    requires 3 before placing E&S (unless the coverage is Export-List exempt).
+    Keyed on Submission because diligent search precedes binding."""
+    id: str = Field(primary_key=True)                   # "decl-<uuid12>"
+    submission_id: str = Field(foreign_key="submission.id", index=True)
+    carrier_name: str                                   # free text; admitted carriers aren't in Carrier
+    carrier_naic: Optional[str] = None
+    declined_at: date
+    reason: str
+    recorded_by: Optional[str] = None
+    created_at: datetime = Field(default_factory=now_utc)
+
+
 class Endorsement(SQLModel, table=True):
     """A mid-term policy change. Each change_type has a corresponding
     Pydantic schema in app.schemas.policy that validates terms_diff

@@ -27,3 +27,30 @@ def test_diligent_search_rules():
     assert diligent_search_complete(3, export_list_exempt=False) is True
     assert diligent_search_complete(2, export_list_exempt=False) is False
     assert diligent_search_complete(0, export_list_exempt=True) is True
+
+
+from datetime import date
+
+from sqlmodel import Session
+
+from app.database import engine
+from app.models import Declination, SurplusLinesFiling
+
+
+def test_models_persist():
+    with Session(engine) as s:
+        f = SurplusLinesFiling(
+            id="slf-test-1", policy_id="pol-x", venue_id="v-x",
+            taxable_premium=Decimal("5650.00"), surplus_lines_tax=Decimal("203.40"),
+            stamping_fee=Decimal("8.48"), total_charges=Decimal("211.88"),
+            filing_deadline=date(2026, 7, 1),
+        )
+        d = Declination(
+            id="decl-test-1", submission_id="sub-x",
+            carrier_name="Acme Admitted", declined_at=date(2026, 5, 1),
+            reason="outside appetite",
+        )
+        s.add(f); s.add(d); s.commit()
+        assert f.status == "pending"
+        assert f.diligent_search_complete is False
+        assert d.reason == "outside appetite"
