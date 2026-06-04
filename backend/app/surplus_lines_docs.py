@@ -4,9 +4,13 @@ when a document is actually rendered."""
 from __future__ import annotations
 
 from io import BytesIO
+from xml.sax.saxutils import escape
 
 
 def _render(title: str, lines: list[str]) -> bytes:
+    # reportlab Paragraph parses a mini-XML; escape so free-text fields
+    # (e.g. a declination carrier_name/reason containing '&' or '<') can't
+    # break rendering. These lines carry no intentional markup.
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
@@ -14,9 +18,9 @@ def _render(title: str, lines: list[str]) -> bytes:
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter)
     styles = getSampleStyleSheet()
-    flow = [Paragraph(title, styles["Title"]), Spacer(1, 12)]
+    flow = [Paragraph(escape(title), styles["Title"]), Spacer(1, 12)]
     for ln in lines:
-        flow.append(Paragraph(ln, styles["Normal"]))
+        flow.append(Paragraph(escape(ln), styles["Normal"]))
         flow.append(Spacer(1, 6))
     doc.build(flow)
     return buf.getvalue()
