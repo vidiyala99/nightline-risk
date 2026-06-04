@@ -63,3 +63,36 @@ def test_comms_review_item_roundtrips():
     s.add(row); s.commit()
     got = s.get(CommsReviewItem, "cr-1")
     assert got.status == "pending" and got.proposed_kind == "incident"
+
+
+# --- Task 4 ---
+from app.models import CommsReviewItem, ComplianceSignal, IncidentRecord
+
+
+def test_router_creates_records_per_kind():
+    from app.ingestion.comms.router import route
+    from app.ingestion.comms.types import CommsClassification
+
+    s = _mem_session()
+    base = dict(source="slack", venue_id="v1", occurred_at=datetime(2026, 2, 2, tzinfo=timezone.utc))
+
+    # high-confidence incident -> IncidentRecord
+    r1 = route(s, CommsItem(external_id="i1", text="fight at door", **base),
+               CommsClassification(kind="incident", confidence=0.95, fields={"category": "a_and_b"}))
+    assert r1["action"] == "incident"
+    assert s.get(IncidentRecord, r1["incident_id"]).reported_by_staff_id is None
+
+    # high-confidence compliance -> ComplianceSignal
+    r2 = route(s, CommsItem(external_id="c1", text="extinguisher expired", **base),
+               CommsClassification(kind="compliance", confidence=0.9))
+    assert r2["action"] == "compliance" and s.get(ComplianceSignal, r2["signal_id"]) is not None
+
+    # noise -> dropped
+    r3 = route(s, CommsItem(external_id="n1", text="napkins", **base),
+               CommsClassification(kind="noise", confidence=0.9))
+    assert r3["action"] == "noise"
+
+    # low-confidence -> review item
+    r4 = route(s, CommsItem(external_id="r1", text="someone seemed hurt maybe", **base),
+               CommsClassification(kind="incident", confidence=0.5))
+    assert r4["action"] == "review" and s.get(CommsReviewItem, r4["review_id"]).status == "pending"
