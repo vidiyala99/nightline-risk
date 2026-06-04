@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, Suspense, useState } from "react";
+import { ReactNode, Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -176,6 +176,19 @@ export function AppShell({ children }: AppShellProps) {
   const { signOut, user } = useAuth();
   const role = useRole();
   const tenantId = useTenantId();
+
+  // Staff are a least-privilege persona: their nav only links to Report / My
+  // Reports, but web routes are reachable by direct URL (or a stale one), so the
+  // sidebar alone isn't a guard. Redirect staff off any non-staff route — this
+  // is what stops a staff user from landing on /dashboard, /coverage, etc. and
+  // seeing operator policy info. Mobile is already safe (StaffTabs has no such
+  // screens). Settings stays allowed (it's in their More overflow).
+  useEffect(() => {
+    if (role !== "staff" || !pathname) return;
+    const STAFF_ALLOWED = ["/report", "/my-reports", "/settings"];
+    const allowed = STAFF_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"));
+    if (!allowed) router.replace("/report");
+  }, [role, pathname, router]);
 
   // Each persona gets an explicit "back to home" on every screen except home
   // itself. Focused personas (carrier, staff) keep a single-surface flow, so
