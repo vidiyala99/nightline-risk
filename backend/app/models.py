@@ -362,7 +362,7 @@ class PushSubscription(SQLModel, table=True):
 
 class Carrier(SQLModel, table=True):
     """An insurance company that writes paper. Surplus lines tax is NOT on
-    this table — it's a per-state rate (NY = 3.76%), constant for all E&S
+    this table — it's a per-state rate (NY = 3.6%), constant for all E&S
     carriers writing in that state. See app/underwriting/pricing.py for
     the NY_SURPLUS_LINES_TAX constant; promote to a StateTaxRule table
     when the brokerage expands beyond NY."""

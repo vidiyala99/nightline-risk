@@ -32,11 +32,12 @@ from app.money import cast_money_to_float, pct, usd, usd_to_json
 
 # ─── Constants used by both legacy and broker paths ──────────────────────
 
-# NY surplus lines tax (2024 rate). Per the plan, this is currently a
-# per-state constant pending the StateTaxRule table that arrives when
-# the brokerage expands beyond NY. Applied to E&S quotes only (admitted
-# carriers are exempt).
-NY_SURPLUS_LINES_TAX: Decimal = Decimal("0.0376")
+# NY excess-line premium tax: 3.6% per NY Insurance Law §2118 / NY DFS.
+# Per-state constant pending the StateTaxRule table that arrives when the
+# brokerage expands beyond NY. Applied to E&S quotes only (admitted carriers
+# are exempt). The ELANY stamping fee is a SEPARATE charge and lives in
+# app/underwriting/surplus_lines.py — it is not part of the insured quote.
+NY_SURPLUS_LINES_TAX: Decimal = Decimal("0.036")
 
 # Default policy fee — flat fee per quote. Per-carrier overrides allowed
 # via CARRIER_RATES[carrier_id]["policy_fee"].
@@ -548,7 +549,7 @@ def build_quote_for_carrier(
 
     Each carrier has its own appetite + multiplier on top of the shared
     BASE_RATES — Markel is 1.00x for music venues, Brit is 1.25x. The
-    quote is per-line; subtotal sums them. Surplus lines tax (3.76% in
+    quote is per-line; subtotal sums them. Surplus lines tax (3.6% in
     NY) applies to E&S carriers only.
 
     Inputs:

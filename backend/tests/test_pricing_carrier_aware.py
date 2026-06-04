@@ -4,7 +4,7 @@
 The contract:
   - Per-carrier multipliers stack on top of shared BASE_RATES.
   - Tier multiplier still applies (consistent with legacy single-line path).
-  - Surplus lines tax (3.76%) applies to E&S carriers only.
+  - Surplus lines tax (3.6%) applies to E&S carriers only.
   - Policy fee is per-carrier; default $150 when not overridden.
   - Commission is computed on pre-tax premium (taxes pass-through).
   - to_json_dict() serializes money as STRINGS for safe JSON column storage.
@@ -115,7 +115,7 @@ def test_markel_music_venue_tier_b_baseline():
 
 def test_brit_club_tier_b_with_surplus_lines_tax():
     """Brit (E&S) on a club. Tier B. Brit's venue_mult for club=1.0,
-    line_mult for gl=1.05. Surplus lines tax 3.76% on (subtotal + policy_fee)."""
+    line_mult for gl=1.05. Surplus lines tax 3.6% on (subtotal + policy_fee)."""
     q = build_quote_for_carrier(
         venue=VENUE_CLUB,
         coverage_lines=["gl"],
