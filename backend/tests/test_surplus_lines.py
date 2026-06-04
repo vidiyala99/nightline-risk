@@ -30,6 +30,7 @@ def test_diligent_search_rules():
 
 
 from datetime import date
+from uuid import uuid4
 
 from sqlmodel import Session
 
@@ -38,15 +39,18 @@ from app.models import Declination, SurplusLinesFiling
 
 
 def test_models_persist():
+    # Unique ids per run: policy_id is UNIQUE-constrained and the shared
+    # database.db persists across runs, so fixed PKs collide on re-run.
+    u = uuid4().hex[:8]
     with Session(engine) as s:
         f = SurplusLinesFiling(
-            id="slf-test-1", policy_id="pol-x", venue_id="v-x",
+            id=f"slf-{u}", policy_id=f"pol-{u}", venue_id=f"v-{u}",
             taxable_premium=Decimal("5650.00"), surplus_lines_tax=Decimal("203.40"),
             stamping_fee=Decimal("8.48"), total_charges=Decimal("211.88"),
             filing_deadline=date(2026, 7, 1),
         )
         d = Declination(
-            id="decl-test-1", submission_id="sub-x",
+            id=f"decl-{u}", submission_id=f"sub-{u}",
             carrier_name="Acme Admitted", declined_at=date(2026, 5, 1),
             reason="outside appetite",
         )
