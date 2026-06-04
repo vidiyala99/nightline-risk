@@ -223,6 +223,22 @@ COMPLIANCE_SIGNAL_TERMINAL_STATES: frozenset[str] = frozenset(
 # treat any status as a dead end.
 
 
+# ─── SurplusLinesFiling lifecycle ────────────────────────────────────────
+
+SurplusLinesFilingStatus = Literal["pending", "filed", "confirmed", "void"]
+
+SL_FILING_TRANSITIONS: dict[str, set[str]] = {
+    "pending":   {"filed", "void"},
+    "filed":     {"confirmed", "void"},
+    "confirmed": {"void"},   # void allowed for corrections; otherwise terminal
+    "void":      set(),
+}
+
+SL_FILING_TERMINAL_STATES: frozenset[str] = frozenset(
+    s for s, nexts in SL_FILING_TRANSITIONS.items() if not nexts
+)
+
+
 # ─── Errors ──────────────────────────────────────────────────────────────
 
 class InvalidTransitionError(ValueError):
