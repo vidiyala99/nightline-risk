@@ -42,3 +42,24 @@ def test_gate_routes_by_confidence():
 def test_eval_scorer_meets_threshold():
     report = score_classifier()
     assert report["accuracy"] >= 0.9
+
+
+# --- Task 3 ---
+from sqlmodel import Session, SQLModel, create_engine
+
+
+def _mem_session() -> Session:
+    eng = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(eng)
+    return Session(eng)
+
+
+def test_comms_review_item_roundtrips():
+    from app.models import CommsReviewItem
+    s = _mem_session()
+    row = CommsReviewItem(id="cr-1", venue_id="v1", source="slack", external_id="x1",
+                          raw_text="ambiguous thing", proposed_kind="incident",
+                          confidence=0.5, fields={"category": "general"})
+    s.add(row); s.commit()
+    got = s.get(CommsReviewItem, "cr-1")
+    assert got.status == "pending" and got.proposed_kind == "incident"

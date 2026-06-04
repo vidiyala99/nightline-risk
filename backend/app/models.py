@@ -783,3 +783,24 @@ class IngestionRun(SQLModel, table=True):
     rejected_reasons: Optional[str] = None              # JSON {reason_code: count}, explains `rejected`
     watermark: Optional[datetime] = None                # max occurred_at after this run
     error: Optional[str] = None
+
+
+class CommsReviewItem(SQLModel, table=True):
+    """A comms item the classifier was not confident enough to auto-route, or
+    that errored — parked for a human to confirm/correct/dismiss. Fresh table
+    (created by create_all, no migration line needed)."""
+    id: str = Field(primary_key=True)
+    venue_id: str = Field(foreign_key="venue.id", index=True)
+    source: str
+    external_id: str = Field(index=True)
+    raw_text: str
+    author: Optional[str] = Field(default=None)
+    occurred_at: datetime = Field(default_factory=now_utc)
+    proposed_kind: str
+    confidence: float
+    rationale: Optional[str] = Field(default=None)
+    fields: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    status: str = Field(default="pending")   # pending | confirmed | corrected | dismissed
+    resolved_by: Optional[str] = Field(default=None)
+    resolved_kind: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=now_utc)
