@@ -35,7 +35,7 @@ from app.money import cast_money_to_float, pct, usd, usd_to_json
 # NY excess-line premium tax: 3.6% per NY Insurance Law §2118 / NY DFS.
 # Per-state constant pending the StateTaxRule table that arrives when the
 # brokerage expands beyond NY. Applied to E&S quotes only (admitted carriers
-# are exempt). The ELANY stamping fee is a SEPARATE charge and lives in
+# are exempt). The ELANY stamping fee is a SEPARATE charge and will live in
 # app/underwriting/surplus_lines.py — it is not part of the insured quote.
 NY_SURPLUS_LINES_TAX: Decimal = Decimal("0.036")
 
