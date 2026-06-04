@@ -1,16 +1,23 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 
+from app.database import engine
 from app.lifecycles import (
     InvalidTransitionError,
     SL_FILING_TERMINAL_STATES,
     SL_FILING_TRANSITIONS,
     assert_valid_transition,
 )
-from app.models import Declination, SurplusLinesFiling
+from app.models import Declination, Policy, SurplusLinesFiling
+from app.services.surplus_lines import (
+    SurplusLinesError,
+    create_filing_for_policy,
+    record_declination,
+    recompute_diligent_search,
+)
 from app.underwriting.pricing import NY_SURPLUS_LINES_TAX
 from app.underwriting.surplus_lines import (
     NY_STAMPING_FEE,
@@ -18,6 +25,7 @@ from app.underwriting.surplus_lines import (
     compute_sl_charges,
     diligent_search_complete,
 )
+from scripts.seed_demo_placements import seed as seed_placements
 
 
 def test_tax_rate_is_corrected():
@@ -72,3 +80,46 @@ def test_filing_lifecycle_matrix():
     assert_valid_transition(SL_FILING_TRANSITIONS, "pending", "filed", entity_name="filing")
     with pytest.raises(InvalidTransitionError):
         assert_valid_transition(SL_FILING_TRANSITIONS, "pending", "confirmed", entity_name="filing")
+
+
+def _bound_demo_policy(session):
+    """Seed the demo placements and return the bound E&S policy (BW-DEMO)."""
+    seed_placements(session)
+    session.commit()
+    return session.exec(
+        select(Policy).where(Policy.policy_number == "BW-DEMO-2026-0001")
+    ).first()
+
+
+def test_create_filing_computes_charges_and_deadline():
+    with Session(engine) as s:
+        pol = _bound_demo_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        s.commit()
+        bd = pol.terms_snapshot["premium_breakdown"]
+        base = Decimal(bd["subtotal"]) + Decimal(bd["fees"]["policy_fee"])
+        assert filing.taxable_premium == base
+        # reconciles with the quote engine's own tax (same 0.036, same base)
+        assert filing.surplus_lines_tax == Decimal(bd["fees"]["surplus_lines_tax"])
+        assert filing.stamping_fee == (base * Decimal("0.0015")).quantize(Decimal("0.01"))
+        assert filing.filing_deadline == pol.bound_at.date() + timedelta(days=45)
+
+
+def test_diligent_search_recompute_and_idempotent_create():
+    with Session(engine) as s:
+        pol = _bound_demo_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        s.commit()
+        assert filing.diligent_search_complete is False
+        for i in range(3):
+            record_declination(
+                s, pol.submission_id, carrier_name=f"Admitted {i}",
+                reason="outside appetite", declined_at=pol.effective_date,
+            )
+        s.commit()
+        recompute_diligent_search(s, filing)
+        s.commit()
+        assert filing.diligent_search_complete is True
+        # idempotent: re-create returns the same filing, doesn't duplicate
+        again = create_filing_for_policy(s, pol, actor_id="user_001")
+        assert again.id == filing.id
