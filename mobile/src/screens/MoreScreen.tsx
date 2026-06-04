@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Activity, AlertTriangle, CheckSquare, FileText, FileSearch, Building2, FileSpreadsheet, Bell, ListChecks, MapPin, Database, Settings, TrendingUp, Users } from 'lucide-react-native';
+import { ChevronRight, Activity, AlertTriangle, CheckSquare, FileText, FileSearch, Building2, FileSpreadsheet, Bell, ListChecks, MapPin, Database, Settings, TrendingUp, Users, Inbox } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,6 +13,7 @@ const OPERATOR_OVERFLOW: Row[] = [
   { route: 'Live', label: 'Live Terminal', description: 'Real-time venue floor activity', icon: Activity },
   { route: 'Venues', label: 'Venues', description: 'Your venue profile & roster', icon: Building2 },
   { route: 'Team', label: 'Floor Team', description: 'Staff logins for incident reporting', icon: Users },
+  { route: 'CommsReview', label: 'Review Queue', description: 'Triage low-confidence comms signals', icon: Inbox },
   { route: 'Settings', label: 'Settings', description: 'Account and preferences', icon: Settings },
 ];
 
@@ -27,6 +28,7 @@ const BROKER_OVERFLOW: Row[] = [
   { route: 'Proposals', label: 'Claim Proposals', description: 'Operator-filed proposals', icon: FileText },
   { route: 'Reports', label: 'Reports', description: 'Underwriting and loss reports', icon: FileSearch },
   { route: 'Ingestion', label: 'Ingestion', description: 'Operational-data connector runs', icon: Database },
+  { route: 'CommsReview', label: 'Review Queue', description: 'Triage low-confidence comms signals', icon: Inbox },
   { route: 'Settings', label: 'Settings', description: 'Account and preferences', icon: Settings },
 ];
 

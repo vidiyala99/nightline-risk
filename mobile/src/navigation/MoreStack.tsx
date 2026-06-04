@@ -23,6 +23,7 @@ import { IncidentDetailScreen } from '../screens/IncidentDetailScreen';
 import { ReportIncidentScreen } from '../screens/ReportIncidentScreen';
 import { BrokerComplianceScreen } from '../screens/BrokerComplianceScreen';
 import { LossRunScreen } from '../screens/LossRunScreen';
+import { CommsReviewScreen } from '../screens/CommsReviewScreen';
 
 // Overflow destinations live under the "More" tab as a nested stack rather than
 // as hidden tabs — a hidden tab still reserves its flex slot and leaves dead
@@ -38,6 +39,7 @@ export function OperatorMoreStack() {
       <Stack.Screen name="Live" component={LiveStack} />
       <Stack.Screen name="Venues" component={VenuesStack} />
       <Stack.Screen name="Team" component={TeamScreen} />
+      <Stack.Screen name="CommsReview" component={CommsReviewScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
@@ -69,6 +71,7 @@ export function BrokerMoreStack() {
       <Stack.Screen name="ReportIncident" component={ReportIncidentScreen} />
       <Stack.Screen name="ComplianceList" component={BrokerComplianceScreen} />
       <Stack.Screen name="Ingestion" component={IngestionScreen} />
+      <Stack.Screen name="CommsReview" component={CommsReviewScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
