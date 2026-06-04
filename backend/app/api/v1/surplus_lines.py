@@ -1,6 +1,5 @@
-"""Surplus-lines compliance HTTP surface. Broker-wide; operators scoped to
-their own venue. Error mapping: SurplusLinesError -> 400,
-InvalidTransitionError -> 422."""
+"""Surplus-lines compliance HTTP surface. Broker-only (a back-office filing
+desk). Error mapping: SurplusLinesError -> 400, InvalidTransitionError -> 422."""
 from __future__ import annotations
 
 from typing import NoReturn
@@ -53,6 +52,17 @@ def _map_error(exc: Exception) -> NoReturn:
     raise exc
 
 
+def _doc_map(filing: SurplusLinesFiling) -> dict:
+    """Coerce the documents JSON column to a dict. Column(JSON) round-trips as a
+    dict on SQLite but can surface as a JSON string on Postgres; coerce at the
+    read boundary (the standing Neon JSON-string guard)."""
+    docs = filing.documents
+    if isinstance(docs, str):
+        import json
+        docs = json.loads(docs) if docs else {}
+    return docs or {}
+
+
 def _filing_json(f: SurplusLinesFiling) -> dict:
     return {
         "id": f.id, "policy_id": f.policy_id, "venue_id": f.venue_id,
@@ -65,7 +75,7 @@ def _filing_json(f: SurplusLinesFiling) -> dict:
         "diligent_search_complete": f.diligent_search_complete,
         "export_list_exempt": f.export_list_exempt,
         "transaction_id": f.transaction_id,
-        "documents": list((f.documents or {}).keys()),
+        "documents": list(_doc_map(f).keys()),
     }
 
 
@@ -154,8 +164,9 @@ def get_document(
     _: dict = Depends(require_broker),
 ):
     f = session.get(SurplusLinesFiling, filing_id)
-    if f is None or kind not in (f.documents or {}):
+    docs = _doc_map(f) if f is not None else {}
+    if f is None or kind not in docs:
         raise HTTPException(status_code=404, detail="Document not found")
     from app.storage import get_storage
-    data = get_storage().read(f.documents[kind])
+    data = get_storage().read(docs[kind])
     return Response(content=data, media_type="application/pdf")

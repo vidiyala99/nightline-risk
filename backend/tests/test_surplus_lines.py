@@ -333,6 +333,25 @@ def test_api_list_file_confirm_flow():
     assert r.json()["status"] == "confirmed"
 
 
+def test_doc_map_coerces_json_string():
+    # Guards the Neon JSON-string class: Column(JSON) can surface as a string
+    # on Postgres. _doc_map must coerce string -> dict (and pass dict/None through).
+    from app.api.v1.surplus_lines import _doc_map
+
+    class _F:
+        documents = '{"affidavit": "p1"}'
+
+    class _G:
+        documents = {"tax_statement": "p2"}
+
+    class _H:
+        documents = None
+
+    assert _doc_map(_F()) == {"affidavit": "p1"}
+    assert _doc_map(_G()) == {"tax_statement": "p2"}
+    assert _doc_map(_H()) == {}
+
+
 def test_api_file_guard_returns_400():
     with Session(engine) as s:
         pol = _throwaway_es_policy(s)
