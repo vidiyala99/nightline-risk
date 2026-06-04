@@ -116,3 +116,46 @@ def test_run_comms_processes_and_dedupes():
     again = run_comms("slack", s, venue_ids=["v1"])
     assert again["incident"] == 0 and again["compliance"] == 0
     assert again["skipped"] >= 2   # the incident + compliance items
+
+
+# --- Task 6 ---
+import pytest
+from fastapi.testclient import TestClient
+from app.auth import create_token
+from app.database import get_session
+from app.main import app
+
+
+@pytest.fixture
+def client():
+    with TestClient(app) as c:
+        yield c
+
+
+def _broker_h():
+    return {"Authorization": f"Bearer {create_token('u-brk-comms', 'b@x.com', 'broker', None)}"}
+
+
+def test_comms_ingest_and_review_resolve(client):
+    # ingest a slack batch for a seeded venue (elsewhere-brooklyn exists in demo seed)
+    r = client.post("/api/comms/ingest", json={"source": "slack"}, headers=_broker_h())
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["extracted"] >= 1
+
+    # review queue is readable
+    rv = client.get("/api/comms/review", headers=_broker_h())
+    assert rv.status_code == 200
+    items = rv.json()
+    assert isinstance(items, list)
+
+    # resolving a review item (if any) with dismiss creates nothing
+    if items:
+        rid = items[0]["id"]
+        res = client.post(f"/api/comms/review/{rid}/resolve",
+                          json={"decision": "dismiss"}, headers=_broker_h())
+        assert res.status_code == 200 and res.json()["status"] == "dismissed"
+
+
+def test_comms_ingest_requires_auth(client):
+    assert client.post("/api/comms/ingest", json={"source": "slack"}).status_code == 401
