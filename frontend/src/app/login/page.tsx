@@ -218,6 +218,15 @@ export default function LoginPage() {
               >
                 Carrier desk <ArrowRight size={13} />
               </button>
+              <button
+                type="button"
+                className="lc-login__demo-btn"
+                data-tone="lime"
+                disabled={loading}
+                onClick={() => performSignIn({ email: "staff@elsewhere.com", password: "demo123" })}
+              >
+                Floor staff <ArrowRight size={13} />
+              </button>
             </div>
           </div>
         </div>

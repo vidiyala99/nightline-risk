@@ -54,6 +54,17 @@ DEMO_USERS = [
         "tenant_id": None,
         "password": "demo123",
     },
+    {
+        # Staff persona — a venue's floor employee (role="staff"), scoped to one
+        # venue. Normally provisioned by an operator via Floor Team; this demo
+        # account skips that so the staff view is one tap to reach.
+        "id": "user_004",
+        "email": "staff@elsewhere.com",
+        "name": "Dana Ruiz",
+        "role": "staff",
+        "tenant_id": "elsewhere-brooklyn",
+        "password": "demo123",
+    },
 ]
 
 USER_COUNTER = len(DEMO_USERS) + 1
