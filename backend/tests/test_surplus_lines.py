@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 from sqlmodel import Session, SQLModel, create_engine, select
@@ -106,11 +107,24 @@ def test_create_filing_computes_charges_and_deadline():
 
 
 def test_diligent_search_recompute_and_idempotent_create():
+    # Isolated throwaway policy (unique ids) so the False->True transition and
+    # the idempotent-create check are rerun-safe on the shared database.db
+    # (the seeded BW-DEMO filing would carry state across runs).
+    u = uuid4().hex[:8]
     with Session(engine) as s:
-        pol = _bound_demo_policy(s)
+        pol = Policy(
+            id=f"pol-sl-{u}", submission_id=f"sub-sl-{u}", bound_quote_id=f"q-sl-{u}",
+            venue_id=f"v-sl-{u}", carrier_id="burns-wilcox",
+            effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
+            annual_premium=Decimal("1000.00"), commission_amount=Decimal("120.00"),
+            commission_rate=Decimal("0.12"),
+            terms_snapshot={"premium_breakdown": {"subtotal": "1000.00", "fees": {"policy_fee": "150.00"}}},
+        )
+        s.add(pol)
+        s.commit()
         filing = create_filing_for_policy(s, pol, actor_id="user_001")
         s.commit()
-        assert filing.diligent_search_complete is False
+        assert filing.diligent_search_complete is False  # fresh policy: 0 declinations
         for i in range(3):
             record_declination(
                 s, pol.submission_id, carrier_name=f"Admitted {i}",
