@@ -40,6 +40,10 @@ const OPERATOR_OVERFLOW: Row[] = [
   { href: "/settings",        label: "Settings",        description: "Account and preferences",          icon: Settings },
 ];
 
+const STAFF_OVERFLOW: Row[] = [
+  { href: "/settings",        label: "Settings",        description: "Account and preferences",          icon: Settings },
+];
+
 const BROKER_OVERFLOW: Row[] = [
   { href: "/book",            label: "Book Financials", description: "Premium, commission & loss ratio",       icon: TrendingUp },
   { href: "/policies",        label: "Policies",        description: "Your in-force book",                     icon: FileSpreadsheet },
@@ -58,7 +62,8 @@ export function MobileMoreSheet({ open, onClose }: { open: boolean; onClose: () 
   const role = useRole();
   const { signOut, user } = useAuth();
   const isBroker = role === "broker" || role === "admin";
-  const rows = isBroker ? BROKER_OVERFLOW : OPERATOR_OVERFLOW;
+  const isStaff = role === "staff";
+  const rows = isStaff ? STAFF_OVERFLOW : isBroker ? BROKER_OVERFLOW : OPERATOR_OVERFLOW;
 
   // Lock body scroll while open
   useEffect(() => {
@@ -79,7 +84,7 @@ export function MobileMoreSheet({ open, onClose }: { open: boolean; onClose: () 
             <span className="mobile-more-sheet__eyebrow">NAVIGATION</span>
             <h2 className="mobile-more-sheet__title">More</h2>
             {user?.name && (
-              <span className="mobile-more-sheet__who">{user.name} · {isBroker ? "BROKER" : "OPERATOR"}</span>
+              <span className="mobile-more-sheet__who">{user.name} · {isBroker ? "BROKER" : isStaff ? "STAFF" : "OPERATOR"}</span>
             )}
           </div>
           <button className="mobile-more-sheet__close" onClick={onClose} aria-label="Close">

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, roleHome, type UserRole } from "@/contexts/AuthContext";
 import { accountApi } from "@/lib/account";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -26,8 +26,8 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await signIn(creds.email, creds.password);
-      router.replace("/dashboard");
+      const u = await signIn(creds.email, creds.password);
+      router.replace(roleHome(u.role));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Request failed";
       setError(message);
@@ -65,7 +65,7 @@ export default function LoginPage() {
         if (!response.ok) throw new Error(data.detail || "Registration failed");
         localStorage.setItem("auth_token", data.access_token);
         toastSuccess("Account created successfully!");
-        router.replace("/dashboard");
+        router.replace(roleHome(role as UserRole));
       } catch (err) {
         const message = err instanceof Error ? err.message : "Request failed";
         setError(message);

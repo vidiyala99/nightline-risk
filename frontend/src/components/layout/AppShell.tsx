@@ -18,8 +18,9 @@ import {
   Inbox,
   Database,
   TrendingUp,
+  Users,
 } from "lucide-react";
-import { useAuth, useRole, useTenantId } from "@/contexts/AuthContext";
+import { useAuth, useRole, useTenantId, roleHome } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { MobileMoreSheet } from "@/components/layout/MobileMoreSheet";
@@ -65,8 +66,18 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
   // Carrier = Nightline's own underwriting desk. A focused persona: the desk is
   // their home. They don't see the broker/operator shells.
   const isCarrierNav = role === "carrier";
+  // Staff = a venue's floor employee. The most focused persona: file a report,
+  // see their own. No dashboard/claims/other-venue surfaces.
+  const isStaffNav = role === "staff";
 
-  const groups: Group[] = (isCarrierNav
+  const groups: Group[] = (isStaffNav
+    ? [
+        { label: "", items: [
+          { href: "/report", label: "Report Incident", icon: AlertTriangle },
+          { href: "/my-reports", label: "My Reports", icon: FileSpreadsheet },
+        ] },
+      ]
+    : isCarrierNav
     ? [
         { label: "", items: [
           { href: "/underwriting", label: "Underwriting Desk", icon: Inbox },
@@ -106,6 +117,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
           { href: "/claims", label: "Claims", icon: FileSpreadsheet },
           { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
           { href: "/coverage", label: "Coverage", icon: ShieldCheck },
+          { href: "/team", label: "Floor Team", icon: Users },
         ] },
         { label: "System", items: [
           { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
@@ -165,10 +177,12 @@ export function AppShell({ children }: AppShellProps) {
   const role = useRole();
   const tenantId = useTenantId();
 
-  // Both personas get an explicit "back to home" on every screen except home
-  // itself. Carriers home to /underwriting; operators and brokers to /dashboard.
-  const homeHref = role === "carrier" ? "/underwriting" : "/dashboard";
-  const showBackHome = !!pathname && pathname !== homeHref && role !== "carrier";
+  // Each persona gets an explicit "back to home" on every screen except home
+  // itself. Focused personas (carrier, staff) keep a single-surface flow, so
+  // they skip the back-home affordance.
+  const homeHref = roleHome(role);
+  const showBackHome =
+    !!pathname && pathname !== homeHref && role !== "carrier" && role !== "staff";
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   // Breakpoint gating. SSR + first paint render as "full" sidebar.

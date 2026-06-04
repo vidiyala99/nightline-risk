@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-export type UserRole = "broker" | "venue_operator" | "carrier" | "admin";
+export type UserRole = "broker" | "venue_operator" | "carrier" | "admin" | "staff";
+
+/** Where each persona lands after auth. Staff are a focused persona — their
+ *  home is the report screen. Keep in sync with AppShell's homeHref. */
+export function roleHome(role: UserRole | null): string {
+  if (role === "carrier") return "/underwriting";
+  if (role === "staff") return "/report";
+  return "/dashboard";
+}
 
 export interface User {
   id: string;
@@ -22,7 +30,7 @@ interface AuthContextType {
   isSignedIn: boolean;
   role: UserRole | null;
   tenantId: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<User>;
   signOut: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -86,7 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Login failed");
     localStorage.setItem("auth_token", data.access_token);
-    setUser(normalizeUser(data.user));
+    const u = normalizeUser(data.user);
+    setUser(u);
+    return u;
   }
 
   function signOut() {

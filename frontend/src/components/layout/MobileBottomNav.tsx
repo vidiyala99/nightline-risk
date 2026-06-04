@@ -35,6 +35,11 @@ const OPERATOR_PRIMARY: PrimaryItem[] = [
 // restructure (new WorkQueue/Submissions tab stacks + relocating the
 // getParent().navigate('Incidents'/'Compliance') calls) and an Expo smoke-test,
 // so it's intentionally pending rather than shipped unverified.
+const STAFF_PRIMARY: PrimaryItem[] = [
+  { key: "report",     href: "/report",      label: "Report",     icon: AlertTriangle },
+  { key: "my-reports", href: "/my-reports",  label: "My Reports", icon: FileSpreadsheet },
+];
+
 const BROKER_PRIMARY: PrimaryItem[] = [
   { key: "dashboard",   href: "/dashboard",   label: "The Book",    icon: LayoutDashboard },
   { key: "work-queue",  href: "/work-queue",  label: "Work Queue",  icon: Inbox },
@@ -48,7 +53,12 @@ export function MobileBottomNav({ onMore }: { onMore: () => void }) {
   const tenantId = useTenantId();
   const role = useRole();
 
-  const primary = role === "broker" || role === "admin" ? BROKER_PRIMARY : OPERATOR_PRIMARY;
+  const primary =
+    role === "staff"
+      ? STAFF_PRIMARY
+      : role === "broker" || role === "admin"
+        ? BROKER_PRIMARY
+        : OPERATOR_PRIMARY;
 
   // Claim-journey screens (decision + claim-status) live under /incidents/* but
   // belong to Claims — mirror AppShell so the tab bar lights Claims (not
