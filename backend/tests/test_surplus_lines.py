@@ -5,8 +5,9 @@ import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.lifecycles import (
-    SL_FILING_TRANSITIONS,
     InvalidTransitionError,
+    SL_FILING_TERMINAL_STATES,
+    SL_FILING_TRANSITIONS,
     assert_valid_transition,
 )
 from app.models import Declination, SurplusLinesFiling
@@ -65,7 +66,9 @@ def test_models_persist():
 def test_filing_lifecycle_matrix():
     assert SL_FILING_TRANSITIONS["pending"] == {"filed", "void"}
     assert SL_FILING_TRANSITIONS["filed"] == {"confirmed", "void"}
+    assert SL_FILING_TRANSITIONS["confirmed"] == {"void"}
     assert SL_FILING_TRANSITIONS["void"] == set()
+    assert SL_FILING_TERMINAL_STATES == frozenset({"void"})
     assert_valid_transition(SL_FILING_TRANSITIONS, "pending", "filed", entity_name="filing")
     with pytest.raises(InvalidTransitionError):
         assert_valid_transition(SL_FILING_TRANSITIONS, "pending", "confirmed", entity_name="filing")
