@@ -25,14 +25,14 @@ def _deterministic(item: CommsItem) -> CommsClassification:
     if inc and inc >= comp:
         return CommsClassification(
             kind="incident",
-            confidence=min(0.7 + 0.1 * inc, 0.99),
+            confidence=round(min(0.7 + 0.1 * inc, 0.99), 10),
             fields={"category": "a_and_b" if any(k in t for k in _AB_KW) else "general"},
             rationale=f"matched {inc} incident cue(s)",
         )
     if comp:
         return CommsClassification(
             kind="compliance",
-            confidence=min(0.7 + 0.1 * comp, 0.99),
+            confidence=round(min(0.7 + 0.1 * comp, 0.99), 10),
             fields={"compliance_type": "facility"},
             rationale=f"matched {comp} compliance cue(s)",
         )

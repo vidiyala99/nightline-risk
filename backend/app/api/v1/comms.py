@@ -34,7 +34,7 @@ def _all_venue_ids(session: Session) -> list[str]:
 def comms_ingest(
     body: IngestBody,
     session: Session = Depends(get_session),
-    user: dict = Depends(require_broker),
+    _: dict = Depends(require_broker),
 ):
     return run_comms(body.source, session, venue_ids=_all_venue_ids(session))
 

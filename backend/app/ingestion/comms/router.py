@@ -11,7 +11,6 @@ from app.ingestion.comms.gate import decide
 from app.ingestion.comms.types import CommsClassification, CommsItem
 from app.models import CommsReviewItem, ComplianceSignal, IncidentRecord
 from app.packet_core import _add_audit_event
-from app.time import now_utc
 
 
 def _create_incident(session: Session, item: CommsItem, c: CommsClassification) -> IncidentRecord:

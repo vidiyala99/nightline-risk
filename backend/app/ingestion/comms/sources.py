@@ -17,9 +17,11 @@ from app.time import now_utc
 # (text, expected_kind) — expected_kind doubles as the eval label set (Task 2).
 SAMPLE_FEED: dict[str, list[tuple[str, str]]] = {
     "slack": [
-        ("Two patrons throwing punches at the front door, security broke it up", "incident"),
+        # 2 incident cues (punch + cops) → confidence 0.90 → clears AUTO_CREATE_THRESHOLD
+        ("Two patrons throwing punches at the front door, cops called", "incident"),
         ("Can someone restock the bar napkins before doors", "noise"),
-        ("Exit sign by stairwell B is out again", "compliance"),
+        # 2 compliance cues (exit sign + blocked) → confidence 0.90 → clears AUTO_CREATE_THRESHOLD
+        ("Exit sign by stairwell B is out and the path is blocked", "compliance"),
     ],
     "tickets": [
         ("Guest slipped on a spilled drink near booth 4, EMS was called", "incident"),
@@ -29,7 +31,8 @@ SAMPLE_FEED: dict[str, list[tuple[str, str]]] = {
     "sms": [
         ("Fight outside, cops on the way", "incident"),
         ("Running 10 min late for my shift", "noise"),
-        ("First aid kit is empty", "compliance"),
+        # 2 compliance cues (first aid + expired) → confidence 0.90
+        ("First aid kit is empty and the permit expired", "compliance"),
     ],
 }
 
