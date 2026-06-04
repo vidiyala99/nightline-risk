@@ -167,10 +167,11 @@ def test_comms_resolve_confirm_creates_incident(client):
     v = f"comms-rv-{uuid4().hex[:8]}"
     _seed_venue(v)
     rid = f"cr-it-{uuid4().hex[:8]}"
+    ext = f"ext-{uuid4().hex[:8]}"   # unique so the deterministic incident id can't collide across runs
     s = next(get_session())
     try:
         s.add(CommsReviewItem(
-            id=rid, venue_id=v, source="slack", external_id="ext-1",
+            id=rid, venue_id=v, source="slack", external_id=ext,
             raw_text="ambiguous scuffle by the bar", proposed_kind="incident",
             confidence=0.5, fields={"category": "general"}))
         s.commit()
@@ -182,7 +183,7 @@ def test_comms_resolve_confirm_creates_incident(client):
     assert res.json()["status"] == "confirmed"
     s2 = next(get_session())
     try:
-        assert s2.get(IncidentRecord, "inc-comms-slack-ext-1") is not None
+        assert s2.get(IncidentRecord, f"inc-comms-slack-{ext}") is not None
     finally:
         s2.close()
 
