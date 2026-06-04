@@ -12,7 +12,12 @@ from app.lifecycles import (
     SL_FILING_TRANSITIONS,
     assert_valid_transition,
 )
-from app.models import Declination, Policy, SurplusLinesFiling
+from app.models import Carrier, Declination, Policy, SurplusLinesFiling, Venue
+from app.surplus_lines_docs import (
+    render_diligent_search_affidavit,
+    render_nonadmitted_disclosure,
+    render_sl_tax_statement,
+)
 from app.services.surplus_lines import (
     SurplusLinesError,
     confirm_filing,
@@ -189,3 +194,19 @@ def test_void_filing():
         s.commit()
         voided = void_filing(s, filing.id, reason="duplicate", actor_id="user_001")
         assert voided.status == "void"
+
+
+def test_document_renderers_return_pdf_bytes():
+    with Session(engine) as s:
+        pol = _bound_demo_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        s.commit()
+        venue = s.get(Venue, pol.venue_id)
+        carrier = s.get(Carrier, pol.carrier_id)
+        decls = []
+        for kind, pdf in [
+            ("affidavit", render_diligent_search_affidavit(filing, decls, venue)),
+            ("tax_statement", render_sl_tax_statement(filing, pol, venue)),
+            ("disclosure", render_nonadmitted_disclosure(filing, pol, venue, carrier)),
+        ]:
+            assert isinstance(pdf, bytes) and pdf[:4] == b"%PDF", kind
