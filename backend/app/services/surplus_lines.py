@@ -190,3 +190,21 @@ def void_filing(session: Session, filing_id: str, *, reason: str, actor_id: str)
                        metadata={"reason": reason})
     session.flush()
     return filing
+
+
+def filings_needing_attention(session: Session) -> list[dict]:
+    """Pending/unfiled filings, or filings past their deadline. Derived read."""
+    today = now_utc().date()
+    out: list[dict] = []
+    for f in session.exec(
+        select(SurplusLinesFiling).where(SurplusLinesFiling.status.in_(("pending", "filed")))  # type: ignore[attr-defined]
+    ).all():
+        overdue = f.status != "confirmed" and f.filing_deadline < today
+        if f.status == "pending" or overdue:
+            out.append({
+                "filing_id": f.id, "policy_id": f.policy_id, "venue_id": f.venue_id,
+                "status": f.status, "filing_deadline": f.filing_deadline.isoformat(),
+                "overdue": overdue,
+                "diligent_search_complete": f.diligent_search_complete,
+            })
+    return out

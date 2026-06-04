@@ -23,6 +23,7 @@ from app.services.surplus_lines import (
     confirm_filing,
     create_filing_for_policy,
     file_filing,
+    filings_needing_attention,
     record_declination,
     recompute_diligent_search,
     void_filing,
@@ -284,3 +285,13 @@ def test_filing_stores_three_documents():
         assert set(filed.documents.keys()) == {"affidavit", "tax_statement", "disclosure"}
         for path in filed.documents.values():
             assert isinstance(path, str) and path
+
+
+def test_filings_needing_attention_flags_pending():
+    with Session(engine) as s:
+        pol = _throwaway_es_policy(s)
+        create_filing_for_policy(s, pol, actor_id="user_001")  # pending, 0 declines
+        s.commit()
+        attention = filings_needing_attention(s)
+        ids = {row["policy_id"] for row in attention}
+        assert pol.id in ids
