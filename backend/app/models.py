@@ -47,6 +47,10 @@ class IncidentRecord(SQLModel, table=True):
     refused_service_or_overserved: Optional[str] = Field(default=None)
     injury_detail: Optional[str] = Field(default=None)
     status: str = Field(default="open")
+    # Set when a floor-staff user (role="staff") filed this incident, in addition
+    # to the free-text reported_by name. Null for operator/broker-filed ones.
+    # References the staff member's UserRecord.
+    reported_by_staff_id: Optional[str] = Field(default=None, foreign_key="userrecord.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     evaluation: Optional["IncidentEvaluation"] = Relationship(back_populates="incident")

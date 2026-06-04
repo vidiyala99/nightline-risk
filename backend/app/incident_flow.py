@@ -16,7 +16,13 @@ from app.knowledge_sources import load_knowledge_sources_for_venue
 from app.underwriting.scoring import incident_delta_tracker
 
 
-def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: Session) -> IncidentFlowResponse:
+def create_brawl_incident_flow(
+    venue_id: str,
+    payload: IncidentCreate,
+    session: Session,
+    *,
+    reported_by_staff_id: str | None = None,
+) -> IncidentFlowResponse:
     venue_data = VENUES[venue_id]
     incident = Incident(
         id=f"inc-{venue_id}-{uuid4().hex[:12]}",
@@ -44,6 +50,7 @@ def create_brawl_incident_flow(venue_id: str, payload: IncidentCreate, session: 
         police_called=incident.police_called,
         ems_called=incident.ems_called,
         status="open",
+        reported_by_staff_id=reported_by_staff_id,
     )
     
     db_eval = IncidentEvaluation(

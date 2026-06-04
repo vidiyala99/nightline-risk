@@ -441,6 +441,23 @@ def require_broker(authorization: str = Header(None)):
     return decoded
 
 
+def require_staff(authorization: str = Header(None)) -> dict:
+    """Raises 401 without a valid token, or 403 if the caller is not floor staff.
+
+    Gates the staff-only surfaces (report incident, my reports). Staff are the
+    venue's floor employees — a restricted persona scoped to one venue; they
+    cannot reach operator/broker/carrier endpoints.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    decoded = verify_token(authorization.split(" ")[1])
+    if not decoded:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    if decoded.get("role") != "staff":
+        raise HTTPException(status_code=403, detail="Staff access required")
+    return decoded
+
+
 def require_carrier(authorization: str = Header(None)):
     """Raises 401 without a valid token, or 403 if the caller is not a carrier/admin.
 

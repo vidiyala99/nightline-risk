@@ -43,6 +43,9 @@ class Incident(BaseModel):
     police_called: bool
     ems_called: bool
     status: str = "open"  # open | under_review | closed
+    # Set when a floor-staff user filed this incident in-app — drives the
+    # "staff-reported" attribution badge. None for operator/broker-filed ones.
+    reported_by_staff_id: Optional[str] = None
 
 class RiskSignal(BaseModel):
     type: str

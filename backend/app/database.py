@@ -45,6 +45,8 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     ("incidentrecord", "weapon_involved", "BOOLEAN", ""),
     ("incidentrecord", "refused_service_or_overserved", "TEXT", ""),
     ("incidentrecord", "injury_detail", "TEXT", ""),
+    # Staff-tier incident attribution (SMS field reports) — added 2026-06-04.
+    ("incidentrecord", "reported_by_staff_id", "TEXT", ""),
     # Ingestion rejection-reason observability — added 2026-05-27.
     ("ingestionrun", "rejected_reasons", "TEXT", ""),
     # Claim-proposal request-more-info round-trip — added 2026-05-29. Datetime

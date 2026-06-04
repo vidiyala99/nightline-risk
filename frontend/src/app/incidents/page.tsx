@@ -24,6 +24,7 @@ interface Incident {
   police_called?: boolean;
   ems_called?: boolean;
   status: IncidentStatus;
+  reported_by_staff_id?: string | null;  // set when a floor-staff user filed it
 }
 
 
@@ -566,6 +567,22 @@ export default function IncidentsPage() {
                         {incident.status === "closed" && <CheckCircle2 size={10} />}
                         {statusLabel[incident.status]}
                       </span>
+                      {incident.reported_by_staff_id && (
+                        <span
+                          className="text-xs font-mono uppercase"
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: "4px",
+                            color: "var(--text-secondary)",
+                            background: "var(--bg-surface)",
+                            border: "1px solid var(--border-subtle)",
+                            borderRadius: "999px", padding: "2px 9px", fontWeight: 700,
+                            whiteSpace: "nowrap",
+                          }}
+                          title="Filed by a floor-staff member"
+                        >
+                          <User size={10} /> Staff
+                        </span>
+                      )}
                       {claimByIncident[incident.id] && (
                         <span
                           className="text-xs font-mono uppercase"

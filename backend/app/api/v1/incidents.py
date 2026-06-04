@@ -15,7 +15,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlmodel import Session, func, select
 
-from app.auth import can_access_venue, require_venue_access, verify_token
+from app.auth import can_access_venue, require_staff, require_venue_access, verify_token
 from app.database import get_session
 from app.incident_flow import create_brawl_incident_flow
 from app.lifecycles import (
@@ -43,6 +43,7 @@ def _incident_to_response(record: IncidentRecord) -> Incident:
         police_called=record.police_called or False,
         ems_called=record.ems_called or False,
         status=record.status,
+        reported_by_staff_id=record.reported_by_staff_id,
     )
 
 
@@ -135,6 +136,27 @@ def list_all_incidents(
         # cross-venue rows may see fewer — acceptable for a metadata list the
         # operator UI reaches via the venue-scoped endpoint anyway.
         records = [r for r in records if can_access_venue(user, r.venue_id, session)]
+    return [_incident_to_response(r) for r in records]
+
+
+# ─── Staff: my own reports ──────────────────────────────────────────────
+# Declared BEFORE /incidents/{incident_id} so "/incidents/mine" isn't captured
+# as an incident_id path param.
+
+
+@router.get("/incidents/mine", response_model=list[Incident])
+def list_my_incidents(
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> list[Incident]:
+    """Floor staff see only the incidents they themselves reported (least
+    privilege). Operators/brokers use the venue/portfolio lists instead."""
+    user = require_staff(authorization)
+    records = session.exec(
+        select(IncidentRecord)
+        .where(IncidentRecord.reported_by_staff_id == user["sub"])
+        .order_by(IncidentRecord.created_at.desc())
+    ).all()
     return [_incident_to_response(r) for r in records]
 
 
@@ -393,10 +415,27 @@ def create_incident(
     authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> IncidentFlowResponse:
-    # Operator-write gate: only the owning operator + brokers/admins may file
-    # an incident for a venue (401 unauth, 403 wrong venue). Actor attribution
-    # still rides in payload.reported_by — the token is purely the access gate.
-    require_venue_access(venue_id, authorization, session)
+    # Write gate. Floor staff (role="staff") may file for THEIR OWN venue and the
+    # incident is attributed to their user id; operators/brokers go through the
+    # venue gate (401 unauth, 403 wrong venue). Free-text payload.reported_by
+    # still rides along for display.
+    decoded = (
+        verify_token(authorization.split(" ", 1)[1])
+        if authorization and authorization.startswith("Bearer ")
+        else None
+    )
+    reported_by_staff_id: str | None = None
+    if decoded and decoded.get("role") == "staff":
+        if decoded.get("tenant_id") != venue_id:
+            raise HTTPException(status_code=403, detail={
+                "error": "venue_access_denied",
+                "message": "Staff can only report for their own venue",
+            })
+        reported_by_staff_id = decoded.get("sub")
+    else:
+        require_venue_access(venue_id, authorization, session)
     from app.main import _resolve_venue
     _resolve_venue(venue_id, session)
-    return create_brawl_incident_flow(venue_id, payload, session)
+    return create_brawl_incident_flow(
+        venue_id, payload, session, reported_by_staff_id=reported_by_staff_id
+    )
