@@ -15,9 +15,12 @@ from app.lifecycles import (
 from app.models import Declination, Policy, SurplusLinesFiling
 from app.services.surplus_lines import (
     SurplusLinesError,
+    confirm_filing,
     create_filing_for_policy,
+    file_filing,
     record_declination,
     recompute_diligent_search,
+    void_filing,
 )
 from app.underwriting.pricing import NY_SURPLUS_LINES_TAX
 from app.underwriting.surplus_lines import (
@@ -92,6 +95,23 @@ def _bound_demo_policy(session):
     ).first()
 
 
+def _throwaway_es_policy(session):
+    """A fresh, uniquely-identified bound E&S policy stand-in for state-mutating
+    tests — avoids leaking filing state across reruns of the shared database.db."""
+    u = uuid4().hex[:8]
+    pol = Policy(
+        id=f"pol-sl-{u}", submission_id=f"sub-sl-{u}", bound_quote_id=f"q-sl-{u}",
+        venue_id=f"v-sl-{u}", carrier_id="burns-wilcox",
+        effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
+        annual_premium=Decimal("1000.00"), commission_amount=Decimal("120.00"),
+        commission_rate=Decimal("0.12"),
+        terms_snapshot={"premium_breakdown": {"subtotal": "1000.00", "fees": {"policy_fee": "150.00"}}},
+    )
+    session.add(pol)
+    session.commit()
+    return pol
+
+
 def test_create_filing_computes_charges_and_deadline():
     with Session(engine) as s:
         pol = _bound_demo_policy(s)
@@ -110,18 +130,8 @@ def test_diligent_search_recompute_and_idempotent_create():
     # Isolated throwaway policy (unique ids) so the False->True transition and
     # the idempotent-create check are rerun-safe on the shared database.db
     # (the seeded BW-DEMO filing would carry state across runs).
-    u = uuid4().hex[:8]
     with Session(engine) as s:
-        pol = Policy(
-            id=f"pol-sl-{u}", submission_id=f"sub-sl-{u}", bound_quote_id=f"q-sl-{u}",
-            venue_id=f"v-sl-{u}", carrier_id="burns-wilcox",
-            effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
-            annual_premium=Decimal("1000.00"), commission_amount=Decimal("120.00"),
-            commission_rate=Decimal("0.12"),
-            terms_snapshot={"premium_breakdown": {"subtotal": "1000.00", "fees": {"policy_fee": "150.00"}}},
-        )
-        s.add(pol)
-        s.commit()
+        pol = _throwaway_es_policy(s)
         filing = create_filing_for_policy(s, pol, actor_id="user_001")
         s.commit()
         assert filing.diligent_search_complete is False  # fresh policy: 0 declinations
@@ -137,3 +147,36 @@ def test_diligent_search_recompute_and_idempotent_create():
         # idempotent: re-create returns the same filing, doesn't duplicate
         again = create_filing_for_policy(s, pol, actor_id="user_001")
         assert again.id == filing.id
+
+
+def test_file_guard_blocks_incomplete_diligent_search():
+    with Session(engine) as s:
+        pol = _throwaway_es_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        s.commit()
+        with pytest.raises(SurplusLinesError):
+            file_filing(s, filing.id, actor_id="user_001")  # 0 declinations
+
+
+def test_file_then_confirm_happy_path():
+    with Session(engine) as s:
+        pol = _throwaway_es_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        for i in range(3):
+            record_declination(s, pol.submission_id, carrier_name=f"A{i}",
+                               reason="appetite", declined_at=pol.effective_date)
+        recompute_diligent_search(s, filing)
+        s.commit()
+        filed = file_filing(s, filing.id, actor_id="user_001")
+        assert filed.status == "filed" and filed.filed_at is not None
+        confirmed = confirm_filing(s, filing.id, transaction_id="ELANY-X", actor_id="user_001")
+        assert confirmed.status == "confirmed" and confirmed.transaction_id == "ELANY-X"
+
+
+def test_invalid_transition_raises():
+    with Session(engine) as s:
+        pol = _throwaway_es_policy(s)
+        filing = create_filing_for_policy(s, pol, actor_id="user_001")
+        s.commit()
+        with pytest.raises(InvalidTransitionError):  # pending -> confirmed not allowed
+            confirm_filing(s, filing.id, transaction_id="X", actor_id="user_001")

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from sqlmodel import Session, select
 
+from app.lifecycles import SL_FILING_TRANSITIONS, assert_valid_transition
 from app.models import Declination, Policy, SurplusLinesFiling
 from app.money import usd
 from app.packet_core import _add_audit_event
@@ -95,5 +96,68 @@ def recompute_diligent_search(
     )
     filing.updated_at = now_utc()
     session.add(filing)
+    session.flush()
+    return filing
+
+
+def _get_filing(session: Session, filing_id: str) -> SurplusLinesFiling:
+    row = session.get(SurplusLinesFiling, filing_id)
+    if row is None:
+        raise SurplusLinesError(f"Unknown filing {filing_id!r}")
+    return row
+
+
+def _transition_filing(
+    session: Session, filing: SurplusLinesFiling, *, to: str, actor_id: str, metadata: dict,
+) -> None:
+    assert_valid_transition(
+        SL_FILING_TRANSITIONS, filing.status, to, entity_name="surplus_lines_filing"
+    )
+    filing.status = to
+    filing.updated_at = now_utc()
+    session.add(filing)
+    _add_audit_event(
+        session=session, actor_id=actor_id, actor_type="user",
+        entity_type="surplus_lines_filing", entity_id=filing.id,
+        event_type=f"surplus_lines_filing.{to}", event_metadata=metadata,
+    )
+
+
+def _generate_documents(session: Session, filing: SurplusLinesFiling) -> dict:
+    """Filled in by Task 8. Returns {kind: storage_path}."""
+    return {}
+
+
+def file_filing(session: Session, filing_id: str, *, actor_id: str) -> SurplusLinesFiling:
+    filing = _get_filing(session, filing_id)
+    if not filing.diligent_search_complete:
+        raise SurplusLinesError(
+            "Cannot file: diligent search incomplete "
+            "(need 3 admitted-carrier declinations or an Export-List exemption)"
+        )
+    filing.documents = _generate_documents(session, filing)
+    filing.filed_at = now_utc()
+    _transition_filing(session, filing, to="filed", actor_id=actor_id,
+                       metadata={"total_charges": str(filing.total_charges)})
+    session.flush()
+    return filing
+
+
+def confirm_filing(
+    session: Session, filing_id: str, *, transaction_id: str, actor_id: str,
+) -> SurplusLinesFiling:
+    filing = _get_filing(session, filing_id)
+    filing.transaction_id = transaction_id
+    filing.confirmed_at = now_utc()
+    _transition_filing(session, filing, to="confirmed", actor_id=actor_id,
+                       metadata={"transaction_id": transaction_id})
+    session.flush()
+    return filing
+
+
+def void_filing(session: Session, filing_id: str, *, reason: str, actor_id: str) -> SurplusLinesFiling:
+    filing = _get_filing(session, filing_id)
+    _transition_filing(session, filing, to="void", actor_id=actor_id,
+                       metadata={"reason": reason})
     session.flush()
     return filing
