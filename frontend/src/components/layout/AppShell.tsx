@@ -89,6 +89,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
         { label: "", items: [{ href: "/dashboard", label: "Home", icon: LayoutDashboard }] },
         { label: "Claims pipeline", items: [
           { href: "/work-queue", label: "Work Queue", icon: Inbox },
+          { href: "/comms-review", label: "Review Queue", icon: Inbox },
           { href: "/claims", label: "Claims", icon: FileSpreadsheet },
         ] },
         { label: "Placement", items: [
@@ -116,6 +117,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
           { href: `/incidents${venueQuery}`, label: "Incidents", icon: AlertTriangle },
           { href: "/claims", label: "Claims", icon: FileSpreadsheet },
           { href: `/compliance${venueQuery}`, label: "Compliance", icon: CheckSquare },
+          { href: "/comms-review", label: "Review Queue", icon: Inbox },
           { href: "/coverage", label: "Coverage", icon: ShieldCheck },
           { href: "/team", label: "Floor Team", icon: Users },
         ] },
