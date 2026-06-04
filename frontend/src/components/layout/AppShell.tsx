@@ -102,6 +102,9 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
           { href: "/venues", label: "Venues", icon: Building2 },
           { href: "/policy-requests", label: "Requests", icon: Inbox },
         ] },
+        { label: "Compliance", items: [
+          { href: "/surplus-lines", label: "Surplus Lines", icon: ShieldCheck },
+        ] },
         { label: "System", items: [
           { href: "/ingestion", label: "Ingestion", icon: Database },
         ] },
