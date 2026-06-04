@@ -12,7 +12,12 @@ from sqlmodel import Session, select
 
 from app.ingestion.comms.classifier import classify_comms_item
 from app.ingestion.comms.router import _create_review, route
-from app.ingestion.comms.sources import SlackSource, TicketSource, TextSource
+from app.ingestion.comms.sources import (
+    SlackSource,
+    TextSource,
+    TicketSource,
+    build_comms_source,
+)
 from app.ingestion.comms.types import CommsClassification, CommsItem
 from app.models import CommsReviewItem, ComplianceSignal, IncidentRecord, IngestionRun
 from app.time import now_utc
@@ -44,7 +49,7 @@ def run_comms(source: str, session: Session, *, venue_ids: list[str], as_of=None
                 if isinstance(v, int):
                     agg[k] = agg.get(k, 0) + v
         return agg
-    src = _SOURCES[source](venue_ids, as_of=as_of) if as_of else _SOURCES[source](venue_ids)
+    src = build_comms_source(source, venue_ids, as_of=as_of)
     counts = {"source": source, "extracted": 0, "incident": 0, "compliance": 0,
               "noise": 0, "review": 0, "skipped": 0}
     for item in src.list_items():

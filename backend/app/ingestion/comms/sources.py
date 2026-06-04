@@ -7,6 +7,7 @@ PosConnector). The real implementation is a thin MCP client behind the same
 """
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -79,3 +80,22 @@ class TicketSource(_SimulatedSource):
 
 class TextSource(_SimulatedSource):
     def __init__(self, venue_ids: list[str], **kw): super().__init__("sms", venue_ids, **kw)
+
+
+_SIMULATED = {"slack": SlackSource, "tickets": TicketSource, "sms": TextSource}
+
+
+def build_comms_source(
+    source: str, venue_ids: list[str], *, as_of: Optional[datetime] = None
+) -> CommsSource:
+    """Pick the source backend per `source`, env-gated (mirrors STORAGE_BACKEND):
+    if `COMMS_MCP_<SOURCE>_SSE_URL` is set, use the real MCP client; otherwise
+    fall back to the simulated source. Absent config → simulated."""
+    sse_url = os.getenv(f"COMMS_MCP_{source.upper()}_SSE_URL")
+    if sse_url:
+        # Imported lazily to keep the sim path free of the mcp_source module.
+        from app.ingestion.comms.mcp_source import McpCommsSource
+
+        return McpCommsSource(source, venue_ids, sse_url=sse_url, as_of=as_of)
+    sim = _SIMULATED[source]
+    return sim(venue_ids, as_of=as_of) if as_of else sim(venue_ids)

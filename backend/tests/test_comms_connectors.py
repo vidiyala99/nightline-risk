@@ -189,3 +189,49 @@ def test_comms_resolve_confirm_creates_incident(client):
 
 def test_comms_ingest_requires_auth(client):
     assert client.post("/api/comms/ingest", json={"source": "slack"}).status_code == 401
+
+
+# --- Follow-up #2: real MCP source adapter (env-gated, fetch-injectable) ---
+from app.ingestion.comms.mcp_source import McpCommsSource
+from app.ingestion.comms.sources import build_comms_source
+
+
+def test_mcp_source_maps_records_via_injected_fetch():
+    records = [
+        {"external_id": "slk-1", "text": "fight at the door, cops called",
+         "occurred_at": "2026-02-02T03:00:00+00:00", "author": "bouncer", "venue_id": "v2"},
+        {"id": "slk-2", "text": "exit sign out by stairwell B"},  # no venue_id -> fallback
+    ]
+    src = McpCommsSource("slack", ["v1"], fetch=lambda: records)
+    items = src.list_items()
+    assert len(items) == 2
+    assert all(isinstance(i, CommsItem) for i in items)
+    # record-level venue_id wins; external_id maps from either key
+    assert items[0].source == "slack" and items[0].venue_id == "v2"
+    assert items[0].external_id == "slk-1" and items[0].author == "bouncer"
+    assert items[0].text == "fight at the door, cops called"
+    # second record falls back to first configured venue and the `id` key
+    assert items[1].venue_id == "v1" and items[1].external_id == "slk-2"
+
+
+def test_mcp_source_skips_records_without_text():
+    records = [
+        {"external_id": "a", "text": "real message"},
+        {"external_id": "b"},                # missing text -> skipped
+        {"external_id": "c", "text": "   "},  # whitespace-only -> skipped
+    ]
+    items = McpCommsSource("tickets", ["v1"], fetch=lambda: records).list_items()
+    assert [i.external_id for i in items] == ["a"]
+
+
+def test_build_comms_source_unset_env_returns_simulated(monkeypatch):
+    monkeypatch.delenv("COMMS_MCP_SLACK_SSE_URL", raising=False)
+    src = build_comms_source("slack", ["v1"])
+    assert isinstance(src, SlackSource)
+
+
+def test_build_comms_source_set_env_returns_mcp(monkeypatch):
+    monkeypatch.setenv("COMMS_MCP_SLACK_SSE_URL", "http://x")
+    src = build_comms_source("slack", ["v1"])
+    assert isinstance(src, McpCommsSource)
+    assert src.source == "slack" and src.sse_url == "http://x"
