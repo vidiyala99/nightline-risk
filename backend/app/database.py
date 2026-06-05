@@ -38,6 +38,7 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str, str]] = [
     ("evidencefile", "captured_at", "TEXT", ""),
     ("underwritingpacket", "corroboration_status", "TEXT", ""),
     ("underwritingpacket", "corroboration_flags", "TEXT", ""),
+    ("underwritingpacket", "fraud_signal", "TEXT", ""),
     ("incidentrecord", "incident_category", "TEXT", ""),
     ("incidentrecord", "parties", "TEXT", ""),
     ("incidentrecord", "witnesses", "TEXT", ""),

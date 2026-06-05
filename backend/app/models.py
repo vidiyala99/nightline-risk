@@ -165,6 +165,7 @@ class UnderwritingPacket(SQLModel, table=True):
     # previously only prose in memo.summary).
     corroboration_status: Optional[str] = Field(default=None)
     corroboration_flags: list = Field(default_factory=list, sa_column=Column(JSON))
+    fraud_signal: dict = Field(default_factory=dict, sa_column=Column(JSON))
 
 
 class CitationRecord(SQLModel, table=True):
