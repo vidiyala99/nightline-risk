@@ -33,12 +33,15 @@ const LEVEL = { ERROR: "ERROR", WARN: "WARN" };
 // Each rule: { test(line), msg, level, platform? ('web'|'mobile'|both) }
 const RULES = [
   {
-    re: /\bcolor:\s*["'`]?\s*var\(--brand-primary\)/,
+    // Catches direct use AND ternaries/expressions: `color: cond ? "var(--brand-primary)" : x`.
+    // [^,};\n] keeps the match inside one declaration so `color: ink, background: lime` is fine.
+    re: /\bcolor:\s*[^,};\n]*?var\(--brand-primary\)/,
     msg: "lime as TEXT color — use var(--accent-ink) (brand-primary is fill-only)",
     level: LEVEL.ERROR, platform: "web",
   },
   {
-    re: /\bcolor:\s*Colors\.accent\b/,
+    // Same ternary-tolerant shape for RN style objects: `color: cond ? Colors.accent : x`.
+    re: /\bcolor:\s*[^,}\n]*?\bColors\.accent\b/,
     msg: "lime as TEXT color — use Colors.accentInk (accent is fill-only)",
     level: LEVEL.ERROR, platform: "mobile",
   },

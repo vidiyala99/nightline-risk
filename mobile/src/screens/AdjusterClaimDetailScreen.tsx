@@ -358,7 +358,7 @@ export function AdjusterClaimDetailScreen({ route, navigation }: any) {
             <Text style={styles.headlineDigits}>{headFmt.digits}</Text>
           </View>
           {delta.label !== '—' && (
-            <Text style={[styles.delta, { color: delta.tone === 'success' ? Colors.accent : delta.tone === 'danger' ? Colors.error : Colors.textSecondary }]}>
+            <Text style={[styles.delta, { color: delta.tone === 'success' ? Colors.success : delta.tone === 'danger' ? Colors.error : Colors.textSecondary }]}>
               {delta.label}
             </Text>
           )}

@@ -555,7 +555,7 @@ export default function ReportDetailPage() {
                 {visionAnalysis.analyses[0]?.corroboration && (
                   <span className="text-xs font-mono px-sm py-xs font-bold" style={{
                     background: visionAnalysis.analyses[0].corroboration === "CONSISTENT" ? "rgba(200,240,0,0.12)" : visionAnalysis.analyses[0].corroboration === "CONTRADICTED" ? "rgba(255,60,60,0.12)" : "rgba(255,153,0,0.12)",
-                    color: visionAnalysis.analyses[0].corroboration === "CONSISTENT" ? "var(--brand-primary)" : visionAnalysis.analyses[0].corroboration === "CONTRADICTED" ? "var(--state-error)" : "var(--state-warning)",
+                    color: visionAnalysis.analyses[0].corroboration === "CONSISTENT" ? "var(--accent-ink)" : visionAnalysis.analyses[0].corroboration === "CONTRADICTED" ? "var(--state-error)" : "var(--state-warning)",
                     borderRadius: "var(--radius-sm)",
                   }}>
                     {visionAnalysis.analyses[0].corroboration}
@@ -696,7 +696,7 @@ export default function ReportDetailPage() {
                   </div>
                   <div className="flex justify-between items-baseline" style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "var(--space-sm)" }}>
                     <span className="text-xs uppercase tracking-wide text-secondary">Net EV</span>
-                    <span className="text-sm font-mono font-bold" style={{ color: rec.net_expected_value_usd >= 0 ? "var(--brand-primary)" : "var(--state-error)" }}>
+                    <span className="text-sm font-mono font-bold" style={{ color: rec.net_expected_value_usd >= 0 ? "var(--state-success)" : "var(--state-error)" }}>
                       {netEvFormatted}
                     </span>
                   </div>

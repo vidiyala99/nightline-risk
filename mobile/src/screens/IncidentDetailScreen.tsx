@@ -327,7 +327,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
                   onPress={() => setProposeSheetVisible(true)}
                   disabled={submittingProposal}
                 >
-                  <Text style={[styles.actionBtnText, { color: rec.should_file ? Colors.accent : Colors.warning }]}>
+                  <Text style={[styles.actionBtnText, { color: rec.should_file ? Colors.accentInk : Colors.warning }]}>
                     {rec.should_file ? 'Propose Claim' : 'Override & Propose'}
                   </Text>
                 </Pressable>

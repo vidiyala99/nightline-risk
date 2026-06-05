@@ -140,7 +140,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
         <>
           <View style={s.card}>
             <Text style={s.eyebrow}>RECOMMENDER VERDICT</Text>
-            <Text style={{ color: rec.should_file ? Colors.accent : Colors.textMuted, fontFamily: 'HankenGrotesk_700Bold', fontSize: 16 }}>
+            <Text style={{ color: rec.should_file ? Colors.accentInk : Colors.textMuted, fontFamily: 'HankenGrotesk_700Bold', fontSize: 16 }}>
               {rec.should_file ? 'File this claim' : "Don't file"}
             </Text>
             <Text style={s.bodyText}>{Math.round(rec.probability * 100)}% paid-out probability</Text>
@@ -151,7 +151,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={[s.evBox, { borderColor: rec.net_expected_value_usd >= 0 ? Colors.accent : Colors.error }]}>
                 <Text style={s.evLabel}>If you file</Text>
-                <Text style={[s.evNum, { color: rec.net_expected_value_usd >= 0 ? Colors.accent : Colors.error }]}>
+                <Text style={[s.evNum, { color: rec.net_expected_value_usd >= 0 ? Colors.success : Colors.error }]}>
                   {rec.net_expected_value_usd >= 0 ? '+' : '-'}${Math.abs(rec.net_expected_value_usd).toLocaleString()}
                 </Text>
                 <Text style={s.evSub}>Net EV over 3yr</Text>

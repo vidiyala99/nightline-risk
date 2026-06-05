@@ -193,7 +193,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
               </View>
               <View style={[styles.rowBetween, { paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.borderSubtle }]}>
                 <Text style={styles.eyebrow}>NET EV</Text>
-                <Text style={{ color: netEv >= 0 ? Colors.accent : Colors.error, fontSize: 13, fontFamily: 'SpaceMono_700Bold' }}>
+                <Text style={{ color: netEv >= 0 ? Colors.success : Colors.error, fontSize: 13, fontFamily: 'SpaceMono_700Bold' }}>
                   {netLabel}
                 </Text>
               </View>
@@ -291,7 +291,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
         <Text style={styles.eyebrow}>REVIEW DECISION</Text>
         {decisionMade ? (
           <View style={[styles.decisionResult, { borderColor: decisionMade === 'approved' ? Colors.accent : Colors.error }]}>
-            <Text style={[styles.decisionResultText, { color: decisionMade === 'approved' ? Colors.accent : Colors.error }]}>
+            <Text style={[styles.decisionResultText, { color: decisionMade === 'approved' ? Colors.success : Colors.error }]}>
               {decisionMade === 'approved' ? '✓ APPROVED' : decisionMade === 'blocked' ? '✕ BLOCKED' : decisionMade.replace(/_/g, ' ').toUpperCase()}
             </Text>
           </View>

@@ -543,7 +543,7 @@ function chooseDisposition(onPick: (disposition: 'paid' | 'denied' | 'dropped') 
 
 function deltaStyle(tone: 'success' | 'danger' | 'neutral') {
   return {
-    color: tone === 'success' ? Colors.accent : tone === 'danger' ? Colors.error : Colors.textSecondary,
+    color: tone === 'success' ? Colors.success : tone === 'danger' ? Colors.error : Colors.textSecondary,
   } as const;
 }
 

@@ -477,7 +477,7 @@ export default function IncidentDetailPage() {
                       </span>
                     ) : (
                       <span className="text-xs font-mono px-sm py-xs" style={{
-                        color: visionAnalysis.analyses[0]?.corroboration === "CONSISTENT" ? "var(--brand-primary)" :
+                        color: visionAnalysis.analyses[0]?.corroboration === "CONSISTENT" ? "var(--accent-ink)" :
                                visionAnalysis.analyses[0]?.corroboration === "CONTRADICTED" ? "var(--state-error)" : "var(--state-warning)",
                         border: `1px solid currentColor`, borderRadius: "var(--radius-sm)"
                       }}>
@@ -709,7 +709,7 @@ export default function IncidentDetailPage() {
                           <div className="flex items-center gap-md">
                             <span className="text-xs text-secondary">{Math.round(pkt.risk_signals.confidence * 100)}% confidence</span>
                             <span className="text-xs font-mono uppercase px-2 py-0 rounded" style={{
-                              color: pkt.status === "approved" ? "var(--brand-primary)" : pkt.status === "needs_review" ? "var(--state-warning)" : "var(--text-muted)",
+                              color: pkt.status === "approved" ? "var(--accent-ink)" : pkt.status === "needs_review" ? "var(--state-warning)" : "var(--text-muted)",
                               border: `1px solid ${pkt.status === "approved" ? "var(--brand-primary)" : pkt.status === "needs_review" ? "var(--state-warning)" : "var(--border-subtle)"}`,
                             }}>
                               {pkt.status.replace(/_/g, " ")}
