@@ -3,12 +3,38 @@
 Working checklist for the subscription-free work (no API keys, no S3/email/SMS
 accounts yet). Gated/integration items live in [`go-live-readiness.md`](./go-live-readiness.md).
 
-Last updated: 2026-06-02 (evening).
+Last updated: 2026-06-05.
 
 ---
 
 ## Recently shipped (context for picking back up)
 
+- [x] **Session 2026-06-05** — fraud agent + UI polish:
+  - **★ Fraud/SIU agent — SHIPPED** (the "fraud flags" slice of track 9's Claims intelligence).
+    Deterministic two-point scoring: **v1 metadata gate at intake** (late reporting, prior-claim
+    frequency, evidence thinness, severity contradiction) + **v2 re-score with corroboration
+    evidence**. `FraudSignal` persisted (v1 signal + hold committed so they survive prod);
+    elevated signal **overrides the auto-route gate**; `fraud.flagged` emission idempotent;
+    deterministic eval baseline (`app/evals/fraud_scorer.py`, fixtures → expected tier, mirrors
+    `comms_classifier_eval.py`); agent contract doc w/ runtime status. Full suite **1230 green**.
+  - **Operator home + landing polish** (commit `fix(web)`): landing demo buttons get the lc-card
+    conic-ring hover via new `.lc-demo` (focus-visible parity + reduced-motion guards, retrofitted
+    onto `.lc-card` too); operator numerals now follow the documented type system (capacity hero =
+    sans `lc-num-data`, money demoted to new `.lc-numeral--md` — 5 > 4 > 3.25rem ladder); "On The
+    Floor" rebuilt as a full-width strip (`.op-floor-infra` chip row replaces the hollow two-column
+    grid); Your Policy card fully clickable → `/coverage` (mirrors Risk Profile, no nested anchors);
+    `.lc-beam` traveling border beam on the landing eval-gate card (ported dependency-free from
+    21st.dev BorderBeam; `@supports`-guarded).
+- [x] **Session 2026-06-04 (overnight into 06-05)** — three tracks, full suite 1208 green at close:
+  - **★ Surplus-lines compliance automation — SHIPPED subscription-free** (was C11, gated under
+    "Conditional"). Diligent-search guard, deterministic NY SL tax **3.6%** + stamping fee **0.15%**
+    (build caught a wrong 3.76% rate — the correctness story), 45-day filing tracking, statutory
+    PDFs.
+  - **Real-time ingestion spine** — `POST /ingest` + `/signal` live on Railway; channel payloads
+    (Slack / tickets / SMS) routed by an **eval-gated comms classifier** → incident / compliance /
+    review. (Track 5's *inbound* side is now real; the outbound Slack alert adapter remains open.)
+  - **Staff role + accounts** — account-based auth phase 3: staff persona (login, web/mobile
+    parity, demo user `staff@elsewhere.com` → `/report`), route-guard leak fixes, mobile nav parity.
 - [x] **Session 2026-06-03** — three things:
   - **★ Carrier AI underwriting memo (Track 9 differentiator) — SHIPPED** (spec `2026-06-03-carrier-ai-underwriting-memo-design.md`, plan `…-carrier-ai-underwriting-memo.md`). Advisory `UnderwritingRecommendation` (posture quote/conditions/decline + subjectivities + rate-adequacy + grounded rationale; engine still owns the premium) on the v2 quote dossier. **Deterministic-first, pure recommender** (`app/underwriting/recommender.py`) over a typed input bundle → eval scenarios feed it directly (no DB). **3 eval scorers** (posture / faithfulness / rate-adequacy) over **12 labeled scenarios incl. boundary/stress cases**: **posture 0.917, rate-adequacy 0.917, faithfulness 1.0** — the two misses are *documented, defensible* threshold disagreements (a 0.75 loss-ratio labeled lean-debit vs rule "adequate"; a single $30k loss labeled conditions vs "quote"), NOT fudged to 100%. Audit snapshots recommendation-vs-decision (`followed`). Web + mobile advisory card. 1151 tests green; web card verified live on the dossier. Reviewed (spec+quality) — fixes applied (dead param, fixture tier↔score realism, faithfulness regex now catches single-digit/tier hallucinations). **Fast-follows:** wire the 3 scorers into `runner.py`/`baseline.py`/`--compare-baseline` + `/evals` scoreboard (number not drift-gated yet); wire real `check_appetite` (recommender handles `in_appetite=None` in v1); LLM provider upgrade behind the same seam (faithfulness scorer guards it).
   - **Landing page — SHIPPED** (`/` was `redirect→dashboard→login`; recruiters/founders hit a bare password box). New standalone Nightline landing at `/` (thesis pillars + the loop + eval-gated diff + inline one-click demo personas); signed-in users still route to their role home. No fabricated social proof. Verified live; carrier demo one-click → `/underwriting`.
@@ -105,7 +131,9 @@ each output box, verified against code on 2026-05-30:
   wired for password reset only — not operational alerts. No Slack, Twilio/SMS, or webhook code.
   - [ ] **Slack adapter behind the `dispatch_alert` seam** — Slack *incoming webhooks* need NO
     paid account, so this is subscription-free and demoable. **Highest-leverage first move** (closes
-    the most visibly-missing box). ★
+    the most visibly-missing box). ★ (2026-06-04 update: the *inbound* direction shipped — the
+    ingestion spine + comms classifier consume Slack/ticket/SMS payloads; this item is the
+    *outbound* alert adapter, still open.)
   - [ ] Also route operational `AlertEvent`s through `email.py` (reuse the existing provider), not push-only.
   - [ ] 🔒 **SMS (Twilio)** — same seam, but needs a paid account. Gated.
 - **Ticketing — PRESENT internally, under other names.** No external ticketing integration, but
@@ -351,7 +379,9 @@ specs (each its own spec → plan → build), **AI memo pulled earlier per 2026-
   underwriting memo. Phase 2 ships a *lightweight advisory reserve/severity hint* (deterministic, from
   loss-run history + incident severity); the full version is its own spec: a reserve-suggestion model,
   **severity / litigation-risk prediction**, a **coverage-analysis assist** ("does the policy
-  respond?"), and **fraud flags** — all **powered by the incident evidence + vision analysis + defense
+  respond?"), and **fraud flags** (✅ **shipped 2026-06-05** as the fraud/SIU agent — deterministic
+  2-point scoring + eval baseline; reserve-model / litigation-risk / coverage-assist remain) — all
+  **powered by the incident evidence + vision analysis + defense
   package Nightline already owns** (most carriers adjudicate blind to that). This is where the carrier
   desk goes from *able* to adjudicate → *smart* at it; addresses the real carrier pains (reserving
   accuracy, claims leakage, severity/social-inflation) that owning the workflow alone doesn't solve.
@@ -364,8 +394,9 @@ specs (each its own spec → plan → build), **AI memo pulled earlier per 2026-
 - [ ] C8 underwriting authority limits + refer-to-senior workflow (the delegated-authority engine the
   `decision_source` provenance was built to support).
 
-**Conditional — needs accounts / v1-scope expansion:** C11 surplus-lines compliance filings
-(diligent-search/affidavit/SL-tax — SL tax is already *computed* in pricing), C12 loss-control /
+**Conditional — needs accounts / v1-scope expansion:** ~~C11 surplus-lines compliance filings~~
+(✅ **shipped 2026-06-04 subscription-free** — diligent-search guard + deterministic tax/stamping +
+statutory PDFs; see Recently shipped), C12 loss-control /
 inspections, C13 reinsurance / capacity / bordereaux (the 2026 MGA-reporting pressure).
 
 **Non-goal (not a deferral):** refactoring the broker `/underwriter` page — it's fine as-is; touching
@@ -408,18 +439,22 @@ See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
 
 ## Recommended order
 
-Updated 2026-06-02 (carrier Phase 1 UI shipped; carrier desk v2 spec approved). Track 1 (evals, the
-headline) and track 2 (correctness) are done; spine + lifecycle edges (7a/7b) and the **whole carrier
-Phase 1** (backend + web/mobile desk UI) are shipped. Live focus:
+Updated 2026-06-05. Shipped since the last ordering: carrier desk v2 + claims adjudication
+(Phase 1.5–2), the AI underwriting memo, the landing page + perf fix, surplus-lines compliance
+(C11), the ingestion spine + comms classifier, staff accounts, and the fraud/SIU agent. Live focus:
 
-1. **Carrier desk v2** (track 9 Phase 1.5 ★) — spec approved
-   ([`2026-06-02-carrier-desk-v2-design.md`](specs/2026-06-02-carrier-desk-v2-design.md)); next is the
-   implementation plan → TDD build. Then the **carrier AI underwriting memo** (pulled earlier — the
-   differentiator), then C5 portfolio, then C4 renewals (see Track 9 roadmap).
-2. **Policy-doc vector RAG** (track 10) — design approved; implementation plan → TDD build.
+1. **Underwriting-memo fast-follows** (track 9, smallest + completes the eval headline) — wire the
+   3 memo scorers (posture/faithfulness/rate-adequacy) into `runner.py`/`baseline.py`/
+   `--compare-baseline` + the `/evals` scoreboard (the 0.917/0.917/1.0 numbers are not drift-gated
+   yet); real `check_appetite` (graded 0–100 match — also the open 7a item).
+2. **Outbound Slack alert adapter** (track 5 ★) — still the cheapest "closes a visibly-absent box"
+   win; one evening, subscription-free, demoable. (Inbound shipped 2026-06-04.)
+3. **Policy-doc vector RAG** (track 10) — design approved; implementation plan → TDD build.
    Strong pitch artifact (vector pipeline + retrieval eval delta).
-3. **Two-way open questions + agent assistants** (track 8) — the AI-native frontier on the broker side.
+4. **C5 carrier portfolio / C4 renewal underwriting** (track 9) — the management layer; fills the
+   carrier nav.
+5. **Two-way open questions + agent assistants** (track 8) — the AI-native frontier on the broker side.
 
 Good filler (independent, no subscription): track 7c polish, the cross-cutting Neon JSON-string
-correctness sweep, track 3 (deterministic memo quality), track 4 (test-coverage breadth). The Slack
-incoming-webhook adapter (track 5 ★) remains the cheapest "closes a visibly-absent box" win.
+correctness sweep, track 3 (deterministic memo quality), track 4 (test-coverage breadth). Quick ops
+items still pending: seed prod adjuster demo + prod stale-incident cleanup (see tracks above).
