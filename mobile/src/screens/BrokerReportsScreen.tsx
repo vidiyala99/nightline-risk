@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { HandAccent } from "../components/HandAccent";
 import { Colors } from "../theme/colors";
+import { SEVERITY_COLOR } from "../theme/severity";
 import {
   ActivityIndicator,
   FlatList,
@@ -33,13 +34,8 @@ interface Packet {
   generated_at?: string;
 }
 
-const SEVERITY_COLOR: Record<string, string> = {
-  critical: Colors.error,
-  high:     Colors.error,
-  medium:   Colors.warning,
-  low:      Colors.accent,
-  unknown:  Colors.textMuted,
-};
+// SEVERITY_COLOR is shared (theme/severity) — a local copy drifted to
+// lime-as-text once already.
 
 const STATUS_COLOR: Record<string, string> = {
   needs_review: Colors.warning,

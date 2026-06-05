@@ -33,6 +33,20 @@ export const FACTOR_GLYPH: Record<FactorTier, string> = {
   poor: "⚠",
 };
 
+/** Severity ink colors — used as TEXT colors on chips/badges, so lime is
+ * banned (low uses accent-ink per the lime-is-fill-only rule). Pages must
+ * import this instead of declaring local copies: two page-local copies
+ * drifted to lime-as-text before this export existed (fixed 2026-06-05);
+ * design-lint now errors on lime assigned to these semantic keys.
+ * Mirrors mobile `src/theme/severity.ts`. */
+export const SEVERITY_COLOR: Record<string, string> = {
+  critical: "var(--state-error)",
+  high: "var(--state-error)",
+  medium: "var(--state-warning)",
+  low: "var(--accent-ink)",
+  unknown: "var(--text-tertiary)",
+};
+
 const FACTOR_LABEL: Record<string, string> = {
   incident_history: "Safety record",
   compliance: "Compliance",

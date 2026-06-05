@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Colors } from "../theme/colors";
+import { SEVERITY_COLOR, CORROBORATION_COLOR } from "../theme/severity";
 import {
   ActivityIndicator,
   Pressable,
@@ -16,13 +17,8 @@ import { useAlert } from '../components/ThemedAlert';
 import { openQuestionsApi, byIndex } from '../api/openQuestions';
 import { STATE_LABEL, STATE_COLOR, type ClaimProposal } from '../types/claims';
 
-const SEVERITY_COLOR: Record<string, string> = {
-  critical: Colors.error, high: Colors.error, medium: Colors.warning, low: Colors.accent, unknown: Colors.textMuted,
-};
-
-const CORROBORATION_COLOR: Record<string, string> = {
-  CONSISTENT: Colors.accent, PARTIAL: Colors.warning, CONTRADICTED: Colors.error, INCONCLUSIVE: Colors.textMuted,
-};
+// Severity/corroboration ink colors are shared (theme/severity) — local
+// copies drifted to lime-as-text once already.
 
 export function BrokerReportDetailScreen({ route, navigation }: any) {
   const { packetId } = route.params;

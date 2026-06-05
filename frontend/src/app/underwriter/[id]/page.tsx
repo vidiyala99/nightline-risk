@@ -9,6 +9,7 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, FileSpreadsheet
 import ClaimProposeModal, { type OverrideReason } from "@/components/ClaimProposeModal";
 import { authHeaders } from "@/lib/authFetch";
 import { byIndex, resolveOpenQuestion, type OpenQuestionResponse } from "@/lib/openQuestions";
+import { SEVERITY_COLOR } from "@/lib/risk";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -95,13 +96,8 @@ interface Incident {
   status: string;
 }
 
-const SEVERITY_COLOR: Record<string, string> = {
-  critical: "var(--state-error)",
-  high: "var(--state-error)",
-  medium: "var(--state-warning)",
-  low: "var(--brand-primary)",
-  unknown: "var(--text-tertiary)",
-};
+// Severity ink colors are shared via @/lib/risk — local copies drifted to
+// lime-as-text once already (import added with the other lib imports).
 
 export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -798,13 +794,15 @@ export default function ReportDetailPage() {
                   paid: "Paid",
                   denied: "Denied",
                 };
+                // These flow into TEXT (state label below), so lime is banned —
+                // positive states use accent-ink per the lime-is-fill-only rule.
                 const stateColor: Record<ClaimProposal["state"], string> = {
                   pending_broker_review: "var(--state-warning)",
-                  approved: "var(--brand-primary)",
+                  approved: "var(--accent-ink)",
                   rejected_by_broker: "var(--state-error)",
                   needs_more_info: "var(--state-warning)",
-                  filed_with_carrier: "var(--brand-primary)",
-                  paid: "var(--brand-primary)",
+                  filed_with_carrier: "var(--accent-ink)",
+                  paid: "var(--accent-ink)",
                   denied: "var(--state-error)",
                 };
                 const accent = stateColor[proposal.state];

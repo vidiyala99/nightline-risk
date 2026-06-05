@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Colors } from "../theme/colors";
+import { SEVERITY_COLOR, CORROBORATION_COLOR } from "../theme/severity";
 import {
   ActivityIndicator,
   Pressable,
@@ -28,20 +29,8 @@ const TRANSITION_COLOR: Record<TransitionColor, string> = {
   muted: Colors.textMuted,
 };
 
-const SEVERITY_COLOR: Record<string, string> = {
-  critical: Colors.error,
-  high: Colors.error,
-  medium: Colors.warning,
-  low: Colors.accent,
-  unknown: Colors.textMuted,
-};
-
-const CORROBORATION_COLOR: Record<string, string> = {
-  CONSISTENT: Colors.accent,
-  PARTIAL: Colors.warning,
-  CONTRADICTED: Colors.error,
-  INCONCLUSIVE: Colors.textMuted,
-};
+// Severity/corroboration ink colors are shared — local copies drifted to
+// lime-as-text once already; import from the theme instead.
 
 // Claim-status tracker — plain-language "where this stands" + a step index,
 // mirroring web frontend/src/app/incidents/[id]/claim-status deriveStatus().

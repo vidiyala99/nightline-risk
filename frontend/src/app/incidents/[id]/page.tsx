@@ -8,6 +8,7 @@ import { authHeaders } from "@/lib/authFetch";
 import { answerOpenQuestion, resolveOpenQuestion, byIndex } from "@/lib/openQuestions";
 import { toastError } from "@/lib/toast";
 import { downloadDefensePackagePdf } from "@/lib/claims";
+import { SEVERITY_COLOR } from "@/lib/risk";
 
 // A claim is "in flight" while it can still pay out — the incident can't be
 // closed until it resolves. Mirrors the backend guard in update_incident_status.
@@ -113,12 +114,9 @@ interface Packet {
   };
 }
 
-const SEVERITY_COLOR: Record<string, string> = {
-  low: "var(--brand-primary)",
-  medium: "var(--state-warning)",
-  high: "var(--state-error)",
-  critical: "var(--state-error)",
-};
+// Severity ink colors are shared — local copies drifted to lime-as-text once
+// already; import from the lint-allowlisted token source instead.
+// (SEVERITY_COLOR import added below with the other lib imports.)
 
 // Whether a packet became a claim proposal, and its state — so a broker
 // drilling into an incident sees the actionable item, not just a read wall.

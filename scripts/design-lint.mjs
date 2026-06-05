@@ -46,6 +46,15 @@ const RULES = [
     level: LEVEL.ERROR, platform: "mobile",
   },
   {
+    // Semantic color-map entries route lime into TEXT via variable indirection
+    // (color: SEVERITY_COLOR[sev]) that line regexes can't follow — so ban the
+    // assignment at the map definition instead. Shared maps live in
+    // mobile/src/theme/severity.ts and frontend/src/lib/risk.ts.
+    re: /\b(?:low|unknown|CONSISTENT|approved|success):\s*(?:["'`]?var\(--brand-primary\)|Colors\.accent\b)/,
+    msg: "lime assigned to a semantic color-map key — these flow into text; use var(--accent-ink)/Colors.accentInk",
+    level: LEVEL.ERROR, platform: "both",
+  },
+  {
     re: /#c8f000|#d4ff00/i,
     msg: "raw lime hex — use var(--brand-primary)/Colors.accent (fill) or var(--accent-ink)/Colors.accentInk (text)",
     level: LEVEL.ERROR, platform: "both",
