@@ -180,3 +180,113 @@ def test_run_corroboration_writes_v2_fraud_signal(db_session):
     fraud = v2[0].fraud_signal
     assert fraud, "v2 packet should carry a fraud_signal"
     assert fraud["assessed_stage"] == "v2"
+    # CONTRADICTED evidence pushes the v2 re-score to high (v1 was not high),
+    # so exactly one fraud.flagged audit event should be emitted.
+    assert fraud["tier"] == "high"
+    flagged = db_session.exec(
+        select(AuditEvent)
+        .where(AuditEvent.entity_id == "inc-1")
+        .where(AuditEvent.event_type == "fraud.flagged")
+    ).all()
+    assert len(flagged) == 1, "expected exactly one fraud.flagged event"
+
+
+def _seed_v2_corroboration_fixture(db_session):
+    """Seed incident + evidence + v1 packet + a CONTRADICTED analysis.
+
+    Returns (incident, prior_packet, [analysis]) ready for
+    _run_corroboration_and_update_packet.
+    """
+    from app.packet_core import create_packet_snapshot
+    from app.schemas.domain import IncidentCreate
+    from app.models import EvidenceAnalysis, EvidenceFile
+
+    incident = IncidentRecord(
+        id="inc-1", venue_id="v1", status="open",
+        occurred_at="2026-05-01T22:00:00Z", location="bar",
+        summary="patron reported injury after altercation", reported_by="op",
+        injury_observed=True, police_called=False, ems_called=False,
+    )
+    db_session.add(incident)
+    for i in range(2):
+        db_session.add(EvidenceFile(
+            id=f"ev-{i}", incident_id="inc-1", filename=f"f{i}.jpg",
+            content_type="image/jpeg", file_path=f"k{i}", file_size=10,
+        ))
+    db_session.commit()
+
+    incident_payload = IncidentCreate(
+        occurred_at="2026-05-01T22:00:00Z", location="bar",
+        summary="patron reported injury after altercation", reported_by="op",
+        injury_observed=True, police_called=False, ems_called=False,
+    )
+    prior_packet = create_packet_snapshot(
+        session=db_session, venue_id="v1", incident_id="inc-1",
+        incident=incident_payload,
+        risk_signal={"type": "altercation_event", "severity": "high",
+                     "confidence": 0.5, "should_file": True},
+        action_plan=[], claims_timeline=[],
+        underwriting_memo={"summary": "altercation with reported injury"},
+        citations=[], rubric_version="demo",
+    )
+    db_session.commit()
+
+    finding = {
+        "incident_indicators": [], "injury_detail": "no visible injury",
+        "crowd_density": "moderate", "security_present": True,
+        "security_response_seconds": 30, "environmental_hazards": [],
+        "timestamp_in_exif": None, "timestamp_matches_report": True,
+        "corroboration": "CONTRADICTED", "confidence_delta": -0.2,
+        "raw_description": "no injury visible",
+    }
+    analysis = EvidenceAnalysis(
+        id="an-1", evidence_id="ev-0", incident_id="inc-1",
+        analysis_type="image", findings=finding, corroboration="CONTRADICTED",
+        status="complete",
+    )
+    db_session.add(analysis)
+    db_session.commit()
+    return incident, prior_packet, [analysis]
+
+
+def test_run_corroboration_fraud_flagged_is_idempotent(db_session):
+    """Re-running the v2 re-score must not duplicate the fraud.flagged event."""
+    from app.main import _run_corroboration_and_update_packet
+
+    incident, _prior, analyses = _seed_v2_corroboration_fixture(db_session)
+
+    _run_corroboration_and_update_packet(db_session, "inc-1", incident, analyses)
+    _run_corroboration_and_update_packet(db_session, "inc-1", incident, analyses)
+
+    db_session.expire_all()
+    flagged = db_session.exec(
+        select(AuditEvent)
+        .where(AuditEvent.entity_id == "inc-1")
+        .where(AuditEvent.event_type == "fraud.flagged")
+    ).all()
+    assert len(flagged) == 1, "fraud.flagged must not be duplicated on re-run"
+
+
+def test_v2_rescore_failure_keeps_corroboration_packet(db_session, monkeypatch):
+    """A fraud-scoring fault rolls back only the fraud mutation, not the v2 packet."""
+    from app import claim_routing
+    from app.main import _run_corroboration_and_update_packet
+
+    incident, prior_packet, analyses = _seed_v2_corroboration_fixture(db_session)
+
+    def _boom(session, packet, **kw):
+        raise RuntimeError("scorer exploded")
+
+    # The fraud block imports fraud_signal_for_packet from app.claim_routing
+    # inside the function, so patch the module attribute.
+    monkeypatch.setattr(claim_routing, "fraud_signal_for_packet", _boom)
+
+    # Must NOT raise — the re-score is advisory/best-effort.
+    _run_corroboration_and_update_packet(db_session, "inc-1", incident, analyses)
+
+    db_session.expire_all()
+    packets = db_session.exec(
+        select(UnderwritingPacket).where(UnderwritingPacket.incident_id == "inc-1")
+    ).all()
+    v2 = [p for p in packets if p.id != prior_packet.id]
+    assert len(v2) == 1, "the committed v2 corroboration packet must survive"

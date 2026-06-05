@@ -715,15 +715,6 @@ def _run_corroboration_and_update_packet(session, incident_id: str, incident: In
         from app.claim_routing import fraud_signal_for_packet
         from app.packet_core import _add_audit_event
 
-        prior_signal = prior_packet.fraud_signal
-        if isinstance(prior_signal, str):  # Postgres JSON columns round-trip as strings
-            import json as _json
-            try:
-                prior_signal = _json.loads(prior_signal)
-            except (ValueError, TypeError):
-                prior_signal = {}
-        prior_tier = (prior_signal or {}).get("tier")
-
         fraud = fraud_signal_for_packet(
             session, new_packet,
             corroboration_status=result.status,
@@ -731,14 +722,22 @@ def _run_corroboration_and_update_packet(session, incident_id: str, incident: In
         )
         new_packet.fraud_signal = fraud.to_dict()
         session.add(new_packet)
-        if fraud.tier == "high" and prior_tier != "high":
-            _add_audit_event(
-                session=session, actor_id="vision-pipeline", actor_type="system",
-                entity_type="incident", entity_id=incident_id,
-                event_type="fraud.flagged",
-                event_metadata={"packet_id": new_packet.id, "score": fraud.score,
-                                "flags": [f.code for f in fraud.red_flags]},
-            )
+        if fraud.tier == "high":
+            # Idempotent: only flag the first time this incident reaches high
+            # fraud risk (a prior v1 hold or v2 flag means it's already known).
+            already_flagged = session.exec(
+                select(AuditEvent)
+                .where(AuditEvent.entity_id == incident_id)
+                .where(AuditEvent.event_type.in_(("fraud.hold", "fraud.flagged")))  # type: ignore[attr-defined]
+            ).first()
+            if already_flagged is None:
+                _add_audit_event(
+                    session=session, actor_id="vision-pipeline", actor_type="system",
+                    entity_type="incident", entity_id=incident_id,
+                    event_type="fraud.flagged",
+                    event_metadata={"packet_id": new_packet.id, "score": fraud.score,
+                                    "flags": [f.code for f in fraud.red_flags]},
+                )
         session.commit()
     except Exception as exc:  # noqa: BLE001 - advisory re-score, never break vision flow
         print(f"[FRAUD] v2 re-score failed for incident {incident_id}: {exc}")
