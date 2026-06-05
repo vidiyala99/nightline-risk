@@ -706,6 +706,44 @@ def _run_corroboration_and_update_packet(session, incident_id: str, incident: In
         f"corroboration: {result.status}"
     )
 
+    # Re-score fraud now that corroboration evidence exists (v2). Advisory and
+    # best-effort: a scoring fault must not break the vision pipeline. The
+    # corroboration packet is ALREADY committed by regenerate_packet_with_corroboration
+    # above, so the commit/rollback below only affects this fraud_signal mutation —
+    # a re-score failure can never discard the corroboration packet.
+    try:
+        from app.claim_routing import fraud_signal_for_packet
+        from app.packet_core import _add_audit_event
+
+        prior_signal = prior_packet.fraud_signal
+        if isinstance(prior_signal, str):  # Postgres JSON columns round-trip as strings
+            import json as _json
+            try:
+                prior_signal = _json.loads(prior_signal)
+            except (ValueError, TypeError):
+                prior_signal = {}
+        prior_tier = (prior_signal or {}).get("tier")
+
+        fraud = fraud_signal_for_packet(
+            session, new_packet,
+            corroboration_status=result.status,
+            corroboration_flags=result.flags,
+        )
+        new_packet.fraud_signal = fraud.to_dict()
+        session.add(new_packet)
+        if fraud.tier == "high" and prior_tier != "high":
+            _add_audit_event(
+                session=session, actor_id="vision-pipeline", actor_type="system",
+                entity_type="incident", entity_id=incident_id,
+                event_type="fraud.flagged",
+                event_metadata={"packet_id": new_packet.id, "score": fraud.score,
+                                "flags": [f.code for f in fraud.red_flags]},
+            )
+        session.commit()
+    except Exception as exc:  # noqa: BLE001 - advisory re-score, never break vision flow
+        print(f"[FRAUD] v2 re-score failed for incident {incident_id}: {exc}")
+        session.rollback()
+
 
 # Evidence routes (upload, list, evidence-analysis, serve) moved to
 # app.api.v1.evidence.
