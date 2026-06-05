@@ -36,7 +36,7 @@ class FraudFlag:
 class FraudSignal:
     score: float
     tier: str
-    red_flags: list  # list[FraudFlag]
+    red_flags: list[FraudFlag]
     summary: str
     assessed_stage: str  # "v1" | "v2"
 
@@ -58,3 +58,83 @@ def tier_for_score(score: float) -> str:
     if score >= _low_threshold():
         return "low"
     return "none"
+
+
+def _parse_dt(value) -> "datetime | None":
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _summarize(tier: str, flags: list, stage: str) -> str:
+    if not flags:
+        return "No fraud indicators detected."
+    lead = {
+        "high": "High fraud risk",
+        "elevated": "Elevated fraud risk",
+        "low": "Low fraud risk",
+    }.get(tier, "Fraud indicators present")
+    return f"{lead} ({stage}): " + ", ".join(f.label for f in flags) + "."
+
+
+def assess_fraud(
+    *,
+    risk_signal: dict,
+    incident: dict,
+    reported_at,
+    policy=None,
+    prior_claim_count: int = 0,
+    evidence_file_count: int = 0,
+    corroboration_status: "str | None" = None,
+    corroboration_flags: "list | None" = None,
+) -> FraudSignal:
+    stage = "v2" if corroboration_status is not None else "v1"
+    flags: list[FraudFlag] = []
+
+    occurred = _parse_dt(incident.get("occurred_at"))
+    reported = _parse_dt(reported_at)
+
+    # Reporting-delay anomaly (graduated; higher band replaces lower)
+    if occurred and reported:
+        delay_days = (reported - occurred).total_seconds() / 86400
+        if delay_days > 7:
+            flags.append(FraudFlag("FRAUD_LATE_REPORT", "Reported long after the incident",
+                                   0.25, f"Logged {delay_days:.0f} days after it occurred"))
+        elif delay_days > 3:
+            flags.append(FraudFlag("FRAUD_LATE_REPORT", "Reported days after the incident",
+                                   0.15, f"Logged {delay_days:.0f} days after it occurred"))
+
+    # Policy bind / expiry proximity
+    if policy is not None and reported:
+        eff = _parse_dt(getattr(policy, "effective_date", None))
+        exp = _parse_dt(getattr(policy, "expiry_date", None))
+        if eff and 0 <= (reported - eff).days < 14:
+            flags.append(FraudFlag("FRAUD_NEAR_BIND", "Claim soon after policy bind",
+                                   0.15, f"Reported {(reported - eff).days} days after bind"))
+        if exp and 0 <= (exp - reported).days < 14:
+            flags.append(FraudFlag("FRAUD_NEAR_EXPIRY", "Claim soon before policy expiry",
+                                   0.10, f"Reported {(exp - reported).days} days before expiry"))
+
+    # Claim-frequency anomaly (graduated)
+    if prior_claim_count >= 5:
+        flags.append(FraudFlag("FRAUD_FREQUENCY", "High prior-claim count",
+                               0.25, f"{prior_claim_count} prior claims"))
+    elif prior_claim_count >= 3:
+        flags.append(FraudFlag("FRAUD_FREQUENCY", "Elevated prior-claim count",
+                               0.15, f"{prior_claim_count} prior claims"))
+
+    # Unverified injury
+    if incident.get("injury_observed") and not incident.get("police_called") \
+            and not incident.get("ems_called"):
+        flags.append(FraudFlag("FRAUD_UNVERIFIED_INJURY", "Injury reported with no police or EMS",
+                               0.15, "Injury claimed but neither police nor EMS were called"))
+
+    score = min(1.0, round(sum(f.weight for f in flags), 3))
+    tier = tier_for_score(score)
+    return FraudSignal(score=score, tier=tier, red_flags=flags,
+                       summary=_summarize(tier, flags, stage), assessed_stage=stage)
