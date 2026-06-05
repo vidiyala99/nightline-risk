@@ -96,6 +96,38 @@ def test_fraud_scoring_failure_does_not_block_routing(db_session, monkeypatch):
     assert db_session.exec(select(ClaimProposal)).first() is not None
 
 
+def test_high_fraud_hold_persists_without_caller_commit(db_session, monkeypatch):
+    from app import claim_routing
+    from app.agents.fraud_agent import FraudSignal
+    monkeypatch.setattr(
+        claim_routing, "fraud_signal_for_packet",
+        lambda session, packet, **kw: FraudSignal(0.7, "high", [], "high risk", "v1"),
+    )
+    pkt = _seed_packet(db_session)
+    claim_routing.maybe_auto_route_incident(db_session, packet=pkt, operator_id="op")
+    # Do NOT commit here. Roll back to discard anything the function did NOT
+    # commit itself; the hold + signal must survive because the function commits.
+    db_session.rollback()
+    assert db_session.exec(
+        select(AuditEvent).where(AuditEvent.event_type == "fraud.hold")
+    ).first() is not None
+    assert db_session.get(UnderwritingPacket, "pkt-1").fraud_signal.get("tier") == "high"
+
+
+def test_borderline_fraud_signal_persists_without_caller_commit(db_session, monkeypatch):
+    from app import claim_routing
+    from app.agents.fraud_agent import FraudSignal
+    # elevated (not high) -> no hold, must still persist the signal and NOT suppress routing
+    monkeypatch.setattr(
+        claim_routing, "fraud_signal_for_packet",
+        lambda session, packet, **kw: FraudSignal(0.4, "elevated", [], "elevated", "v1"),
+    )
+    pkt = _seed_packet(db_session, prior_injury=False)
+    claim_routing.maybe_auto_route_incident(db_session, packet=pkt, operator_id="op")
+    db_session.rollback()
+    assert db_session.get(UnderwritingPacket, "pkt-1").fraud_signal.get("tier") == "elevated"
+
+
 def test_v2_rescore_escalates_with_contradiction():
     from app.agents.fraud_agent import assess_fraud
     from app.agents.corroboration_agent import INJURY_NOT_VISIBLE_FLAG

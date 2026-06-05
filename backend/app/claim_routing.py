@@ -143,9 +143,15 @@ def maybe_auto_route_incident(
                 event_metadata={"packet_id": packet.id, "score": fraud.score,
                                 "flags": [f.code for f in fraud.red_flags]},
             )
+        # Persist the fraud signal (and any hold) regardless of routing outcome —
+        # the request session does not auto-commit, and the auto-route path below
+        # commits again via create_proposal (harmless).
+        session.commit()
+        if fraud.tier == "high":
             return rec
     except Exception as exc:  # noqa: BLE001 - advisory screening, never block routing
         print(f"[FRAUD] scoring failed for packet {packet.id}: {exc}")
+        session.rollback()
 
     if not should_auto_route(rec):
         return rec
