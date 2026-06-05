@@ -821,59 +821,52 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
               <span className="lc-stat-foot" style={{ fontStyle: "italic", color: capColor }}>{capMood}</span>
             </div>
 
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)",
-              gap: "var(--space-2xl)",
-              alignItems: "end",
-            }} className="op-floor-live">
-              <div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 8 }}>
-                  <span style={{
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 500,
-                    fontStyle: "italic",
-                    fontSize: "clamp(3.5rem, 9vw, 6.5rem)",
-                    lineHeight: 0.95,
-                    letterSpacing: "-0.03em",
-                    color: capColor,
-                    fontVariantNumeric: "lining-nums tabular-nums",
-                  }}>{liveState.current_capacity}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "1rem", color: "var(--text-tertiary)" }}>
-                    / {liveState.max_capacity}
-                  </span>
-                  <span style={{
-                    marginLeft: "auto",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "1.1rem",
-                    color: capColor,
-                    fontVariantNumeric: "tabular-nums",
-                  }}>{Math.round(capPct)}%</span>
-                </div>
-                <div className="lc-bar" style={{ height: 6 }}>
-                  <div className="lc-bar__fill" style={{
-                    width: `${Math.min(100, capPct)}%`,
-                    ['--bar-color' as string]: capColor,
-                  }} />
-                </div>
-                <span className="lc-stat-foot" style={{ display: "block", marginTop: 10 }}>
-                  Capacity tracked in real-time from your door-count and venue sensors.
+            {/* Full-width capacity strip — numeral, %, and bar share one reading
+                line so the hero has no hollow middle at wide viewports. */}
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 8 }}>
+                {/* Capacity is operational data → sans-bold data numeral per the
+                    type system (styles.css: counts use .lc-num-data, money uses
+                    .lc-numeral). Hero scale, but one step above the cards below. */}
+                <span className="lc-num-data" style={{
+                  fontSize: "clamp(3rem, 7vw, 5rem)",
+                  color: capColor,
+                }}>{liveState.current_capacity}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "1rem", color: "var(--text-tertiary)" }}>
+                  / {liveState.max_capacity}
                 </span>
+                <span style={{
+                  marginLeft: "auto",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "1.1rem",
+                  color: capColor,
+                  fontVariantNumeric: "tabular-nums",
+                }}>{Math.round(capPct)}%</span>
               </div>
+              <div className="lc-bar" style={{ height: 6 }}>
+                <div className="lc-bar__fill" style={{
+                  width: `${Math.min(100, capPct)}%`,
+                  ['--bar-color' as string]: capColor,
+                }} />
+              </div>
+              <span className="lc-stat-foot" style={{ display: "block", marginTop: 10 }}>
+                Capacity tracked in real-time from your door-count and venue sensors.
+              </span>
+            </div>
 
-              <div>
-                <span className="lc-stat-label" style={{ display: "block", marginBottom: 12 }}>Infrastructure</span>
-                <div className="lc-infra">
-                  {liveState.infrastructure?.map((item, i) => (
-                    <div key={i} className="lc-infra__cell" data-state={item.is_degraded ? "warn" : "ok"}>
-                      <span>{item.name.replace(/_/g, " ").replace(/\[.*?\]/g, "").trim()}</span>
-                      <span className="lc-infra__dot" />
-                    </div>
-                  ))}
-                  {(!liveState.infrastructure || liveState.infrastructure.length === 0) && (
-                    <span className="lc-stat-foot">No infrastructure telemetry yet.</span>
-                  )}
-                </div>
+            {/* Infrastructure rides under the bar as a labeled chip strip. */}
+            <div className="op-floor-infra">
+              <span className="lc-stat-label" style={{ flexShrink: 0, paddingTop: 12 }}>Infrastructure</span>
+              <div className="lc-infra">
+                {liveState.infrastructure?.map((item, i) => (
+                  <div key={i} className="lc-infra__cell" data-state={item.is_degraded ? "warn" : "ok"}>
+                    <span>{item.name.replace(/_/g, " ").replace(/\[.*?\]/g, "").trim()}</span>
+                    <span className="lc-infra__dot" />
+                  </div>
+                ))}
+                {(!liveState.infrastructure || liveState.infrastructure.length === 0) && (
+                  <span className="lc-stat-foot">No infrastructure telemetry yet.</span>
+                )}
               </div>
             </div>
 
@@ -946,7 +939,7 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
               {(() => {
                 const attn = riskAttentionLine(riskScore.factors);
                 return (
-                  <div className="flex items-center gap-sm" style={{ color: FACTOR_TIER_COLOR[attn.tier], fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "0.85rem" }}>
+                  <div className="flex items-center gap-sm" style={{ color: FACTOR_TIER_COLOR[attn.tier], fontWeight: 600, fontSize: "0.85rem" }}>
                     <span aria-hidden>{FACTOR_GLYPH[attn.tier]}</span>
                     <span>{attn.text}</span>
                   </div>
@@ -985,14 +978,17 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
           if (pol) {
             const annual = Number(pol.annual_premium);
             const monthly = Number(pol.monthly_premium);
+            // Whole card navigates, mirroring the Risk Profile card — the
+            // former inner <Link> is a <span> now (no nested anchors).
             return (
+              <Link href="/coverage" style={{ textDecoration: "none" }}>
               <div className="lc-card"><div className="lc-card__inner">
                 <div className="flex justify-between items-start mb-md">
                   <span className="lc-stat-label">Your Policy</span>
                   <span className="lc-tier" style={{ color: TIER_COLOR[quote.tier] }}>{quote.venue_type.replace(/_/g, " ")}</span>
                 </div>
                 <div className="flex items-baseline gap-sm" style={{ marginBottom: 8 }}>
-                  <span className="lc-numeral lc-numeral--indigo">${Math.round(annual).toLocaleString()}</span>
+                  <span className="lc-numeral lc-numeral--md lc-numeral--indigo">${Math.round(annual).toLocaleString()}</span>
                   <span className="lc-stat-foot" style={{ fontSize: "0.9rem" }}>/ year</span>
                 </div>
                 <span className="lc-stat-foot">${Math.round(monthly).toLocaleString()} / month · annualized</span>
@@ -1013,8 +1009,9 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
                     </div>
                   </>
                 )}
-                <Link href="/coverage" className="lc-link" style={{ marginTop: 18, display: "inline-flex" }}>View coverage <ArrowUpRight size={13} /></Link>
+                <span className="lc-link" style={{ marginTop: 18 }}>View coverage <ArrowUpRight size={13} /></span>
               </div></div>
+              </Link>
             );
           }
 
@@ -1027,7 +1024,7 @@ function OperatorFloor({ riskScore, quote, liveState, venueId, portfolioVenues, 
                 <span className="lc-tier" style={{ color: TIER_COLOR[quote.tier] }}>{quote.venue_type.replace(/_/g, " ")}</span>
               </div>
               <div className="flex items-baseline gap-sm" style={{ marginBottom: 8 }}>
-                <span className="lc-numeral lc-numeral--indigo">${quote.annual_premium.toLocaleString()}</span>
+                <span className="lc-numeral lc-numeral--md lc-numeral--indigo">${quote.annual_premium.toLocaleString()}</span>
                 <span className="lc-stat-foot" style={{ fontSize: "0.9rem" }}>/ year</span>
               </div>
               <span className="lc-stat-foot">${quote.monthly_premium.toLocaleString()} / month · annualized</span>

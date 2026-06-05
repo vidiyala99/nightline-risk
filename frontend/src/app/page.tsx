@@ -204,6 +204,8 @@ export default function LandingPage() {
       {/* 4. Differentiator */}
       <section style={{ maxWidth: 1100, margin: "0 auto", paddingBottom: "clamp(40px, 7vh, 80px)" }}>
         <div className="lc-card" style={{ borderLeft: "3px solid var(--brand-primary)" }}>
+          {/* Always-on traveling beam — singles this card out as THE differentiator. */}
+          <span className="lc-beam" aria-hidden />
           <div className="lc-card__inner" style={{ display: "flex", gap: "var(--space-md)", alignItems: "flex-start" }}>
             <Target size={22} style={{ color: "var(--accent-ink)", flexShrink: 0, marginTop: 2 }} aria-hidden />
             <div>
@@ -246,26 +248,10 @@ export default function LandingPage() {
             <button
               key={email}
               type="button"
+              className="lc-demo"
               onClick={() => runDemo(email, home)}
               disabled={busy !== null}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "var(--space-sm)",
-                minHeight: 56,
-                padding: "0 var(--space-md)",
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-strong)",
-                borderRadius: "var(--radius-md)",
-                cursor: busy ? "wait" : "pointer",
-                fontFamily: "var(--font-body)",
-                fontSize: "0.95rem",
-                fontWeight: 500,
-                color: "var(--text-primary)",
-                opacity: busy && busy !== email ? 0.5 : 1,
-                transition: "border-color 120ms, background 120ms",
-              }}
+              style={{ opacity: busy && busy !== email ? 0.5 : 1 }}
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-sm)" }}>
                 <Icon size={18} style={{ color: "var(--accent-ink)" }} aria-hidden />
