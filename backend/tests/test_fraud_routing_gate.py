@@ -23,3 +23,58 @@ def test_fraud_signal_column_round_trips(db_session):
     db_session.expire_all()
     got = db_session.get(UnderwritingPacket, "pkt-1")
     assert got.fraud_signal["tier"] == "high"
+
+
+from app.models import IncidentRecord, ClaimProposal, AuditEvent, RubricVersion
+from sqlmodel import select
+
+
+def _seed_packet(session, *, prior_injury=True):
+    session.add(RubricVersion(id="rv-1", name="demo", version="demo"))
+    session.add(IncidentRecord(
+        id="inc-1", venue_id="v1", status="open",
+        occurred_at="2026-05-01T22:00:00Z", location="bar",
+        summary="x", reported_by="op",
+        injury_observed=prior_injury, police_called=False, ems_called=False,
+    ))
+    pkt = UnderwritingPacket(
+        id="pkt-1", venue_id="v1", incident_id="inc-1", rubric_version_id="rv-1",
+        status="generated", snapshot_hash="h",
+        risk_signals={"type": "altercation_event", "severity": "high",
+                      "confidence": 0.95, "should_file": True},
+    )
+    session.add(pkt)
+    session.commit()
+    return pkt
+
+
+def test_high_fraud_suppresses_autoroute_and_audits(db_session, monkeypatch):
+    from app import claim_routing
+    from app.agents.fraud_agent import FraudSignal
+    monkeypatch.setattr(
+        claim_routing, "fraud_signal_for_packet",
+        lambda session, packet, **kw: FraudSignal(0.7, "high", [], "high risk", "v1"),
+    )
+    pkt = _seed_packet(db_session)
+    claim_routing.maybe_auto_route_incident(db_session, packet=pkt, operator_id="op")
+    db_session.commit()
+
+    assert db_session.exec(select(ClaimProposal)).first() is None
+    holds = db_session.exec(
+        select(AuditEvent).where(AuditEvent.event_type == "fraud.hold")
+    ).all()
+    assert len(holds) == 1
+    assert db_session.get(UnderwritingPacket, "pkt-1").fraud_signal["tier"] == "high"
+
+
+def test_low_fraud_still_routes(db_session, monkeypatch):
+    from app import claim_routing
+    from app.agents.fraud_agent import FraudSignal
+    monkeypatch.setattr(
+        claim_routing, "fraud_signal_for_packet",
+        lambda session, packet, **kw: FraudSignal(0.0, "none", [], "clean", "v1"),
+    )
+    pkt = _seed_packet(db_session, prior_injury=False)
+    claim_routing.maybe_auto_route_incident(db_session, packet=pkt, operator_id="op")
+    db_session.commit()
+    assert db_session.exec(select(ClaimProposal)).first() is not None

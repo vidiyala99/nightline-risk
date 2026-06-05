@@ -8,7 +8,9 @@ import os
 from sqlmodel import Session, select
 
 from app.claim_recommendation import ClaimRecommendation, recommend_claim_filing, recommendation_to_dict
-from app.models import Claim, ClaimProposal, IncidentRecord, Policy, UnderwritingPacket
+from app.models import Claim, ClaimProposal, EvidenceFile, IncidentRecord, Policy, UnderwritingPacket
+from app.packet_core import _add_audit_event
+from app.time import now_utc
 
 
 def _auto_confidence() -> float:
@@ -71,6 +73,42 @@ def count_prior_claims(session: Session, venue_id: str) -> int:
     return sum(1 for status in rows if status != "closed_dropped")
 
 
+def _latest_active_policy(session: Session, venue_id: str) -> "Policy | None":
+    from app.services.fnol import ACTIVE_POLICY_STATUSES
+    policies = session.exec(select(Policy).where(Policy.venue_id == venue_id)).all()
+    active = [p for p in policies if p.status in ACTIVE_POLICY_STATUSES]
+    if not active:
+        return None
+    active.sort(key=lambda p: p.effective_date, reverse=True)
+    return active[0]
+
+
+def fraud_signal_for_packet(session: Session, packet: UnderwritingPacket, **kwargs):
+    """Assemble inputs and score fraud for a packet. kwargs forwards
+    corroboration_status / corroboration_flags for the v2 re-score."""
+    from app.agents.fraud_agent import assess_fraud
+
+    incident = session.get(IncidentRecord, packet.incident_id)
+    incident_payload = {
+        "occurred_at": incident.occurred_at if incident else None,
+        "injury_observed": bool(incident.injury_observed) if incident else False,
+        "police_called": bool(incident.police_called) if incident else False,
+        "ems_called": bool(incident.ems_called) if incident else False,
+    }
+    evidence_file_count = len(
+        session.exec(select(EvidenceFile).where(EvidenceFile.incident_id == packet.incident_id)).all()
+    )
+    return assess_fraud(
+        risk_signal=packet.risk_signals or {},
+        incident=incident_payload,
+        reported_at=now_utc(),
+        policy=_latest_active_policy(session, packet.venue_id),
+        prior_claim_count=count_prior_claims(session, packet.venue_id),
+        evidence_file_count=evidence_file_count,
+        **kwargs,
+    )
+
+
 def maybe_auto_route_incident(
     session: Session,
     *,
@@ -86,6 +124,19 @@ def maybe_auto_route_incident(
     from app.claim_proposals import create_proposal  # local import avoids circular dependency
 
     rec = recommendation_for_packet(session, packet)
+    fraud = fraud_signal_for_packet(session, packet)
+    packet.fraud_signal = fraud.to_dict()
+    session.add(packet)
+    if fraud.tier == "high":
+        _add_audit_event(
+            session=session, actor_id="auto-router", actor_type="system",
+            entity_type="incident", entity_id=packet.incident_id,
+            event_type="fraud.hold",
+            event_metadata={"packet_id": packet.id, "score": fraud.score,
+                            "flags": [f.code for f in fraud.red_flags]},
+        )
+        return rec
+
     if not should_auto_route(rec):
         return rec
     existing = session.exec(
