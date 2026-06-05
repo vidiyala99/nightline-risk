@@ -1,6 +1,12 @@
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
-from app.models import UnderwritingPacket
+from sqlmodel import Session, SQLModel, create_engine, select
+from app.models import (
+    AuditEvent,
+    ClaimProposal,
+    IncidentRecord,
+    RubricVersion,
+    UnderwritingPacket,
+)
 
 
 @pytest.fixture
@@ -23,10 +29,6 @@ def test_fraud_signal_column_round_trips(db_session):
     db_session.expire_all()
     got = db_session.get(UnderwritingPacket, "pkt-1")
     assert got.fraud_signal["tier"] == "high"
-
-
-from app.models import IncidentRecord, ClaimProposal, AuditEvent, RubricVersion
-from sqlmodel import select
 
 
 def _seed_packet(session, *, prior_injury=True):
@@ -75,6 +77,20 @@ def test_low_fraud_still_routes(db_session, monkeypatch):
         lambda session, packet, **kw: FraudSignal(0.0, "none", [], "clean", "v1"),
     )
     pkt = _seed_packet(db_session, prior_injury=False)
+    claim_routing.maybe_auto_route_incident(db_session, packet=pkt, operator_id="op")
+    db_session.commit()
+    assert db_session.exec(select(ClaimProposal)).first() is not None
+
+
+def test_fraud_scoring_failure_does_not_block_routing(db_session, monkeypatch):
+    from app import claim_routing
+
+    def _boom(session, packet, **kw):
+        raise RuntimeError("scorer exploded")
+
+    monkeypatch.setattr(claim_routing, "fraud_signal_for_packet", _boom)
+    pkt = _seed_packet(db_session, prior_injury=False)
+    # must NOT raise; fraud is advisory, so routing proceeds normally
     claim_routing.maybe_auto_route_incident(db_session, packet=pkt, operator_id="op")
     db_session.commit()
     assert db_session.exec(select(ClaimProposal)).first() is not None

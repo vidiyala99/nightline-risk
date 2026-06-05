@@ -4,8 +4,13 @@ Single source of truth for the recommendation-gated routing thresholds so the
 web UI never re-derives them — it reads the server-computed `route_status`.
 """
 import os
+from datetime import date
+from typing import TYPE_CHECKING
 
 from sqlmodel import Session, select
+
+if TYPE_CHECKING:
+    from app.agents.fraud_agent import FraudSignal
 
 from app.claim_recommendation import ClaimRecommendation, recommend_claim_filing, recommendation_to_dict
 from app.models import Claim, ClaimProposal, EvidenceFile, IncidentRecord, Policy, UnderwritingPacket
@@ -79,11 +84,11 @@ def _latest_active_policy(session: Session, venue_id: str) -> "Policy | None":
     active = [p for p in policies if p.status in ACTIVE_POLICY_STATUSES]
     if not active:
         return None
-    active.sort(key=lambda p: p.effective_date, reverse=True)
+    active.sort(key=lambda p: p.effective_date or date.min, reverse=True)
     return active[0]
 
 
-def fraud_signal_for_packet(session: Session, packet: UnderwritingPacket, **kwargs):
+def fraud_signal_for_packet(session: Session, packet: UnderwritingPacket, **kwargs) -> "FraudSignal":
     """Assemble inputs and score fraud for a packet. kwargs forwards
     corroboration_status / corroboration_flags for the v2 re-score."""
     from app.agents.fraud_agent import assess_fraud
@@ -124,18 +129,23 @@ def maybe_auto_route_incident(
     from app.claim_proposals import create_proposal  # local import avoids circular dependency
 
     rec = recommendation_for_packet(session, packet)
-    fraud = fraud_signal_for_packet(session, packet)
-    packet.fraud_signal = fraud.to_dict()
-    session.add(packet)
-    if fraud.tier == "high":
-        _add_audit_event(
-            session=session, actor_id="auto-router", actor_type="system",
-            entity_type="incident", entity_id=packet.incident_id,
-            event_type="fraud.hold",
-            event_metadata={"packet_id": packet.id, "score": fraud.score,
-                            "flags": [f.code for f in fraud.red_flags]},
-        )
-        return rec
+    # Fraud screening is advisory — a scorer/query fault must never drop the
+    # operator's incident. On failure, log and fall through to normal routing.
+    try:
+        fraud = fraud_signal_for_packet(session, packet)
+        packet.fraud_signal = fraud.to_dict()
+        session.add(packet)
+        if fraud.tier == "high":
+            _add_audit_event(
+                session=session, actor_id="auto-router", actor_type="system",
+                entity_type="incident", entity_id=packet.incident_id,
+                event_type="fraud.hold",
+                event_metadata={"packet_id": packet.id, "score": fraud.score,
+                                "flags": [f.code for f in fraud.red_flags]},
+            )
+            return rec
+    except Exception as exc:  # noqa: BLE001 - advisory screening, never block routing
+        print(f"[FRAUD] scoring failed for packet {packet.id}: {exc}")
 
     if not should_auto_route(rec):
         return rec
