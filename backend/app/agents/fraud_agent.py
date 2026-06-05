@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 
 def _high_threshold() -> float:
@@ -63,12 +63,16 @@ def tier_for_score(score: float) -> str:
 def _parse_dt(value) -> "datetime | None":
     if value is None:
         return None
+    # datetime is a subclass of date, so check datetime FIRST.
     if isinstance(value, datetime):
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, date):
+        return datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
     try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def _summarize(tier: str, flags: list, stage: str) -> str:
@@ -86,8 +90,8 @@ def assess_fraud(
     *,
     risk_signal: dict,
     incident: dict,
-    reported_at,
-    policy=None,
+    reported_at: "datetime | date | str | None",
+    policy: object = None,
     prior_claim_count: int = 0,
     evidence_file_count: int = 0,
     corroboration_status: "str | None" = None,

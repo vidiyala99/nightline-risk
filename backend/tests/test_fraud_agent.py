@@ -1,4 +1,6 @@
-from app.agents.fraud_agent import FraudFlag, FraudSignal, tier_for_score
+from datetime import datetime, timezone
+
+from app.agents.fraud_agent import FraudFlag, FraudSignal, assess_fraud, tier_for_score
 
 
 def test_tier_boundaries_use_env_defaults():
@@ -26,9 +28,6 @@ def test_fraud_signal_to_dict_is_json_shaped():
     assert d["red_flags"] == [{"code": "FRAUD_X", "label": "X", "weight": 0.4, "detail": "because"}]
     assert d["assessed_stage"] == "v1"
 
-
-from datetime import datetime, timezone
-from app.agents.fraud_agent import assess_fraud
 
 CLEAN_INCIDENT = {
     "occurred_at": "2026-05-01T22:00:00Z",
@@ -90,3 +89,39 @@ def test_v1_never_emits_evidence_flags():
         evidence_file_count=0,  # zero files at v1 must NOT trip FRAUD_NO_EVIDENCE
     )
     assert "FRAUD_NO_EVIDENCE" not in _codes(sig)
+
+
+class _FakePolicy:
+    def __init__(self, effective_date=None, expiry_date=None):
+        self.effective_date = effective_date
+        self.expiry_date = expiry_date
+
+
+def test_policy_proximity_with_date_typed_fields_near_bind():
+    from datetime import date
+    sig = assess_fraud(
+        risk_signal={"severity": "low"},
+        incident=CLEAN_INCIDENT,
+        reported_at=datetime(2026, 5, 5, tzinfo=timezone.utc),
+        policy=_FakePolicy(effective_date=date(2026, 5, 1), expiry_date=date(2027, 5, 1)),
+        prior_claim_count=0,
+        evidence_file_count=2,
+    )
+    codes = {f.code for f in sig.red_flags}
+    assert "FRAUD_NEAR_BIND" in codes        # reported 4 days after bind
+    assert "FRAUD_NEAR_EXPIRY" not in codes
+
+
+def test_policy_proximity_with_date_typed_fields_near_expiry():
+    from datetime import date
+    sig = assess_fraud(
+        risk_signal={"severity": "low"},
+        incident=CLEAN_INCIDENT,
+        reported_at=datetime(2027, 4, 25, tzinfo=timezone.utc),
+        policy=_FakePolicy(effective_date=date(2026, 5, 1), expiry_date=date(2027, 5, 1)),
+        prior_claim_count=0,
+        evidence_file_count=2,
+    )
+    codes = {f.code for f in sig.red_flags}
+    assert "FRAUD_NEAR_EXPIRY" in codes       # reported 6 days before expiry
+    assert "FRAUD_NEAR_BIND" not in codes
