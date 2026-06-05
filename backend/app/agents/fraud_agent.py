@@ -138,6 +138,26 @@ def assess_fraud(
         flags.append(FraudFlag("FRAUD_UNVERIFIED_INJURY", "Injury reported with no police or EMS",
                                0.15, "Injury claimed but neither police nor EMS were called"))
 
+    # Evidence-dependent flags (v2 only)
+    if stage == "v2":
+        status = str(corroboration_status or "").upper()
+        cflags = [str(f) for f in (corroboration_flags or [])]
+        if status == "CONTRADICTED":
+            flags.append(FraudFlag("FRAUD_EVIDENCE_CONTRADICTED", "Footage contradicts the report",
+                                   0.40, "Corroboration status is CONTRADICTED"))
+        elif status == "PARTIAL":
+            flags.append(FraudFlag("FRAUD_EVIDENCE_PARTIAL", "Footage only partly matches the report",
+                                   0.15, "Corroboration status is PARTIAL"))
+        if any("NOT visible" in f for f in cflags):
+            flags.append(FraudFlag("FRAUD_INJURY_NOT_VISIBLE", "Injury claim not visible in evidence",
+                                   0.15, "Corroboration flagged an injury/evidence mismatch"))
+        if any("imestamp" in f for f in cflags):
+            flags.append(FraudFlag("FRAUD_TIMESTAMP_MISMATCH", "Evidence timestamps do not match",
+                                   0.15, "Corroboration flagged a timestamp discrepancy"))
+        if str(risk_signal.get("severity", "")).lower() == "high" and evidence_file_count == 0:
+            flags.append(FraudFlag("FRAUD_NO_EVIDENCE", "High-severity claim with no evidence",
+                                   0.20, "No evidence files were provided for a high-severity claim"))
+
     score = min(1.0, round(sum(f.weight for f in flags), 3))
     tier = tier_for_score(score)
     return FraudSignal(score=score, tier=tier, red_flags=flags,

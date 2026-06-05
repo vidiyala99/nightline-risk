@@ -125,3 +125,51 @@ def test_policy_proximity_with_date_typed_fields_near_expiry():
     codes = {f.code for f in sig.red_flags}
     assert "FRAUD_NEAR_EXPIRY" in codes       # reported 6 days before expiry
     assert "FRAUD_NEAR_BIND" not in codes
+
+
+def test_v2_contradiction_drives_high_and_sets_stage():
+    sig = assess_fraud(
+        risk_signal={"severity": "high"},
+        incident={**CLEAN_INCIDENT, "injury_observed": True},
+        reported_at=datetime(2026, 5, 1, 23, 0, tzinfo=timezone.utc),
+        prior_claim_count=0,
+        evidence_file_count=2,
+        corroboration_status="CONTRADICTED",
+        corroboration_flags=["Injury reported but NOT visible in uploaded evidence",
+                             "Timestamp discrepancy detected between evidence and report"],
+    )
+    assert sig.assessed_stage == "v2"
+    codes = {f.code for f in sig.red_flags}
+    assert "FRAUD_EVIDENCE_CONTRADICTED" in codes
+    assert "FRAUD_INJURY_NOT_VISIBLE" in codes
+    assert "FRAUD_TIMESTAMP_MISMATCH" in codes
+    assert sig.tier == "high"
+
+
+def test_v2_no_evidence_only_fires_when_high_severity_and_zero_files():
+    base = dict(
+        risk_signal={"severity": "high"},
+        incident=CLEAN_INCIDENT,
+        reported_at=datetime(2026, 5, 1, 23, 0, tzinfo=timezone.utc),
+        prior_claim_count=0,
+        corroboration_status="INCONCLUSIVE",
+        corroboration_flags=[],
+    )
+    hit = assess_fraud(**base, evidence_file_count=0)
+    miss = assess_fraud(**base, evidence_file_count=3)
+    assert "FRAUD_NO_EVIDENCE" in {f.code for f in hit.red_flags}
+    assert "FRAUD_NO_EVIDENCE" not in {f.code for f in miss.red_flags}
+
+
+def test_v2_partial_is_lighter_than_contradicted():
+    sig = assess_fraud(
+        risk_signal={"severity": "low"},
+        incident=CLEAN_INCIDENT,
+        reported_at=datetime(2026, 5, 1, 23, 0, tzinfo=timezone.utc),
+        prior_claim_count=0,
+        evidence_file_count=2,
+        corroboration_status="PARTIAL",
+        corroboration_flags=[],
+    )
+    flag = [f for f in sig.red_flags if f.code == "FRAUD_EVIDENCE_PARTIAL"]
+    assert len(flag) == 1 and flag[0].weight == 0.15
