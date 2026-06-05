@@ -11,6 +11,8 @@ import os
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
 
+from app.agents.corroboration_agent import INJURY_NOT_VISIBLE_FLAG, TIMESTAMP_DISCREPANCY_FLAG
+
 
 def _high_threshold() -> float:
     return float(os.getenv("FRAUD_TIER_HIGH", "0.55"))
@@ -148,12 +150,14 @@ def assess_fraud(
         elif status == "PARTIAL":
             flags.append(FraudFlag("FRAUD_EVIDENCE_PARTIAL", "Footage only partly matches the report",
                                    0.15, "Corroboration status is PARTIAL"))
-        if any("NOT visible" in f for f in cflags):
+        if any(INJURY_NOT_VISIBLE_FLAG in f for f in cflags):
             flags.append(FraudFlag("FRAUD_INJURY_NOT_VISIBLE", "Injury claim not visible in evidence",
                                    0.15, "Corroboration flagged an injury/evidence mismatch"))
-        if any("imestamp" in f for f in cflags):
+        if any(TIMESTAMP_DISCREPANCY_FLAG in f for f in cflags):
             flags.append(FraudFlag("FRAUD_TIMESTAMP_MISMATCH", "Evidence timestamps do not match",
                                    0.15, "Corroboration flagged a timestamp discrepancy"))
+        # NOT corroboration-derived: reads risk_signal severity + evidence_file_count;
+        # gated to v2 only because that's when evidence is expected.
         if str(risk_signal.get("severity", "")).lower() == "high" and evidence_file_count == 0:
             flags.append(FraudFlag("FRAUD_NO_EVIDENCE", "High-severity claim with no evidence",
                                    0.20, "No evidence files were provided for a high-severity claim"))

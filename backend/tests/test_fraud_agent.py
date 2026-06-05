@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.agents.corroboration_agent import INJURY_NOT_VISIBLE_FLAG, TIMESTAMP_DISCREPANCY_FLAG
 from app.agents.fraud_agent import FraudFlag, FraudSignal, assess_fraud, tier_for_score
 
 
@@ -135,8 +136,7 @@ def test_v2_contradiction_drives_high_and_sets_stage():
         prior_claim_count=0,
         evidence_file_count=2,
         corroboration_status="CONTRADICTED",
-        corroboration_flags=["Injury reported but NOT visible in uploaded evidence",
-                             "Timestamp discrepancy detected between evidence and report"],
+        corroboration_flags=[INJURY_NOT_VISIBLE_FLAG, TIMESTAMP_DISCREPANCY_FLAG],
     )
     assert sig.assessed_stage == "v2"
     codes = {f.code for f in sig.red_flags}
@@ -173,3 +173,20 @@ def test_v2_partial_is_lighter_than_contradicted():
     )
     flag = [f for f in sig.red_flags if f.code == "FRAUD_EVIDENCE_PARTIAL"]
     assert len(flag) == 1 and flag[0].weight == 0.15
+
+
+def test_unverified_injury_and_not_visible_co_fire():
+    sig = assess_fraud(
+        risk_signal={"severity": "low"},
+        incident={**CLEAN_INCIDENT, "injury_observed": True},
+        reported_at=datetime(2026, 5, 1, 23, 0, tzinfo=timezone.utc),
+        prior_claim_count=0,
+        evidence_file_count=2,
+        corroboration_status="PARTIAL",
+        corroboration_flags=[INJURY_NOT_VISIBLE_FLAG],
+    )
+    codes = {f.code for f in sig.red_flags}
+    assert "FRAUD_UNVERIFIED_INJURY" in codes   # v1: injury, no police/EMS
+    assert "FRAUD_INJURY_NOT_VISIBLE" in codes   # v2: corroboration mismatch
+    # 0.15 (unverified) + 0.15 (not visible) + 0.15 (PARTIAL) = 0.45
+    assert sig.score == 0.45

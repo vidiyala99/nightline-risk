@@ -9,6 +9,12 @@ from dataclasses import dataclass
 from app.agents.vision_agent import VisionFinding
 
 
+# Flag strings consumed by fraud_agent — exported as constants so the two agents
+# share a single source of truth (a reword here updates fraud detection too).
+INJURY_NOT_VISIBLE_FLAG = "Injury reported but NOT visible in uploaded evidence"
+TIMESTAMP_DISCREPANCY_FLAG = "Timestamp discrepancy detected between evidence and report"
+
+
 @dataclass
 class CorroborationResult:
     status: str  # CONSISTENT | PARTIAL | CONTRADICTED | INCONCLUSIVE
@@ -52,7 +58,7 @@ def corroborate(
         flags.append("Visual injury evidence CONSISTENT with report")
     elif injury_observed and not any_injury_visible:
         contradictions += 1
-        flags.append("Injury reported but NOT visible in uploaded evidence")
+        flags.append(INJURY_NOT_VISIBLE_FLAG)
     elif not injury_observed and any_injury_visible:
         contradictions += 1
         flags.append("Injury visible in footage but NOT reported — review required")
@@ -69,7 +75,7 @@ def corroborate(
         flags.append("Evidence timestamps CONSISTENT with reported incident time")
     else:
         contradictions += 1
-        flags.append("Timestamp discrepancy detected between evidence and report")
+        flags.append(TIMESTAMP_DISCREPANCY_FLAG)
 
     # Determine overall status
     if contradictions == 0 and consistencies >= 2:
