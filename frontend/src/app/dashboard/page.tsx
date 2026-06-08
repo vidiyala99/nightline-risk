@@ -14,6 +14,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { TierBadge, Tier as UiTier } from "@/components/ui/TierBadge";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { riskAttentionLine, FACTOR_TIER_COLOR, FACTOR_GLYPH, factorLabel, getFactorTier } from "@/lib/risk";
+import { ExposurePanel } from "@/components/intelligence/ExposurePanel";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -636,6 +637,10 @@ function DashboardPageInner() {
         )}
       </section>
       )}
+
+      {/* PROACTIVE EXPOSURE — Risk Intelligence Layer's deterministic "what
+          matters now" banner. Self-fetches; self-hides on error/empty. */}
+      <ExposurePanel />
 
       {/* TICKER — portfolio-wide signal; hidden for operator (single venue),
           and hidden on phone-broker (the compact header replaces it) */}
