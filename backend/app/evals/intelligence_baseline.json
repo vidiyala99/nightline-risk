@@ -1,0 +1,22 @@
+{
+  "intelligence=deterministic-v1": {
+    "stack_signature": "intelligence=deterministic-v1",
+    "aggregate": {
+      "pass_rate": 1.0
+    },
+    "scorer_averages": [
+      {
+        "name": "findings_recall",
+        "pass_rate": 1.0
+      },
+      {
+        "name": "false_alarm_rate",
+        "pass_rate": 1.0
+      },
+      {
+        "name": "severity_match",
+        "pass_rate": 1.0
+      }
+    ]
+  }
+}
