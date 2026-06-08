@@ -9,6 +9,7 @@ from app.intelligence.finding import (
 )
 from app.models import Policy, CoverageLine
 from app.schemas.domain import Citation
+from app.defense_package import _as_list
 
 IN_FORCE = ("active", "bound_pending_number")
 
@@ -30,7 +31,7 @@ def find(scope: FindingScope) -> list[Finding]:
     q = _scope_filter(select(Policy).where(Policy.status.in_(IN_FORCE)), scope)
     findings: list[Finding] = []
     for pol in scope.session.exec(q).all():
-        have = set(pol.coverage_lines or [])
+        have = set(_as_list(pol.coverage_lines))
         missing = sorted(required - have)
         if not missing:
             continue

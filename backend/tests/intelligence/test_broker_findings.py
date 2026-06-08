@@ -39,6 +39,31 @@ def test_coverage_gap_flags_missing_required_line(session):
     assert "gl" in findings[0].why[0].excerpt
 
 
+def test_coverage_gap_coerces_json_string_coverage_lines(session):
+    # On Postgres, Policy.coverage_lines comes back as a JSON STRING, not a list.
+    # The finding must still detect the missing required line. We can't make
+    # SQLite return a string from a JSON column, so assert the coercion contract
+    # the code now depends on directly, then confirm the normal path still works.
+    from app.intelligence.findings import coverage_gap_eo
+
+    # The Postgres shape (JSON string) and the SQLite shape (list) both coerce,
+    # and None coerces to [] (no AttributeError, no char iteration).
+    assert set(coverage_gap_eo._as_list('["liquor"]')) == {"liquor"}
+    assert set(coverage_gap_eo._as_list(["liquor"])) == {"liquor"}
+    assert coverage_gap_eo._as_list(None) == []
+
+    # Behavioral path (list form on SQLite): the required "gl" line is missing.
+    _coverage_lines(session)
+    session.add(Policy(id="pol-9", submission_id="s9", bound_quote_id="q9",
+                       venue_id="v1", carrier_id="c1", status="active",
+                       effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
+                       annual_premium=Decimal("0"), commission_amount=Decimal("0"),
+                       commission_rate=Decimal("0"), coverage_lines=["liquor"]))
+    session.commit()
+    findings = coverage_gap_eo.find(_scope(session))
+    assert any(f.subject.entity_id == "pol-9" for f in findings)
+
+
 def test_renewal_at_risk_flags_expiring_without_request(session):
     session.add(Policy(id="pol-2", submission_id="s2", bound_quote_id="q2",
                        venue_id="v1", carrier_id="c1", status="active",
