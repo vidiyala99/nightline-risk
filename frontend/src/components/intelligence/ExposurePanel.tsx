@@ -47,7 +47,7 @@ export function ExposurePanel() {
             style={{
               borderLeft: `3px solid ${SEVERITY_COLOR[f.severity] ?? "var(--text-tertiary)"}`,
               padding: "0.5rem 0.75rem",
-              background: "var(--surface-2, transparent)",
+              background: "var(--bg-surface, transparent)",
             }}
           >
             <Link href={f.subject.href} style={{ fontWeight: 600 }}>

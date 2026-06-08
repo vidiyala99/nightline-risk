@@ -10,7 +10,7 @@ from decimal import Decimal
 from sqlmodel import SQLModel, Session, create_engine
 
 import app.models  # noqa: F401
-from app.models import IncidentRecord, ComplianceSignal, Policy, CoverageLine
+from app.models import IncidentRecord, Policy, CoverageLine
 
 NOW = datetime(2026, 6, 8, tzinfo=timezone.utc)
 
