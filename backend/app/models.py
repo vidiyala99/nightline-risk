@@ -847,3 +847,32 @@ class CommsReviewItem(SQLModel, table=True):
     resolved_by: Optional[str] = Field(default=None)
     resolved_kind: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=now_utc)
+
+
+class RiskFindingRecord(SQLModel, table=True):
+    """A persisted risk judgment produced by app.intelligence.
+
+    Fresh table (created by create_all, no _COLUMN_MIGRATIONS line needed —
+    mirrors CommsReviewItem). JSON columns (why/recommended_action/prediction)
+    round-trip as parsed objects on SQLite but as JSON STRINGS on Postgres —
+    callers must coerce at the read boundary (see app.schemas.intelligence).
+
+    `prediction` is the outcome-capture seam: the falsifiable claim the
+    calibration loop (a later sub-project) will score against reality. Nothing
+    scores it yet."""
+    id: str = Field(primary_key=True)
+    persona: str = Field(index=True)
+    kind: str = Field(index=True)
+    subject_type: str
+    subject_id: str = Field(index=True)
+    subject_label: str = ""
+    subject_href: str = ""
+    severity: str
+    severity_rank: int = 0
+    why: list = Field(default_factory=list, sa_column=Column(JSON))
+    recommended_action: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    prediction: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    status: str = Field(default="open", index=True)  # open | resolved
+    venue_id: Optional[str] = Field(default=None, index=True)
+    computed_at: datetime = Field(default_factory=now_utc)
+    resolved_at: Optional[datetime] = Field(default=None)
