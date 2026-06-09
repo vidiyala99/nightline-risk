@@ -92,22 +92,14 @@ Last updated: 2026-06-09.
 
 ## Next up (subscription-free) — pick a track
 
-### 1. Eval harness deepening  ★ headline / best pitch fit  — mostly already shipped (audited 2026-05-27)
-- [x] Audit current eval scenarios + scoring — done. Harness is mature: 15 standard + 6 adversarial scenarios, 10 scorers (severity/citation/review-status/factor + NDCG@5/MRR retrieval + 3 safety).
-- [x] ~~Add more research-grounded scenarios~~ — already 15 across 7 exposure classes (A&B, dram-shop, crowd, medical, premises, property, negligent-security) + 6 adversarial.
-- [x] ~~Per-provider baseline snapshots + regression gate~~ — already stack-keyed (`baseline.py`); `--compare-baseline` exits 1 on any scorer drop.
-- [x] ~~Scorecard on `/evals`~~ — already a full scoreboard (`frontend/src/app/evals/page.tsx`); reads `public/eval-baseline.json`.
-- [x] ~~Wire/confirm CI gate~~ — already wired: `evals` + `evals-matrix` jobs in `ci.yml` run `--compare-baseline`.
-- [x] Closed the last gap: `off_topic_review_status` 50%→100%. The review gate now fail-safes to `needs_review` on any `general_incident` (unrecognized) input instead of auto-approving at low severity. Aggregate now **21/21 = 100%** on the deterministic stack.
+> **Hygiene 2026-06-09:** completed tracks are collapsed to a one-line ✅ summary (track numbers kept stable so cross-references don't break). Done `[x]` sub-items *inside* still-open tracks are intentional context. **Active work = Tracks 3, 4, 5, 8, 9 (remainder), 10, 11, 12; deferred = 6; done = 1, 2, 7b.**
 
-### 2. Correctness pass on latent bugs  ✓ done 2026-05-27
-- [x] Fix the tz naive/aware crash in incident-packet backfill — `_reconstruct_timeline_meta._parse` returned mixed-awareness datetimes (naive seed `occurred_at` vs aware `Z` stream events); normalized via `as_utc()`. Regression test in `test_claims_timeline_meta.py`.
-- [x] Swept `fromisoformat`/`timedelta`/`total_seconds` sites — no other Python naive/aware comparison crashes. `alert_dispatcher.py:181` uses naive `utcnow()` but only in a SQL filter (DB-handled); left as-is per the out-of-scope `utcnow` deprecation rule.
-- [x] Reviewed every `except Exception` site — all log or are intentional best-effort guards; none silently hide real failures.
-- [x] Safety Record scoring made recency-decayed + exposure-normalized (`scoring.py` `_effective_incident_load`); fixes the saturated curve where 20+ incidents all read ~1/100 and closing a case didn't move the score. Shipped `scripts/audit_incidents.py` + `scripts/cleanup_stale_incidents.py` (dry-run/`--apply`, archive-only) to remediate venues bloated with stale app-generated open incidents. `/risk-score` + `/quote` are now venue-access gated.
-- [x] Triage/ingestion demo flow accumulates unbounded open incidents (`inc-` rows). Fixed with a self-healing per-venue open-incident cap (`app/services/incident_maintenance.py` `enforce_open_incident_cap`, wired into `create_brawl_incident_flow` with `protect_ids` so the just-filed incident is never archived) + extracted the cleanup script's core into a tested `archive_stale_incidents`/`find_stale_incidents` service (single source of truth). Tests in `test_incident_maintenance.py`.
-- [x] Re-resolve compliance crash: both `POST /venues/{id}/compliance/{item}/upload` and the broker waiver route (`app/api/v1/compliance.py`) now skip the transition when the signal is already `resolved` — idempotent success, never a 500. RED-proven regression tests in `test_compliance_resolve.py` + `test_compliance_evidence.py`.
-- [ ] Prod data cleanup (ops, not code): run `DATABASE_URL=<DATABASE_PUBLIC_URL> python -m scripts.audit_incidents --venue elsewhere-brooklyn` against Railway, review the age buckets, then `cleanup_stale_incidents --apply` to drop the ~29 stale open `inc-` rows so the live Safety Record recovers. The recency-decay model already softens it, but the "29 open" display persists until cleaned.
+### 1. Eval harness deepening  ★ headline / best pitch fit — ✅ COMPLETE
+- [x] Mature harness, **21/21 = 100%** on the deterministic stack: 15 standard + 6 adversarial scenarios, 10 scorers (severity/citation/review-status/factor + NDCG@5/MRR retrieval + 3 safety); per-stack baselines + `--compare-baseline` CI gate (`evals`/`evals-matrix` in `ci.yml`); `/evals` scoreboard; last gap (`off_topic_review_status` 50%→100%) closed. *No open work — kept visible as the pitch centerpiece.*
+
+### 2. Correctness pass on latent bugs  — ✅ done 2026-05-27 (one open ops item)
+- [x] Shipped: tz naive/aware backfill crash fix (`as_utc()`); swept `fromisoformat`/`timedelta`/`total_seconds` sites; audited every `except Exception`; recency-decayed + exposure-normalized Safety Record scoring (+ `audit_incidents.py`/`cleanup_stale_incidents.py`); self-healing per-venue open-incident cap; idempotent compliance re-resolve (no 500). All RED-proven regression tests.
+- [ ] **(Open — ops, not code)** Prod stale-incident cleanup: `DATABASE_URL=<DATABASE_PUBLIC_URL> python -m scripts.audit_incidents --venue elsewhere-brooklyn` → review buckets → `cleanup_stale_incidents --apply` to drop the ~29 stale open `inc-` rows (display persists until cleaned).
 
 ### 3. Deterministic (no-key) agent quality
 - [x] Improve the keyword-ladder risk classifier (`app/providers/deterministic.py`) — added a generalizable aggravator/mitigator severity modifier + filled the medical keyword gap. `severity_match` 47%→100%, aggregate 57%→95%, no other scorer regressed. Unit tests in `test_risk_classifier.py` include over-fit guards (novel summaries + plain-incident guards). Baseline + public scoreboard refreshed.
@@ -597,22 +589,34 @@ See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
 
 ## Recommended order
 
-Updated 2026-06-05. Shipped since the last ordering: carrier desk v2 + claims adjudication
-(Phase 1.5–2), the AI underwriting memo, the landing page + perf fix, surplus-lines compliance
-(C11), the ingestion spine + comms classifier, staff accounts, and the fraud/SIU agent. Live focus:
+Updated 2026-06-09. Shipped since last ordering: Copilot v1 + `get_policy` + focused-chat redesign
+(Track 11); cross-persona gap research (Track 12); backlog hygiene pass (Tracks 1/2 collapsed).
+Live focus:
 
-1. **Underwriting-memo fast-follows** (track 9, smallest + completes the eval headline) — wire the
-   3 memo scorers (posture/faithfulness/rate-adequacy) into `runner.py`/`baseline.py`/
-   `--compare-baseline` + the `/evals` scoreboard (the 0.917/0.917/1.0 numbers are not drift-gated
-   yet); real `check_appetite` (graded 0–100 match — also the open 7a item).
-2. **Outbound Slack alert adapter** (track 5 ★) — still the cheapest "closes a visibly-absent box"
-   win; one evening, subscription-free, demoable. (Inbound shipped 2026-06-04.)
-3. **Policy-doc vector RAG** (track 10) — design approved; implementation plan → TDD build.
-   Strong pitch artifact (vector pipeline + retrieval eval delta).
-4. **C5 carrier portfolio / C4 renewal underwriting** (track 9) — the management layer; fills the
-   carrier nav.
-5. **Two-way open questions + agent assistants** (track 8) — the AI-native frontier on the broker side.
+1. **Finish the Copilot thread** (Track 11) — (a) *ops, you:* swap `COPILOT_LLM_MODEL` →
+   `llama-3.1-8b-instant` on Railway to clear the Groq 429s; (b) gate the LLM to "why" questions +
+   429 retry/caching + startup provider-log; (c) multi-tool fan-out + causal-grounding guard
+   (= copilot SP3 retriever territory). Most-visible operator surface; momentum.
+2. **Operator risk / loss-control dossier** (Track 12 ★★, Theme F) — turn the calibrated risk score
+   + evidence into renewal leverage ("prove you're a good risk"). Highest product-alignment, pure
+   leverage on what's built, best pitch demo.
+3. **Inbound email → structured intake** (Track 12 ★, Theme A — cross-persona keystone) — the
+   front-door gap broker/UW/actuary all rank #1; eval harness = the correctness wedge. Outbound
+   email/Slack adapter (Track 5) rides alongside (cheap, needs `RESEND_API_KEY`).
+4. **Eval-harness → model-governance reframe** (Track 12, Theme C) — NAIC AI Bulletin makes this a
+   buyer requirement; you're *ahead* of the market here. Strong pitch wedge, low build (reframes
+   existing plumbing).
+5. **Underwriting-memo eval fast-follows** (Track 9) — wire the 3 memo scorers into
+   `runner.py`/`baseline.py`/`--compare-baseline` + `/evals`; graded `check_appetite` (also the 7a
+   item). Small, completes the eval headline.
+6. **Policy-doc vector RAG** (Track 10 = copilot SP3) — design approved; vector pipeline + retrieval
+   eval delta.
+7. **Sublimit-aware coverage analysis** (Track 12, Theme D) — hospitality A&B/dram-shop wedge;
+   extends the defense-package.
+8. **Reserving engine** (Track 12, Theme E) — biggest net-new actuarial whitespace; deterministic +
+   test-first; sharpens actuarial-role pitches (e.g. Tesora).
 
-Good filler (independent, no subscription): track 7c polish, the cross-cutting Neon JSON-string
-correctness sweep, track 3 (deterministic memo quality), track 4 (test-coverage breadth). Quick ops
-items still pending: seed prod adjuster demo + prod stale-incident cleanup (see tracks above).
+Then: **C5/C4 carrier** (Track 9), **two-way questions + agent assistants** (Track 8). Good filler
+(no subscription): 7c polish, the Neon JSON-string correctness sweep, Track 3 (deterministic memo
+quality), Track 4 (test breadth). Quick ops still pending: seed prod adjuster demo + prod
+stale-incident cleanup (Track 2 open item).
