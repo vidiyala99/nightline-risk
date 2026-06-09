@@ -27,6 +27,7 @@ from app.models import Claim, ClaimProposal, IncidentRecord, UnderwritingPacket
 from app.packet_core import _add_audit_event
 from app.schemas import Incident, IncidentCreate, IncidentFlowResponse
 from app.schemas.errors import error_response
+from app.services.incident_feed import incident_status_feed
 
 router = APIRouter()
 
@@ -357,48 +358,7 @@ def venue_incident_status_feed(
     the operator home renders a report feed without an N+1 of /claim-status hits.
     Venue-gated (operators see only their own venue)."""
     require_venue_access(venue_id, authorization, session)
-
-    incidents = session.exec(
-        select(IncidentRecord)
-        .where(IncidentRecord.venue_id == venue_id)
-        .order_by(IncidentRecord.occurred_at.desc())
-    ).all()
-
-    feed: list[dict] = []
-    for inc in incidents:
-        packet = session.exec(
-            select(UnderwritingPacket)
-            .where(UnderwritingPacket.incident_id == inc.id)
-            .order_by(UnderwritingPacket.generated_at.desc())
-        ).first()
-
-        proposal = None
-        if packet is not None:
-            proposal = session.exec(
-                select(ClaimProposal)
-                .where(ClaimProposal.packet_id == packet.id)
-                .order_by(ClaimProposal.proposed_at.desc())
-            ).first()
-
-        claim = None
-        if proposal is not None:
-            claim = session.exec(
-                select(Claim).where(Claim.proposal_id == proposal.id)
-            ).first()
-        if claim is None:
-            claim = session.exec(
-                select(Claim).where(Claim.incident_id == inc.id)
-            ).first()
-
-        feed.append({
-            "incident_id": inc.id,
-            "summary": inc.summary,
-            "occurred_at": inc.occurred_at.isoformat() if hasattr(inc.occurred_at, "isoformat") else str(inc.occurred_at),
-            "status": inc.status,
-            "proposal_state": proposal.state if proposal else None,
-            "claim_status": claim.status if claim else None,
-        })
-    return feed
+    return incident_status_feed(session, venue_id)
 
 
 # ─── Create (delegates to the brawl-incident agentic flow) ──────────────
