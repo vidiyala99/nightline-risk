@@ -7,6 +7,10 @@ the seeding shape from ``tests/test_claim_routing.py``: a Venue, a
 RubricVersion, a no-injury IncidentRecord, and an UnderwritingPacket with
 ``risk_signals={"type":"general_incident","severity":"low","confidence":0.55}``.
 
+The seed logic now lives in ``app.evals.copilot_seed`` so a single definition
+is shared by both these fixtures and the gold eval scenarios in
+``app/evals/copilot_scenarios.py``. These fixtures are thin wrappers over it.
+
 Two variants:
   - ``seeded_borderline_incident_no_policy`` — uninsured (rec.has_active_policy
     False), so send-to-broker is blocked on coverage.
@@ -16,69 +20,19 @@ Two variants:
 Each yields ``(scope, incident_id)`` where ``scope`` is a ``CopilotScope``
 bound to the venue/operator.
 """
-from datetime import date, datetime, timezone
-from decimal import Decimal
-
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
 
-from app.copilot.tools import CopilotScope
-from app.models import (
-    IncidentRecord,
-    Policy,
-    RubricVersion,
-    UnderwritingPacket,
-    Venue,
+from app.models import UnderwritingPacket
+from app.evals.copilot_seed import (
+    INCIDENT_ID,
+    VENUE,
+    make_session as _make_session,
+    operator_scope as _scope,
+    seed_borderline as _seed_borderline,
+    seed_policy as _seed_policy,
 )
 
-VENUE = "elsewhere-brooklyn"
-INCIDENT_ID = "inc-borderline"
 PACKET_ID = "pkt-borderline"
-
-
-def _make_session() -> Session:
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
-    SQLModel.metadata.create_all(engine)
-    return Session(engine)
-
-
-def _scope(session: Session) -> CopilotScope:
-    return CopilotScope(
-        user={"role": "venue_operator", "tenant_id": VENUE, "user_id": "u-op"},
-        venue_ids={VENUE},
-        session=session,
-        now=datetime(2026, 6, 8, tzinfo=timezone.utc),
-    )
-
-
-def _seed_borderline(session: Session) -> None:
-    session.add(Venue(id=VENUE, name="Elsewhere"))
-    session.add(RubricVersion(id="demo-rubric-v1", name="Demo", version="1"))
-    session.add(IncidentRecord(
-        id=INCIDENT_ID, venue_id=VENUE, occurred_at="2026-05-17T00:00:00Z",
-        location="bar", summary="minor verbal dispute, de-escalated", reported_by="mgr",
-        injury_observed=False, police_called=False, ems_called=False, status="open",
-    ))
-    session.add(UnderwritingPacket(
-        id=PACKET_ID, venue_id=VENUE, incident_id=INCIDENT_ID,
-        rubric_version_id="demo-rubric-v1", status="needs_review",
-        risk_signals={"type": "general_incident", "severity": "low", "confidence": 0.55},
-        snapshot_hash="h",
-    ))
-    session.flush()
-
-
-def _seed_policy(session: Session) -> None:
-    session.add(Policy(
-        id=f"pol-{VENUE}", submission_id="sub-test-placeholder",
-        bound_quote_id="q-test-placeholder", venue_id=VENUE,
-        carrier_id="markel-specialty", status="active",
-        effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
-        annual_premium=Decimal("5000.00"), commission_amount=Decimal("750.00"),
-        commission_rate=Decimal("0.15"), coverage_lines=["premises_liability"],
-        terms_snapshot={}, snapshot_hash="hash-test",
-    ))
-    session.flush()
 
 
 @pytest.fixture
