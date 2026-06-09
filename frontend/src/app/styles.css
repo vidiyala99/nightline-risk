@@ -7047,6 +7047,12 @@ html, body { overflow-x: clip; }
   max-width: 720px;
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 40px) 0;
+  display: flex;
+  flex-direction: column;
+  /* Fill the viewport minus the AppShell "Back to home" strip (~60px) so the
+     composer sits at the bottom and the transcript scrolls internally — a true
+     chat shell, not a tall min-height box with a dead gap. */
+  min-height: calc(100dvh - 60px);
 }
 .copilot-head {
   display: flex;
@@ -7070,15 +7076,19 @@ html, body { overflow-x: clip; }
   color: var(--text-primary);
 }
 .copilot {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
 }
 .copilot__log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 58vh;
   padding: 8px 0 16px;
 }
 /* Empty state: a centered starter (icon + lead + suggestion chips) that fills
@@ -7300,8 +7310,6 @@ html, body { overflow-x: clip; }
 
 /* Composer — labelled input + send, ≥44px touch target. */
 .copilot__composer {
-  position: sticky;
-  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
