@@ -7124,6 +7124,10 @@ html, body { overflow-x: clip; }
   background: var(--bg-surface);
 }
 .copilot-suggestion:disabled { opacity: 0.5; cursor: not-allowed; }
+.copilot-suggestion:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
 .copilot__error {
   color: var(--state-error);
   font-size: 0.85rem;
@@ -7225,6 +7229,10 @@ html, body { overflow-x: clip; }
 }
 .copilot-followup { min-height: 32px; text-transform: none; letter-spacing: 0.02em; }
 .copilot-followup:disabled { opacity: 0.5; cursor: not-allowed; }
+.copilot-followup:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
 
 /* Proposed-action confirm/dismiss affordance. */
 .copilot-proposal {
