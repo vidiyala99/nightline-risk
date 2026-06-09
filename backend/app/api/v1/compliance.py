@@ -49,20 +49,17 @@ async def upload_compliance_evidence(
     authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
-    """Persist the uploaded file and link it to (venue_id, item_id)."""
+    """Persist the uploaded file and link it to (venue_id, item_id).
+
+    HTTP concerns live here (auth, reading the UploadFile, the 413 size-cap);
+    the file-persist + citation-link + signal-resolve core is shared with the
+    copilot ``resolve_compliance`` act-tool via
+    ``app.services.compliance_upload.upload_compliance_evidence_sync``.
+    """
     # Operator-write gate: only the owning operator + brokers/admins.
     require_venue_access(venue_id, authorization, session)
-    from uuid import uuid4
-    from app.main import (
-        COMPLIANCE_EVIDENCE_MAX_BYTES,
-        _find_compliance_item,
-        _predict_evidence_citation,
-        _resolve_venue,
-    )
-    from app.models import ComplianceSignal
-    from app.services.compliance_signals import transition_compliance_signal
-    from app.storage import get_storage
-    venue = _resolve_venue(venue_id, session)
+    from app.main import COMPLIANCE_EVIDENCE_MAX_BYTES
+    from app.services.compliance_upload import upload_compliance_evidence_sync
 
     contents = await file.read()
     if len(contents) > COMPLIANCE_EVIDENCE_MAX_BYTES:
@@ -74,59 +71,15 @@ async def upload_compliance_evidence(
             details={"limit_mb": limit_mb, "received_bytes": len(contents)},
         )
 
-    # Snapshot the citation BEFORE resolving the signal (which changes status).
-    # Best-effort: missing item or missing policy docs just leaves cited_* null.
-    item = _find_compliance_item(venue_id, venue, item_id, session=session)
-    citation = _predict_evidence_citation(venue_id, item.description, session) if item else None
-
-    evidence_id = f"ce-{uuid4().hex[:12]}"
-    safe_name = f"{evidence_id}_{file.filename or 'upload'}"
-    file_ref = get_storage().save(safe_name, contents)
-
-    record = ComplianceEvidence(
-        id=evidence_id,
-        venue_id=venue_id,
-        compliance_item_id=item_id,
-        filename=file.filename or "upload",
-        content_type=file.content_type or "application/octet-stream",
-        file_path=file_ref,
-        file_size=len(contents),
+    return upload_compliance_evidence_sync(
+        session,
+        venue_id,
+        item_id,
+        contents,
+        file.filename,
+        file.content_type,
         uploaded_by=uploaded_by,
-        cited_source_id=citation.source_id if citation else None,
-        cited_doc_id=citation.doc_id if citation else None,
-        cited_node_id=citation.node_id if citation else None,
-        cited_page_start=citation.page_start if citation else None,
-        cited_page_end=citation.page_end if citation else None,
     )
-    session.add(record)
-    session.commit()
-
-    # Transition the ComplianceSignal to resolved if it exists in the DB.
-    # Best-effort: if the row isn't found (e.g. legacy item_id), skip silently.
-    # Idempotent: an already-resolved item stays resolved — re-uploading
-    # evidence must not 500 on the lifecycle guard (resolved→resolved is not a
-    # legal transition). The evidence row above is still persisted either way.
-    signal_row = session.get(ComplianceSignal, item_id)
-    if (
-        signal_row is not None
-        and signal_row.venue_id == venue_id
-        and signal_row.status != "resolved"
-    ):
-        transition_compliance_signal(
-            session, signal_row, to="resolved",
-            actor_id=uploaded_by, evidence_ref=file_ref,
-        )
-        session.commit()
-
-    return {
-        "status": "accepted",
-        "evidence_id": evidence_id,
-        "item_id": item_id,
-        "filename": record.filename,
-        "file_size": record.file_size,
-        "uploaded_at": record.uploaded_at.isoformat(),
-        "citation": citation.model_dump() if citation else None,
-    }
 
 
 @router.patch("/venues/{venue_id}/compliance/{item_id}/resolve")

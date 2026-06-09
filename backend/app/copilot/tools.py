@@ -202,3 +202,162 @@ TOOL_CATALOG: list[ToolDef] = [
     ToolDef("list_open_claims", "read", list_open_claims),
     ToolDef("list_incidents", "read", list_incidents),
 ]
+
+
+# ─── Act tools (Task 3, two-phase confirm-gated) ────────────────────────────
+#
+# Each operator action is two-phase:
+#   - ``validate_*`` runs the gate and returns an ``ActValidation`` carrying a
+#     ``ProposedAction`` (NO side effects) — phase 1, surfaced for confirm.
+#   - ``execute_*`` re-validates, then performs the action through the EXISTING
+#     audited service (``create_proposal`` / the shared compliance-upload sync
+#     service) — phase 2. Never autonomous; the model proposes, the server acts
+#     only on an explicit confirm.
+
+from dataclasses import dataclass as _dc
+
+from sqlmodel import select
+
+from app.copilot.schemas import ProposedAction
+from app.models import ClaimProposal, UnderwritingPacket
+
+
+@_dc
+class ActValidation:
+    ok: bool
+    reason: str = ""
+    proposed: Optional[ProposedAction] = None
+
+
+def _primary_packet_for_incident(session: Session, incident_id: str) -> Optional[UnderwritingPacket]:
+    return session.exec(
+        select(UnderwritingPacket).where(UnderwritingPacket.incident_id == incident_id)
+    ).first()
+
+
+def validate_send_to_broker(scope: CopilotScope, incident_id: str) -> ActValidation:
+    """Phase 1: is this incident eligible to be routed to the broker?
+
+    Blocks when (a) no packet exists, (b) it's already been sent, (c) there's
+    no active policy to file against, or (d) it isn't in the operator-decision
+    band. Otherwise returns a confirmable ``ProposedAction``."""
+    from app.claim_routing import recommendation_for_packet, route_status
+
+    pkt = _primary_packet_for_incident(scope.session, incident_id)
+    if pkt is None:
+        return ActValidation(False, "No insurance report exists for that incident yet.")
+    existing = scope.session.exec(
+        select(ClaimProposal).where(ClaimProposal.packet_id == pkt.id)
+    ).first()
+    if existing is not None:
+        return ActValidation(False, "That incident has already been sent to your broker.")
+    rec = recommendation_for_packet(scope.session, pkt)
+    if not rec.has_active_policy:
+        return ActValidation(
+            False,
+            "There's no active policy to file against — talk to your broker about coverage.",
+        )
+    if route_status(rec) != "borderline":
+        return ActValidation(False, "That incident isn't in the operator-decision band.")
+    sign = "+" if rec.net_expected_value_usd >= 0 else "-"
+    return ActValidation(True, proposed=ProposedAction(
+        kind="send_to_broker", target_id=incident_id,
+        summary=f"Send this incident to your broker (net {sign}${abs(rec.net_expected_value_usd):,}).",
+        gating_passed=True))
+
+
+def execute_send_to_broker(scope: CopilotScope, incident_id: str) -> ToolResult:
+    """Phase 2: route the incident through ``create_proposal`` (idempotent per
+    packet, so a re-confirm reuses the existing proposal rather than duplicating)."""
+    from app.claim_proposals import create_proposal
+    from app.claim_recommendation import recommendation_to_dict
+    from app.claim_routing import recommendation_for_packet
+
+    v = validate_send_to_broker(scope, incident_id)
+    if not v.ok:
+        return ToolResult(tool="send_to_broker", data={"executed": False, "reason": v.reason})
+    pkt = _primary_packet_for_incident(scope.session, incident_id)
+    rec = recommendation_for_packet(scope.session, pkt)
+    proposal = create_proposal(
+        session=scope.session, packet_id=pkt.id,
+        operator_id=scope.user.get("user_id", "operator"),
+        override_recommendation=False, override_reason=None, override_freetext=None,
+        recommendation_snapshot=recommendation_to_dict(rec),
+    )
+    return ToolResult(
+        tool="send_to_broker",
+        data={"executed": True, "proposal_id": proposal.id, "state": proposal.state},
+        citations=[Citation(
+            source_id=proposal.id, source_type="claim_proposal",
+            excerpt="Sent to broker · awaiting decision",
+        )],
+    )
+
+
+def validate_resolve_compliance(scope: CopilotScope, item_id: str) -> ActValidation:
+    """Phase 1: is this compliance item resolvable by uploading evidence?
+
+    Blocks unknown / already-resolved items; otherwise returns a confirmable
+    ``ProposedAction`` flagged ``requires_attachment`` (the operator must attach
+    the evidence file on confirm)."""
+    from app.main import _find_compliance_item, _resolve_venue
+
+    vid = scope.primary_venue_id
+    venue = _resolve_venue(vid, scope.session)
+    item = _find_compliance_item(vid, venue, item_id, session=scope.session)
+    if item is None:
+        return ActValidation(False, "I can't find that compliance item.")
+    if getattr(item, "status", "") == "resolved":
+        return ActValidation(False, "That item is already resolved.")
+    return ActValidation(True, proposed=ProposedAction(
+        kind="resolve_compliance", target_id=item_id,
+        summary=f"Resolve “{item.description}” by uploading the required evidence.",
+        gating_passed=True, requires_attachment=True))
+
+
+def execute_resolve_compliance(
+    scope: CopilotScope, item_id: str, *,
+    file_bytes: Optional[bytes] = None,
+    filename: Optional[str] = None,
+    content_type: Optional[str] = None,
+) -> ToolResult:
+    """Phase 2: persist the attached evidence + resolve the item through the
+    shared ``upload_compliance_evidence_sync`` service (same path the HTTP
+    upload route uses). An attachment is mandatory — resolving without one is
+    refused."""
+    from app.services.compliance_upload import upload_compliance_evidence_sync
+
+    v = validate_resolve_compliance(scope, item_id)
+    if not v.ok:
+        return ToolResult(tool="resolve_compliance", data={"executed": False, "reason": v.reason})
+    if not file_bytes:
+        return ToolResult(
+            tool="resolve_compliance",
+            data={"executed": False, "reason": "Attach the evidence file to resolve this item."},
+        )
+    result = upload_compliance_evidence_sync(
+        scope.session, scope.primary_venue_id, item_id,
+        file_bytes, filename, content_type,
+        uploaded_by=scope.user.get("user_id", "operator"),
+    )
+    return ToolResult(
+        tool="resolve_compliance",
+        data={"executed": True, **result},
+        citations=[Citation(
+            source_id=item_id, source_type="compliance",
+            excerpt="Evidence uploaded · item resolved",
+        )],
+    )
+
+
+TOOL_CATALOG += [
+    ToolDef("send_to_broker", "act",
+            lambda scope, args: execute_send_to_broker(scope, args["target_id"])),
+    ToolDef("resolve_compliance", "act",
+            lambda scope, args: execute_resolve_compliance(
+                scope, args["target_id"],
+                file_bytes=args.get("file_bytes"),
+                filename=args.get("filename"),
+                content_type=args.get("content_type"),
+            )),
+]
