@@ -706,6 +706,36 @@ good filler between bigger tracks.
 
 ---
 
+### 16. UI/UX consistency pass (added 2026-06-09, ui-ux-pro-max audit)
+
+Audit verdict: the design system is healthy (token discipline near-total; 12 reduced-motion + 16
+focus-visible guards; 108/59 aria/accessibility labels; 85 skeleton refs; layouts cascade clean).
+The gaps are **interaction patterns**, not visuals. One focused session for items 1+2+4+5.
+
+- [ ] **★ Replace `window.prompt`/`window.confirm` on money/lifecycle actions — 8 files** (7c
+  undercounted it as one): `policies/[pid]` (cancel w/ free-text date prompt!, assign number,
+  expire/lapse/reinstate), `policy-requests` (decline reason), `coverage` (withdraw), + others;
+  even `claims/ActionModal.tsx` uses `window.confirm` for discard. Build one shared
+  `ConfirmDialog` + validated `FormDialog` (reason/date), swap all call sites. Mobile's
+  `Alert.alert` is the correct platform idiom — leave it.
+- [ ] **Toast/feedback system** — no consistent success/error feedback after mutations. Small
+  toast w/ `aria-live="polite"`, auto-dismiss 3-5s; rides with the dialog work.
+- [ ] **Mobile Copilot screen** — web `/copilot` has no mobile counterpart; biggest web↔mobile
+  parity break and it's the flagship AI surface. Schedule with the next copilot session
+  (streaming/feedback work, Track 14) so it's built once, current.
+- [ ] **Mobile tabular numerals** — web 72 `tabular-nums` uses vs mobile 5; money columns on
+  Book/Portfolio jitter. Add `fontVariant: ['tabular-nums']` to shared numeral styles.
+- [ ] **Token strays** — web: `alerts/page.tsx` (4 raw hex, the 7c item) + `MarketMap.tsx` (5);
+  mobile: `BrokerPortfolioScreen` + `IncidentDetailScreen`. Map to theme tokens.
+- [ ] **Verify `/evals` + `/market` nav affordance** — both are intentionally AppShell-less
+  (public surfaces); confirm each has a visible home/back link so visitors aren't stranded.
+- [ ] **Web register decision** — mobile has `RegisterScreen`, web has no signup page. Decide
+  *after* Track 13 P0 closes the role-escalation hole (don't widen the front door first).
+- Cross-refs still open: MobileBottomNav broker tabs + orphaned broker `/incidents` + `/claims`
+  dual-design split (7c); empty/error-state sweep (Track 15).
+
+---
+
 ## Gated — needs an account/keys (revisit when available)
 
 See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
