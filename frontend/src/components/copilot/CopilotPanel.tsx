@@ -167,8 +167,9 @@ export function CopilotPanel() {
           <div className="copilot__empty">
             <Sparkles size={22} className="copilot__empty-icon" aria-hidden />
             <p className="copilot__empty-lead">
-              Ask about your venue — exposure, risk, claims, or compliance.
-              Every answer cites its sources.
+              Grounded answers about your venue — exposure, risk, claims,
+              compliance. Every reply cites its sources, and any action waits
+              for your confirmation.
             </p>
             <div className="copilot__suggestions">
               {SUGGESTIONS.map((s) => (

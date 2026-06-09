@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { CopilotPanel } from "@/components/copilot/CopilotPanel";
 
 /**
@@ -34,11 +33,10 @@ export default function CopilotPage() {
 
   return (
     <div className="theme-venue copilot-page">
-      <PageHeader
-        eyebrow="Operator"
-        title="Copilot"
-        subtitle="Grounded answers about your venue — every reply cites its sources, and any action waits for your confirmation."
-      />
+      <header className="copilot-head">
+        <p className="copilot-head__eyebrow">Operator</p>
+        <h1 className="copilot-head__title">Copilot</h1>
+      </header>
       <CopilotPanel />
     </div>
   );
