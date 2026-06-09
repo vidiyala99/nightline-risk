@@ -25,23 +25,9 @@ from __future__ import annotations
 import json
 import os
 
+from app.copilot.prompts import SYSTEM_PROMPT, TOOL_DESCRIPTIONS
 from app.copilot.provider import ChatProvider, DeterministicChatProvider, _REFUSAL
 from app.copilot.schemas import AnswerType, CopilotReply, ReplyLink
-
-_SYSTEM = (
-    "You are Nightline's venue-operator copilot. Answer ONLY using the tools provided — "
-    "never invent numbers, names, statuses, or facts. Choose the single most relevant tool, "
-    "then reply in one or two plain sentences using its result. If no tool fits the question, "
-    "do not call a tool."
-)
-
-_TOOL_DESCRIPTIONS = {
-    "get_exposure": "Count and summary of what needs the operator's attention now "
-                    "(evidence gaps, overdue compliance, upcoming renewals).",
-    "get_risk_score": "The venue's current risk score (0-100), tier (A-D), and weakest factor.",
-    "list_open_claims": "How many open / pending carrier claims the venue has.",
-    "list_incidents": "How many active incident reports the venue has.",
-}
 
 
 def _tool_defs() -> list[dict]:
@@ -52,7 +38,7 @@ def _tool_defs() -> list[dict]:
             "type": "function",
             "function": {
                 "name": t.name,
-                "description": _TOOL_DESCRIPTIONS.get(t.name, t.name),
+                "description": TOOL_DESCRIPTIONS.get(t.name, t.name),
                 "parameters": {"type": "object", "properties": {}, "required": []},
             },
         }
@@ -104,7 +90,7 @@ class OpenAICompatibleChatProvider(ChatProvider):
     def _respond_llm(self, message: str, tools) -> CopilotReply:
         tool_defs = _tool_defs()
         messages: list[dict] = [
-            {"role": "system", "content": _SYSTEM},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": message},
         ]
 

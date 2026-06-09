@@ -55,23 +55,6 @@ class ToolDef:
     run: Callable[["CopilotScope", dict], ToolResult]
 
 
-# "Active" mirrors the operator dashboard's isActiveReport: a report is live
-# until its incident is closed AND its claim journey is finished (or never
-# started). Kept in sync with frontend/src/app/dashboard/page.tsx.
-_TERMINAL_INCIDENT = {"closed", "closed_archived"}
-_TERMINAL_CLAIM = {"closed_paid", "closed_denied", "closed_dropped"}
-_TERMINAL_PROPOSAL = {"paid", "denied", "rejected_by_broker"}
-
-
-def _is_active_report(r: dict) -> bool:
-    incident_active = r.get("status") not in _TERMINAL_INCIDENT
-    cs = r.get("claim_status")
-    claim_active = bool(cs) and cs not in _TERMINAL_CLAIM
-    ps = r.get("proposal_state")
-    proposal_active = bool(ps) and ps not in _TERMINAL_PROPOSAL
-    return incident_active or claim_active or proposal_active
-
-
 # ─── Read tools ─────────────────────────────────────────────────────────
 
 
@@ -193,16 +176,17 @@ def list_incidents(scope: CopilotScope, args: dict) -> ToolResult:
         return ToolResult(tool="list_incidents", data={"count": 0, "items": []}, citations=[])
 
     feed = incident_status_feed(scope.session, venue_id)
-    # "How many incidents are active?" means live reports, not the full archive —
-    # filter out closed-and-done rows (the feed returns the whole history).
-    active = [r for r in feed if _is_active_report(r)]
+    # Match the dashboard's "Open Incidents" stat exactly (IncidentRecord.status
+    # == "open"), so the copilot's number agrees with what the operator sees on
+    # their home rather than counting the whole archive.
+    open_incidents = [r for r in feed if r.get("status") == "open"]
     return ToolResult(
         tool="list_incidents",
         data={
-            "count": len(active),
-            "items": active,
+            "count": len(open_incidents),
+            "items": open_incidents,
             "nav_href": "/incidents",
-            "nav_label": "View active incidents",
+            "nav_label": "View open incidents",
         },
         citations=[],
     )

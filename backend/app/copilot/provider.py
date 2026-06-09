@@ -63,5 +63,5 @@ def _template(tool: str, r) -> str:
         return f"You have {n} open claim(s)." if n else "You have no open claims."
     if tool == "list_incidents":
         n = d.get("count", 0)
-        return f"You have {n} active incident(s)." if n else "You have no active incidents."
+        return f"You have {n} open incident(s)." if n else "You have no open incidents."
     return "Done."
