@@ -7044,9 +7044,9 @@ html, body { overflow-x: clip; }
    align together) — a chat surface jammed left with a wide empty right reads
    as broken on large screens. */
 .copilot-page {
-  max-width: 880px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 0 clamp(20px, 4vw, 48px) 48px;
+  padding: 0 clamp(20px, 4vw, 40px) 0;
 }
 .copilot-head {
   display: flex;
@@ -7077,14 +7077,9 @@ html, body { overflow-x: clip; }
 .copilot__log {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-height: 380px;
-  max-height: 58vh;
-  overflow-y: auto;
-  padding: 18px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--bg-surface);
+  gap: 16px;
+  min-height: 58vh;
+  padding: 8px 0 16px;
 }
 /* Empty state: a centered starter (icon + lead + suggestion chips) that fills
    the log instead of a hollow void, and teaches what the copilot answers. The
@@ -7285,11 +7280,14 @@ html, body { overflow-x: clip; }
 
 /* Composer — labelled input + send, ≥44px touch target. */
 .copilot__composer {
+  position: sticky;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 12px 0 16px;
+  background: var(--bg-base);
   border-top: 1px solid var(--border-subtle);
-  padding-top: var(--space-md);
 }
 .copilot__label {
   font-family: var(--font-mono);
