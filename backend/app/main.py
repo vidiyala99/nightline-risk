@@ -465,6 +465,9 @@ app.include_router(surplus_lines_router, prefix="/api", tags=["surplus-lines"])
 from app.api.v1.intelligence import router as intelligence_router  # noqa: E402
 app.include_router(intelligence_router, prefix="/api", tags=["intelligence"])
 
+from app.api.v1.copilot import router as copilot_router  # noqa: E402
+app.include_router(copilot_router, prefix="/api", tags=["copilot"])
+
 # CORS origins. Standard local web dev (localhost + 127.0.0.1 are distinct
 # origins to a browser) + Expo mobile dev + prod. Machine-specific origins — a
 # LAN IP for a phone on the same wifi, or a local verify server on another port —
