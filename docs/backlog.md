@@ -476,6 +476,52 @@ and silently falling back to deterministic on every question (confirmed in Railw
 
 ---
 
+### 12. Cross-persona gap research (added 2026-06-09)
+
+Source: parallel persona research (broker / underwriter / claims-adjuster / actuary /
+insured-operator), grounded in 2024–2026 industry sources. Gaps below are things Nightline
+does **not** yet cover. `extend` = builds on existing primitives; `net-new` = new capability.
+★ = strongest leverage.
+
+**Confirmed fold-ins (this session):**
+- **Copilot deferred phases** (Risk Intelligence Loop program, see `2026-06-08-risk-intelligence-copilot-design.md` §12): **SP3 routed retriever** — semantic retrieval as a copilot read tool (= Track 10 policy-doc vector RAG, same work from two angles); **SP4 closed-loop feedback** — LLM-as-judge for subjective answer quality. Plus open fast-follow: wire the copilot eval scorers into the main `runner.py`/`baseline.py`/`--compare-baseline` + `/evals` scoreboard (same un-gated-in-CI gap as the underwriting memo).
+- ★ **Inbound email connector** `net-new` — forwarded submission / loss-run / quote email → structured intake. **Cross-persona keystone** (broker, underwriter, actuary all named messy email/PDF intake as their #1 manual touchpoint). The AI-native frontier this platform keeps pointing at. (Track 8 had it buried as "inbound email parser" — elevate it.)
+- **Outbound operational email** `extend` — route `AlertEvent`s through `email.py` (Track 5; just needs `RESEND_API_KEY`).
+
+**Theme A — Front-of-funnel intake** `extend` (highest cross-persona consensus):
+- ★ Inbound email/PDF/spreadsheet → structured submission (the connector above).
+- Loss-run extraction & normalization across carrier formats → feeds the existing loss-ratio engine.
+- Missing-info / NIGO completeness checker at intake (extends the request-info loop).
+- Carrier-quote normalization + apples-to-apples comparison + proposal generation.
+
+**Theme B — Appetite & placement** `extend`:
+- Graded carrier appetite match (boolean → 0–100 + reasons) — already open as 7a/C6.
+- Market-submission follow-up / chase agent; renewal remarketing trigger.
+
+**Theme C — Eval/governance moat** `extend` ("ahead of the market" — pitch gold):
+- ★ Reframe the eval/calibration harness as **model-governance evidence** for the NAIC AI Model Bulletin (~25 states by 2026): lineage, validation, drift, explainability. Buyers are now *required* to have this.
+- Rate-filing justification/documentation generation, grounded in the deterministic pricing engine.
+- Claims-leakage as a measured KPI via LLM-as-judge over closed files (= SP4 applied to the back-book).
+
+**Theme D — Claims intelligence** `extend` (partly Track 9's "Claims intelligence"):
+- Reserve adequacy + ★ severity/litigation-risk prediction at FNOL — a 2nd scored agent on the fraud-agent pattern.
+- ★ Sublimit-aware coverage analysis ("does the policy respond?") — hospitality A&B / dram-shop wedge.
+- Medical/demand-package summarization (extends defense-package + vision); subrogation early-ID; cross-claim fraud entity-graph.
+
+**Theme E — Actuarial capability** `net-new` (biggest true whitespace; strong for actuarial-role pitches, e.g. Tesora):
+- ★ Reserving engine — triangles + chain-ladder + BF/Cape Cod + Mack/bootstrap ranges. Deterministic + test-first = fits the harness ethos exactly.
+- Experience & exposure rating module on the pricing engine; continuous reserve/accumulation monitoring on the Dagster/ETL core.
+
+**Theme F — Operator/insured** `extend` (most product-aligned — your direct user):
+- ★★ Underwriter-facing **risk / loss-control dossier** — turn the calibrated risk score + evidence into renewal leverage ("prove you're a good risk"). Flagged highest-leverage by the operator research; reuses everything already built.
+- Policy-doc intelligence in copilot ("am I covered if a bouncer breaks someone's arm?") = SP3 retriever + Track 10.
+- ★ COI request / verification vault (operator **and** broker need it; E&O angle) — high-frequency, dual-persona.
+- Compliance-deadline engine (extends compliance tracking); claims-dispute support + loss-history narrative generator.
+
+**Top picks (product + pitch leverage):** (1) inbound email intake [A keystone], (2) operator risk/loss-control dossier [F, most aligned], (3) eval-harness → model-governance reframe [C, ahead-of-market], (4) sublimit-aware coverage analysis [D, hospitality wedge], (5) reserving engine [E, actuarial whitespace]. **Pick which become tracks.**
+
+---
+
 ## Gated — needs an account/keys (revisit when available)
 
 See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
