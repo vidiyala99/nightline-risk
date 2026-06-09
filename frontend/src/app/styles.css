@@ -7036,3 +7036,200 @@ html, body { overflow-x: clip; }
   text-align: center;
 }
 
+/* ── Copilot — conversational intelligence surface (spec §7). Reuses the
+   .lc-card frame, .lc-triage__chip language for followups, and the paper/ink
+   token system. Grounded replies render citation chips; proposed actions show
+   a confirm/dismiss affordance. */
+.copilot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 820px;
+}
+.copilot__log {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 240px;
+}
+.copilot__empty {
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: var(--space-md) 0;
+}
+.copilot__error {
+  color: var(--state-error);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.copilot-turn {
+  display: flex;
+}
+.copilot-turn--user { justify-content: flex-end; }
+.copilot-turn--assistant { justify-content: flex-start; }
+
+.copilot-bubble {
+  max-width: 88%;
+}
+.copilot-bubble__inner {
+  padding: 12px 16px;
+}
+.copilot-bubble--user .copilot-bubble__inner {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.copilot-bubble__text {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Citation chips — one per source, click-through when an href is present. */
+.copilot-cites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.copilot-cite {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 320px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.copilot-cite--link { cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+.copilot-cite--link:hover {
+  border-color: var(--brand-primary);
+  color: var(--accent-ink);
+}
+.copilot-cite__type {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.copilot-cite__excerpt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quick-ask followups. */
+.copilot-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.copilot-followup { min-height: 32px; text-transform: none; letter-spacing: 0.02em; }
+.copilot-followup:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Proposed-action confirm/dismiss affordance. */
+.copilot-proposal {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+}
+.copilot-proposal__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.copilot-proposal__icon { color: var(--accent-ink); flex-shrink: 0; }
+.copilot-proposal__summary { font-size: 0.9rem; line-height: 1.4; }
+.copilot-proposal__gate {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--state-warning);
+  line-height: 1.5;
+}
+.copilot-proposal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.copilot-proposal__btn { min-height: 44px; }
+.copilot-proposal__file {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* Pending indicator. */
+.copilot-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+}
+.copilot-pending__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  animation: copilot-pulse 1.2s ease-in-out infinite;
+}
+.copilot-pending__dot:nth-child(2) { animation-delay: 0.2s; }
+.copilot-pending__dot:nth-child(3) { animation-delay: 0.4s; }
+.copilot-pending__label {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+@keyframes copilot-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .copilot-pending__dot { animation: none; opacity: 0.6; }
+}
+
+/* Composer — labelled input + send, ≥44px touch target. */
+.copilot__composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-md);
+}
+.copilot__label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.copilot__composer-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.copilot__input { flex: 1; min-height: 44px; }
+.copilot__input:disabled { opacity: 0.6; }
+.copilot__send {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.copilot__send:disabled { opacity: 0.5; cursor: not-allowed; }
+
