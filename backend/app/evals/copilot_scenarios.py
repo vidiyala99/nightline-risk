@@ -84,6 +84,8 @@ read_claims = _read(
     "read_open_claims", "any open claims?", "list_open_claims")
 read_incidents = _read(
     "read_incidents", "what's the status of my reports?", "list_incidents")
+read_premium = _read(
+    "read_policy_premium", "how much premium am I paying?", "get_policy")
 
 # Two extra reads to clear ≥8 without leaning on a heavy resolve-compliance seed.
 read_risk_alt = _read(
@@ -150,6 +152,7 @@ SCENARIOS = [
     read_exposure,
     read_claims,
     read_incidents,
+    read_premium,
     read_risk_alt,
     read_exposure_alt,
     refuse_off_topic,

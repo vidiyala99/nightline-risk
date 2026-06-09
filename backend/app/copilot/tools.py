@@ -1,11 +1,12 @@
 """Copilot READ tools + scope + catalog (Task 2, spec §4).
 
-Four read tools wrap the existing persona-gated services:
+The read tools wrap the existing persona-gated services:
 
   - ``get_exposure``      -> app.intelligence.engine.compute_exposure
   - ``get_risk_score``    -> app.underwriting.get_risk_score
   - ``list_open_claims``  -> app.services.claims.list_claims
   - ``list_incidents``    -> app.services.incident_feed.incident_status_feed
+  - ``get_policy``        -> app.services.policies.policy_for_venue
 
 Each tool returns a ``ToolResult`` whose ``citations`` carry provenance (a
 ``Citation`` per item, or a single summary citation), so grounding travels
@@ -25,6 +26,7 @@ from app.intelligence.engine import compute_exposure
 from app.schemas.domain import Citation
 from app.services.claims import list_claims
 from app.services.incident_feed import incident_status_feed
+from app.services.policies import policy_for_venue
 from app.underwriting import get_risk_score as compute_risk_score
 
 
@@ -192,11 +194,55 @@ def list_incidents(scope: CopilotScope, args: dict) -> ToolResult:
     )
 
 
+def get_policy(scope: CopilotScope, args: dict) -> ToolResult:
+    """The owning venue's active insurance policy — premium, coverage lines,
+    policy number, and term. Reuses ``policy_for_venue`` (the same helper the
+    ``/policies?venue=`` page uses) so the copilot can never quote a premium the
+    policies surface disagrees with. The premium figure rides in a citation so a
+    downstream answer that quotes it stays grounded."""
+    venue_id = scope.primary_venue_id
+    if not venue_id:
+        return ToolResult(tool="get_policy", data={"has_policy": False,
+                          "nav_href": "/coverage", "nav_label": "View your coverage"}, citations=[])
+
+    policy = policy_for_venue(scope.session, venue_id)
+    if policy is None:
+        # No active policy is a real answer, not an error — say so, with a link.
+        return ToolResult(tool="get_policy", data={"has_policy": False,
+                          "nav_href": "/coverage", "nav_label": "View your coverage"}, citations=[])
+
+    premium = str(policy.annual_premium)  # money is a string, never a float
+    number = policy.policy_number
+    return ToolResult(
+        tool="get_policy",
+        data={
+            "has_policy": True,
+            "policy_id": policy.id,
+            "policy_number": number,
+            "status": policy.status,
+            "annual_premium": premium,
+            "coverage_lines": list(policy.coverage_lines or []),
+            "effective_date": str(policy.effective_date),
+            "expiration_date": str(policy.expiration_date),
+            "nav_href": "/coverage",
+            "nav_label": "View your coverage",
+        },
+        citations=[
+            Citation(
+                source_id=policy.id,
+                source_type="policy",
+                excerpt=f"annual premium ${premium} · {number or 'number pending'}",
+            )
+        ],
+    )
+
+
 TOOL_CATALOG: list[ToolDef] = [
     ToolDef("get_exposure", "read", get_exposure),
     ToolDef("get_risk_score", "read", get_risk_score),
     ToolDef("list_open_claims", "read", list_open_claims),
     ToolDef("list_incidents", "read", list_incidents),
+    ToolDef("get_policy", "read", get_policy),
 ]
 
 

@@ -9,6 +9,7 @@ from app.copilot.schemas import AnswerType, CopilotReply, ReplyLink
 # Note: claims uses "filed" (not "file") so "did anyone file a report?" routes to
 # list_incidents, not list_open_claims — a real collision resolved by ladder order.
 _INTENT_LADDER: list[tuple[set[str], str]] = [
+    ({"premium", "policy", "policies", "coverage", "covered", "deductible"}, "get_policy"),
     ({"risk", "score", "tier", "rating"}, "get_risk_score"),
     ({"claim", "claims", "filed", "reserve", "reserves"}, "list_open_claims"),
     ({"incident", "incidents", "report", "reports", "status"}, "list_incidents"),
@@ -64,4 +65,11 @@ def _template(tool: str, r) -> str:
     if tool == "list_incidents":
         n = d.get("count", 0)
         return f"You have {n} open incident(s)." if n else "You have no open incidents."
+    if tool == "get_policy":
+        if not d.get("has_policy"):
+            return "I don't see an active policy on file for your venue."
+        number = d.get("policy_number") or "number pending"
+        lines = ", ".join(d.get("coverage_lines") or []) or "—"
+        return (f"Your annual premium is ${d.get('annual_premium', '?')} "
+                f"(policy {number}). Coverage: {lines}.")
     return "Done."

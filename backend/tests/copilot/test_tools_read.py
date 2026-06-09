@@ -28,9 +28,10 @@ def make_session() -> Session:
     return Session(engine)
 
 
-def test_catalog_exposes_the_four_read_tools():
+def test_catalog_exposes_the_read_tools():
     names = {t.name for t in TOOL_CATALOG if t.kind == "read"}
-    assert names == {"get_exposure", "get_risk_score", "list_open_claims", "list_incidents"}
+    assert names == {"get_exposure", "get_risk_score", "list_open_claims",
+                     "list_incidents", "get_policy"}
 
 
 def test_get_exposure_returns_grounded_findings(monkeypatch):
@@ -158,4 +159,39 @@ def test_list_incidents_returns_feed_with_citations():
     assert item["summary"] == "brawl at rear bar"
     assert item["status"] == "open"
     assert res.data["nav_href"] == "/incidents"
+    assert res.citations == []
+
+
+# ─── get_policy (active Policy → premium + coverage, grounded by a citation) ──
+
+
+def test_get_policy_returns_premium_coverage_and_citation():
+    from app.copilot.tools import get_policy
+    with make_session() as s:
+        s.add(Venue(id=VENUE, name="Elsewhere"))
+        pol = _seed_policy(s)
+        pol.policy_number = "MSP-12345"
+        s.add(pol)
+        s.commit()
+        res = get_policy(_risk_scope(s), {})
+    assert res.tool == "get_policy"
+    assert res.data["has_policy"] is True
+    # Premium travels as a string (money is never a float), grounded by a citation.
+    assert res.data["annual_premium"] == "5000.00"
+    assert res.data["policy_number"] == "MSP-12345"
+    assert res.data["coverage_lines"] == ["premises_liability"]
+    assert res.data["nav_href"] == "/coverage"
+    assert res.citations and res.citations[0].source_type == "policy"
+    assert "5000.00" in res.citations[0].excerpt
+
+
+def test_get_policy_no_active_policy_returns_has_policy_false():
+    from app.copilot.tools import get_policy
+    with make_session() as s:
+        s.add(Venue(id=VENUE, name="Elsewhere"))
+        s.commit()
+        res = get_policy(_risk_scope(s), {})
+    assert res.tool == "get_policy"
+    assert res.data["has_policy"] is False
+    assert res.data["nav_href"] == "/coverage"
     assert res.citations == []

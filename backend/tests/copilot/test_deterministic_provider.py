@@ -53,6 +53,34 @@ def test_overfit_get_risk_score():
     assert _classify("what tier am I in?") == "get_risk_score"
 
 
+def test_overfit_get_policy():
+    assert _classify("how much premium am I paying?") == "get_policy"
+    assert _classify("what's my policy?") == "get_policy"
+    assert _classify("what am I covered for?") == "get_policy"
+    assert _classify("show me my coverage") == "get_policy"
+
+
 def test_overfit_off_topic_control_still_refuses():
     assert _classify("what's the weather tonight?") is None
     assert _classify("tell me a joke") is None
+
+
+def test_premium_question_routes_to_policy_tool_and_grounds():
+    class _PolicyTools:
+        def run(self, name, args):
+            assert name == "get_policy"
+            return ToolResult(
+                tool=name,
+                data={"has_policy": True, "annual_premium": "5000.00",
+                      "policy_number": "MSP-1", "coverage_lines": ["premises_liability"],
+                      "nav_href": "/coverage", "nav_label": "View your coverage"},
+                citations=[Citation(source_id="pol-1", source_type="policy",
+                                    excerpt="annual premium $5000.00 · MSP-1")],
+            )
+        catalog_names = {"get_policy"}
+
+    p = DeterministicChatProvider()
+    reply = p.respond("how much premium am I paying?", tools=_PolicyTools())
+    assert reply.answer_type == AnswerType.answer
+    assert "5000.00" in reply.text
+    assert reply.citations

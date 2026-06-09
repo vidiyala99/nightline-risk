@@ -31,8 +31,9 @@ SYSTEM_PROMPT = (
     "tool result — e.g. name the weakest factor and its score, contrast it with stronger "
     "ones, and say what it means for the venue. Still never state a figure that isn't in "
     "the tool result; do not list raw record IDs or invent advice the data can't support.\n"
-    "4. If the question is outside this venue's exposure, risk, claims, incidents, or "
-    "compliance, do NOT call any tool — that signals the system to politely decline.\n\n"
+    "4. If the question is outside this venue's exposure, risk, claims, incidents, "
+    "compliance, or insurance policy (premium, coverage, policy term), do NOT call any "
+    "tool — that signals the system to politely decline.\n\n"
     "You never take actions (filing a claim, resolving an item, sending to a broker). "
     "Those are confirmed separately, outside this chat."
 )
@@ -58,5 +59,11 @@ TOOL_DESCRIPTIONS: dict[str, str] = {
         "Use for questions about incidents or reports — how many, open, what's going on. "
         "Returns the COUNT of the venue's OPEN incidents (status = open), the same number "
         "shown on the operator's dashboard."
+    ),
+    "get_policy": (
+        "Use for questions about the venue's insurance policy — premium ('how much premium "
+        "am I paying', 'what's my premium'), what's covered, policy number, or policy term. "
+        "Returns the active policy's annual premium, coverage lines, policy number, and "
+        "effective/expiration dates, or signals that no active policy is on file."
     ),
 }
