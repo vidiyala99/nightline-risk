@@ -22,7 +22,6 @@ live ``session``.
 """
 from __future__ import annotations
 
-from app.copilot.schemas import ProposedAction
 from app.evals.copilot_seed import (
     INCIDENT_ID,
     NOW,
@@ -112,6 +111,11 @@ def refuse_off_topic():
 # ─── Action OK (send-to-broker, borderline + insured → engine proposes) ──────
 
 def action_send_to_broker_ok():
+    # No ``confirm_action``: this axis scores the PROPOSE phase. Passing a
+    # confirm_action would route respond_to_message straight to phase-2 execute
+    # (returning an ``answer``), so the engine could never ``propose_action``
+    # and ``should_propose=True`` would be unsatisfiable. The propose phase is
+    # what action_ok is about; the confirm path is exercised in the engine tests.
     return {
         "name": "action_send_to_broker_ok",
         "axis": "action_ok",
@@ -121,9 +125,7 @@ def action_send_to_broker_ok():
         "expected_tool": None,
         "should_refuse": False,
         "should_propose": True,
-        "confirm_action": ProposedAction(
-            kind="send_to_broker", target_id=INCIDENT_ID,
-            summary="Send this incident to your broker.", gating_passed=True),
+        "confirm_action": None,
     }
 
 

@@ -1,0 +1,26 @@
+{
+  "copilot=deterministic-v1": {
+    "stack_signature": "copilot=deterministic-v1",
+    "aggregate": {
+      "pass_rate": 0.9696969696969697
+    },
+    "scorer_averages": [
+      {
+        "name": "intent_routing_accuracy",
+        "pass_rate": 1.0
+      },
+      {
+        "name": "faithfulness",
+        "pass_rate": 0.8888888888888888
+      },
+      {
+        "name": "refusal_correctness",
+        "pass_rate": 1.0
+      },
+      {
+        "name": "action_appropriateness",
+        "pass_rate": 1.0
+      }
+    ]
+  }
+}

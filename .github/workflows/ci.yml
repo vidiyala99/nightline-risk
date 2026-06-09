@@ -62,6 +62,10 @@ jobs:
         working-directory: backend
         run: python -m scripts.run_calibration --compare-baseline
 
+      - name: Run copilot eval gate against committed baseline
+        working-directory: backend
+        run: python -m app.evals.copilot_runner --compare-baseline
+
       - name: Upload eval results
         if: always()
         uses: actions/upload-artifact@v4
