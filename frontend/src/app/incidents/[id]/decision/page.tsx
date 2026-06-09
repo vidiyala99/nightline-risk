@@ -16,6 +16,7 @@ interface Rec {
   carrier_payout: number;
   deductible: number | null;
   pay_out_of_pocket_cost: number;
+  has_active_policy: boolean;
   expected_premium_impact: { annual_delta_usd: number; duration_years: number; cumulative_usd: number };
 }
 
@@ -32,6 +33,10 @@ export default function DecisionPage() {
   const [packetId, setPacketId] = useState<string | null>(null);
   const [routingStatus, setRoutingStatus] = useState<string | undefined>(undefined);
   const [riskScore, setRiskScore] = useState<{ total_score: number; tier: string } | null>(null);
+  // Has this packet already been routed (proposal created, auto or manual)? If so
+  // the "Send to broker" button must not show — a second send would create a
+  // duplicate proposal (the manual create path has no idempotency guard).
+  const [proposalSent, setProposalSent] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { if (isLoaded && !isSignedIn) router.push("/"); }, [isLoaded, isSignedIn, router]);
@@ -46,6 +51,10 @@ export default function DecisionPage() {
       const pkRes = await fetch(`${API_URL}/api/incidents/${id}/packets`, { headers: authHeaders() });
       const pkts = pkRes.ok ? await pkRes.json() : [];
       const primary = Array.isArray(pkts) ? pkts[0] : undefined;
+      // Already routed? (auto-router or a prior manual send.) Drives whether the
+      // send button or a "sent" badge shows.
+      const csRes = await fetch(`${API_URL}/api/incidents/${id}/claim-status`, { headers: authHeaders() });
+      const cs = csRes.ok ? await csRes.json() : null;
       let rs = null;
       if (inc?.venue_id) {
         const rsRes = await fetch(`${API_URL}/api/venues/${inc.venue_id}/risk-score`, { headers: authHeaders() });
@@ -57,6 +66,7 @@ export default function DecisionPage() {
       setRec(primary?.claim_recommendation ?? null);
       setPacketId(primary?.id ?? null);
       setRoutingStatus(primary?.routing_status);
+      setProposalSent(!!cs?.proposal?.exists || !!cs?.claim?.exists);
       setRiskScore(rs);
       setLoading(false);
     })();
@@ -92,7 +102,7 @@ export default function DecisionPage() {
         <>
         <div className="card">
           <div className="mb-md">
-            {rec.deductible == null
+            {!rec.has_active_policy
               ? <span className="badge badge-warning">No active policy</span>
               : rec.should_file
                 ? <span className="badge badge-success">Recommended: File</span>
@@ -101,7 +111,7 @@ export default function DecisionPage() {
 
           {/* Operator: two-path file-vs-pay-out-of-pocket decision explainer */}
           {isOperator && (() => {
-            if (rec.deductible == null) {
+            if (!rec.has_active_policy) {
               // No active policy — only show pay-out-of-pocket panel + note
               return (
                 <div className="mb-md">
@@ -197,11 +207,19 @@ export default function DecisionPage() {
             </div>
           )}
 
-          {routingStatus === "borderline" && (
+          {proposalSent ? (
+            <span className="badge badge-info">Sent to broker · awaiting their decision</span>
+          ) : !rec.has_active_policy ? (
+            // No policy → nothing to file against a carrier; it's a coverage
+            // conversation, not a claim. Don't offer "Send to broker".
+            <span className="text-muted">No active policy — talk to your broker about coverage.</span>
+          ) : routingStatus === "borderline" ? (
             <button className="btn btn-primary" onClick={sendToBroker} aria-label="Send this incident to the broker for review" style={{ minHeight: 44 }}>Send to broker</button>
-          )}
-          {routingStatus === "auto_routed" && <span className="badge badge-info">Sent to broker for review</span>}
-          {routingStatus === "not_routed" && <span className="text-muted">Logged — below the filing threshold.</span>}
+          ) : routingStatus === "auto_routed" ? (
+            <span className="badge badge-info">Sent to broker for review</span>
+          ) : routingStatus === "not_routed" ? (
+            <span className="text-muted">Logged — below the filing threshold.</span>
+          ) : null}
         </div>
 
         {/* Smooth flow: from "should I file / why" → "where does the claim stand". */}

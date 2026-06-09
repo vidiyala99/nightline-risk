@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import Link from "next/link";
 import { clsx } from "clsx";
 
 export type TierLevel = "a" | "b" | "c" | "d" | "neutral";
@@ -12,6 +13,8 @@ interface StatTileProps {
   delta?: { text: string; direction: "up" | "down" | "flat" };
   tier?: TierLevel;
   className?: string;
+  /** When set, the tile becomes a navigable doorway to its list surface. */
+  href?: string;
 }
 
 const TIER_COLOR: Record<TierLevel, string> = {
@@ -28,12 +31,10 @@ const DELTA_COLOR: Record<"up" | "down" | "flat", string> = {
   flat: "var(--text-tertiary)",
 };
 
-export function StatTile({ label, value, unit, delta, tier = "neutral", className }: StatTileProps) {
-  return (
-    <div
-      className={clsx("stat-tile", className)}
-      style={{ "--tile-accent": TIER_COLOR[tier] } as React.CSSProperties}
-    >
+export function StatTile({ label, value, unit, delta, tier = "neutral", className, href }: StatTileProps) {
+  const style = { "--tile-accent": TIER_COLOR[tier] } as React.CSSProperties;
+  const inner = (
+    <>
       <div className="stat-tile__label">{label}</div>
       <div className="stat-tile__value">
         {value}
@@ -44,6 +45,19 @@ export function StatTile({ label, value, unit, delta, tier = "neutral", classNam
           {delta.direction === "up" ? "↑" : delta.direction === "down" ? "↓" : "→"} {delta.text}
         </div>
       ) : null}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={clsx("stat-tile", "stat-tile--link", className)} style={style}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div className={clsx("stat-tile", className)} style={style}>
+      {inner}
     </div>
   );
 }

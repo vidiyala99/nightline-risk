@@ -169,7 +169,7 @@ function ReportFeedRow({ r }: { r: FeedRow }) {
   );
 }
 
-function OperatorReportFeed({ venueId, complianceDue }: { venueId: string; complianceDue: number }) {
+function OperatorReportFeed({ venueId }: { venueId: string }) {
   const [rows, setRows] = useState<FeedRow[]>([]);
   useEffect(() => {
     if (!venueId) return;
@@ -181,67 +181,35 @@ function OperatorReportFeed({ venueId, complianceDue }: { venueId: string; compl
     return () => { cancelled = true; };
   }, [venueId]);
 
-  // Home shows only live reports; closed-and-done incidents live in the Incidents archive.
-  const activeRows = rows.filter(isActiveReport);
-  const infoRequested = activeRows.filter((r) => r.proposal_state === "needs_more_info").length;
-  const needsYou = complianceDue + infoRequested;
-  // Claims currently in flight (entered the journey, not resolved) — gets its own
-  // navigable doorway to /claims, mirroring the compliance tile.
-  const claimsInFlight = activeRows.filter((r) => r.proposal_state != null || r.claim_status != null).length;
+  // Home shows only live reports; closed-and-done incidents live in the Incidents
+  // archive. The "what needs you" summary (compliance / info-requested / claims)
+  // now lives in the clickable hero KPI tiles + the Risk Intelligence attention
+  // panel, so this feed is purely report *tracking* — a tight 3-row teaser, with
+  // the rest a click away in Incidents.
+  //
+  // The API returns incidents newest-first. For a *trimmed* tracking feed that's
+  // the wrong key: a report in the claim journey is more worth watching than a
+  // brand-new incident with nothing happening yet. So we float reports that have
+  // entered the proposal/claim journey to the top (stable sort preserves the
+  // API's recency order within each group) — this guarantees an operator's
+  // in-flight claims always make the 3-row teaser.
+  const inClaimJourney = (r: FeedRow) => r.proposal_state != null || r.claim_status != null;
+  const activeRows = rows
+    .filter(isActiveReport)
+    .sort((a, b) => Number(inClaimJourney(b)) - Number(inClaimJourney(a)));
+  const PREVIEW = 3;
 
   return (
     <>
-      {/* Summary band — "Needs you" + "Claims in flight" side by side (each keeps
-          its own label so action vs tracking stays distinct); stacks on narrow. */}
-      {(needsYou > 0 || claimsInFlight > 0) && (
-        <div className="mb-lg flex" style={{ gap: "var(--space-2xl)", flexWrap: "wrap", alignItems: "flex-start" }}>
-          {needsYou > 0 && (
-            <section aria-label="Needs you">
-              <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Needs you · {needsYou}</div>
-              <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
-                {complianceDue > 0 && (
-                  <Link href="/compliance" className="lc-card" style={{ flex: "0 1 240px", textDecoration: "none", display: "block" }}>
-                    <div className="lc-card__inner" style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "14px 18px" }}>
-                      <span className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{complianceDue}</span>
-                      <span className="text-xs text-muted">compliance items due</span>
-                    </div>
-                  </Link>
-                )}
-                {infoRequested > 0 && (
-                  <Link href="/incidents" className="lc-card" style={{ flex: "0 1 240px", textDecoration: "none", display: "block" }}>
-                    <div className="lc-card__inner" style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "14px 18px" }}>
-                      <span className="font-mono" style={{ fontSize: "1.25rem", color: "var(--state-warning)" }}>{infoRequested}</span>
-                      <span className="text-xs text-muted">incidents need info</span>
-                    </div>
-                  </Link>
-                )}
-              </div>
-            </section>
-          )}
-          {claimsInFlight > 0 && (
-            <section aria-label="Claims">
-              <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Claims · in flight</div>
-              <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
-                <Link href="/claims" className="lc-card" style={{ flex: "0 1 240px", textDecoration: "none", display: "block" }}>
-                  <div className="lc-card__inner" style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "14px 18px" }}>
-                    <span className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{claimsInFlight}</span>
-                    <span className="text-xs text-muted">claims in flight · track →</span>
-                  </div>
-                </Link>
-              </div>
-            </section>
-          )}
-        </div>
-      )}
       {activeRows.length > 0 && (
         <section className="mb-lg" aria-label="Your reports">
           <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Your reports — what happened next</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
-            {activeRows.slice(0, 8).map((r) => <ReportFeedRow key={r.incident_id} r={r} />)}
+            {activeRows.slice(0, PREVIEW).map((r) => <ReportFeedRow key={r.incident_id} r={r} />)}
           </div>
-          {activeRows.length > 8 && (
+          {activeRows.length > PREVIEW && (
             <Link href="/incidents" className="text-xs" style={{ display: "inline-block", marginTop: "var(--space-sm)", color: "var(--accent-ink)", textDecoration: "none" }}>
-              +{activeRows.length - 8} more in Incidents →
+              +{activeRows.length - PREVIEW} more in Incidents →
             </Link>
           )}
         </section>
@@ -617,21 +585,25 @@ function DashboardPageInner() {
               label="Your Venues"
               value={stats.venues.toString().padStart(2, "0")}
               tier="neutral"
+              href="/venues"
             />
             <StatTile
               label="Open Incidents"
               value={stats.incidents.toString().padStart(2, "0")}
               tier={stats.incidents > 0 ? "d" : "neutral"}
+              href="/incidents"
             />
             <StatTile
               label="Open Claims"
               value={(stats.claims ?? 0).toString().padStart(2, "0")}
               tier={(stats.claims ?? 0) > 0 ? "b" : "neutral"}
+              href="/claims"
             />
             <StatTile
               label="Compliance"
               value={stats.compliance.toString().padStart(2, "0")}
               tier={stats.compliance > 0 ? "b" : "neutral"}
+              href="/compliance"
             />
           </StatStrip>
         )}
@@ -735,12 +707,10 @@ function DashboardPageInner() {
         </>
       )}
 
-      {/* OPERATOR: needs-you strip + report feed */}
+      {/* OPERATOR: report-tracking feed (the "needs you" summary now lives in the
+          clickable hero KPI tiles + the attention panel above) */}
       {!isBroker && tenantId && (
-        <OperatorReportFeed
-          venueId={(selectedVenueId ?? tenantId)!}
-          complianceDue={liveState?.compliance_queue?.length ?? 0}
-        />
+        <OperatorReportFeed venueId={(selectedVenueId ?? tenantId)!} />
       )}
 
       {/* OPERATOR: jump straight to this venue's profile (its risk profile) —

@@ -282,6 +282,7 @@ export default function IncidentDetailPage() {
   const rec = primaryPacket?.claim_recommendation as
     | { should_file: boolean; net_expected_value_usd: number; confidence: number; reasons: string[];
         carrier_payout: number; deductible: number | null; pay_out_of_pocket_cost: number;
+        has_active_policy: boolean;
         expected_premium_impact: { annual_delta_usd: number; duration_years: number; cumulative_usd: number } }
     | undefined;
   const isBroker = role === "broker" || role === "admin";
@@ -296,6 +297,11 @@ export default function IncidentDetailPage() {
     if (proposal.exists && proposal.state) return !RESOLVED_PROPOSAL_STATES.has(proposal.state);
     return false;
   })();
+  // Has the recommendation been routed to the broker yet? Two phases, one row:
+  // before routing the operator's job is to DECIDE (→ /decision); after routing
+  // it's to TRACK (→ /claim-status, which links back to the decision). Showing
+  // both doorways at once is the redundancy — gate them on this.
+  const proposalRouted = !!claimStatus && (claimStatus.proposal.exists || claimStatus.claim.exists);
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleStatusUpdate = async (newStatus: IncidentStatus) => {
@@ -627,7 +633,7 @@ export default function IncidentDetailPage() {
                     <span className="text-muted">No claim proposal to review yet.</span>
                   )}
                 </div>
-              ) : (
+              ) : !proposalRouted ? (
                 <Link
                   href={`/incidents/${id}/decision`}
                   className="wq-row"
@@ -635,17 +641,18 @@ export default function IncidentDetailPage() {
                   style={{ textDecoration: "none" }}
                 >
                   <span style={{ flex: 1 }} className="text-sm">
-                    {rec.deductible == null ? "No active policy" : rec.should_file ? "Worth filing" : "Pay out of pocket"}
+                    {!rec.has_active_policy ? "No active policy" : rec.should_file ? "Worth filing" : "Pay out of pocket"}
                     {" · "}
                     <span className="font-mono">net {rec.net_expected_value_usd >= 0 ? "+" : "−"}${Math.abs(rec.net_expected_value_usd).toLocaleString()}</span>
                   </span>
                   <span className="text-xs text-muted">View decision →</span>
                 </Link>
-              ))}
+              ) : null)}
               {/* ─────────────────────────────────────────────────────────────────── */}
 
-              {/* ── Claim status link (operator only) ───────────────────────────── */}
-              {isOperator && claimStatus && (() => {
+              {/* ── Claim / status link (operator only) — shown once routed; before
+                  routing the decision row above is the operator's single doorway. */}
+              {isOperator && claimStatus && proposalRouted && (() => {
                 const ps = claimStatus.proposal.state;
                 const cstat = claimStatus.claim.status;
                 // ADR-0004: a real Claim only exists once the broker files it. Until then it's a routed
