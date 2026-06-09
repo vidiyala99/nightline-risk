@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Send, ShieldCheck, Check, X } from "lucide-react";
+import { Send, ShieldCheck, Check, X, Sparkles } from "lucide-react";
 import {
   sendCopilotMessage,
   confirmCompliance,
@@ -43,6 +43,15 @@ const SOURCE_LABEL: Record<string, string> = {
 function sourceLabel(t: string): string {
   return SOURCE_LABEL[t] ?? t.replace(/_/g, " ");
 }
+
+// Starter prompts shown on the empty state — one per read intent, so the first
+// click both teaches what the copilot answers and returns a grounded reply.
+const SUGGESTIONS = [
+  "What needs my attention?",
+  "Why is my risk a C?",
+  "Any open claims?",
+  "What's the status of my reports?",
+];
 
 // A Citation may carry an href on some source types; the shared type doesn't
 // declare one, so read it defensively rather than widening the interface.
@@ -85,6 +94,12 @@ export function CopilotPanel() {
   // confirm/dismiss affordance once acted on.
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const logEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Keep the newest turn in view as the transcript grows.
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, pending]);
 
   // Single funnel for any request that yields a reply: append the reply, clear
   // pending, surface errors. The optional userText is appended first so the
@@ -149,10 +164,26 @@ export function CopilotPanel() {
     <section className="copilot" aria-label="Risk intelligence copilot">
       <div className="copilot__log">
         {messages.length === 0 && !pending && (
-          <p className="copilot__empty">
-            Ask about an incident, a claim, a policy, or what needs your attention.
-            Every answer cites its sources, and any action waits for your confirmation.
-          </p>
+          <div className="copilot__empty">
+            <Sparkles size={22} className="copilot__empty-icon" aria-hidden />
+            <p className="copilot__empty-lead">
+              Ask about your venue — exposure, risk, claims, or compliance.
+              Every answer cites its sources.
+            </p>
+            <div className="copilot__suggestions">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="copilot-suggestion"
+                  onClick={() => sendText(s)}
+                  disabled={pending}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {messages.map((m, i) =>
@@ -171,6 +202,12 @@ export function CopilotPanel() {
               <div className="lc-card copilot-bubble copilot-bubble--assistant">
                 <div className="lc-card__inner copilot-bubble__inner">
                   <p className="copilot-bubble__text">{m.reply.text}</p>
+
+                  {m.reply.link && (
+                    <Link href={m.reply.link.href} className="copilot-bubble__link">
+                      {m.reply.link.label} →
+                    </Link>
+                  )}
 
                   {m.reply.citations.length > 0 && (
                     <div className="copilot-cites" aria-label="Sources">
@@ -230,6 +267,7 @@ export function CopilotPanel() {
             {error}
           </p>
         )}
+        <div ref={logEndRef} aria-hidden />
       </div>
 
       <form className="copilot__composer" onSubmit={onSubmit}>

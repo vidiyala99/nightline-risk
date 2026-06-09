@@ -13,12 +13,18 @@ export interface ProposedAction {
   requires_attachment?: boolean;
 }
 
+export interface ReplyLink {
+  label: string;
+  href: string;
+}
+
 export interface CopilotReply {
   answer_type: AnswerType;
   text: string;
   citations: Citation[];
   proposed_action?: ProposedAction | null;
   followups: string[];
+  link?: ReplyLink | null;
 }
 
 export interface CopilotTurn {

@@ -45,7 +45,9 @@ def test_get_exposure_returns_grounded_findings(monkeypatch):
         res = get_exposure(_scope(s), {})
     assert res.tool == "get_exposure"
     assert res.data["count"] == 1
-    assert res.citations and res.citations[0].source_id == "evidence_gap:inc-1"
+    # Count answers carry a single nav link, not a per-item citation wall.
+    assert res.data["nav_href"] == "/dashboard"
+    assert res.citations == []
 
 
 # ─── get_risk_score (seeded against a real VENUES entry) ─────────────────────
@@ -72,6 +74,7 @@ def test_get_risk_score_returns_score_tier_and_citation():
     assert isinstance(res.data["score"], int)
     assert res.data["tier"] in {"A", "B", "C", "D"}
     assert res.data["top_factor"]
+    assert res.data["nav_href"].startswith("/risk-profile/")
     assert res.citations and res.citations[0].source_type == "risk_score"
 
 
@@ -130,7 +133,8 @@ def test_list_open_claims_returns_open_claims_with_citations():
     assert res.data["count"] == 1
     assert res.data["items"][0]["id"] == "clm-open"
     assert res.data["items"][0]["status"] == "reserved"
-    assert res.citations and res.citations[0].source_id == "clm-open"
+    assert res.data["nav_href"] == "/claims"
+    assert res.citations == []
 
 
 # ─── list_incidents (shared incident_status_feed helper) ────────────────────
@@ -153,4 +157,5 @@ def test_list_incidents_returns_feed_with_citations():
     assert item["incident_id"] == "inc-1"
     assert item["summary"] == "brawl at rear bar"
     assert item["status"] == "open"
-    assert res.citations and res.citations[0].source_id == "inc-1"
+    assert res.data["nav_href"] == "/incidents"
+    assert res.citations == []

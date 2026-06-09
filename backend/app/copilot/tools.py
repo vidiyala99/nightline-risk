@@ -55,6 +55,23 @@ class ToolDef:
     run: Callable[["CopilotScope", dict], ToolResult]
 
 
+# "Active" mirrors the operator dashboard's isActiveReport: a report is live
+# until its incident is closed AND its claim journey is finished (or never
+# started). Kept in sync with frontend/src/app/dashboard/page.tsx.
+_TERMINAL_INCIDENT = {"closed", "closed_archived"}
+_TERMINAL_CLAIM = {"closed_paid", "closed_denied", "closed_dropped"}
+_TERMINAL_PROPOSAL = {"paid", "denied", "rejected_by_broker"}
+
+
+def _is_active_report(r: dict) -> bool:
+    incident_active = r.get("status") not in _TERMINAL_INCIDENT
+    cs = r.get("claim_status")
+    claim_active = bool(cs) and cs not in _TERMINAL_CLAIM
+    ps = r.get("proposal_state")
+    proposal_active = bool(ps) and ps not in _TERMINAL_PROPOSAL
+    return incident_active or claim_active or proposal_active
+
+
 # ─── Read tools ─────────────────────────────────────────────────────────
 
 
@@ -78,15 +95,12 @@ def get_exposure(scope: CopilotScope, args: dict) -> ToolResult:
                 }
                 for f in findings
             ],
+            # Count queries answer with a number + a link to the full surface,
+            # not a wall of per-item chips. The count is grounded by ``data``.
+            "nav_href": "/dashboard",
+            "nav_label": "Open what needs your attention",
         },
-        citations=[
-            Citation(
-                source_id=f.id,
-                source_type=f.kind,
-                excerpt=(f.why[0].excerpt if f.why else f.recommended_action.label),
-            )
-            for f in findings
-        ],
+        citations=[],
     )
 
 
@@ -128,6 +142,8 @@ def get_risk_score(scope: CopilotScope, args: dict) -> ToolResult:
             "tier": tier,
             "top_factor": top_factor,
             "factors": factors,
+            "nav_href": f"/risk-profile/{venue_id}",
+            "nav_label": "View the full risk profile",
         },
         citations=[
             Citation(
@@ -161,15 +177,10 @@ def list_open_claims(scope: CopilotScope, args: dict) -> ToolResult:
                 }
                 for c in claims
             ],
+            "nav_href": "/claims",
+            "nav_label": "View open claims",
         },
-        citations=[
-            Citation(
-                source_id=c.id,
-                source_type="claim",
-                excerpt=f"{c.coverage_line} — {c.status} (reserve {c.current_reserve})",
-            )
-            for c in claims
-        ],
+        citations=[],
     )
 
 
@@ -182,17 +193,18 @@ def list_incidents(scope: CopilotScope, args: dict) -> ToolResult:
         return ToolResult(tool="list_incidents", data={"count": 0, "items": []}, citations=[])
 
     feed = incident_status_feed(scope.session, venue_id)
+    # "How many incidents are active?" means live reports, not the full archive —
+    # filter out closed-and-done rows (the feed returns the whole history).
+    active = [r for r in feed if _is_active_report(r)]
     return ToolResult(
         tool="list_incidents",
-        data={"count": len(feed), "items": feed},
-        citations=[
-            Citation(
-                source_id=item["incident_id"],
-                source_type="incident",
-                excerpt=f"{item['summary']} — {item['status']}",
-            )
-            for item in feed
-        ],
+        data={
+            "count": len(active),
+            "items": active,
+            "nav_href": "/incidents",
+            "nav_label": "View active incidents",
+        },
+        citations=[],
     )
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from app.copilot.schemas import AnswerType, CopilotReply
+from app.copilot.schemas import AnswerType, CopilotReply, ReplyLink
 
 # Ordered keyword ladder: first matching intent wins. Over-fit guards live in tests.
 # Mirrors the discipline of app/providers/deterministic.py's risk classifier.
@@ -38,18 +38,30 @@ class DeterministicChatProvider(ChatProvider):
         if tool is None:
             return CopilotReply(answer_type=AnswerType.refuse, text=_REFUSAL)
         result = tools.run(tool, {})
-        return CopilotReply(answer_type=AnswerType.answer, text=_template(tool, result), citations=result.citations)
+        # Count/status answers carry a single navigation link (set by the tool in
+        # data) instead of a wall of per-item citations.
+        nav_href = result.data.get("nav_href")
+        link = ReplyLink(label=result.data.get("nav_label", "View"), href=nav_href) if nav_href else None
+        return CopilotReply(
+            answer_type=AnswerType.answer,
+            text=_template(tool, result),
+            citations=result.citations,
+            link=link,
+        )
 
 
 def _template(tool: str, r) -> str:
     d = r.data
     if tool == "get_risk_score":
-        return f"Your venue's risk is {d.get('score', '?')}/100, tier {d.get('tier', '?')}. Weakest driver: {d.get('top_factor', '—')}."
+        factor = str(d.get("top_factor", "")).replace("_", " ") or "—"
+        return f"Your venue's risk is {d.get('score', '?')}/100 — tier {d.get('tier', '?')}. Weakest driver: {factor}."
     if tool == "get_exposure":
-        return (f"{d['count']} thing(s) need your attention." if d.get("count")
-                else "Nothing needs your attention right now.")
+        n = d.get("count", 0)
+        return f"{n} thing(s) need your attention." if n else "Nothing needs your attention right now."
     if tool == "list_open_claims":
-        return f"You have {d.get('count', 0)} open claim(s)."
+        n = d.get("count", 0)
+        return f"You have {n} open claim(s)." if n else "You have no open claims."
     if tool == "list_incidents":
-        return f"{d.get('count', 0)} active report(s)."
+        n = d.get("count", 0)
+        return f"You have {n} active incident(s)." if n else "You have no active incidents."
     return "Done."

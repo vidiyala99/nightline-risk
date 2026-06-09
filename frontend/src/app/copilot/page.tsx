@@ -33,11 +33,11 @@ export default function CopilotPage() {
   }
 
   return (
-    <div className="theme-venue">
+    <div className="theme-venue copilot-page">
       <PageHeader
         eyebrow="Operator"
         title="Copilot"
-        subtitle="Ask about your incidents, claims, and policies. Grounded answers with sources you can open — and any action waits for your confirmation."
+        subtitle="Grounded answers about your venue — every reply cites its sources, and any action waits for your confirmation."
       />
       <CopilotPanel />
     </div>
