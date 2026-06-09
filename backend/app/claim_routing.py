@@ -28,6 +28,11 @@ def _borderline_floor() -> float:
 
 def route_status(rec: ClaimRecommendation) -> str:
     """auto_routed | borderline | not_routed — the gate decision for a rec."""
+    # No active policy → there is nothing to file against a carrier. It's a
+    # coverage conversation, not a claim, so it never routes to the broker as a
+    # proposal — regardless of confidence/should_file.
+    if not rec.has_active_policy:
+        return "not_routed"
     if rec.confidence >= _auto_confidence():
         return "auto_routed" if rec.should_file else "not_routed"
     if rec.confidence >= _borderline_floor():
@@ -56,11 +61,16 @@ def recommendation_for_packet(session: Session, packet: UnderwritingPacket) -> C
     risk_type = (packet.risk_signals or {}).get("type", "")
     line_id = RISK_TYPE_TO_COVERAGE.get(risk_type, "gl")
     deductible = venue_line_deductible(session, packet.venue_id, line_id)
+    # Distinct from deductible (which is None both for no-policy AND a covered
+    # line with no deductible): does the venue have ANY active policy to file
+    # against? Drives carrier_payout=0 + not-routed when uninsured.
+    has_active_policy = _latest_active_policy(session, packet.venue_id) is not None
     return recommend_claim_filing(
         risk_signal=packet.risk_signals or {},
         incident=incident_payload,
         venue_prior_claim_count=count_prior_claims(session, packet.venue_id),
         deductible=deductible,
+        has_active_policy=has_active_policy,
     )
 
 

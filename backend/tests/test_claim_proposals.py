@@ -115,6 +115,39 @@ def test_create_proposal_with_structured_override_reason_persists():
         assert proposal.state == "pending_broker_review"
 
 
+def test_create_proposal_is_idempotent_per_packet():
+    """A second create_proposal for the same packet must NOT create a duplicate —
+    it returns the existing proposal. The auto-router guards against this, but the
+    manual send path did not, so a stale "Send to broker" click could double-file
+    one incident to the broker."""
+    with make_session() as session:
+        packet = _seed_packet(session)
+
+        first = create_proposal(
+            session=session,
+            packet_id=packet.id,
+            operator_id="op-1",
+            override_recommendation=False,
+            override_reason=None,
+            override_freetext=None,
+        )
+        second = create_proposal(
+            session=session,
+            packet_id=packet.id,
+            operator_id="op-2",
+            override_recommendation=False,
+            override_reason=None,
+            override_freetext=None,
+        )
+
+        # The existing proposal is returned, not a fresh row.
+        assert second.id == first.id
+        rows = session.exec(
+            select(ClaimProposal).where(ClaimProposal.packet_id == packet.id)
+        ).all()
+        assert len(rows) == 1
+
+
 def test_create_proposal_override_without_reason_raises():
     with make_session() as session:
         packet = _seed_packet(session)

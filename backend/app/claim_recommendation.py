@@ -42,6 +42,10 @@ class ClaimRecommendation:
     deductible_usd: Optional[int] = None
     carrier_payout_usd: int = 0
     pay_out_of_pocket_cost_usd: int = 0
+    # Whether the venue has an active policy at all. Distinct from deductible:
+    # no policy → the carrier pays nothing and the incident is never a claim;
+    # a policy with no line deductible still pays the full median.
+    has_active_policy: bool = True
 
 
 # Base payout ranges per incident type — orders of magnitude, not point estimates.
@@ -72,6 +76,7 @@ def recommend_claim_filing(
     incident: dict,
     venue_prior_claim_count: int = 0,
     deductible: "Decimal | None" = None,
+    has_active_policy: bool = True,
 ) -> ClaimRecommendation:
     risk_type = (risk_signal.get("type") or "general_incident").lower()
     severity = (risk_signal.get("severity") or "low").lower()
@@ -95,7 +100,14 @@ def recommend_claim_filing(
     )
 
     ded = int(deductible) if deductible is not None else None
-    carrier_payout = payout.median_usd if ded is None else max(0, payout.median_usd - ded)
+    # No active policy → the carrier pays nothing; the loss is wholly out of
+    # pocket and there is no claim to file. A policy with no line deductible
+    # (ded is None but has_active_policy) still pays the full median — the two
+    # must not be conflated (the old code paid full on no-policy, a real bug).
+    if not has_active_policy:
+        carrier_payout = 0
+    else:
+        carrier_payout = payout.median_usd if ded is None else max(0, payout.median_usd - ded)
     expected_payout_value = int(carrier_payout * probability)
     net_ev = expected_payout_value - premium.cumulative_usd
     should_file = net_ev > 0 and carrier_payout > 0 and probability >= 0.45
@@ -120,6 +132,7 @@ def recommend_claim_filing(
         deductible_usd=ded,
         carrier_payout_usd=carrier_payout,
         pay_out_of_pocket_cost_usd=payout.median_usd,
+        has_active_policy=has_active_policy,
     )
 
 
@@ -202,4 +215,5 @@ def recommendation_to_dict(rec: ClaimRecommendation) -> dict:
         "deductible": rec.deductible_usd,
         "carrier_payout": rec.carrier_payout_usd,
         "pay_out_of_pocket_cost": rec.pay_out_of_pocket_cost_usd,
+        "has_active_policy": rec.has_active_policy,
     }

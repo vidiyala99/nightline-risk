@@ -94,12 +94,46 @@ def _create_packet(client: TestClient) -> str:
     return packets[0]["id"]
 
 
+# A benign, low-severity incident — it classifies below the auto-route threshold,
+# so the agentic flow creates NO proposal. The operator's manual create endpoint
+# (which the UI only surfaces for borderline packets) is then the first and only
+# proposal — which is exactly the path the create tests below exercise. On a
+# high-severity packet the auto-router already filed, and create is idempotent.
+DEMO_INCIDENT_BORDERLINE = {
+    "occurred_at": "2026-05-02T21:05:00Z",
+    "location": "rear bar",
+    "summary": "Minor verbal disagreement between two patrons; no contact, no injuries, resolved by staff.",
+    "reported_by": "shift-lead",
+    "injury_observed": False,
+    "police_called": False,
+    "ems_called": False,
+}
+
+
+def _create_borderline_packet(client: TestClient) -> str:
+    """Create a packet that does NOT auto-route, so the operator's manual create
+    is the first proposal. Asserts the premise: no auto-proposal exists yet."""
+    incident_response = client.post(
+        "/api/venues/elsewhere-brooklyn/incidents", json=DEMO_INCIDENT_BORDERLINE
+    )
+    assert incident_response.status_code == 201
+    incident_id = incident_response.json()["incident"]["id"]
+    packets = client.get(f"/api/incidents/{incident_id}/packets").json()
+    assert len(packets) >= 1
+    packet_id = packets[0]["id"]
+    # by-packet 404s when no proposal exists — confirm the benign incident didn't auto-route.
+    assert client.get(f"/api/claim-proposals/by-packet/{packet_id}").status_code == 404, (
+        "benign incident unexpectedly auto-routed; pick a lower-severity fixture"
+    )
+    return packet_id
+
+
 # ---------- POST /api/packets/{packet_id}/claim-proposal ----------
 
 
 def test_operator_can_create_claim_proposal_without_override():
     client = TestClient(app, headers=_op_headers())
-    packet_id = _create_packet(client)
+    packet_id = _create_borderline_packet(client)
 
     response = client.post(
         f"/api/packets/{packet_id}/claim-proposal",
@@ -120,7 +154,7 @@ def test_operator_can_create_claim_proposal_without_override():
 
 def test_operator_can_create_proposal_with_structured_override_reason():
     client = TestClient(app, headers=_op_headers())
-    packet_id = _create_packet(client)
+    packet_id = _create_borderline_packet(client)
 
     response = client.post(
         f"/api/packets/{packet_id}/claim-proposal",
@@ -347,7 +381,7 @@ def test_packet_response_has_null_claim_proposal_before_any_proposal():
 
 def test_packet_response_embeds_latest_claim_proposal_after_creation():
     client = TestClient(app, headers=_op_headers())
-    packet_id = _create_packet(client)
+    packet_id = _create_borderline_packet(client)
     proposal_id = client.post(
         f"/api/packets/{packet_id}/claim-proposal",
         json={

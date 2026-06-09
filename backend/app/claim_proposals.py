@@ -91,6 +91,16 @@ def create_proposal(
     if packet is None:
         raise ClaimProposalValidationError(f"Packet not found: {packet_id}")
 
+    # Idempotent per packet: one packet → at most one proposal. The auto-router
+    # guards its own path before calling here; this covers the manual send path
+    # (and any double-click race), so a stale "Send to broker" click can't
+    # double-file the same incident to the broker.
+    existing = session.exec(
+        select(ClaimProposal).where(ClaimProposal.packet_id == packet_id)
+    ).first()
+    if existing is not None:
+        return existing
+
     proposal = ClaimProposal(
         id=f"prop-{uuid4().hex[:12]}",
         packet_id=packet_id,

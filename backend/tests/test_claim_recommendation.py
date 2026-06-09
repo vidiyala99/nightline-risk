@@ -114,7 +114,7 @@ def test_recommendation_to_dict_has_stable_shape():
         "should_file", "probability",
         "expected_payout", "expected_premium_impact",
         "net_expected_value_usd", "reasons", "confidence", "rubric_version",
-        "deductible", "carrier_payout", "pay_out_of_pocket_cost",
+        "deductible", "carrier_payout", "pay_out_of_pocket_cost", "has_active_policy",
     }
     assert set(d["expected_payout"].keys()) == {"low_usd", "median_usd", "high_usd"}
     assert set(d["expected_premium_impact"].keys()) == {"annual_delta_usd", "duration_years", "cumulative_usd"}
@@ -130,6 +130,8 @@ INC = {"injury_observed": True, "police_called": True, "ems_called": True}
 
 
 def test_deductible_reduces_carrier_payout_and_can_flip_to_dont_file():
+    # deductible=None here means a POLICY with no line deductible → carrier pays
+    # the full median (has_active_policy defaults True).
     big = recommend_claim_filing(risk_signal=RS, incident=INC, deductible=None)
     d = recommendation_to_dict(big)
     assert d["carrier_payout"] == d["expected_payout"]["median_usd"]   # no deductible → full
@@ -139,3 +141,26 @@ def test_deductible_reduces_carrier_payout_and_can_flip_to_dont_file():
     assert hd["carrier_payout"] == 0
     assert hd["should_file"] is False
     assert hd["pay_out_of_pocket_cost"] == hd["expected_payout"]["median_usd"]
+
+
+def test_no_active_policy_means_zero_carrier_payout_and_dont_file():
+    """No policy is NOT the same as a zero-deductible policy. With no coverage the
+    carrier pays nothing, so carrier_payout is 0 and we never recommend filing — a
+    claim has no policy to file against."""
+    rec = recommend_claim_filing(
+        risk_signal=RS, incident=INC, deductible=None, has_active_policy=False
+    )
+    d = recommendation_to_dict(rec)
+    assert d["has_active_policy"] is False
+    assert d["carrier_payout"] == 0
+    assert d["should_file"] is False
+    # The full loss is the operator's to absorb.
+    assert d["pay_out_of_pocket_cost"] == d["expected_payout"]["median_usd"]
+
+    # A policied venue with no line deductible still gets the full carrier payout.
+    covered = recommend_claim_filing(
+        risk_signal=RS, incident=INC, deductible=None, has_active_policy=True
+    )
+    cd = recommendation_to_dict(covered)
+    assert cd["has_active_policy"] is True
+    assert cd["carrier_payout"] == cd["expected_payout"]["median_usd"]

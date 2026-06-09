@@ -1,9 +1,13 @@
+from datetime import date
+from decimal import Decimal
+
 import pytest
 from sqlmodel import Session, SQLModel, create_engine, select
 from app.models import (
     AuditEvent,
     ClaimProposal,
     IncidentRecord,
+    Policy,
     RubricVersion,
     UnderwritingPacket,
 )
@@ -33,6 +37,15 @@ def test_fraud_signal_column_round_trips(db_session):
 
 def _seed_packet(session, *, prior_injury=True):
     session.add(RubricVersion(id="rv-1", name="demo", version="demo"))
+    # Auto-route presupposes an active policy to file against (no policy → not routed).
+    session.add(Policy(
+        id="pol-v1", submission_id="sub-x", bound_quote_id="q-x", venue_id="v1",
+        carrier_id="markel-specialty", status="active",
+        effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
+        annual_premium=Decimal("5000.00"), commission_amount=Decimal("750.00"),
+        commission_rate=Decimal("0.15"), coverage_lines=["premises_liability"],
+        terms_snapshot={}, snapshot_hash="h",
+    ))
     session.add(IncidentRecord(
         id="inc-1", venue_id="v1", status="open",
         occurred_at="2026-05-01T22:00:00Z", location="bar",

@@ -43,6 +43,18 @@ def test_below_floor_is_not_routed():
     assert route_status(_rec(should_file=True, confidence=0.30)) == "not_routed"
 
 
+def test_no_active_policy_is_never_routed():
+    """A ClaimProposal becomes a Claim only by filing against a policy. With no
+    active policy there's nothing to file, so it's never routed to the broker —
+    regardless of confidence/should_file."""
+    import dataclasses
+    no_policy = dataclasses.replace(
+        _rec(should_file=True, confidence=0.95), has_active_policy=False
+    )
+    assert route_status(no_policy) == "not_routed"
+    assert should_auto_route(no_policy) is False
+
+
 # ─── count_prior_claims ──────────────────────────────────────────────────
 
 
@@ -145,6 +157,7 @@ from app.claim_routing import maybe_auto_route_incident
 
 def test_auto_route_creates_pending_proposal_with_snapshot():
     s = _db_session()
+    _policy(s, "elsewhere-brooklyn")  # auto-route presupposes a policy to file against
     s.add(IncidentRecord(
         id="inc-hi", venue_id="elsewhere-brooklyn", occurred_at="2026-05-17T00:00:00Z",
         location="bar", summary="serious", reported_by="mgr",
@@ -204,6 +217,7 @@ def test_backfill_auto_routes_high_confidence_incident():
     from app.main import _backfill_incident_packets
 
     s = _db_session()  # seeds Venue "elsewhere-brooklyn"
+    _policy(s, "elsewhere-brooklyn")  # auto-route presupposes a policy to file against
     # The real market-hotel altercation: injury + police + EMS → high-confidence
     # "file" under the deterministic classifier (matches the 90% in the UI).
     s.add(IncidentRecord(
@@ -248,6 +262,7 @@ def test_backfill_heals_packeted_incident_missing_its_proposal():
     from app.main import _backfill_missing_proposals
 
     s = _db_session()
+    _policy(s, "elsewhere-brooklyn")  # auto-route presupposes a policy to file against
     s.add(IncidentRecord(
         id="inc-legacy", venue_id="elsewhere-brooklyn",
         occurred_at=datetime(2026, 4, 22, 23, 10), location="Main Bar",
