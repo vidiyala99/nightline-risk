@@ -100,3 +100,29 @@ def seeded_borderline_incident_insured():
         pkt = s.get(UnderwritingPacket, PACKET_ID)
         assert route_status(recommendation_for_packet(s, pkt)) == "borderline"
         yield _scope(s), INCIDENT_ID
+
+
+# ─── Engine-level fixtures (Task 7) ─────────────────────────────────────────
+# The engine takes ``(user, session)`` (it resolves the scope itself via
+# ``accessible_venue_ids``), so these reuse the SAME seed logic and just unpack
+# ``scope.user`` / ``scope.session`` from the scope-based fixtures above. The
+# user dict already carries ``role="venue_operator"`` + ``tenant_id=<venue_id>``
+# so ``accessible_venue_ids`` resolves the operator's venue.
+
+
+@pytest.fixture
+def seeded_operator_session(seeded_borderline_incident_insured):
+    scope, _incident_id = seeded_borderline_incident_insured
+    yield scope.user, scope.session
+
+
+@pytest.fixture
+def seeded_borderline_incident_insured_user(seeded_borderline_incident_insured):
+    scope, incident_id = seeded_borderline_incident_insured
+    yield scope.user, scope.session, incident_id
+
+
+@pytest.fixture
+def seeded_no_policy_incident_user(seeded_borderline_incident_no_policy):
+    scope, incident_id = seeded_borderline_incident_no_policy
+    yield scope.user, scope.session, incident_id
