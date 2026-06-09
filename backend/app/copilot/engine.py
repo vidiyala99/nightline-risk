@@ -12,9 +12,10 @@ from app.copilot.schemas import AnswerType, CopilotReply, ProposedAction
 from app.copilot.tools import (
     CopilotScope, TOOL_CATALOG,
     validate_send_to_broker, execute_send_to_broker,
-    validate_resolve_compliance, execute_resolve_compliance,
+    execute_resolve_compliance,
 )
 from app.intelligence.engine import accessible_venue_ids
+from app.schemas.domain import Citation
 from app.time import now_utc
 
 _ACT_INTENT = re.compile(r"\b(send|file|submit)\b.*\bbroker\b|\bresolve\b.*\b(compliance|item)\b", re.I)
@@ -69,7 +70,16 @@ def _propose_action(scope: CopilotScope, message: str) -> CopilotReply:
         v = validate_send_to_broker(scope, m.group(1))
         if not v.ok:
             return CopilotReply(answer_type=AnswerType.refuse, text=v.reason)
-        return CopilotReply(answer_type=AnswerType.propose_action, text=v.proposed.summary, proposed_action=v.proposed)
+        # Cite the recommendation the summary quotes, so the net-EV figure in the
+        # propose text is grounded (faithfulness guard / scorer treat a cited
+        # number as supported — it's a real quote of the rec, not a guess).
+        return CopilotReply(
+            answer_type=AnswerType.propose_action,
+            text=v.proposed.summary,
+            proposed_action=v.proposed,
+            citations=[Citation(source_id=v.proposed.target_id, source_type="recommendation",
+                                excerpt=v.proposed.summary)],
+        )
     return CopilotReply(answer_type=AnswerType.clarify,
                         text="Tell me which compliance item to resolve and attach the evidence.")
 

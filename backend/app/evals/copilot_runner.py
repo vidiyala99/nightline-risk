@@ -16,9 +16,9 @@ Per-scenario scoring, by axis:
     be a false miss); for non-read axes it's not-applicable and excluded from
     that scorer's denominator.
   - ``faithfulness`` grounds the reply against the tool_results that produced
-    it: for a read reply, re-run the routed read tool; for refuse/propose
-    replies, ground against ``[]`` (their text must carry no ungrounded
-    numbers).
+    it (for a read reply, re-run the routed read tool) AND against the reply's
+    own citations — a cited number (e.g. a propose-action quoting the
+    recommendation's net-EV figure) counts as supported.
   - ``refusal_correctness`` / ``action_appropriateness`` score every scenario.
 """
 from __future__ import annotations
@@ -29,6 +29,7 @@ from pathlib import Path
 
 from app.copilot.engine import respond_to_message
 from app.copilot.provider import _classify
+from app.copilot.schemas import ToolResult
 from app.copilot.tools import TOOL_CATALOG, CopilotScope
 from app.evals.baseline import compare_to_baseline, load_baseline, write_baseline
 from app.evals.copilot_scenarios import NOW, SCENARIOS
@@ -74,13 +75,15 @@ def run_scenarios() -> list[dict]:
         else:
             routing = _NA
 
-        # faithfulness: ground a read reply against its routed tool's result;
-        # refuse/propose replies are grounded against [] (no ungrounded numbers).
+        # faithfulness: ground a read reply against its routed tool's result, AND
+        # ground every reply against its OWN citations — a number the reply cites
+        # (e.g. a propose-action quoting the recommendation's net-EV figure) is
+        # supported, not a guess.
         if sc["axis"] == "read" and actual in _READ_TOOLS:
-            tool_result = _TOOL_BY_NAME[actual].run(scope, {})
-            tool_results = [tool_result]
+            tool_results = [_TOOL_BY_NAME[actual].run(scope, {})]
         else:
             tool_results = []
+        tool_results = tool_results + [ToolResult(tool="_reply_citations", citations=list(reply.citations))]
         faithfulness = faithfulness_score(reply, tool_results)
 
         results.append({
