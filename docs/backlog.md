@@ -92,7 +92,7 @@ Last updated: 2026-06-09.
 
 ## Next up (subscription-free) — pick a track
 
-> **Hygiene 2026-06-09:** completed tracks are collapsed to a one-line ✅ summary (track numbers kept stable so cross-references don't break). Done `[x]` sub-items *inside* still-open tracks are intentional context. **Active work = Tracks 3, 4, 5, 8, 9 (remainder), 10, 11, 12; deferred = 6; done = 1, 2, 7b.**
+> **Hygiene 2026-06-09:** completed tracks are collapsed to a one-line ✅ summary (track numbers kept stable so cross-references don't break). Done `[x]` sub-items *inside* still-open tracks are intentional context. **Active work = Tracks 3, 4, 5, 8, 9 (remainder), 10, 11, 12, 13, 14, 15; deferred = 6; done = 1, 2, 7b.** Tracks 13–15 + Track 12 Theme G added 2026-06-09 (evening) from the Fable code-audit + AI-native gap evaluation.
 
 ### 1. Eval harness deepening  ★ headline / best pitch fit — ✅ COMPLETE
 - [x] Mature harness, **21/21 = 100%** on the deterministic stack: 15 standard + 6 adversarial scenarios, 10 scorers (severity/citation/review-status/factor + NDCG@5/MRR retrieval + 3 safety); per-stack baselines + `--compare-baseline` CI gate (`evals`/`evals-matrix` in `ci.yml`); `/evals` scoreboard; last gap (`off_topic_review_status` 50%→100%) closed. *No open work — kept visible as the pitch centerpiece.*
@@ -510,6 +510,34 @@ does **not** yet cover. `extend` = builds on existing primitives; `net-new` = ne
 - ★ COI request / verification vault (operator **and** broker need it; E&O angle) — high-frequency, dual-persona.
 - Compliance-deadline engine (extends compliance tracking); claims-dispute support + loss-history narrative generator.
 
+**Theme G — commercial-wide research delta** (2026-06-09 second pass; beyond nightlife — grounded
+in 2026 sources: premium-audit leakage, broker E&O/policy-checking, LexisNexis claimant-attorney
+drivers, InsTech bordereaux bottleneck):
+- ★ **Premium audit / continuous exposure monitoring** `extend` — GL + liquor premiums are rated on
+  gross/alcohol sales and policies are *auditable*: insureds get surprise audit bills; agencies leak
+  **$120–240K premium per $10M book** recoverable via midterm endorsements. The POS connector +
+  endorsement machinery already exist → continuous exposure tracking → proposed midterm endorsements
+  → audit-ready exposure report. Deterministic, on-thesis; generalizes to all exposure-rated
+  commercial lines (payroll-rated WC, sales-rated GL). **Best new domain wedge.**
+- ★ **Policy checking** `extend` — deterministic diff of *issued policy vs quoted/bound terms*; a
+  classic broker E&O driver (most agencies do **no** post-issuance check; AI-quoting errors rising
+  in 2026 forecasts). Structured `coverage_terms` + snapshot hashes make this cheap. Theme-B sibling.
+- ★ **Claimant-experience instrumentation** `extend` — **new persona: the claimant** (the research
+  gap in the first pass). 56% of claimants hire attorneys because settlement drags; 75% say first
+  carrier contact shapes everything; attorney rep ≈ **4×** claim cost. Instrument first-contact SLA
+  + settlement-cycle timeliness on the existing claim lifecycle; litigation-propensity (Theme D)
+  becomes the prioritizer. "Measured claimant experience → lower litigation-rep rate" is a carrier
+  pitch nobody at this stage has.
+- **Born-clean bordereaux** `extend` (expands C13) — DA/bordereaux reporting is "the industry's
+  biggest drag" (late, misaligned, manually reconciled across fragmented systems; costs MGAs binding
+  authority). Nightline is ONE system, so the fragmentation problem doesn't exist → deterministic
+  carrier-grade bordereaux export (Lloyd's V5.2-shaped). MGA-ladder thesis artifact.
+- **Statutory cancellation/non-renewal notice engine** `extend` — state-mandated notice periods
+  before the 7b transitions (expire/non-renew/lapse ship with no notice-timing compliance).
+  Deterministic state-rules table — direct sibling of the SL tax module (the correctness story).
+- **OFAC payee screening** `extend` — carriers must screen claim payees before paying. Deterministic
+  list-check seam in `record_payment`; small, real carrier-compliance credibility.
+
 **Top picks (product + pitch leverage):** (1) inbound email intake [A keystone], (2) operator risk/loss-control dossier [F, most aligned], (3) eval-harness → model-governance reframe [C, ahead-of-market], (4) sublimit-aware coverage analysis [D, hospitality wedge], (5) reserving engine [E, actuarial whitespace]. **Pick which become tracks.**
 
 #### Appendix — full persona pain-point detail (research, 2026-06-09)
@@ -576,47 +604,167 @@ material. One line each: **pain** — why it hurts → AI/data approach.
 
 ---
 
+### 13. Security & hardening (added 2026-06-09, code audit)
+
+Robustness audit finding: the *enforcement* layers (require_* gates, lifecycle transitions, eval
+gates) are rigorous, but entry points and ops robustness lag behind. P0 first; everything here is
+subscription-free.
+
+- [ ] **★ P0 — `/register` privilege escalation (real vuln, same-day fix).**
+  `RegisterRequest.role` is client-supplied and unvalidated (`app/auth.py:248-289`): anyone can
+  POST `{"role": "carrier"}` (or broker/staff) and mint a valid privileged token, bypassing every
+  `require_broker`/`require_carrier` gate. Fix: public registration **forces `venue_operator`**
+  (ignore the field); privileged roles created only via an authed admin path (Track 15 admin
+  surface; interim: a guarded script). + RED→GREEN regression test. Audit siblings while in there:
+  grep every code path that mints a token or sets role/tenant_id.
+- [ ] **Rate limiting** — none anywhere in `backend/`. Login is brute-forceable and `/copilot` lets
+  any token burn the LLM quota (the Groq 429 problem is partly self-inflictable). slowapi (or a
+  small middleware) on auth + copilot endpoints first, then global sane defaults.
+- [ ] **Account lockout / failed-attempt throttling** on login (pairs with rate limiting; no
+  failed-attempt tracking exists today).
+- [ ] **Token revocation** — JWTs are stateless with no `token_version`/denylist; password change
+  doesn't invalidate existing sessions. Add `token_version` on `UserRecord`, embed in the token,
+  bump on password change + a "log out everywhere" action.
+- [ ] **Idempotency keys on money mutations** — reserve/payment POSTs have no concurrency control
+  (double-submit race on Postgres). The pattern already exists (copilot act tools, ClaimProposal
+  dedup) — generalize to all money-mutating endpoints.
+- [ ] **Hash-chained audit ledger** — snapshots are hashed but audit events themselves are mutable
+  rows. Chain each event to the previous event's hash → tamper-evident trail; directly upgrades the
+  "deposition-grade chain of custody" pitch. (Human-readable viewer = Track 15.)
+- [ ] **Pagination on list endpoints** — only incidents/packets/ingestion_runs take limit/offset;
+  venues (291 rows), claims, submissions, work queue are unpaginated. Payload/perf cliff grows with
+  every demo seed.
+- [ ] **Observability floor** — request-ID middleware + structured error logging (+ Sentry free
+  tier when wanted). The Groq 429 went undetected until Railway log-spelunking; this is the fix
+  class for that whole failure mode.
+- [ ] **Deep health check** — `/api/health` (`main.py:494`) should ping the DB; a 200 while Neon is
+  asleep is worse than nothing for uptime probes / keep-warm.
+- Deferred / verify-first: Alembic migrations (the `_COLUMN_MIGRATIONS` allowlist works; known
+  scaling cliff); upload size/content-type validation (**verify** limits exist on evidence upload);
+  CORS/CSP tightening; 2FA (backlog-worthy for an insurance platform, not urgent); backup/retention
+  policy (Neon-side ops).
+
+### 14. AI-native productionization (added 2026-06-09)
+
+Gap audit vs the "solid AI-native insurance product" bar. Verdict: **offline** AI rigor is
+world-class (evals, baselines, CI gates, faithfulness guard) — **online** rigor is ~zero. The
+product doesn't record, monitor, or learn from its own AI outputs in prod. Close the online half.
+All subscription-free except 🔒.
+
+- [ ] **★ AI provenance stamping** (~1 day) — `CopilotReply`, memo, and fraud outputs record
+  nothing about what produced them (verified: no model/provider field anywhere in the schemas).
+  Stamp `model`, `prompt_version`, `input_hash` into each AI artifact + its audit event — the
+  sibling of `decision_source`. Converts Theme C (NAIC governance) from "reframe" to
+  *demonstrable*: every AI output carries its lineage.
+- [ ] **★ Online LLM telemetry** — `LLMCallRecord` (provider, model, tokens, latency, fallback?,
+  error class) + a live strip on `/evals`. Yields the **fallback-rate metric** that would have
+  caught the prod Groq 429 degradation on day one. Subsumes Track 11's startup provider-log item.
+- [ ] **★ Correction flywheel** (the differentiator) — human overrides of AI suggestions (carrier
+  edits memo premium, operator rejects copilot answer, adjuster overrides reserve hint) currently
+  *vanish*. Build the pipe: override captured → labeled eval scenario → gold set grows from prod →
+  baselines re-gate. Both ends already exist (audit events capture overrides; harness consumes
+  scenarios). Generalizes override-calibration beyond risk scores. This is what separates "product
+  with AI features" from "AI-native product."
+- [ ] **Copilot streaming (SSE) + feedback affordances** — answers currently arrive as a block
+  (verified: no streaming in `api/v1/copilot.py`); add thumbs-up/down + "suggest a correction"
+  (which is also the flywheel's capture point). Non-streaming AI chat reads prototype in 2026.
+- [ ] **Closed-loop MEASURE → RECALIBRATE** — the Risk Intelligence loop today is
+  SURFACE→RECOMMEND→ACT only; the measuring/recalibrating phases from the design doc are unbuilt.
+  (SP4 LLM-as-judge slots here, 🔒 for the judge model.)
+- [ ] 🔒 **One reliably-live LLM path in prod** — the deterministic floor is a floor, not a ceiling:
+  prod copilot currently template-falls-back on *every* question. Now: Groq model swap + gating +
+  retry (Track 11 ops/code). With keys: small-budget `ANTHROPIC_API_KEY` (Haiku covers demo traffic
+  for single-digit $/mo) as the dependable path.
+- **Document intelligence — the big build** = Track 12 Theme A keystone (inbound email/PDF/loss-run
+  intake). THE table-stakes AI-insurance capability and the largest AI-native hole: **zero document
+  extraction is shipped today** (the vision pipeline reads camera frames, not PDFs). Deterministic-
+  first extraction + the LLM provider seam means it can *start* subscription-free; a real key only
+  raises the quality tier.
+
+### 15. Platform basics (added 2026-06-09)
+
+Product table-stakes that are absent regardless of persona. One consolidated track; most items are
+good filler between bigger tracks.
+
+- [ ] **Admin / back-office surface** — list users, assign roles (the privileged-role creation path
+  Track 13's P0 requires), correct bad data without raw DB access.
+- [ ] **Global search** — jump to venue/policy/claim/submission by name or number (`SearchInput` is
+  a list filter, not search). The most visible daily-usability gap + an easy demo win.
+- [ ] **Audit-log viewer** — human-readable per-entity timeline over the audit trail. The expensive
+  half (emitting + hashing events) is done; this is the cheap half that shows it off.
+- [ ] **Demo reset** — one-click reset-to-clean-demo-state (the idempotent seeds exist; wrap them).
+  De-risks live demos — a recruiter clicking around can't poison the data.
+- [ ] **Unified notifications inbox + per-user notification preferences** — AlertEvent/BrokerTask/
+  push exist but there's no "what needs me" feed and no prefs UI. (Overlaps Track 5's
+  inbox-unification item — same build.)
+- [ ] **Onboarding / first-run** — a new operator account lands on a bare dashboard; guided "add
+  your venue / upload your policy" path.
+- [ ] **Data export** — portfolio/book/claims-history export (loss-run CSV is currently the only
+  one).
+- [ ] **Empty/error/loading state sweep** — make 7c's broker-dashboard finding systematic across
+  surfaces (a failed fetch should never render as healthy-empty).
+
+---
+
 ## Gated — needs an account/keys (revisit when available)
 
 See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
 - [x] Object storage (S3/GCS) — `S3Storage` **implemented** (boto3, `STORAGE_BACKEND=s3`), Stubber-tested. Only remaining step is ops: create a bucket (Cloudflare R2 free tier) + set the four `S3_*` env vars on Railway. Was the biggest real blocker (Railway FS is ephemeral → evidence/PDFs vanish on redeploy).
-- [ ] 🔒 Email provider (Resend) — set `RESEND_API_KEY` + `FRONTEND_URL`, verify domain → reset emails actually send.
-- [ ] 🔒 LLM live mode — set `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY` (+ budget) to swap deterministic stubs for real agents.
-- [ ] 🔒 A real operational connector (e.g. scheduling/POS) — the `staffing` slot is the cheapest real-API swap.
+- [ ] 🔒 Email provider (Resend) — set `RESEND_API_KEY` + `FRONTEND_URL`, verify domain. Unlocks:
+  reset emails, operational `AlertEvent` email routing (Track 5), the follow-up/chase agent's
+  outbound arm (Track 8), claimant first-contact comms (Theme G).
+- [ ] 🔒 LLM live mode — `ANTHROPIC_API_KEY` (small budget; Haiku covers demo traffic for
+  single-digit $/mo) or keep Groq w/ the Track 11 fixes. Unlocks, in leverage order: **reliable prod
+  copilot** (Track 14), memo LLM upgrade behind the faithfulness scorer (Track 9 fast-follow),
+  document-extraction quality tier (Theme A keystone), sufficiency judge (Track 8), SP4
+  LLM-as-judge / claims-leakage KPI (Track 14 MEASURE + Theme C), real-embedding vector RAG delta
+  (Track 10's pitch number).
+- [ ] 🔒 Inbound email infra (Resend inbound / Cloudflare Email Routing — free tiers exist) — the
+  delivery rail for the Theme A inbound-email keystone; the extraction core itself can be built +
+  eval'd subscription-free against fixture emails first.
+- [ ] 🔒 Sentry (free tier) — drop-in once the Track 13 observability floor (request IDs,
+  structured errors) exists.
+- [ ] 🔒 A real operational connector (e.g. scheduling/POS) — the `staffing` slot is the cheapest real-API swap; a real POS feed also powers the Theme G premium-audit wedge.
 - [ ] SMS (Twilio), payments (Stripe), loss-run ingestion — only if v1 scope expands.
 
 ---
 
 ## Recommended order
 
-Updated 2026-06-09. Shipped since last ordering: Copilot v1 + `get_policy` + focused-chat redesign
-(Track 11); cross-persona gap research (Track 12); backlog hygiene pass (Tracks 1/2 collapsed).
-Live focus:
+Updated 2026-06-09 (evening). New since last ordering: code-audit + AI-native gap evaluation →
+**Tracks 13 (security/hardening), 14 (AI-native productionization), 15 (platform basics)** + Track
+12 **Theme G** (commercial-wide delta). Everything below except the 🔒 sub-items is
+subscription-free.
 
-1. **Finish the Copilot thread** (Track 11) — (a) *ops, you:* swap `COPILOT_LLM_MODEL` →
-   `llama-3.1-8b-instant` on Railway to clear the Groq 429s; (b) gate the LLM to "why" questions +
-   429 retry/caching + startup provider-log; (c) multi-tool fan-out + causal-grounding guard
-   (= copilot SP3 retriever territory). Most-visible operator surface; momentum.
-2. **Operator risk / loss-control dossier** (Track 12 ★★, Theme F) — turn the calibrated risk score
-   + evidence into renewal leverage ("prove you're a good risk"). Highest product-alignment, pure
-   leverage on what's built, best pitch demo.
-3. **Inbound email → structured intake** (Track 12 ★, Theme A — cross-persona keystone) — the
-   front-door gap broker/UW/actuary all rank #1; eval harness = the correctness wedge. Outbound
-   email/Slack adapter (Track 5) rides alongside (cheap, needs `RESEND_API_KEY`).
-4. **Eval-harness → model-governance reframe** (Track 12, Theme C) — NAIC AI Bulletin makes this a
-   buyer requirement; you're *ahead* of the market here. Strong pitch wedge, low build (reframes
-   existing plumbing).
-5. **Underwriting-memo eval fast-follows** (Track 9) — wire the 3 memo scorers into
-   `runner.py`/`baseline.py`/`--compare-baseline` + `/evals`; graded `check_appetite` (also the 7a
-   item). Small, completes the eval headline.
-6. **Policy-doc vector RAG** (Track 10 = copilot SP3) — design approved; vector pipeline + retrieval
-   eval delta.
-7. **Sublimit-aware coverage analysis** (Track 12, Theme D) — hospitality A&B/dram-shop wedge;
-   extends the defense-package.
-8. **Reserving engine** (Track 12, Theme E) — biggest net-new actuarial whitespace; deterministic +
-   test-first; sharpens actuarial-role pitches (e.g. Tesora).
+0. **★ SAME-DAY — Track 13 P0:** `/register` role-escalation fix + regression test + sibling-path
+   audit. A real vuln that bypasses every persona gate; hours, not days. Do before anything else.
+1. **Finish the Copilot thread** (Track 11 + the Track 14 riders) — (a) *ops, you:* swap
+   `COPILOT_LLM_MODEL` → `llama-3.1-8b-instant` on Railway; (b) LLM gating + 429 retry/caching;
+   (c) while in the provider/UI files: **streaming + feedback buttons + LLM telemetry**
+   (Track 14) — same code surface, one session.
+2. **Track 14 core — provenance stamping + correction flywheel** — ~2-3 days combined,
+   subscription-free, and it upgrades *every already-shipped* AI feature (memo, fraud, copilot)
+   from "has evals" to "auditable + learning in prod." The flywheel is the AI-native
+   differentiator claim.
+3. **Track 13 hardening core** — rate limiting + lockout + token revocation + money-op idempotency
+   + hash-chained audit (Track 15 audit-log viewer rides along — it's the demo face of the chain).
+4. **Operator risk / loss-control dossier** (Track 12 ★★, Theme F) — unchanged: highest
+   product-alignment, best pitch demo.
+5. **Inbound email/doc intelligence** (Theme A keystone = Track 14's big build) — the largest
+   AI-native hole (zero doc extraction shipped). Deterministic-first extraction + LLM seam, eval'd
+   against fixture emails — starts subscription-free; 🔒 inbound rail + key raise the tier later.
+6. **Premium audit / continuous exposure monitoring** (Theme G ★) — best new domain wedge;
+   POS connector + endorsement machinery already exist; deterministic and demo-able.
+7. **Eval-harness → model-governance reframe** (Theme C) — now *amplified* by #2's provenance
+   stamping (lineage on every AI output is the evidence the NAIC bulletin asks for).
+8. **Underwriting-memo eval fast-follows** (Track 9) — wire the 3 memo scorers into
+   `runner.py`/`baseline.py`/`--compare-baseline` + `/evals`; graded `check_appetite` (7a/C6).
 
-Then: **C5/C4 carrier** (Track 9), **two-way questions + agent assistants** (Track 8). Good filler
-(no subscription): 7c polish, the Neon JSON-string correctness sweep, Track 3 (deterministic memo
-quality), Track 4 (test breadth). Quick ops still pending: seed prod adjuster demo + prod
+Then: **policy-doc vector RAG** (Track 10 = SP3), **sublimit-aware coverage analysis** (Theme D),
+**reserving engine** (Theme E), **policy checking + claimant instrumentation + born-clean
+bordereaux** (Theme G), **C5/C4 carrier** (Track 9), **two-way questions + agents** (Track 8).
+
+Good filler (no subscription): Track 15 basics (global search, demo reset, admin surface), 7c
+polish, the Neon JSON-string correctness sweep, Track 3 (deterministic memo quality), Track 4
+(test breadth). Quick ops still pending: Groq model swap (#1a), seed prod adjuster demo, prod
 stale-incident cleanup (Track 2 open item).
