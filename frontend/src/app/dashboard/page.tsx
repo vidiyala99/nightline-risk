@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import OnboardingCard from "@/components/OnboardingCard";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRole, useTenantId, useAuth } from "@/contexts/AuthContext";
-import { Building2, LogOut, ArrowUpRight, WifiOff, AlertTriangle, CheckSquare, ArrowRight, ShieldCheck } from "lucide-react";
+import { Building2, LogOut, ArrowUpRight, WifiOff, AlertTriangle, CheckSquare, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Grid } from "@/components/layout/Grid";
 import { authHeaders } from "@/lib/authFetch";
@@ -613,6 +613,17 @@ function DashboardPageInner() {
       {/* PROACTIVE EXPOSURE — Risk Intelligence Layer's deterministic "what
           matters now" banner. Self-fetches; self-hides on error/empty. */}
       <ExposurePanel />
+
+      {/* OPERATOR: launch the Risk Intelligence Copilot for a conversational
+          read of the same exposure surface. Operator-only (broker/carrier
+          don't see /copilot). */}
+      {!isBroker && (
+        <div className="mb-lg">
+          <Link href="/copilot" className="lc-link text-sm">
+            <Sparkles size={14} aria-hidden="true" /> Ask the copilot <ArrowUpRight size={13} aria-hidden="true" />
+          </Link>
+        </div>
+      )}
 
       {/* TICKER — portfolio-wide signal; hidden for operator (single venue),
           and hidden on phone-broker (the compact header replaces it) */}

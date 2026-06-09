@@ -19,6 +19,7 @@ import {
   Database,
   TrendingUp,
   Users,
+  Sparkles,
 } from "lucide-react";
 import { useAuth, useRole, useTenantId, roleHome } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
@@ -123,6 +124,7 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
           { href: "/comms-review", label: "Review Queue", icon: Inbox },
           { href: "/coverage", label: "Coverage", icon: ShieldCheck },
           { href: "/team", label: "Floor Team", icon: Users },
+          { href: "/copilot", label: "Copilot", icon: Sparkles },
         ] },
         { label: "System", items: [
           { href: `/alerts${venueQuery}`, label: "Alerts", icon: Bell },
