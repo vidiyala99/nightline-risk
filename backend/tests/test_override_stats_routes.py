@@ -21,14 +21,20 @@ def _broker():
     return {"Authorization": f"Bearer {create_token('u-ovr-brk', 'b@e.com', 'broker', None)}"}
 
 
+# A benign, low-severity incident: it classifies BELOW the auto-route threshold,
+# so the agentic flow creates NO proposal. That matters here because these tests
+# file a *manual override* proposal on the packet — if the incident auto-routed
+# first, create_proposal's per-packet idempotency guard would return that
+# (non-override) auto-proposal instead, and override_approved would stay 0. With
+# a borderline packet the manual override proposal is the first and only one.
 DEMO_INCIDENT = {
-    "occurred_at": "2026-05-02T23:13:00Z",
+    "occurred_at": "2026-05-02T21:05:00Z",
     "location": "rear bar",
-    "summary": "Patron required EMS.",
+    "summary": "Minor verbal disagreement between two patrons; no contact, no injuries, resolved by staff.",
     "reported_by": "shift-lead",
-    "injury_observed": True,
-    "police_called": True,
-    "ems_called": True,
+    "injury_observed": False,
+    "police_called": False,
+    "ems_called": False,
 }
 
 
