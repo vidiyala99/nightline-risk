@@ -7137,14 +7137,26 @@ html, body { overflow-x: clip; }
 .copilot-turn--assistant { justify-content: flex-start; }
 
 .copilot-bubble {
-  max-width: 88%;
+  max-width: 92%;
 }
 .copilot-bubble__inner {
-  padding: 12px 16px;
+  padding: 0;
+}
+/* User message: soft dark rounded bubble on the right. */
+.copilot-bubble--user {
+  max-width: 78%;
 }
 .copilot-bubble--user .copilot-bubble__inner {
-  color: var(--text-primary);
+  padding: 10px 14px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--text-primary);
+  color: var(--bg-base);
   font-weight: 500;
+  line-height: 1.5;
+}
+/* Assistant answer: borderless plain text on the left (no card). */
+.copilot-bubble--assistant .copilot-bubble__inner {
+  padding: 2px 0;
 }
 .copilot-bubble__text {
   margin: 0;

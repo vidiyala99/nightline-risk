@@ -190,8 +190,8 @@ export function CopilotPanel() {
         {messages.map((m, i) =>
           m.role === "user" ? (
             <div key={i} className="copilot-turn copilot-turn--user">
-              <div className="lc-card copilot-bubble copilot-bubble--user">
-                <div className="lc-card__inner copilot-bubble__inner">{m.text}</div>
+              <div className="copilot-bubble copilot-bubble--user">
+                <div className="copilot-bubble__inner">{m.text}</div>
               </div>
             </div>
           ) : (
@@ -200,8 +200,8 @@ export function CopilotPanel() {
               className="copilot-turn copilot-turn--assistant"
               aria-live={i === lastAssistant ? "polite" : undefined}
             >
-              <div className="lc-card copilot-bubble copilot-bubble--assistant">
-                <div className="lc-card__inner copilot-bubble__inner">
+              <div className="copilot-bubble copilot-bubble--assistant">
+                <div className="copilot-bubble__inner">
                   <p className="copilot-bubble__text">{m.reply.text}</p>
 
                   {m.reply.link && (
