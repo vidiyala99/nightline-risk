@@ -7161,12 +7161,17 @@ html, body { overflow-x: clip; }
   max-width: 78%;
 }
 .copilot-bubble--user .copilot-bubble__inner {
+  min-width: 2.5rem;
   padding: 10px 14px;
   border-radius: 14px 14px 4px 14px;
-  background: var(--text-primary);
+  /* Warm dark taupe, not stark near-black — softer on the paper theme while
+     still ~7.7:1 against the cream text (AAA). min-width + centering keep a
+     one-word message ("Hi") reading as a bubble, not a tiny square. */
+  background: var(--text-secondary);
   color: var(--bg-base);
   font-weight: 500;
   line-height: 1.5;
+  text-align: center;
 }
 /* Assistant answer: borderless plain text on the left (no card). */
 .copilot-bubble--assistant .copilot-bubble__inner {
