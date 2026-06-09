@@ -520,6 +520,68 @@ does **not** yet cover. `extend` = builds on existing primitives; `net-new` = ne
 
 **Top picks (product + pitch leverage):** (1) inbound email intake [A keystone], (2) operator risk/loss-control dossier [F, most aligned], (3) eval-harness → model-governance reframe [C, ahead-of-market], (4) sublimit-aware coverage analysis [D, hospitality wedge], (5) reserving engine [E, actuarial whitespace]. **Pick which become tracks.**
 
+#### Appendix — full persona pain-point detail (research, 2026-06-09)
+
+Complete enumerated findings from the parallel persona research, sourced to 2024–2026 industry
+material. One line each: **pain** — why it hurts → AI/data approach.
+
+**Broker / wholesale / MGA:**
+1. **Unstructured email/PDF/SOV/loss-run intake** — ~40% of time re-keying (47 min/quote manual vs ~11 automated); 82% would drop a slow broker → extraction + classification + field confidence scoring.
+2. **Carrier appetite matching** — "from memory + Rolodex"; long-tail markets under-shopped, declines burn goodwill → structured appetite guides + LLM match + rank by bind-likelihood.
+3. **Loss-run extraction & normalization** — dozens of inconsistent carrier formats delay renewals → extraction + normalize → existing loss-ratio engine (audit trail = edge).
+4. **Surplus-lines multi-state tax filing + diligent-search** — ~840 hrs/yr/200 policies; top rejects: wrong rate 38%, missed deadline 29% → deterministic rate/deadline/form rules + LLM affidavit assembly + correctness verification.
+5. **COI issuance + endorsement reconciliation** — 4.2 COIs/policy/yr, 45–90 min each, 1.8% list AIs never endorsed (E&O driver) → auto-gen from policy + reconcile cert language vs endorsement schedule.
+6. **Market submission follow-up/chasing** — silent-underwriter problem, deadlines slip → agentic placement tracker: per-market state, drafts follow-ups, parses responses.
+7. **Missing-info / NIGO chase** — incomplete submissions, ~1 hr chasing a single DOB → completeness checker at intake vs required-field rules + auto-draft request.
+8. **Carrier-quote normalization + comparison + proposal** — differing quote letters hide sublimit/exclusion traps → extract → normalize → diff coverages → generate proposal.
+9. **Renewal remarketing trigger** — manual, started too late (need 90–120 days) → pipeline flags at-risk renewals (rate Δ, loss-ratio shift, market exits) → kicks the intake→appetite→submit chain.
+10. **Hospitality liquor + A&B placement intelligence** — hardest-to-place class, state dram-shop variance, sublimit/exclusion traps → class-specific appetite + state knowledge + coverage-gap checker.
+
+**Underwriter / carrier:**
+1. **Submission triage & clearance** — ~60% never fully reviewed, ~25% bound; triaged by arrival not quality → extraction + LOB/class classify + dedup/clearance + scored "work-me-first".
+2. **~40% admin/re-keying** (unchanged since 2008) → extraction agents + auto-populate + agentic chase via the request-info loop.
+3. **External-data gathering for risk selection** — fragmented, manual → enrichment pipeline + entity-linked risk signals + provenance, feeding score + memo.
+4. **Appetite/eligibility inconsistency & leakage** — single largest 12-mo ROI item → deterministic rules alongside scoring; violations auto-route to referral w/ cited rationale (NAIC governance edge).
+5. **Rate adequacy under social inflation** — 2024: 135 nuclear verdicts (+52%), $31.3B (+116%) → jurisdiction-aware loss-cost + trend factors + rate-inadequacy eval scorers.
+6. **Hospitality A&B controls assessment** — manual from narratives; acceptance hinges on controls not form → extract/score venue controls + incident history + state dram-shop posture (ties to evidence layer).
+7. **Renewal re-rating on changed exposure** — can't see what materially changed → period-over-period entity diff (snapshot-hash) + surface deltas + auto-propose re-rate.
+8. **Exposure/accumulation management** — periodic, misses cross-class aggregation → aggregate bound book by geo/peril/class + threshold alert at bind.
+9. **Referral & authority workflows** — opaque, slow, "why" not captured → authority rules + auto rationale + routing/SLA (maps to lifecycle/audit machinery).
+10. **AI veracity & explainability** — gating adoption blocker; NAIC Bulletin in 25 states (Mar 2026) → field-level confidence + human-in-loop + eval scorers + provenance (the moat).
+- *Bonus (MGA):* delegated-authority bordereaux oversight → normalized, audit-ready DA reporting + portfolio monitoring.
+
+**Claims adjuster / SIU:**
+1. **Reserves systematically under-set** — ~$7.3B adverse dev in other-liability 2025 → severity-development models + confidence-scored reserve vs adjuster + mismatch alert.
+2. **"Sleeper" claims not flagged early** — 64% GL / 75% auto-liability litigants have counsel within 2 weeks → litigation-propensity scoring at FNOL (rides fraud-agent pattern).
+3. **Coverage analysis manual** — A&B sublimits $25K–$300K, state-varying → LLM extract → coverage object + "does the policy respond?" agent (hospitality wedge).
+4. **Claims leakage 7–14%, poorly measured** — 40%+ carriers cite it top challenge → LLM-as-judge over closed files → leakage as a measured KPI.
+5. **Medical/demand-package review bottleneck** — up to 30% of time, 1,000-pg file = 10–20 hrs → summarization/chronology w/ page citations (extends defense-package/vision).
+6. **Subrogation identified too late** — up to $15B/yr missed; early-ID = +20–40% recovery → NLP+graph+vision third-party-fault scoring at FNOL.
+7. **Litigation management black box** — #1 friction is accurate exposure analysis from counsel → extract invoice/case signals + benchmark counsel exposure vs realized (calibration).
+8. **Organized fraud rings** — per-claim scoring misses networks → entity-graph across claims/providers/attorneys (extends 2-pt fraud agent; cross-venue repeat A&B claimants).
+9. **FNOL intake quality inconsistent** — bad inputs corrupt everything downstream → AI FNOL: complexity/severity in 15–30s + completeness + coverage/litigation/subro triggers.
+
+**Actuary:**
+1. **Data wrangling = #1 time sink** — only 42% have a single source of truth → ETL/pipeline + canonical loss/exposure model + LLM column-mapping (your strongest axis).
+2. **E&S loss runs/bordereaux unstructured** — 30–50% of quoting time is pre-parse mechanics → doc extraction → structured rows + format-variant detection.
+3. **Reserving backward-looking, spreadsheet-bound, failing** — adverse dev concentrated AY2022–24 → *net-new* triangle + chain-ladder + BF/Cape Cod + Mack/bootstrap engine; auto CL-vs-BF divergence.
+4. **Social-inflation trend outruns pricing** — stale trend poisons rate + a-priori loss ratio → data-fusion internal+external trend + flag divergence (extends risk score/rate-adequacy).
+5. **Rate-filing mechanics >50% of effort** — SERFF transmission only → LLM-gen exhibits/memoranda grounded in pricing engine (eval = reproducibility for ASOP/state).
+6. **Model governance under NAIC AI Bulletin** (~23–25 states) — lineage/validation/explainability on demand → reframe eval harness as governance-evidence generation (best fit to existing assets).
+7. **Experience & exposure rating manual** — blend two methods by hand, ad hoc limit-drift → *net-new* dev/trend/on-leveling + ILFs/exposure curves + layer blending on pricing engine.
+8. **Analysis periodic not continuous** — emerging signals caught a quarter late → continuous pipeline (Dagster) incremental recompute + threshold alerts.
+- *Gap map:* net-new = reserving engine, experience/exposure rating, continuous monitoring; eval harness reframed for governance (#5/#6) is where you're *ahead* of incumbents.
+
+**Insured / venue operator (your direct user):**
+1. **Premiums doubling, capacity vanishing** for liquor + A&B (25–40% hikes; carriers exiting KY/TX/MN; venues shuttering) → calibrated score + evidence trail to shop E&S as a *preferred* risk + auto submission packet.
+2. **Can't prove they're a good risk** — underwriting is a black box they enter empty-handed → ★ underwriter-facing risk/loss-control dossier (camera map, retention attestation, training, refusal logs, declining-severity trend).
+3. **Incident docs disintegrate before claim** — claims arrive 12–24 mo later, footage overwritten in days → hashed-evidence + defense PDF; push capture-at-moment + preserve nudges + deposition-grade chain-of-custody.
+4. **Don't understand coverage / underinsured** — 69% can't interpret coverage, 77% underinsured → policy-intelligence in copilot: ingest dec page, extract sublimits/exclusions, answer "am I covered if a bouncer breaks someone's arm?" + gap-flag vs their incident pattern.
+5. **Claim disputes & post-incident non-renewal** — 40% of liquor claims → non-renewal/hike → claims-dispute rebuttal assembly + loss-history narrative generator for shopping.
+6. **COI / additional-insured churn** for events/vendors/landlords → COI request/issuance + inbound-vendor-COI verification vault + expiry alerts.
+7. **Compliance-deadline lapses** — license/permit terms, $50/day late (OK), license termination at 60 days (AZ) → deadline engine + 90/60/30 reminders + link to score/dossier.
+8. **No agent in the loop, buying blind** — 60% buy without an agent → copilot as "broker brain": plain-language terms, limit benchmarking, produces the shopping packet.
+
 ---
 
 ## Gated — needs an account/keys (revisit when available)
