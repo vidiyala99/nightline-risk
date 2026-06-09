@@ -3,7 +3,7 @@
 Working checklist for the subscription-free work (no API keys, no S3/email/SMS
 accounts yet). Gated/integration items live in [`go-live-readiness.md`](./go-live-readiness.md).
 
-Last updated: 2026-06-05.
+Last updated: 2026-06-09.
 
 ---
 
@@ -423,6 +423,56 @@ clause text with a summary), parked for the institutional-knowledge corpus.
 - [ ] Success = `retrieval_scorers` prints TF-IDF baseline vs vector; with a real key, vector ≥ TF-IDF
   NDCG@5 on the gold set (the pitch number).
 - [ ] Out of scope (v1): pgvector-native backend (later swap), Chroma, live PDF/PageIndex ingestion.
+
+### 11. Operator Copilot — grounded chat (added 2026-06-09)
+
+Operator-scoped `/copilot`: deterministic keyword-ladder provider (CI/prod floor) + optional
+OpenAI-compatible LLM provider (Ollama/Groq/…) behind the same tool seam; every answer grounded by
+the faithfulness guard; eval gate over gold scenarios. Read tools wrap the existing persona-gated
+services (one source of truth); two confirm-gated act tools (send-to-broker, resolve-compliance).
+
+**Shipped this session:**
+- [x] **`get_policy` read tool** (commit `3fcc3f7`) — premium / coverage / policy number / term via
+  `policy_for_venue`, grounded by a `policy` citation; routed in the deterministic ladder +
+  LLM tool descriptions; nav → operator-facing `/coverage` (not broker `/policies`); eval scenario
+  `read_policy_premium` added (gate stays 100%). Fixes "how much premium am I paying?" → was the
+  canned refusal because there was no policy tool at all (not a broken RAG).
+
+**★ Live prod issue — Groq 429 (diagnosed 2026-06-09, NOT yet fixed):** all three `COPILOT_LLM_*`
+vars are correctly set on Railway, but the prod copilot is hitting Groq **free-tier 429 rate limits**
+and silently falling back to deterministic on every question (confirmed in Railway logs:
+`[COPILOT] LLM provider failed (... 429 Too Many Requests ...)`). Root contributors: (a)
+`llama-3.3-70b-versatile` has the tightest free limits; (b) **each question costs 2 Groq calls**
+(tool-pick + synthesis in `openai_compatible_provider._respond_llm`).
+- [ ] **IMMEDIATE (ops, no code):** swap `COPILOT_LLM_MODEL` → **`llama-3.1-8b-instant`** on Railway
+  (much higher free RPM/TPM; the constrained, enumerated prompts don't need 70B). Retest a "why"
+  question — a fuller 2-4 sentence answer = LLM live; the terse template = still falling back.
+- [ ] **Gate the LLM to questions that need it** — only explanatory/"why" questions call the LLM;
+  counts/status stay deterministic (the template answer is already identical). Cuts Groq load >½ and
+  makes simple questions snappier (no round-trip). Test-first.
+- [ ] **429 resilience + caching** — on 429, one retry honoring Groq's `retry-after` before falling
+  back; cache identical question→answer pairs (kills repeated-demo-question spend).
+- [ ] **Startup provider-log diagnostic** — log `copilot provider: OpenAICompatible (<model>)` vs
+  `Deterministic` (never the key) so prod boot shows which path is live without log-spelunking.
+
+**Multi-tool / iterative retrieval (scoped 2026-06-09):**
+- **GraphRAG / vector RAG REJECTED for the copilot** — the data is already a typed relational graph
+  (explicit FKs); the problem is tool-use/composition, not chunk recall. Routing authoritative
+  service results through LLM entity-extraction would *harm* the exact-number grounding that is the
+  differentiator. (Vector RAG still lives in track 10 for policy-document *clause text* — a genuine
+  unstructured corpus; different problem.)
+- [ ] **Fan-out multi-tool** (the ~90%-done unblock) — the provider already loops over `tool_calls`
+  and `assert_grounded` already checks the union of results; only three things force single-tool:
+  prompt rule 2 ("call exactly ONE tool"), the provider keeping only `last_result` for
+  citations/link, and no synthesis guidance. Relax + aggregate. Handles "why is my premium high?"
+  (policy × risk × claims).
+- [ ] **Causal-grounding guard** (ships *with* fan-out, non-negotiable) — `assert_grounded` only
+  validates numeric tokens; multi-tool reintroduces causal hallucination ("premium is high *because
+  of* claims"). Extend the guard/prompt to forbid unsupported causal language. This is an
+  eval-harness extension — on-thesis for the correctness pitch.
+- [ ] **Bounded iterative loop** (defer) — true dependent multi-hop (step 2 depends on step 1's
+  output) via a ReAct-style loop with a ≤2-3 step budget, gated behind a capable model. Rare for the
+  operator persona; fan-out covers ~90%.
 
 ---
 
