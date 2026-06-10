@@ -5301,6 +5301,50 @@ html, body { overflow-x: clip; }
   background: var(--bg-base);
 }
 
+/* ── Design-system primitive: two-pane form shell ────────────────────────
+   The house rule for "configure → confirm" action forms on web: the form
+   stays a readable single column on the left; the otherwise-empty right space
+   carries a live summary/preview panel. Collapses to one column on narrow
+   widths (the summary drops below the fold / hides on small screens). Reuse
+   this for endorse / renew / FNOL / COI rather than letting forms sprawl. */
+.form-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 32px;
+  align-items: start;
+}
+.form-summary {
+  position: sticky;
+  top: 24px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+.form-summary__title {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+.form-summary__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.form-summary__row:first-of-type { border-top: none; }
+.form-summary__row dt { color: var(--text-tertiary); }
+.form-summary__row dd { margin: 0; color: var(--text-primary); font-family: var(--font-mono); text-align: right; }
+.form-summary__note { margin-top: 12px; font-size: 11px; color: var(--text-tertiary); line-height: 1.5; }
+@media (max-width: 900px) {
+  .form-shell { grid-template-columns: 1fr; gap: 20px; }
+  .form-summary { position: static; order: -1; }  /* show as a context strip above on mobile */
+}
+
 /* Danger button shared by cancellation */
 .btn-danger {
   background: rgba(244,63,94,0.12);

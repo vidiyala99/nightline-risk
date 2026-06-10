@@ -30,6 +30,16 @@ const ENDORSEMENT_TYPES: ReadonlySet<string> = new Set<EndorsementType>([
   "add_location", "change_class", "correction",
 ]);
 
+const ENDORSEMENT_TYPE_LABEL: Record<EndorsementType, string> = {
+  change_limit: "Change Limit",
+  add_insured: "Add Insured",
+  add_coverage: "Add Coverage Line",
+  remove_coverage: "Remove Coverage Line",
+  add_location: "Add Location",
+  change_class: "Change Class",
+  correction: "Correction",
+};
+
 // Friendly names so a broker reads "Workers' Comp", not the raw id "wc".
 const COVERAGE_LINE_LABEL: Record<string, string> = {
   gl: "General Liability",
@@ -185,6 +195,7 @@ export default function EndorsePage() {
         subtitle="Mid-term change. Re-hashes the policy snapshot."
       />
 
+      <div className="form-shell">
       <form className="submission-wizard__form" onSubmit={submit}>
         {isCoverageGap && (
           <div className="endorse-context">
@@ -434,6 +445,33 @@ export default function EndorsePage() {
           </button>
         </div>
       </form>
+
+      {/* Live summary in the otherwise-empty right space — confirm at a glance
+          before issuing (the design-system two-pane form rule). */}
+      <aside className="form-summary">
+        <div className="form-summary__title">Summary</div>
+        <dl style={{ margin: 0 }}>
+          <div className="form-summary__row"><dt>Type</dt><dd>{ENDORSEMENT_TYPE_LABEL[endorsementType]}</dd></div>
+          <div className="form-summary__row"><dt>Effective</dt><dd>{effectiveDate}</dd></div>
+          {["add_coverage", "remove_coverage", "change_limit", "change_class"].includes(endorsementType) && (
+            <div className="form-summary__row"><dt>Line</dt><dd>{COVERAGE_LINE_LABEL[coverageLine] ?? coverageLine}</dd></div>
+          )}
+          {endorsementType === "add_coverage" && (
+            <>
+              <div className="form-summary__row"><dt>Per-occ</dt><dd>{fmtMoney(perOccLimit) ?? "—"}</dd></div>
+              <div className="form-summary__row"><dt>Aggregate</dt><dd>{fmtMoney(aggLimit) ?? "—"}</dd></div>
+              <div className="form-summary__row"><dt>Deductible</dt><dd>{fmtMoney(deductible) ?? "—"}</dd></div>
+            </>
+          )}
+          {fmtMoney(premiumChange) && Number(premiumChange) !== 0 && (
+            <div className="form-summary__row"><dt>Premium Δ</dt><dd>{fmtMoney(premiumChange)}</dd></div>
+          )}
+        </dl>
+        <div className="form-summary__note">
+          Issuing re-hashes the policy snapshot for the audit trail.
+        </div>
+      </aside>
+      </div>
     </div>
   );
 }
