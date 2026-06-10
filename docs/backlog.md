@@ -111,7 +111,7 @@ Last updated: 2026-06-10.
 
 ## Next up (subscription-free) — pick a track
 
-> **Hygiene 2026-06-09:** completed tracks are collapsed to a one-line ✅ summary (track numbers kept stable so cross-references don't break). Done `[x]` sub-items *inside* still-open tracks are intentional context. **Active work = Tracks 3, 4, 5, 8, 9 (remainder), 10, 11, 12, 13, 14, 15; deferred = 6; done = 1, 2, 7b.** Tracks 13–15 + Track 12 Theme G added 2026-06-09 (evening) from the Fable code-audit + AI-native gap evaluation.
+> **Hygiene 2026-06-09:** completed tracks are collapsed to a one-line ✅ summary (track numbers kept stable so cross-references don't break). Done `[x]` sub-items *inside* still-open tracks are intentional context. **Active work = Tracks 3, 4, 5, 8, 9 (remainder), 10, 11, 12, 13, 14, 15, 16; deferred = 6; done = 1, 2, 7b.** Tracks 13–15 + Track 12 Theme G added 2026-06-09 (evening) from the Fable code-audit + AI-native gap evaluation. **2026-06-10: five-agent external audit** (market research + backend / frontend-mobile / AI-eval / ops) folded in: 3 new security P0s + row-locking + DATABASE_URL guard → Track 13; CI-wiring bug + Postgres test lane + E2E depth → Track 4; shared web fetch wrapper → Track 15; market-thesis caution + named scope gaps → Track 12. Recommended order re-cut below.
 
 ### 1. Eval harness deepening  ★ headline / best pitch fit — ✅ COMPLETE
 - [x] Mature harness, **21/21 = 100%** on the deterministic stack: 15 standard + 6 adversarial scenarios, 10 scorers (severity/citation/review-status/factor + NDCG@5/MRR retrieval + 3 safety); per-stack baselines + `--compare-baseline` CI gate (`evals`/`evals-matrix` in `ci.yml`); `/evals` scoreboard; last gap (`off_topic_review_status` 50%→100%) closed. *No open work — kept visible as the pitch centerpiece.*
@@ -158,6 +158,23 @@ pytest-xdist installed-but-unused. Shipped:
   `warn` in `eslint.config.mjs`). Adoption pass: migrate the flagged effects to event-driven / `use()`
   loading where it's a real anti-pattern, or accept the rest. Tighten to `error` + `--max-warnings 0`
   once burned down so the lint becomes a real gate.
+- [ ] **★ CI wiring bug — Vitest + ESLint never actually run in CI (found 2026-06-10).** `ci.yml`'s
+  frontend job calls `npm run test`, which runs only the single hand-rolled
+  `node src/lib/incidentView.test.mjs` — the real Vitest suite lives under `test:unit` and is **not
+  executed in CI**; `eslint` isn't invoked at all (only design-lint + build are). Fix (~30 min):
+  point CI at `test:unit` (or fold the `.mjs` into Vitest) + add `npm run lint` (gate at the current
+  warning count until the burndown above lands `--max-warnings 0`).
+- [ ] **Postgres-fidelity test lane (2026-06-10 audit).** `tests/conftest.py` pins the entire suite
+  to SQLite (`sqlite:///test_run.db`), so the **JSON-string-on-Postgres class — the documented #1
+  prod-only regression source** (see `project_neon_json_string_regressions`) — is structurally
+  invisible to all ~1,300 tests. Add a CI lane running the suite (or at minimum a JSON-read-boundary
+  subset) against real Postgres (GH Actions service container). Turns the recurring reactive "Neon
+  sweep" into a standing gate; pairs with the Alembic item (Track 13 deferred).
+- [ ] **E2E depth + selector seams (2026-06-10 audit).** The 7 Playwright specs (~16 tests) cover
+  auth/settings/venues/renewals smoke but **neither core journey** (incident→evidence→packet→proposal;
+  submission→quote→bind→FNOL), and they pin to CSS classes (`.sidebar-nav-item`, `.venue-card`,
+  `.lc-login__tab`…) that rename invisibly to tsc (the known silent-pin failure mode). Add
+  `data-testid` seams on the hot paths + one spec per core journey.
 
 ### 5. Data & Defense integration surface — vision-vs-built (added 2026-05-30)
 
@@ -596,6 +613,26 @@ drivers, InsTech bordereaux bottleneck):
 
 **Top picks (product + pitch leverage):** (1) inbound email intake [A keystone], (2) operator risk/loss-control dossier [F, most aligned], (3) eval-harness → model-governance reframe [C, ahead-of-market], (4) sublimit-aware coverage analysis [D, hospitality wedge], (5) reserving engine [E, actuarial whitespace]. **Pick which become tracks.**
 
+**Market-thesis caution (2026-06-10 sourced market research).** The five-agent audit's web-research
+pass *validated as severe*: the A&B/liquor capacity crisis (NYC premiums ~$2k→$4k/mo with closures;
+sublimits $250–500k; carriers exiting), the E&S/ELANY compliance burden (25.7% of commercial P&C now
+E&S; casualty firm through 2026), broker re-keying/turnaround (~40% admin time, ~60% submission
+leakage, turnaround = #1 carrier-selection factor), and social inflation (135 nuclear verdicts 2024,
++52%). **But: no source shows carriers discounting documented venues at bind.** The operator evidence
+layer's *defensibility* value is validated ("not documented = not defensible" is consensus); the
+*premium-reward* loop is not. Pitch evidence → claims-defensibility + loss outcomes; treat
+"documentation lowers premiums" as a design-partner hypothesis, never a market fact. White space
+confirmed: no competitor spans the operator-evidence↔broker-placement bridge for nightlife
+(Capitola/Sayata/Relay/Federato are horizontal; Solink/LevL360 are non-insurance venue tools).
+
+**Named scope gaps (2026-06-10 audit — scope, not defects; name them out loud when pitching "broker
+platform" to insurance people):** ACORD-standard forms (25/125/126 — current PDFs are
+internal-format); premium billing/installments/disbursement (7a 🔒); commission *ledger*
+(splits/carrier-statement reconciliation vs the single stored rate); carrier API connectivity (all
+quotes are in-house `pricing.py`; reserves are manual relay); multi-state SL compliance (NY only);
+rating depth (no class codes / experience mods / territory); loss-run *ingestion* (Theme A covers);
+reinsurance/bordereaux (C13 / Theme G).
+
 #### Appendix — full persona pain-point detail (research, 2026-06-09)
 
 Complete enumerated findings from the parallel persona research, sourced to 2024–2026 industry
@@ -681,6 +718,27 @@ subscription-free.
   (`login/page.tsx`) + mobile `RegisterScreen` (public sign-up = Venue Owner; demo personas reach
   broker/carrier via demo buttons), and the e2e `LoginPage.register` helper. Privileged accounts are
   still provisioned only out-of-band (Track 15 admin surface remains the proper path).
+- [ ] **★ P0 — path traversal in evidence upload (2026-06-10 audit).** `api/v1/evidence.py:66` builds
+  the storage key as `f"{evidence_id}_{file.filename}"` with the **client-controlled** filename
+  unsanitized — a `../`-bearing filename escapes `evidence_uploads/` via `LocalStorage.save`'s
+  `base_dir / key` join (`storage.py:54`); the `evidence_id` prefix does NOT neutralize a `../`
+  segment (the variable is named `safe_name` but isn't). Fix: basename + strip path separators
+  (same rule on the S3 key path); the filename also flows into `Content-Disposition` on serve —
+  escape there too (header injection). RED→GREEN traversal test.
+- [ ] **P0 — unauthenticated `/api/debug/llm-provider`** (`main.py:548`) — leaks which API keys are
+  configured (booleans only, but still) and `?test=true` burns a real LLM call: an anonymous
+  quota-drain vector that compounds the Groq 429. Gate behind `require_admin` (or prod-disable).
+- [ ] **P0 — CORS trusts all of `*.vercel.app` with credentials** (`main.py:484-491`) — the
+  `allow_origin_regex` matches ANY Vercel-hosted project on the shared domain, each able to make
+  credentialed requests; methods/headers are `*`. Pin to an env-driven exact-origin list.
+  (Was deferred "verify-first" — verified bad 2026-06-10.)
+- [ ] **Upload content-type validation** — size limits exist (20MB image / 200MB video,
+  `evidence.py:30-31`) but MIME type is client-supplied: no magic-byte sniffing, no extension
+  allowlist; arbitrary bytes labeled `image/png` flow into vision analysis. Add server-side sniff +
+  allowlist. (Was deferred "verify-first" — limits verified present, type validation verified absent.)
+- [ ] **`DATABASE_URL` startup guard** — `validate_startup_env()` only checks `APP_SECRET`; a prod
+  boot without `DATABASE_URL` silently runs on ephemeral SQLite (the known trap, currently unguarded).
+  One-line fail-fast in prod.
 - [ ] **Rate limiting** — none anywhere in `backend/`. Login is brute-forceable and `/copilot` lets
   any token burn the LLM quota (the Groq 429 problem is partly self-inflictable). slowapi (or a
   small middleware) on auth + copilot endpoints first, then global sane defaults.
@@ -691,7 +749,11 @@ subscription-free.
   bump on password change + a "log out everywhere" action.
 - [ ] **Idempotency keys on money mutations** — reserve/payment POSTs have no concurrency control
   (double-submit race on Postgres). The pattern already exists (copilot act tools, ClaimProposal
-  dedup) — generalize to all money-mutating endpoints.
+  dedup) — generalize to all money-mutating endpoints. **Sibling (2026-06-10 audit): row locking** —
+  `record_payment`/`record_carrier_reserve` read running totals into Python, add, write back
+  (`services/claims.py:342`) with no `SELECT … FOR UPDATE`; concurrent payments on one claim can lose
+  an update (same shape on `Policy.annual_premium` during endorsements). Add `with_for_update()` on
+  the money rows (no-op on SQLite, real on Postgres) in the same pass.
 - [ ] **Hash-chained audit ledger** — snapshots are hashed but audit events themselves are mutable
   rows. Chain each event to the previous event's hash → tamper-evident trail; directly upgrades the
   "deposition-grade chain of custody" pitch. (Human-readable viewer = Track 15.)
@@ -703,10 +765,16 @@ subscription-free.
   class for that whole failure mode.
 - [ ] **Deep health check** — `/api/health` (`main.py:494`) should ping the DB; a 200 while Neon is
   asleep is worse than nothing for uptime probes / keep-warm.
-- Deferred / verify-first: Alembic migrations (the `_COLUMN_MIGRATIONS` allowlist works; known
-  scaling cliff); upload size/content-type validation (**verify** limits exist on evidence upload);
-  CORS/CSP tightening; 2FA (backlog-worthy for an insurance platform, not urgent); backup/retention
-  policy (Neon-side ops).
+- Deferred (CORS + upload validation promoted to open items above after 2026-06-10 verification):
+  **Alembic migrations** — the `_COLUMN_MIGRATIONS` allowlist works but the 2026-06-10 audit ranks
+  it the **#1 structural production gap** (ADD-COLUMN-only, failures swallowed by bare
+  `except: pass`, no renames/type-changes/backfills possible); pair with Track 4's Postgres test
+  lane when taken up. 2FA (backlog-worthy for an insurance platform, not urgent). **Backup/DR
+  runbook** — no documented Neon restore path; seeds rebuild *demo* state only, real operator
+  incidents/evidence/claims currently have no recovery story (and evidence files are ephemeral
+  until the R2 env vars are set). Module-level **`VENUES` global mutated at runtime**
+  (`main.py:293,510,529`) — process-local state that diverges under >1 worker; revisit with any
+  worker-scaling work.
 
 ### 14. AI-native productionization (added 2026-06-09)
 
@@ -782,6 +850,16 @@ good filler between bigger tracks.
   one).
 - [ ] **Empty/error/loading state sweep** — make 7c's broker-dashboard finding systematic across
   surfaces (a failed fetch should never render as healthy-empty).
+- [ ] **★ Shared web fetch wrapper (2026-06-10 audit)** — 42 web files hand-roll raw `fetch` +
+  `authHeaders()`; many lack a `.catch` that clears `loading`, so the documented
+  CORS-less-500 → infinite-spinner class persists, and only ONE request in the whole app has an
+  AbortController timeout. Mirror `mobile/src/api/client.ts` (which got this right): one client with
+  auth attach, `res.ok` check, timeout, normalized errors → swap call sites incrementally. Kills the
+  upload-`authHeaders()` footgun class at the seam too (see `project_web_upload_auth_pattern`).
+  Riders while in there: **mount the existing-but-unused `ErrorBoundary.tsx`** in AppShell (0
+  importers today — render throws rely solely on `app/error.tsx`, whose "Back to dashboard" is also
+  wrong for non-broker personas); **delete or adopt the dead generated `src/api/` OpenAPI client**
+  (0 importers — don't keep both patterns).
 
 ---
 
@@ -840,40 +918,72 @@ See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
 
 ## Recommended order
 
-Updated 2026-06-09 (evening). New since last ordering: code-audit + AI-native gap evaluation →
-**Tracks 13 (security/hardening), 14 (AI-native productionization), 15 (platform basics)** + Track
-12 **Theme G** (commercial-wide delta). Everything below except the 🔒 sub-items is
+Updated 2026-06-10 after the **five-agent external audit** (sourced market research + backend /
+frontend-mobile / AI-eval / ops code audits). What changed: Track 13 gained three security P0s
+(path traversal, debug endpoint, CORS) + the row-locking sibling; Track 4 gained the CI-wiring bug
++ the Postgres-fidelity lane; Track 15 the shared web fetch wrapper; Track 12 the market caution +
+named scope gaps. Market research **confirmed the pitch leads** (A&B/liquor crisis, E&S/ELANY
+burden, broker re-keying/turnaround, social inflation = all validated-severe; operator↔broker
+bridge = unoccupied white space) and **flagged one reframe** (documentation→premium-discount is
+unvalidated — sell defensibility, not cheaper premiums). Everything below except 🔒 sub-items is
 subscription-free.
 
-0. ~~**★ SAME-DAY — Track 13 P0:** `/register` role-escalation fix + regression test + sibling-path
-   audit.~~ ✅ **DONE 2026-06-09** — see Track 13. Next-up is now item 1 (Copilot thread).
-1. **Finish the Copilot thread** (Track 11 + the Track 14 riders) — (a) *ops, you:* swap
+0. **★ SAME-DAY — security/correctness P0 sweep (Track 13 + 7c):** evidence-upload **path
+   traversal** fix + auth on **`/api/debug/llm-provider`** + **CORS origin pinning** +
+   **`DATABASE_URL` startup guard** + the **7c A&B field drop** in `incident_flow.py` (the audit
+   rates losing `weapon_involved`/`injury_detail`/`witnesses` as *thesis-level* for an
+   evidence-defensibility product). Each is small; together ~one session with RED→GREEN tests.
+1. **CI honesty fixes (Track 4):** point CI at `test:unit` + add `eslint` to the frontend job
+   (~30 min — the Vitest suite currently never runs in CI), then stand up the **Postgres-fidelity
+   lane** (structurally kills the Neon JSON-string class instead of sweeping it reactively).
+2. **Finish the Copilot thread** (Track 11 + the Track 14 riders) — (a) *ops, you:* swap
    `COPILOT_LLM_MODEL` → `llama-3.1-8b-instant` on Railway; (b) LLM gating + 429 retry/caching;
    (c) while in the provider/UI files: **streaming + feedback buttons + LLM telemetry**
-   (Track 14) — same code surface, one session.
-2. **Track 14 core — provenance stamping + correction flywheel** — ~2-3 days combined,
+   (Track 14) — same code surface, one session. Audit framing: prod copilot is currently
+   deterministic-only on every question; telemetry turns that from a silent liability into a
+   measured fallback-rate you can demo.
+3. **Vision-agent contract + eval gate** (Track 14 ★) — **pulled up**: the audit ranked it the
+   single highest pitch-value-per-effort item. It's the only ungoverned LLM-factual-output path
+   (Gemini on uploaded media → findings feeding risk scoring AND fraud detection, no contract, no
+   evals) and closing it makes "every AI factual output is contract-bound + eval-gated" literally
+   true end-to-end. Already scoped in `agents/README.md`.
+4. **Track 14 core — provenance stamping + correction flywheel** — ~2-3 days combined,
    subscription-free, and it upgrades *every already-shipped* AI feature (memo, fraud, copilot)
    from "has evals" to "auditable + learning in prod." The flywheel is the AI-native
    differentiator claim.
-3. **Track 13 hardening core** — rate limiting + lockout + token revocation + money-op idempotency
-   + hash-chained audit (Track 15 audit-log viewer rides along — it's the demo face of the chain).
-4. **Operator risk / loss-control dossier** (Track 12 ★★, Theme F) — unchanged: highest
-   product-alignment, best pitch demo.
-5. **Inbound email/doc intelligence** (Theme A keystone = Track 14's big build) — the largest
+5. **Track 13 hardening core** — rate limiting + lockout + token revocation + money-op idempotency
+   **+ row locking (`with_for_update`)** + upload content-type sniffing + hash-chained audit
+   (Track 15 audit-log viewer rides along — it's the demo face of the chain).
+6. **One calibrated LLM-as-judge scorer + a judge-vs-human agreement number** (SP4 slice, Theme C) —
+   the audit's expert-credibility gap: every shipped scorer is heuristic (token-overlap / ladder /
+   NDCG), so "is your judge calibrated?" currently has no answer. Stage the labeling + harness
+   subscription-free; 🔒 the judge model itself. Also promote the intelligence/fraud/comms evals
+   from pytest asserts into the `--compare-baseline` CI gate while in the harness (cheap
+   consistency win — makes "all AI surfaces regression-gated" literally true).
+7. **Operator risk / loss-control dossier** (Track 12 ★★, Theme F) — highest product-alignment,
+   best pitch demo. **Reframed per the market caution:** the dossier sells claims-defensibility +
+   loss outcomes + "shop E&S as a preferred risk," NOT premium discounts at bind.
+8. **Inbound email/doc intelligence** (Theme A keystone = Track 14's big build) — the largest
    AI-native hole (zero doc extraction shipped). Deterministic-first extraction + LLM seam, eval'd
    against fixture emails — starts subscription-free; 🔒 inbound rail + key raise the tier later.
-6. **Premium audit / continuous exposure monitoring** (Theme G ★) — best new domain wedge;
+9. **Premium audit / continuous exposure monitoring** (Theme G ★) — best new domain wedge;
    POS connector + endorsement machinery already exist; deterministic and demo-able.
-7. **Eval-harness → model-governance reframe** (Theme C) — now *amplified* by #2's provenance
-   stamping (lineage on every AI output is the evidence the NAIC bulletin asks for).
-8. **Underwriting-memo eval fast-follows** (Track 9) — wire the 3 memo scorers into
-   `runner.py`/`baseline.py`/`--compare-baseline` + `/evals`; graded `check_appetite` (7a/C6).
+10. **Eval-harness → model-governance reframe** (Theme C) — amplified by #4's provenance
+    stamping (lineage on every AI output is the evidence the NAIC bulletin asks for).
+11. **Underwriting-memo eval fast-follows** (Track 9) — wire the 3 memo scorers into
+    `runner.py`/`baseline.py`/`--compare-baseline` + `/evals`; graded `check_appetite` (7a/C6).
 
-Then: **policy-doc vector RAG** (Track 10 = SP3), **sublimit-aware coverage analysis** (Theme D),
-**reserving engine** (Theme E), **policy checking + claimant instrumentation + born-clean
-bordereaux** (Theme G), **C5/C4 carrier** (Track 9), **two-way questions + agents** (Track 8).
+Then: **copilot fan-out multi-tool + causal-grounding guard** (Track 11 — unblocks "why is my
+premium high?"), **shared web fetch wrapper** (Track 15 — or pull it into any frontend session;
+it's the hung-spinner class fix), **policy-doc vector RAG** (Track 10 = SP3), **sublimit-aware
+coverage analysis** (Theme D), **reserving engine** (Theme E), **policy checking + claimant
+instrumentation + born-clean bordereaux** (Theme G), **C5/C4 carrier** (Track 9), **two-way
+questions + agents** (Track 8), **Alembic migrations** (Track 13 deferred — take it with the
+Postgres lane).
 
 Good filler (no subscription): Track 15 basics (global search, demo reset, admin surface), 7c
-polish, the Neon JSON-string correctness sweep, Track 3 (deterministic memo quality), Track 4
-(test breadth). Quick ops still pending: Groq model swap (#1a), seed prod adjuster demo, prod
-stale-incident cleanup (Track 2 open item).
+polish, the Neon JSON-string correctness sweep (until #1's Postgres lane obsoletes it), Track 3
+(deterministic memo quality), Track 4 E2E depth + `data-testid` seams, Track 16 dialog/toast pass.
+Quick ops still pending: Groq model swap (#2a), seed prod adjuster demo, prod stale-incident
+cleanup (Track 2 open item), R2/S3 env vars (gated list — the audit calls ephemeral evidence the
+top deployment risk and the code is already done).
