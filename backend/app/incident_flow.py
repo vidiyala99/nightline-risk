@@ -51,6 +51,15 @@ def create_brawl_incident_flow(
         ems_called=incident.ems_called,
         status="open",
         incident_category=incident.incident_category,
+        # A&B / liquor structured facts come straight off the payload — the
+        # intermediate Incident schema doesn't carry them, so reading from
+        # `incident` here would silently drop weapon/injury/witnesses (7c).
+        parties=payload.parties,
+        witnesses=payload.witnesses,
+        security_response=payload.security_response,
+        weapon_involved=payload.weapon_involved,
+        refused_service_or_overserved=payload.refused_service_or_overserved,
+        injury_detail=payload.injury_detail,
         reported_by_staff_id=reported_by_staff_id,
     )
     

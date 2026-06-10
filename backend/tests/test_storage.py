@@ -27,6 +27,31 @@ def test_local_storage_exists_and_delete(tmp_path):
     assert s.local_path(ref) is None  # missing → no local path
 
 
+def test_local_storage_rejects_path_traversal(tmp_path):
+    # A malicious filename (e.g. uploaded as "../../../etc/passwd") must not be
+    # able to write outside the storage root. Defense-in-depth at the seam so
+    # every caller — current and future — is protected.
+    s = LocalStorage(tmp_path)
+    with pytest.raises(ValueError, match="escape"):
+        s.save("ev-123_../../../etc/passwd", b"pwned")
+    # Nothing leaked outside the base dir.
+    assert not (tmp_path.parent / "passwd").exists()
+
+
+def test_local_storage_rejects_absolute_key(tmp_path):
+    s = LocalStorage(tmp_path)
+    with pytest.raises(ValueError, match="escape"):
+        s.save("/etc/passwd", b"pwned")
+
+
+def test_local_storage_still_allows_nested_keys(tmp_path):
+    # Regression guard: legitimate subdirectory keys must keep working after the
+    # traversal guard lands.
+    s = LocalStorage(tmp_path)
+    ref = s.save("sub/dir/ev-9.bin", b"ok")
+    assert s.read(ref) == b"ok"
+
+
 def test_local_storage_satisfies_protocol(tmp_path):
     assert isinstance(LocalStorage(tmp_path), Storage)
 

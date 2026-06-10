@@ -28,9 +28,20 @@ def test_validate_raises_in_prod_without_secret(monkeypatch):
         validate_startup_env()
 
 
+def test_validate_raises_in_prod_without_database_url(monkeypatch):
+    # Production without DATABASE_URL silently falls back to ephemeral sqlite
+    # (database.py) — data vanishes on every redeploy. Fail fast instead.
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("APP_SECRET", "a-stable-secret")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    with pytest.raises(RuntimeError, match="DATABASE_URL"):
+        validate_startup_env()
+
+
 def test_validate_passes_in_prod_with_secret(monkeypatch):
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("APP_SECRET", "a-stable-secret")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pw@host/db")
     validate_startup_env()  # must not raise
 
 

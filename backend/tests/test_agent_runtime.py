@@ -4,7 +4,7 @@ import pytest
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.incident_flow import create_brawl_incident_flow
-from app.models import AuditEvent, CitationRecord, SourceRecord, UnderwritingPacket, Venue
+from app.models import AuditEvent, CitationRecord, IncidentRecord, SourceRecord, UnderwritingPacket, Venue
 from app.seed_data import KNOWLEDGE_SOURCES, STREAM_EVENTS, VENUES
 from app.schemas import IncidentCreate
 
@@ -106,3 +106,39 @@ def test_incident_flow_creates_durable_packet_records(db_session):
     assert len(sources) >= 3
     assert len(citations) >= 3
     assert [event.event_type for event in audit_events] == ["packet.generated"]
+
+
+def test_incident_flow_persists_assault_and_battery_fields(db_session):
+    """A&B / liquor structured facts on the payload must survive to the
+    persisted IncidentRecord. They feed evidence-defensibility (weapon,
+    injury detail, witnesses) — silently dropping them guts the core product
+    claim. See backlog item 0 / 7c."""
+    payload = IncidentCreate(
+        occurred_at="2026-05-02T23:13:00Z",
+        location="rear bar",
+        summary="Patron struck another with a bottle after being over-served.",
+        reported_by="shift-lead",
+        injury_observed=True,
+        police_called=True,
+        ems_called=True,
+        incident_category="assault_battery",
+        parties=[{"role": "aggressor", "name": "John D."}],
+        witnesses=[{"name": "Bartender A."}],
+        security_response=[{"action": "ejected", "at": "2026-05-02T23:15:00Z"}],
+        weapon_involved=True,
+        refused_service_or_overserved="overserved",
+        injury_detail="laceration above left eye",
+    )
+
+    response = create_brawl_incident_flow("elsewhere-brooklyn", payload, db_session)
+
+    row = db_session.exec(
+        select(IncidentRecord).where(IncidentRecord.id == response.incident.id)
+    ).one()
+    assert row.incident_category == "assault_battery"
+    assert row.parties == [{"role": "aggressor", "name": "John D."}]
+    assert row.witnesses == [{"name": "Bartender A."}]
+    assert row.security_response == [{"action": "ejected", "at": "2026-05-02T23:15:00Z"}]
+    assert row.weapon_involved is True
+    assert row.refused_service_or_overserved == "overserved"
+    assert row.injury_detail == "laceration above left eye"

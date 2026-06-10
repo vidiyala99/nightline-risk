@@ -50,8 +50,22 @@ class LocalStorage:
         self.base_dir = base_dir
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
+    def _resolve_within_base(self, key: str) -> Path:
+        """Resolve ``key`` under base_dir, refusing any path that escapes it.
+
+        Defense-in-depth against path traversal: an attacker-supplied filename
+        like ``../../../etc/passwd`` (or an absolute path) must not let a write
+        land outside the evidence root. Legitimate nested keys ("sub/dir/x")
+        still resolve fine.
+        """
+        base = self.base_dir.resolve()
+        dest = (self.base_dir / key).resolve()
+        if dest != base and not dest.is_relative_to(base):
+            raise ValueError(f"storage key escapes base directory: {key!r}")
+        return dest
+
     def save(self, key: str, data: bytes) -> str:
-        dest = self.base_dir / key
+        dest = self._resolve_within_base(key)
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
         return str(dest)

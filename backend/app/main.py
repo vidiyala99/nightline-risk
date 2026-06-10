@@ -481,10 +481,15 @@ _CORS_ORIGINS = [
     *[o.strip() for o in os.getenv("EXTRA_CORS_ORIGINS", "").split(",") if o.strip()],
 ]
 
+# Preview deploys get an ephemeral `nightline-app-<hash|git-branch>-<scope>.vercel.app`
+# URL, so we allow this project's own subdomains by prefix — NOT all of *.vercel.app
+# (which, with allow_credentials, would hand any attacker-deployed vercel.app site a
+# credentialed CORS grant). exp:// matches Expo LAN dev. For a third-party preview
+# origin not covered here, add it to EXTRA_CORS_ORIGINS rather than widening this.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_CORS_ORIGINS,
-    allow_origin_regex=r"(https://.*\.vercel\.app|exp://192\.168\.\d+\.\d+:\d+)",
+    allow_origin_regex=r"(https://nightline-app[a-z0-9-]*\.vercel\.app|exp://192\.168\.\d+\.\d+:\d+)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -545,7 +550,7 @@ EVIDENCE_DIR = Path(__file__).resolve().parent.parent / "evidence_uploads"
 EVIDENCE_DIR.mkdir(exist_ok=True)
 
 
-@app.get("/api/debug/llm-provider")
+@app.get("/api/debug/llm-provider", dependencies=[Depends(require_broker)])
 def debug_llm_provider(test: bool = False) -> dict:
     """Returns which LLM provider is active and which API key env vars are set.
     Pass ?test=true to do a live draft_memo call — note this burns one quota
