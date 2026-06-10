@@ -5307,16 +5307,18 @@ html, body { overflow-x: clip; }
    carries a live summary/preview panel. Collapses to one column on narrow
    widths (the summary drops below the fold / hides on small screens). Reuse
    this for endorse / renew / FNOL / COI rather than letting forms sprawl. */
+/* Two-pane pages need a wider, centered container than the default single-column
+   .submission-wizard (720px, left-aligned). */
+.submission-wizard--wide {
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
 .form-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 32px;
   align-items: start;
-  /* Cap so the form column stays a readable measure (~65-75ch) on wide screens
-     instead of stretching edge-to-edge — then center it so the whitespace is
-     balanced (intentional), not dumped on the right. */
-  max-width: 920px;
-  margin: 0 auto;
 }
 .form-summary__section {
   margin-top: 16px;

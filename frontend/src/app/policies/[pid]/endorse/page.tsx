@@ -202,7 +202,7 @@ export default function EndorsePage() {
   };
 
   return (
-    <div className="submission-wizard">
+    <div className="submission-wizard submission-wizard--wide">
       <PageHeader
         eyebrow="Policy"
         title="New Endorsement"
