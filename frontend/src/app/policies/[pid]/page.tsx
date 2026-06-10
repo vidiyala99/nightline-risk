@@ -197,15 +197,6 @@ export default function PolicyDetailPage() {
         }
         actions={
           <>
-            {/* Quiet back (a prominent "Back to home" already sits above) —
-                navigation shouldn't out-weigh the page's primary action. */}
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => router.push("/policies")}
-            >
-              ← Back
-            </button>
             <StatusPill tone={POLICY_STATUS_TONE[policy.status]}>
               {POLICY_STATUS_LABEL[policy.status]}
             </StatusPill>
