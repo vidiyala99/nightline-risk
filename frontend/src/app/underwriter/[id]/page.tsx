@@ -8,6 +8,7 @@ import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, FileSpreadsheet, LockKeyhole, RefreshCw, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
 import ClaimProposeModal, { type OverrideReason } from "@/components/ClaimProposeModal";
 import { authHeaders } from "@/lib/authFetch";
+import { toastSuccess } from "@/lib/toast";
 import { byIndex, resolveOpenQuestion, type OpenQuestionResponse } from "@/lib/openQuestions";
 import { SEVERITY_COLOR } from "@/lib/risk";
 
@@ -195,6 +196,7 @@ export default function ReportDetailPage() {
       const created: ClaimProposal = await res.json();
       setProposal(created);
       setProposeModalOpen(false);
+      toastSuccess("Claim proposal sent for broker review");
     } finally {
       setSubmittingProposal(false);
     }
@@ -229,6 +231,11 @@ export default function ReportDetailPage() {
       const updated: ClaimProposal = await res.json();
       setProposal(updated);
       setBrokerRejectNotes("");
+      toastSuccess(
+        dec === "approved" ? "Proposal approved — FNOL ready to file"
+        : dec === "rejected" ? "Proposal rejected"
+        : "Sent back to the operator for more info",
+      );
       if (dec === "approved") {
         loadFnolDraft(updated.id);
       }
@@ -261,6 +268,7 @@ export default function ReportDetailPage() {
       const updated: ClaimProposal = await res.json();
       setProposal(updated);
       setOperatorResponseNote("");
+      toastSuccess("Response sent to the broker");
     } finally {
       setSubmittingResponse(false);
     }
@@ -283,6 +291,7 @@ export default function ReportDetailPage() {
         return;
       }
       setProposal(await res.json());
+      toastSuccess("Info request withdrawn — back in your queue");
     } finally {
       setSubmittingBrokerDecision(false);
     }
@@ -997,6 +1006,7 @@ export default function ReportDetailPage() {
                         // collapses and the "Filed with carrier" badge shows
                         // immediately — no full-page reload.
                         setProposal((prev) => (prev ? { ...prev, state: "filed_with_carrier" } : prev));
+                        toastSuccess("FNOL filed with the carrier");
                       } else {
                         setProposalError("Could not file the FNOL. Please retry.");
                       }

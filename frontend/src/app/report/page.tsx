@@ -83,7 +83,8 @@ export default function StaffReportPage() {
         </div>
       </section>
 
-      <form onSubmit={handleSubmit} className="incident-form" style={{ maxWidth: 680, margin: 0 }}>
+      <div className="form-shell" style={{ maxWidth: 960, margin: "0 auto" }}>
+      <form id="report-form" onSubmit={handleSubmit} className="incident-form" style={{ maxWidth: "none", margin: 0 }}>
         <div className="incident-form-header">
           <div className="incident-form-dot" />
           <span className="incident-form-header-label">Incident Report</span>
@@ -143,12 +144,28 @@ export default function StaffReportPage() {
           <label className="checkbox-label"><input type="checkbox" checked={form.ems_called} onChange={(e) => setForm({ ...form, ems_called: e.target.checked })} /><span>EMS / ambulance was called</span></label>
         </div>
 
-        <div className="form-actions">
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            <AlertTriangle size={16} /> {submitting ? "Submitting..." : "Submit Report"}
+      </form>
+
+      <aside className="form-summary">
+        <div className="form-summary__actions">
+          <button type="submit" form="report-form" className="btn btn-primary btn-sm" disabled={submitting}>
+            <AlertTriangle size={14} aria-hidden style={{ marginRight: 4, verticalAlign: "-2px" }} />
+            {submitting ? "Submitting…" : "Submit Report"}
           </button>
         </div>
-      </form>
+        <div className="form-summary__title">This report</div>
+        <dl style={{ margin: 0 }}>
+          <div className="form-summary__row"><dt>When</dt><dd>{form.occurred_at ? form.occurred_at.replace("T", " ") : "—"}</dd></div>
+          <div className="form-summary__row"><dt>Where</dt><dd>{form.location || "—"}</dd></div>
+          <div className="form-summary__row"><dt>Reporter</dt><dd>{form.reported_by || "—"}</dd></div>
+        </dl>
+        {(form.injury_observed || form.police_called || form.ems_called) && (
+          <div className="form-summary__note" style={{ color: "var(--tier-d)" }}>
+            Flagged: {[form.injury_observed && "Injury", form.police_called && "Police", form.ems_called && "EMS"].filter(Boolean).join(" · ")}
+          </div>
+        )}
+      </aside>
+      </div>
     </div>
   );
 }

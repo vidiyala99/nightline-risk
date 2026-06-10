@@ -53,7 +53,13 @@ house rules so layout is decided **once** and applied consistently, not per page
 - [n/a] `submissions/[sid]` — a workspace (summary strip + carrier picker + quote grid), not a
   "configure→confirm" form; the two-pane rule doesn't apply. Already passed the easy-or-more-work
   review (appetite-guided carriers, one-click pull quotes, save-before-submit).
-- [ ] audit other single-column form pages against rules 1–6
+- [x] audit other single-column form pages — DONE. Outcome:
+  - two-paned: `report` (staff incident), `team` (add-staff; invite link in the rail).
+  - correctly left as-is: `login` / `reset-password` (auth-centered), `venues` / `incidents`
+    (list pages; creation is a modal), `settings` / `underwriter/[id]` / `claims/[cid]` (workspaces).
+  - **silent-submit gap closed:** added success toasts to the workspace actions that confirmed
+    nothing before — settings (profile/password), underwriter (propose/decide/respond/cancel/FNOL),
+    claims (reserve/payment/close/reopen/attach). Every mutating action across the app now confirms.
 
 **Action + return pattern (shipped on all three):** every mutating submit fires a
 success toast and lands on a destination that matches the flow it started in

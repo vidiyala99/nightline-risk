@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { accountApi, AccountError } from "@/lib/account";
+import { toastSuccess } from "@/lib/toast";
 import { User, Shield, LogOut, Check, Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -123,6 +124,7 @@ function ProfileTab({
     try {
       await accountApi.updateProfile({ name: trimmedName, email: trimmedEmail });
       await onSaved();
+      toastSuccess("Profile updated");
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
@@ -218,6 +220,7 @@ function ChangePasswordCard() {
     setBusy(true);
     try {
       await accountApi.changePassword({ old_password: oldPw, new_password: newPw });
+      toastSuccess("Password changed");
       setDone(true);
       setOldPw(""); setNewPw(""); setConfirmPw("");
       setTimeout(() => setDone(false), 3000);

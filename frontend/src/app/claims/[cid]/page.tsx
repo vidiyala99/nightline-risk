@@ -13,6 +13,7 @@ import { ReserveDeltaBadge } from "@/components/claims/ReserveDeltaBadge";
 import { ReserveSparkline } from "@/components/claims/ReserveSparkline";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ResponsiveTable } from "@/components/ui/ResponsiveTable";
+import { toastSuccess } from "@/lib/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   ClaimsApiError,
@@ -496,6 +497,7 @@ function RecordReserveModal(p: ModalProps) {
         received_from: source.trim(),
         received_at: new Date().toISOString(),
       });
+      toastSuccess("Reserve updated");
       await p.onSuccess();
     } catch (err) {
       setError(err instanceof ClaimsApiError ? err.message : "Failed to record reserve.");
@@ -620,6 +622,7 @@ function RecordPaymentModal(p: ModalProps) {
         paid_on: paidOn,
         description: description.trim(),
       });
+      toastSuccess("Payment recorded");
       await p.onSuccess();
     } catch (err) {
       setError(err instanceof ClaimsApiError ? err.message : "Failed to record payment.");
@@ -749,6 +752,7 @@ function CloseClaimModal(p: ModalProps) {
         disposition,
         final_indemnity: disposition === "paid" ? finalIndemnity : null,
       });
+      toastSuccess("Claim closed");
       await p.onSuccess();
     } catch (err) {
       setError(err instanceof ClaimsApiError ? err.message : "Failed to close claim.");
@@ -878,6 +882,7 @@ function ReopenClaimModal(p: ModalProps) {
     p.setBusy(true);
     try {
       await claimsApi.reopenClaim(p.cid, { reason: reason.trim() });
+      toastSuccess("Claim reopened");
       await p.onSuccess();
     } catch (err) {
       setError(err instanceof ClaimsApiError ? err.message : "Failed to reopen claim.");
@@ -960,6 +965,7 @@ function AttachDefensePackageModal(
       await claimsApi.attachDefensePackage(p.cid, {
         defense_package_id: packageId.trim(),
       });
+      toastSuccess("Defense package attached");
       await p.onSuccess();
     } catch (err) {
       setError(err instanceof ClaimsApiError ? err.message : "Failed to attach defense package.");

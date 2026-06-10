@@ -108,7 +108,8 @@ export default function TeamPage() {
         </div>
       ) : (
         <>
-          <form onSubmit={handleAdd} className="incident-form" style={{ maxWidth: 680, margin: "0 0 var(--space-xl)" }}>
+          <div className="form-shell" style={{ maxWidth: 960, margin: "0 0 var(--space-xl)" }}>
+          <form id="addstaff-form" onSubmit={handleAdd} className="incident-form" style={{ maxWidth: "none", margin: 0 }}>
             <div className="incident-form-header">
               <div className="incident-form-dot" />
               <span className="incident-form-header-label">Add a staff member</span>
@@ -123,40 +124,47 @@ export default function TeamPage() {
                 <input type="email" className="input-field" placeholder="name@venue.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" required />
               </div>
             </div>
-            <div className="form-actions">
-              <button type="submit" className="btn btn-primary" disabled={submitting}>
-                <Plus size={16} /> {submitting ? "Adding..." : "Add to team"}
-              </button>
-            </div>
           </form>
 
-          {invite && (
-            <div
-              className="mb-xl"
-              style={{
-                maxWidth: 680, padding: "var(--space-lg)", borderRadius: "var(--radius-lg)",
-                border: "1px solid var(--brand-primary)", background: "rgba(200,240,0,0.06)",
-              }}
-            >
-              <div className="flex items-center gap-xs" style={{ marginBottom: "var(--space-sm)" }}>
-                <Mail size={16} style={{ color: "var(--accent-ink)" }} />
-                <strong className="text-sm">Set-password link for {invite.name}</strong>
-              </div>
-              <p className="text-xs text-secondary" style={{ marginBottom: "var(--space-sm)" }}>
-                Send this to {invite.name} so they can set a password and sign in. It expires in 1 hour.
-              </p>
-              <div className="flex items-center gap-xs" style={{ flexWrap: "wrap" }}>
-                <code className="text-xs" style={{ wordBreak: "break-all", flex: 1, minWidth: 0, color: "var(--text-secondary)" }}>{invite.url}</code>
+          <aside className="form-summary">
+            <div className="form-summary__actions">
+              <button type="submit" form="addstaff-form" className="btn btn-primary btn-sm" disabled={submitting}>
+                <Plus size={14} aria-hidden style={{ marginRight: 4, verticalAlign: "-2px" }} />
+                {submitting ? "Adding…" : "Add to team"}
+              </button>
+            </div>
+            {invite ? (
+              <div>
+                <div className="form-summary__title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Mail size={12} aria-hidden style={{ color: "var(--accent-ink)" }} /> Set-password link · {invite.name}
+                </div>
+                <p className="text-xs text-secondary" style={{ margin: "0 0 8px" }}>
+                  Send this to {invite.name} to set a password and sign in. Expires in 1 hour.
+                </p>
+                <code className="text-xs" style={{ wordBreak: "break-all", display: "block", color: "var(--text-secondary)", marginBottom: 8 }}>
+                  {invite.url}
+                </code>
                 <button
                   type="button"
                   className="btn btn-sm btn-ghost"
                   onClick={() => { navigator.clipboard?.writeText(invite.url); toastSuccess("Link copied"); }}
                 >
-                  <Copy size={14} /> Copy
+                  <Copy size={14} aria-hidden style={{ marginRight: 4, verticalAlign: "-2px" }} /> Copy link
                 </button>
               </div>
-            </div>
-          )}
+            ) : (
+              <>
+                <div className="form-summary__title">Floor team</div>
+                <dl style={{ margin: 0 }}>
+                  <div className="form-summary__row"><dt>Staff</dt><dd>{staff.length}</dd></div>
+                </dl>
+                <div className="form-summary__note">
+                  Adding a member generates a one-hour set-password link to relay to them.
+                </div>
+              </>
+            )}
+          </aside>
+          </div>
 
           <div className="incidents-section">
             <div className="incidents-list stagger-children">
