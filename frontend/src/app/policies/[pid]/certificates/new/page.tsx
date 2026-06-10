@@ -11,6 +11,7 @@ import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PlacementApiError } from "@/lib/placement";
 import { Policy, policiesApi } from "@/lib/policies";
+import { toastSuccess } from "@/lib/toast";
 
 
 export default function IssueCertificatePage() {
@@ -53,6 +54,7 @@ export default function IssueCertificatePage() {
         additional_insured: ai,
         additional_insured_scope: ai ? aiScope : null,
       });
+      toastSuccess(`Certificate issued${holder.trim() ? ` — for ${holder.trim()}` : ""}`);
       router.push(`/policies/${pid}`);
     } catch (e) {
       setError(e instanceof PlacementApiError ? e.message : "COI failed");

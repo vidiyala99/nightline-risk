@@ -8,6 +8,7 @@ import { ArrowLeft, FileWarning } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ClaimsApiError, claimsApi, type FileFnolBody } from "@/lib/claims";
 import { policiesApi, type PolicyDetail } from "@/lib/policies";
+import { toastSuccess } from "@/lib/toast";
 
 interface FieldErrors {
   coverage_line?: string;
@@ -117,6 +118,7 @@ export default function FileFnolPage() {
     setSubmitting(true);
     try {
       const claim = await claimsApi.fileFnol(pid, body);
+      toastSuccess(`FNOL filed — ${claim.coverage_line.toUpperCase()} claim opened`);
       // router.replace so back from the new claim goes to the policy, not the form
       router.replace(`/claims/${claim.id}`);
     } catch (err) {
