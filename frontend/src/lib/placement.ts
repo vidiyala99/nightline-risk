@@ -224,6 +224,12 @@ export const placementApi = {
   getSubmission: (sid: string) =>
     call<SubmissionDetail>(`/api/submissions/${sid}`),
 
+  // Per-carrier appetite match for this submission — guides carrier selection.
+  carrierAppetite: (sid: string) =>
+    call<{ carrier_id: string; in_appetite: boolean; reasons: string[] }[]>(
+      `/api/submissions/${sid}/carrier-appetite`,
+    ),
+
   // Edit a draft submission's terms (server allows this only while 'open').
   updateSubmission: (sid: string, body: {
     effective_date?: string;

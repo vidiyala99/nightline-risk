@@ -25,6 +25,7 @@ from app.services.submissions import (
     OutOfAppetiteError,
     PremiumBreakdownMismatchError,
     SubmissionsError,
+    appetite_for_submission,
     check_appetite,
     create_submission,
     list_submissions,
@@ -152,6 +153,29 @@ def test_appetite_rejects_capacity_overflow():
         matches, reasons = check_appetite(markel, big_venue, ["gl"])
         assert matches is False
         assert any("capacity" in r.lower() for r in reasons)
+
+
+# ─── appetite_for_submission ─────────────────────────────────────────────
+
+def test_appetite_for_submission_flags_in_and_out():
+    with _session() as s:
+        sub = _make_submission(s)  # music venue, gl + liquor
+        s.commit()
+        rows = appetite_for_submission(s, sub.id)
+        by_id = {r["carrier_id"]: r for r in rows}
+        # Every carrier is reported, with a boolean + reasons list.
+        assert "markel-specialty" in by_id
+        assert by_id["markel-specialty"]["in_appetite"] is True
+        assert by_id["markel-specialty"]["reasons"] == []
+        # At least one carrier is out of appetite, each with a reason to show.
+        out = [r for r in rows if not r["in_appetite"]]
+        assert out and all(r["reasons"] for r in out)
+
+
+def test_appetite_for_submission_unknown_submission_raises():
+    with _session() as s:
+        with pytest.raises(SubmissionsError, match=r"Unknown submission"):
+            appetite_for_submission(s, "sub-does-not-exist")
 
 
 # ─── submit_to_market ────────────────────────────────────────────────────

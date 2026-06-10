@@ -50,6 +50,7 @@ from app.services.submissions import (
     OutOfAppetiteError,
     PremiumBreakdownMismatchError,
     SubmissionsError,
+    appetite_for_submission,
     create_submission,
     list_submissions,
     mark_submission_declined,
@@ -271,6 +272,16 @@ def api_submission_detail(sid: str, session: Session = Depends(get_session)) -> 
         **_submission_to_dict(sub),
         "quotes": [_quote_to_dict(q) for q in quotes],
     }
+
+
+@router.get("/submissions/{sid}/carrier-appetite", dependencies=[Depends(require_broker)])
+def api_carrier_appetite(sid: str, session: Session = Depends(get_session)) -> list[dict]:
+    """Per-carrier appetite match for this submission — guides carrier selection
+    so the broker doesn't submit blind. Returns [{carrier_id, in_appetite, reasons}]."""
+    try:
+        return appetite_for_submission(session, sid)
+    except SubmissionsError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/submissions/{sid}/submit", dependencies=[Depends(require_broker)])

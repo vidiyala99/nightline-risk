@@ -33,7 +33,7 @@ from decimal import Decimal
 from typing import Optional, Sequence
 from uuid import uuid4
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.lifecycles import (
     QUOTE_TRANSITIONS,
@@ -133,6 +133,28 @@ def check_appetite(
         )
 
     return (len(reasons) == 0, reasons)
+
+
+def appetite_for_submission(session: Session, submission_id: str) -> list[dict]:
+    """Per-carrier appetite match for a submission's venue + coverage profile.
+
+    Read-only companion to submit_to_market: lets the broker UI *guide* carrier
+    selection (flag/sort/pre-select carriers that fit this venue) instead of
+    submitting blind and getting rejected. Returns one row per carrier:
+    {carrier_id, in_appetite, reasons}."""
+    sub = session.get(Submission, submission_id)
+    if sub is None:
+        raise SubmissionsError(f"Unknown submission {submission_id!r}")
+    venue = _venue_dict(sub.venue_id, session)
+    out: list[dict] = []
+    for carrier in session.exec(select(Carrier)).all():
+        matches, reasons = check_appetite(carrier, venue, sub.coverage_lines)
+        out.append({
+            "carrier_id": carrier.id,
+            "in_appetite": matches,
+            "reasons": reasons,
+        })
+    return out
 
 
 def validate_premium_breakdown(breakdown: dict) -> tuple[bool, str]:
@@ -685,11 +707,11 @@ def list_submissions(
     stmt = select(Submission)
 
     if status_in is not None:
-        stmt = stmt.where(Submission.status.in_(list(status_in)))  # type: ignore[attr-defined]
+        stmt = stmt.where(col(Submission.status).in_(list(status_in)))
     else:
         # Default: hide terminal states from the kanban.
         terminal = list(SUBMISSION_TERMINAL_STATES)
-        stmt = stmt.where(Submission.status.not_in(terminal))  # type: ignore[attr-defined]
+        stmt = stmt.where(col(Submission.status).not_in(terminal))
 
     if producer_id is not None:
         stmt = stmt.where(Submission.assigned_producer_id == producer_id)

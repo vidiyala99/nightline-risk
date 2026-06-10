@@ -2,7 +2,7 @@
 direct E&O exposure for the broker."""
 from __future__ import annotations
 
-from sqlmodel import select
+from sqlmodel import col, select
 
 from app.intelligence.finding import (
     Finding, FindingScope, Subject, RecommendedAction, Prediction,
@@ -16,7 +16,7 @@ IN_FORCE = ("active", "bound_pending_number")
 
 def _scope_filter(q, scope: FindingScope):
     if scope.venue_ids is not None:
-        q = q.where(Policy.venue_id.in_(scope.venue_ids))
+        q = q.where(col(Policy.venue_id).in_(scope.venue_ids))
     return q
 
 
@@ -28,7 +28,7 @@ def find(scope: FindingScope) -> list[Finding]:
     }
     if not required:
         return []
-    q = _scope_filter(select(Policy).where(Policy.status.in_(IN_FORCE)), scope)
+    q = _scope_filter(select(Policy).where(col(Policy.status).in_(IN_FORCE)), scope)
     findings: list[Finding] = []
     for pol in scope.session.exec(q).all():
         have = set(_as_list(pol.coverage_lines))

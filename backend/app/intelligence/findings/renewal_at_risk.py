@@ -1,7 +1,7 @@
 """Broker finding: a policy nearing expiration with no renewal in motion."""
 from __future__ import annotations
 
-from sqlmodel import select
+from sqlmodel import col, select
 
 from app.intelligence.finding import (
     Finding, FindingScope, Subject, RecommendedAction, Prediction,
@@ -17,9 +17,9 @@ LIVE_REQUEST_STATUSES = ("pending", "approved")
 
 
 def find(scope: FindingScope) -> list[Finding]:
-    q = select(Policy).where(Policy.status.in_(IN_FORCE))
+    q = select(Policy).where(col(Policy.status).in_(IN_FORCE))
     if scope.venue_ids is not None:
-        q = q.where(Policy.venue_id.in_(scope.venue_ids))
+        q = q.where(col(Policy.venue_id).in_(scope.venue_ids))
     today = scope.now.date()
     findings: list[Finding] = []
     for pol in scope.session.exec(q).all():
@@ -30,7 +30,7 @@ def find(scope: FindingScope) -> list[Finding]:
             select(PolicyRequest.id).where(
                 PolicyRequest.policy_id == pol.id,
                 PolicyRequest.request_type == "renewal",
-                PolicyRequest.status.in_(LIVE_REQUEST_STATUSES),
+                col(PolicyRequest.status).in_(LIVE_REQUEST_STATUSES),
             )
         ).first()
         if in_motion:

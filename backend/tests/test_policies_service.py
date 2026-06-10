@@ -19,7 +19,6 @@ from app.models import (
     AuditEvent,
     CarrierQuote,
     CertificateOfInsurance,
-    Endorsement,
     Policy,
     Submission,
     UserRecord,
@@ -248,7 +247,7 @@ def test_bind_quote_emits_audit_event_with_hash():
 
 def test_bind_quote_rejects_unselected_quote():
     with _session() as s:
-        sub, q = _make_quoting_submission_with_selected_quote(s)
+        _, q = _make_quoting_submission_with_selected_quote(s)
         q.is_selected = False
         s.add(q); s.commit()
         with pytest.raises(QuoteNotBindableError, match=r"not selected"):
@@ -257,7 +256,7 @@ def test_bind_quote_rejects_unselected_quote():
 
 def test_bind_quote_rejects_wrong_status():
     with _session() as s:
-        sub, q = _make_quoting_submission_with_selected_quote(s)
+        _, q = _make_quoting_submission_with_selected_quote(s)
         q.status = "requested"
         s.add(q); s.commit()
         with pytest.raises(QuoteNotBindableError, match=r"must be 'quoted'"):
@@ -266,7 +265,7 @@ def test_bind_quote_rejects_wrong_status():
 
 def test_bind_quote_rejects_expired_quote():
     with _session() as s:
-        sub, q = _make_quoting_submission_with_selected_quote(s)
+        _, q = _make_quoting_submission_with_selected_quote(s)
         q.expires_at = datetime(2024, 1, 1, tzinfo=timezone.utc)
         s.add(q); s.commit()
         with pytest.raises(QuoteNotBindableError, match=r"expired"):
@@ -573,7 +572,7 @@ def test_cancel_policy_rejects_invalid_method():
 # (status-only mutations; see CLAUDE.md snapshot-hash rule).
 
 
-def _active_policy(s, pid="P-eol") -> "Policy":
+def _active_policy(s) -> "Policy":
     _, q = _make_quoting_submission_with_selected_quote(s)
     policy = bind_quote(s, q.id, policy_number="MK-EOL-1", bound_by=USER_ID)
     s.commit()

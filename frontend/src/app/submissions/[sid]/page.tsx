@@ -15,7 +15,7 @@
  * contract). They're displayed via formatCurrency() at render time only;
  * never parsed into floats in component state.
  */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -261,7 +261,11 @@ export default function SubmissionDetailPage() {
   const [carriers, setCarriers] = useState<Carrier[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+  const [pullingAll, setPullingAll] = useState(false);
   const [selectedCarriers, setSelectedCarriers] = useState<Set<string>>(new Set());
+  // carrier_id -> appetite match for this submission's venue + coverage profile.
+  const [appetite, setAppetite] = useState<Record<string, { in_appetite: boolean; reasons: string[] }>>({});
+  const autoSelectedRef = useRef(false);
 
   // Editable draft terms (only while the submission is 'open').
   const [editNotes, setEditNotes] = useState("");
@@ -279,12 +283,16 @@ export default function SubmissionDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [sub, cars] = await Promise.all([
+      const [sub, cars, app] = await Promise.all([
         placementApi.getSubmission(sid),
         placementApi.listCarriers(),
+        placementApi.carrierAppetite(sid).catch(() => []),
       ]);
       setSubmission(sub);
       setCarriers(cars);
+      setAppetite(Object.fromEntries(
+        app.map(a => [a.carrier_id, { in_appetite: a.in_appetite, reasons: a.reasons }]),
+      ));
     } catch (e) {
       setError(e instanceof PlacementApiError ? e.message : "Failed to load submission");
     } finally {
@@ -302,6 +310,16 @@ export default function SubmissionDetailPage() {
       setEditLines(submission.coverage_lines ?? []);
     }
   }, [submission?.id]);
+
+  // Default-select the carriers that fit this venue (once), so the broker starts
+  // from "the markets that will actually quote this" instead of a blank slate.
+  useEffect(() => {
+    if (autoSelectedRef.current) return;
+    if (submission?.status === "open" && carriers.length && Object.keys(appetite).length) {
+      setSelectedCarriers(new Set(carriers.filter(c => appetite[c.id]?.in_appetite).map(c => c.id)));
+      autoSelectedRef.current = true;
+    }
+  }, [submission?.status, carriers, appetite]);
 
   const handleSaveTerms = async () => {
     if (!submission) return;
@@ -326,6 +344,14 @@ export default function SubmissionDetailPage() {
     setActionBusy(true);
     setError(null);
     try {
+      // Persist any unsaved term edits first, so we never submit stale terms
+      // (editing then forgetting to "Save terms" used to silently submit the
+      // previously-saved coverage lines / effective date).
+      await placementApi.updateSubmission(submission.id, {
+        notes: editNotes,
+        effective_date: editEffective,
+        coverage_lines: editLines,
+      });
       await placementApi.submitToMarket(submission.id, {
         target_carriers: Array.from(selectedCarriers),
       });
@@ -375,6 +401,33 @@ export default function SubmissionDetailPage() {
       await load();
     } catch (e) {
       alert(e instanceof PlacementApiError ? e.message : "Record failed");
+    }
+  };
+
+  // One-click: fill every still-pending carrier with its indicative quote at
+  // once, instead of clicking "Record quote" on each card. The model already
+  // produces these — this just stops making the broker pull them one by one.
+  const handlePullAllQuotes = async () => {
+    if (!submission) return;
+    const pending = submission.quotes.filter(
+      (q) => q.status === "requested" || q.status === "pending",
+    );
+    if (pending.length === 0) return;
+    setPullingAll(true);
+    setError(null);
+    try {
+      for (const q of pending) {
+        const indicative = await placementApi.buildIndicativeQuote(q.id);
+        await placementApi.recordQuoteResponse(q.id, {
+          status: "quoted",
+          premium_breakdown: indicative,
+        });
+      }
+      await load();
+    } catch (e) {
+      setError(e instanceof PlacementApiError ? e.message : "Couldn't pull quotes");
+    } finally {
+      setPullingAll(false);
     }
   };
 
@@ -432,6 +485,9 @@ export default function SubmissionDetailPage() {
   }
 
   const canSubmit = submission.status === "open";
+  const pendingQuotes = submission.quotes.filter(
+    (q) => q.status === "requested" || q.status === "pending",
+  );
 
   return (
     <div className="submission-detail">
@@ -440,18 +496,9 @@ export default function SubmissionDetailPage() {
         title={submission.venue_id}
         subtitle={`Effective ${submission.effective_date}`}
         actions={
-          <>
-            <StatusPill tone={STATUS_TONE[submission.status]}>
-              {STATUS_LABEL[submission.status]}
-            </StatusPill>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => router.push("/submissions")}
-            >
-              ← Back
-            </button>
-          </>
+          <StatusPill tone={STATUS_TONE[submission.status]}>
+            {STATUS_LABEL[submission.status]}
+          </StatusPill>
         }
       />
 
@@ -533,41 +580,57 @@ export default function SubmissionDetailPage() {
             </button>
           </div>
 
-          {/* Carrier picker — only while submission is open */}
+          {/* Carrier picker — only while submission is open. Carriers that fit
+              this venue + coverage (in appetite) are sorted first and
+              pre-selected; out-of-appetite ones are dimmed with the reason on
+              hover, so the broker isn't choosing blind. */}
           <div className="submission-detail__section-title">
             Carriers to Submit To
           </div>
           <div className="submission-wizard__coverage-grid">
-            {carriers.map(c => {
-              const inAppetite =
-                (!c.appetite.venue_types ||
-                  c.appetite.venue_types.length === 0) ||
-                true; // server enforces appetite check at submit time
-              return (
-                <label
-                  key={c.id}
-                  className="submission-wizard__coverage-chip"
-                  style={!inAppetite ? { opacity: 0.6 } : {}}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedCarriers.has(c.id)}
-                    onChange={() => {
-                      const next = new Set(selectedCarriers);
-                      if (next.has(c.id)) next.delete(c.id);
-                      else next.add(c.id);
-                      setSelectedCarriers(next);
-                    }}
-                  />
-                  <span className="submission-wizard__coverage-chip-name">
-                    {c.name}
-                    <span style={{ color: "var(--text-tertiary)", marginLeft: 4, fontSize: 10 }}>
-                      ({c.market_type})
+            {[...carriers]
+              .sort((a, b) =>
+                Number(appetite[b.id]?.in_appetite ?? true) -
+                Number(appetite[a.id]?.in_appetite ?? true))
+              .map(c => {
+                const app = appetite[c.id];
+                const fits = app?.in_appetite ?? true; // default to "fits" until appetite loads
+                const reason = app && !fits ? app.reasons.join("; ") : undefined;
+                return (
+                  <label
+                    key={c.id}
+                    className="submission-wizard__coverage-chip"
+                    style={!fits ? { opacity: 0.55 } : undefined}
+                    title={reason}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedCarriers.has(c.id)}
+                      onChange={() => {
+                        const next = new Set(selectedCarriers);
+                        if (next.has(c.id)) next.delete(c.id);
+                        else next.add(c.id);
+                        setSelectedCarriers(next);
+                      }}
+                    />
+                    <span className="submission-wizard__coverage-chip-name">
+                      {c.name}
+                      <span style={{ color: "var(--text-tertiary)", marginLeft: 4, fontSize: 10 }}>
+                        ({c.market_type})
+                      </span>
+                      {app && (fits ? (
+                        <span style={{ color: "var(--accent-ink, var(--text-secondary))", marginLeft: 6, fontSize: 10 }}>
+                          ✓ in appetite
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--text-tertiary)", marginLeft: 6, fontSize: 10 }}>
+                          out of appetite
+                        </span>
+                      ))}
                     </span>
-                  </span>
-                </label>
-              );
-            })}
+                  </label>
+                );
+              })}
           </div>
           <div style={{ marginTop: 12 }}>
             <button
@@ -585,8 +648,19 @@ export default function SubmissionDetailPage() {
       {/* Quote comparison */}
       {submission.quotes.length > 0 && (
         <>
-          <div className="submission-detail__section-title">
-            Quote Comparison
+          <div className="submission-detail__section-title" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span>Quote Comparison</span>
+            {pendingQuotes.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                style={{ marginLeft: "auto" }}
+                onClick={handlePullAllQuotes}
+                disabled={pullingAll}
+              >
+                {pullingAll ? "Pulling…" : `Pull indicative quotes (${pendingQuotes.length})`}
+              </button>
+            )}
           </div>
           <div className="quote-comparison">
             {submission.quotes.map(q => {
