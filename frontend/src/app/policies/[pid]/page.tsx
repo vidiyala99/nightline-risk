@@ -50,6 +50,7 @@ export default function PolicyDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [showSupersededCois, setShowSupersededCois] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
   const [claims, setClaims] = useState<Claim[] | null>(null);
   const [claimsError, setClaimsError] = useState<string | null>(null);
 
@@ -243,17 +244,23 @@ export default function PolicyDetailPage() {
         </div>
       </div>
 
-      {/* Snapshot hash — tamper-evident anchor */}
-      <div className="policy-hash">
-        <span className="submission-detail__summary-label">Snapshot Hash</span>
-        <code className="policy-hash__value" title={policy.snapshot_hash}>
-          {policy.snapshot_hash.slice(0, 16)}…{policy.snapshot_hash.slice(-8)}
-        </code>
-        <span className="policy-hash__note">
-          Anchors defense packages to this policy version. Re-computed on
-          endorse + policy-number assignment; unchanged on status transitions.
-        </span>
-      </div>
+      {/* Snapshot integrity — audit metadata, collapsed by default. A broker
+          doesn't need the SHA-256 at eye level; it anchors defense packages,
+          so keep it one disclosure away rather than a prominent strip. */}
+      <details className="policy-integrity">
+        <summary className="policy-integrity__summary">
+          Snapshot integrity
+        </summary>
+        <div className="policy-integrity__body">
+          <code className="policy-hash__value" title={policy.snapshot_hash}>
+            {policy.snapshot_hash.slice(0, 16)}…{policy.snapshot_hash.slice(-8)}
+          </code>
+          <span className="policy-hash__note">
+            Anchors defense packages to this policy version. Re-computed on
+            endorse + policy-number assignment; unchanged on status transitions.
+          </span>
+        </div>
+      </details>
 
       {/* Cancellation block (only when cancelled) */}
       {policy.status === "cancelled" && policy.refund_amount && (
@@ -314,46 +321,70 @@ export default function PolicyDetailPage() {
               + Issue COI
             </Link>
           </div>
-          {/* End-of-life cluster. Only 'active' policies can
-              expire/non-renew/lapse; a bound_pending_number policy must be
-              activated (or cancelled) first per the lifecycle matrix. */}
+          {/* Lifecycle/admin actions live behind an overflow menu — they're
+              rare and mostly outcomes (a broker doesn't proactively "expire" a
+              policy), so they shouldn't sit at the same weight as servicing.
+              Only 'active' policies can expire/non-renew/lapse per the matrix. */}
           <div className="policy-actions__group policy-actions__group--end">
-            {policy.status === "active" && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => handleEndOfLife("expire")}
-                  disabled={busy}
-                >
-                  Expire
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => handleEndOfLife("non-renew")}
-                  disabled={busy}
-                >
-                  Non-renew
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => handleEndOfLife("lapse")}
-                  disabled={busy}
-                >
-                  Lapse
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={handleCancel}
-              disabled={busy}
+            <div
+              className="policy-menu"
+              onKeyDown={(e) => { if (e.key === "Escape") setManageOpen(false); }}
             >
-              Cancel Policy
-            </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                aria-haspopup="menu"
+                aria-expanded={manageOpen}
+                onClick={() => setManageOpen((o) => !o)}
+                disabled={busy}
+              >
+                Manage ▾
+              </button>
+              {manageOpen && (
+                <>
+                  <div
+                    className="policy-menu__backdrop"
+                    onClick={() => setManageOpen(false)}
+                  />
+                  <div className="policy-menu__list" role="menu">
+                    {policy.status === "active" && (
+                      <>
+                        <button
+                          type="button" role="menuitem" className="policy-menu__item"
+                          onClick={() => { setManageOpen(false); handleEndOfLife("expire"); }}
+                          disabled={busy}
+                        >
+                          Mark expired
+                        </button>
+                        <button
+                          type="button" role="menuitem" className="policy-menu__item"
+                          onClick={() => { setManageOpen(false); handleEndOfLife("non-renew"); }}
+                          disabled={busy}
+                        >
+                          Non-renew
+                        </button>
+                        <button
+                          type="button" role="menuitem" className="policy-menu__item"
+                          onClick={() => { setManageOpen(false); handleEndOfLife("lapse"); }}
+                          disabled={busy}
+                        >
+                          Mark lapsed
+                        </button>
+                        <div className="policy-menu__divider" />
+                      </>
+                    )}
+                    <button
+                      type="button" role="menuitem"
+                      className="policy-menu__item policy-menu__item--danger"
+                      onClick={() => { setManageOpen(false); handleCancel(); }}
+                      disabled={busy}
+                    >
+                      Cancel policy
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

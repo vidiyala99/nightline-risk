@@ -5182,6 +5182,74 @@ html, body { overflow-x: clip; }
   border-left: 1px solid var(--border-subtle);
 }
 
+/* Overflow "Manage" menu for rare lifecycle/admin actions. */
+.policy-menu { position: relative; }
+.policy-menu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.policy-menu__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+.policy-menu__item {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.policy-menu__item:hover { background: var(--bg-surface-hover); }
+.policy-menu__item:disabled { opacity: 0.5; cursor: not-allowed; }
+.policy-menu__item--danger { color: var(--tier-d); }
+.policy-menu__item--danger:hover { background: rgba(244,63,94,0.10); }
+.policy-menu__divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border-subtle);
+}
+
+/* Snapshot integrity — quiet, collapsed audit affordance. */
+.policy-integrity {
+  margin-bottom: 16px;
+  font-size: 11px;
+}
+.policy-integrity__summary {
+  cursor: pointer;
+  color: var(--text-tertiary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 9px;
+  list-style: revert;
+  width: fit-content;
+}
+.policy-integrity__summary:hover { color: var(--text-secondary); }
+.policy-integrity__body {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
 /* Danger button shared by cancellation */
 .btn-danger {
   background: rgba(244,63,94,0.12);
