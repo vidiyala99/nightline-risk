@@ -50,6 +50,7 @@ def create_brawl_incident_flow(
         police_called=incident.police_called,
         ems_called=incident.ems_called,
         status="open",
+        incident_category=incident.incident_category,
         reported_by_staff_id=reported_by_staff_id,
     )
     

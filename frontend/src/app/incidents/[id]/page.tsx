@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
 import { answerOpenQuestion, resolveOpenQuestion, byIndex } from "@/lib/openQuestions";
-import { toastError } from "@/lib/toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 import { downloadDefensePackagePdf } from "@/lib/claims";
 import { SEVERITY_COLOR } from "@/lib/risk";
 
@@ -94,6 +94,19 @@ interface Incident {
   police_called?: boolean;
   ems_called?: boolean;
   status: IncidentStatus;
+  incident_category?: string | null;
+}
+
+// A scannable H1 label — the narrative summary lives in the Description card,
+// so the title uses the structured category when present, else the first
+// sentence of the summary (a clean boundary, never a mid-word slice).
+function prettyCategory(c: string): string {
+  return c.replace(/[_-]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+}
+function incidentTitle(inc: Incident): string {
+  if (inc.incident_category?.trim()) return prettyCategory(inc.incident_category);
+  const firstSentence = inc.summary.split(/(?<=[.!?])\s/)[0]?.trim();
+  return firstSentence || inc.summary;
 }
 
 interface Citation {
@@ -171,7 +184,7 @@ export default function IncidentDetailPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
   const [claimStatus, setClaimStatus] = useState<ClaimStatusResponse | null>(null);
-  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [answerDrafts, setAnswerDrafts] = useState<Record<number, string>>({});
   const [savingQ, setSavingQ] = useState<number | null>(null);
 
@@ -304,6 +317,30 @@ export default function IncidentDetailPage() {
   const proposalRouted = !!claimStatus && (claimStatus.proposal.exists || claimStatus.claim.exists);
   // ─────────────────────────────────────────────────────────────────────────
 
+  // Evidence upload: explicit pending → success/error feedback so the operator
+  // knows the file persisted to the vault (matches the compliance-upload pattern).
+  const handleEvidenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await fetch(`${API_URL}/api/incidents/${id}/evidence`, {
+        method: "POST", headers: authHeaders(), body: fd,
+      });
+      if (!r.ok) throw new Error("upload failed");
+      const ev = await fetch(`${API_URL}/api/incidents/${id}/evidence`, { headers: authHeaders() });
+      if (ev.ok) { const d = await ev.json(); setEvidence(Array.isArray(d) ? d : []); }
+      toastSuccess("Evidence saved to the vault");
+    } catch {
+      toastError("Upload failed — please try again.");
+    } finally {
+      setUploading(false);
+      e.target.value = ""; // allow re-selecting the same file
+    }
+  };
+
   const handleStatusUpdate = async (newStatus: IncidentStatus) => {
     setUpdatingStatus(true);
     try {
@@ -367,7 +404,13 @@ export default function IncidentDetailPage() {
         <>
           {/* Header */}
           <header className="mb-xl">
-            <h1 className="glow-text mb-md">{incident.summary.length > 80 ? incident.summary.slice(0, 80) + "…" : incident.summary}</h1>
+            <h1
+              className="glow-text mb-md"
+              title={incident.summary}
+              style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+            >
+              {incidentTitle(incident)}
+            </h1>
             <div className="flex items-center gap-lg flex-wrap">
               <span className={`badge ${incident.status === "open" ? "badge-error" : incident.status === "under_review" ? "badge-warning" : incident.status === "closed_archived" ? "badge-neutral" : "badge-success"}`} style={{ fontSize: "0.8rem", padding: "4px 10px" }}>
                 {incident.status === "open" && <AlertTriangle size={12} aria-hidden="true" />}
@@ -436,28 +479,16 @@ export default function IncidentDetailPage() {
                   <div className="flex items-center justify-between mb-md" style={{ flexWrap: "wrap", gap: "var(--space-sm)" }}>
                     <div className="text-xs uppercase tracking-wide text-secondary">Attached Evidence</div>
                     {isOperator && incident && incident.status !== "closed_archived" && (
-                      <div className="flex flex-col items-end gap-xs">
-                        <label className="btn btn-secondary" style={{ minHeight: 44, cursor: "pointer" }}>
-                          Add evidence
-                          <input type="file" hidden onChange={async (e) => {
-                            const file = e.target.files?.[0]; if (!file) return;
-                            setEvidenceError(null);
-                            const fd = new FormData(); fd.append("file", file);
-                            const r = await fetch(`${API_URL}/api/incidents/${id}/evidence`, {
-                              method: "POST", headers: authHeaders(), body: fd });
-                            if (r.ok) {
-                              setEvidenceError(null);
-                              const ev = await fetch(`${API_URL}/api/incidents/${id}/evidence`, { headers: authHeaders() });
-                              if (ev.ok) setEvidence(await ev.json());
-                            } else {
-                              setEvidenceError("Upload failed — try again.");
-                            }
-                          }} />
-                        </label>
-                        {evidenceError && (
-                          <span className="text-xs" style={{ color: "var(--state-error)" }}>{evidenceError}</span>
-                        )}
-                      </div>
+                      <label
+                        className="btn btn-secondary"
+                        style={{ minHeight: 44, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.6 : 1 }}
+                        aria-busy={uploading}
+                      >
+                        {uploading ? (
+                          <><div className="loading-spinner loading-spinner-sm" aria-hidden="true" /> Uploading…</>
+                        ) : "Add evidence"}
+                        <input type="file" hidden disabled={uploading} onChange={handleEvidenceUpload} />
+                      </label>
                     )}
                   </div>
                   {evidence.length > 0 && (

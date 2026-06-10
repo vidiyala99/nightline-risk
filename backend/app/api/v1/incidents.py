@@ -44,6 +44,7 @@ def _incident_to_response(record: IncidentRecord) -> Incident:
         police_called=record.police_called or False,
         ems_called=record.ems_called or False,
         status=record.status,
+        incident_category=record.incident_category,
         reported_by_staff_id=record.reported_by_staff_id,
     )
 

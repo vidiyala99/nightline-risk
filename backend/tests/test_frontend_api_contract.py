@@ -34,6 +34,24 @@ def test_frontend_can_list_created_incidents():
     assert any(incident["id"] == created.json()["incident"]["id"] for incident in incidents)
 
 
+def test_get_incident_returns_incident_category():
+    # The detail-page H1 derives its label from incident_category; the GET
+    # response must carry it (regression: _incident_to_response dropped it).
+    client = TestClient(app)
+
+    created = client.post(
+        "/api/venues/elsewhere-brooklyn/incidents",
+        json={**DEMO_INCIDENT, "incident_category": "assault_battery"},
+        headers=_op_headers(),
+    )
+    assert created.status_code == 201
+    incident_id = created.json()["incident"]["id"]
+
+    response = client.get(f"/api/incidents/{incident_id}", headers=_op_headers())
+    assert response.status_code == 200
+    assert response.json()["incident_category"] == "assault_battery"
+
+
 def test_frontend_can_read_live_state_and_upload_compliance_evidence():
     client = TestClient(app)
 
