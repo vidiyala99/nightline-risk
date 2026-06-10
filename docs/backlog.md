@@ -3,12 +3,31 @@
 Working checklist for the subscription-free work (no API keys, no S3/email/SMS
 accounts yet). Gated/integration items live in [`go-live-readiness.md`](./go-live-readiness.md).
 
-Last updated: 2026-06-09.
+Last updated: 2026-06-10.
 
 ---
 
 ## Recently shipped (context for picking back up)
 
+- [x] **Session 2026-06-10** — correctness + UX hygiene + tooling (all pushed; suite 1331 green):
+  - **`DateTimeUTC` TypeDecorator — killed every `datetime.utcnow` deprecation warning.** New
+    column type stores naive-UTC, reads back tz-aware on both SQLite and Postgres (no DDL migration,
+    no data rewrite); applied to all 42 datetime columns + the 6 direct call sites. TDD'd; CLAUDE.md
+    timestamp convention updated.
+  - **Incident detail page — three fixes** (operator surface): (a) **closed the silent
+    evidence-upload gap** — pending spinner → `toastSuccess`/`toastError`, input reset; (b) **cleaner
+    H1** — `incident_category` label or first-sentence of summary (no more mid-word `.slice(80)`),
+    which surfaced that `incident_category` was being **silently dropped** end-to-end (fixed: persist
+    on create + add to the `Incident` response schema + `_incident_to_response`); (c) **delete
+    evidence** — `DELETE /api/evidence/{id}` with an anti-spoliation `evidence.deleted` audit event,
+    cascade of dependent vision analyses, storage cleanup; per-row trash button + confirm. All TDD.
+  - **Frontend ESLint — set up from scratch** (it was never installed; `eslint .` was linting build
+    output → 5000+ junk errors). Added `eslint` + `eslint-config-next` native flat config, scoped to
+    app source (ignores `.next`/`public`/generated `src/api/**`), calibrated for first adoption →
+    `npm run lint` green (0 errors, 47 advisory warnings). Installing the toolchain is what surfaced
+    the Next.js advisory below.
+  - **Security — `next` 16.2.4 → 16.2.9.** Patched a high-severity advisory cluster (middleware/proxy
+    bypass, RSC cache poisoning, image-opt/websocket DoS/SSRF); `npm audit` clean; prod build green.
 - [x] **Session 2026-06-05** — fraud agent + UI polish:
   - **★ Fraud/SIU agent — SHIPPED** (the "fraud flags" slice of track 9's Claims intelligence).
     Deterministic two-point scoring: **v1 metadata gate at intake** (late reporting, prior-claim
@@ -134,6 +153,11 @@ pytest-xdist installed-but-unused. Shipped:
 - [ ] Frontend: component/integration tests beyond the `account`/`market` unit tests; broaden the 6 Playwright e2e specs.
 - [ ] Enable the skipped `frontend/e2e/settings.spec.ts` once the backend deploy includes the auth endpoints (it's `describe.skip` pending deploy).
 - [ ] Mobile: tests beyond `format.ts` helpers (lightweight, given Expo render-test flakiness).
+- [ ] **ESLint warning burndown (added 2026-06-10).** `npm run lint` is green but carries 47 advisory
+  warnings — 37 are `react-hooks/set-state-in-effect` (the new React-Compiler rule, currently set to
+  `warn` in `eslint.config.mjs`). Adoption pass: migrate the flagged effects to event-driven / `use()`
+  loading where it's a real anti-pattern, or accept the rest. Tighten to `error` + `--max-warnings 0`
+  once burned down so the lint becomes a real gate.
 
 ### 5. Data & Defense integration surface — vision-vs-built (added 2026-05-30)
 
@@ -248,6 +272,14 @@ These made the spine *incomplete*, not just unpolished:
 **Pending correctness sweep (cross-cutting):** more un-coerced `Column(JSON)` reads likely 500 on
 Postgres — the Neon class (see the Work Queue fix + `project_neon_json_string_regressions` memory).
 Grep model JSON attrs for `.get(`/iteration and coerce at the read boundary.
+
+- [ ] **Incident create drops the A&B structured fields (added 2026-06-10).** `incident_flow.py`
+  `create_brawl_incident_flow` builds `IncidentRecord(...)` field-by-field and only persists the basics
+  + `incident_category` (fixed this session); it still **drops** `parties`, `witnesses`,
+  `security_response`, `weapon_involved`, `refused_service_or_overserved`, `injury_detail` — the
+  columns exist and `IncidentCreate` accepts them, so API-created incidents silently lose them. Add
+  them to the constructor when defense-packet / underwriting fidelity needs them (heed the JSON-column
+  read-boundary coercion above). See memory `project-incident-flow-drops-ab-fields`.
 
 ### 8. AI-native broker-workflow layer — audit + agent roadmap (added 2026-06-01)
 
