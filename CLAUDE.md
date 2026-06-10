@@ -75,6 +75,7 @@ All idempotent. Run from `backend/`:
 
 ```powershell
 python -m scripts.seed_demo_placements   # 4 submissions (one per non-terminal state) + 1 bound policy
+python -m scripts.seed_renewal_demo      # makes EB-DEMO expire ~22d out (relative) → renewal_at_risk card, renews end-to-end
 python -m scripts.seed_prospects         # ~286 NYC nightlife prospects from the cleaned market snapshot
 python -m scripts.seed_defense_demo      # incident → hashed evidence → packet → claim w/ defense_package_id (PDF exportable)
 python -m scripts.dedupe_venues          # dry-run merge of duplicate venues; --apply to execute
