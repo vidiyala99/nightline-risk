@@ -557,11 +557,22 @@ does **not** yet cover. `extend` = builds on existing primitives; `net-new` = ne
 - ★ Inbound email/PDF/spreadsheet → structured submission (the connector above).
 - Loss-run extraction & normalization across carrier formats → feeds the existing loss-ratio engine.
 - Missing-info / NIGO completeness checker at intake (extends the request-info loop).
-- Carrier-quote normalization + apples-to-apples comparison + proposal generation.
+- ★ Carrier-quote normalization + apples-to-apples comparison + proposal generation —
+  **promoted to the recommended order 2026-06-10**: the highest-frequency broker spreadsheet
+  ritual (broker pain #8 below), mostly deterministic over existing `CarrierQuote.coverage_terms`
+  rows; pair with Theme D's sublimit-aware analysis so the comparison **highlights A&B
+  sublimit/exclusion deltas between quotes** — the artifact a nightlife broker can't get anywhere
+  else. Proposal PDF rides the existing doc-generation patterns.
 
 **Theme B — Appetite & placement** `extend`:
 - Graded carrier appetite match (boolean → 0–100 + reasons) — already open as 7a/C6.
 - Market-submission follow-up / chase agent; renewal remarketing trigger.
+- ★ **Subjectivities clearance workflow (added 2026-06-10)** — real quotes carry subjectivities
+  (signed application, inspection, sprinkler cert, loss-control visit…) that must be collected and
+  *cleared* before bind. Today the UW memo lists them and `coverage_terms` is structured, but
+  nothing tracks collect → clear → gate-bind. Extends the request-info loop + the open-questions
+  substrate; a daily broker/underwriter workflow and a natural deterministic bind-gate (sibling of
+  the diligent-search guard).
 
 **Theme C — Eval/governance moat** `extend` ("ahead of the market" — pitch gold):
 - ★ Reframe the eval/calibration harness as **model-governance evidence** for the NAIC AI Model Bulletin (~25 states by 2026): lineage, validation, drift, explainability. Buyers are now *required* to have this.
@@ -631,7 +642,12 @@ internal-format); premium billing/installments/disbursement (7a 🔒); commissio
 (splits/carrier-statement reconciliation vs the single stored rate); carrier API connectivity (all
 quotes are in-house `pricing.py`; reserves are manual relay); multi-state SL compliance (NY only);
 rating depth (no class codes / experience mods / territory); loss-run *ingestion* (Theme A covers);
-reinsurance/bordereaux (C13 / Theme G).
+reinsurance/bordereaux (C13 / Theme G); **binder / declarations-page / invoice generation**
+(binding today produces no binder artifact — the temporary-evidence-of-coverage doc every bind
+emits in practice); premium financing (PFA) integration; ISO ClaimSearch / industry fraud-DB
+reporting; single-location tenant model (`tenant_id == venue_id` — multi-location/multi-entity
+insureds with named/additional-insured schedules are a schema-level assumption, the second hard
+constraint after rating depth on any "all commercial lines" claim).
 
 #### Appendix — full persona pain-point detail (research, 2026-06-09)
 
@@ -774,7 +790,9 @@ subscription-free.
   incidents/evidence/claims currently have no recovery story (and evidence files are ephemeral
   until the R2 env vars are set). Module-level **`VENUES` global mutated at runtime**
   (`main.py:293,510,529`) — process-local state that diverges under >1 worker; revisit with any
-  worker-scaling work.
+  worker-scaling work. **Background job queue** (2026-06-10 audit P2) — vision/corroboration run
+  via in-process `BackgroundTasks`, so a wedged LLM call ties up a web worker; a real queue
+  (Arq/RQ) only when LLM volume justifies it (note the risk grows once keys + retries land).
 
 ### 14. AI-native productionization (added 2026-06-09)
 
@@ -846,8 +864,16 @@ good filler between bigger tracks.
   inbox-unification item — same build.)
 - [ ] **Onboarding / first-run** — a new operator account lands on a bare dashboard; guided "add
   your venue / upload your policy" path.
-- [ ] **Data export** — portfolio/book/claims-history export (loss-run CSV is currently the only
-  one).
+- [ ] **★ Data export suite — "meet them in Excel" (expanded 2026-06-10).** Loss-run CSV is the
+  ONLY export today, but spreadsheets are where brokers/underwriters/actuaries actually live —
+  adoption means exporting to their world, not forcing dashboards on them. Enumerated exports, all
+  cheap over existing services: **book financials** (per-carrier/per-line rows), **expiration /
+  renewal X-date list**, **quote-comparison sheet** (rides the promoted Theme A item), **claims
+  history beyond loss-run**, **bordereaux** (Theme G's born-clean export when built), and an
+  **exportable rating worksheet** — the deterministic `pricing.py` calc as a "show your work"
+  sheet (Excel raters are the underwriter idiom; ours being transparent + reproducible is the
+  correctness pitch in artifact form). Cross-ref Track 5's scheduled/periodic report item — same
+  build, add a cadence.
 - [ ] **Empty/error/loading state sweep** — make 7c's broker-dashboard finding systematic across
   surfaces (a failed fetch should never render as healthy-empty).
 - [ ] **★ Shared web fetch wrapper (2026-06-10 audit)** — 42 web files hand-roll raw `fetch` +
@@ -879,7 +905,16 @@ The gaps are **interaction patterns**, not visuals. One focused session for item
   toast w/ `aria-live="polite"`, auto-dismiss 3-5s; rides with the dialog work.
 - [ ] **Mobile Copilot screen** — web `/copilot` has no mobile counterpart; biggest web↔mobile
   parity break and it's the flagship AI surface. Schedule with the next copilot session
-  (streaming/feedback work, Track 14) so it's built once, current.
+  (streaming/feedback work, Track 14) so it's built once, current. **Rider (2026-06-10 audit):
+  transcript persistence** — chat state is in-memory `useState`; a refresh wipes the conversation.
+- [ ] **Unsaved-changes guards on web forms (2026-06-10 audit)** — exactly one page
+  (`submissions/[sid]`) has a dirty-state guard; `submissions/new`, `policies/[pid]/endorse`,
+  `certificates/new`, `claims/new`, venue create all lose everything on nav/refresh. Mobile FNOL's
+  SecureStore draft pattern is the reference implementation; web needs at minimum
+  dirty-state + `beforeunload`.
+- [ ] **Nav config drift (2026-06-10 audit)** — web `AppShell` nav groups and mobile
+  `TabNavigator` are hand-synced (the comment at `TabNavigator.tsx:46-48` admits it). Extract a
+  shared nav manifest (route, label, personas) both consume, so persona-IA changes can't fork.
 - [ ] **Mobile tabular numerals** — web 72 `tabular-nums` uses vs mobile 5; money columns on
   Book/Portfolio jitter. Add `fontVariant: ['tabular-nums']` to shared numeral styles.
 - [ ] **Token strays** — web: `alerts/page.tsx` (4 raw hex, the 7c item) + `MarketMap.tsx` (5);
@@ -989,14 +1024,19 @@ subscription-free.
 7. **Operator risk / loss-control dossier** (Track 12 ★★, Theme F) — highest product-alignment,
    best pitch demo. **Reframed per the market caution:** the dossier sells claims-defensibility +
    loss outcomes + "shop E&S as a preferred risk," NOT premium discounts at bind.
-8. **Inbound email/doc intelligence** (Theme A keystone = Track 14's big build) — the largest
+8. **Quote-comparison sheet + proposal generation** (Theme A ★, promoted 2026-06-10) — the
+   highest-frequency broker spreadsheet ritual, deterministic over existing
+   `CarrierQuote.coverage_terms`; highlight A&B sublimit/exclusion deltas between quotes (the
+   nightlife-broker artifact nobody else produces) + client-proposal PDF. Pairs with Theme D
+   later; exportable via the Track 15 export suite.
+9. **Inbound email/doc intelligence** (Theme A keystone = Track 14's big build) — the largest
    AI-native hole (zero doc extraction shipped). Deterministic-first extraction + LLM seam, eval'd
    against fixture emails — starts subscription-free; 🔒 inbound rail + key raise the tier later.
-9. **Premium audit / continuous exposure monitoring** (Theme G ★) — best new domain wedge;
-   POS connector + endorsement machinery already exist; deterministic and demo-able.
-10. **Eval-harness → model-governance reframe** (Theme C) — amplified by #4's provenance
+10. **Premium audit / continuous exposure monitoring** (Theme G ★) — best new domain wedge;
+    POS connector + endorsement machinery already exist; deterministic and demo-able.
+11. **Eval-harness → model-governance reframe** (Theme C) — amplified by #4's provenance
     stamping (lineage on every AI output is the evidence the NAIC bulletin asks for).
-11. **Underwriting-memo eval fast-follows** (Track 9) — wire the 3 memo scorers into
+12. **Underwriting-memo eval fast-follows** (Track 9) — wire the 3 memo scorers into
     `runner.py`/`baseline.py`/`--compare-baseline` + `/evals`; graded `check_appetite` (7a/C6).
 
 Then: **copilot fan-out multi-tool + causal-grounding guard** (Track 11 — unblocks "why is my
@@ -1007,8 +1047,9 @@ instrumentation + born-clean bordereaux** (Theme G), **C5/C4 carrier** (Track 9)
 questions + agents** (Track 8), **Alembic migrations** (Track 13 deferred — take it with the
 Postgres lane).
 
-Good filler (no subscription): Track 15 basics (global search, demo reset, admin surface), 7c
-polish, the Neon JSON-string correctness sweep (until #1's Postgres lane obsoletes it), Track 3
+Good filler (no subscription): Track 15 basics (global search, demo reset, admin surface, the
+"meet them in Excel" export suite — each export is small and pairs with whatever track touched
+that data last), 7c polish, the Neon JSON-string correctness sweep (until #1's Postgres lane obsoletes it), Track 3
 (deterministic memo quality), Track 4 E2E depth + `data-testid` seams, Track 16 dialog/toast pass.
 Quick ops still pending: Groq model swap (#2a), seed prod adjuster demo, prod stale-incident
 cleanup (Track 2 open item), R2/S3 env vars (gated list — the audit calls ephemeral evidence the
