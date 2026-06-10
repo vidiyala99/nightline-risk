@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from sqlalchemy import Column, ForeignKey, JSON, Numeric
 
-from app.time import now_utc
+from app.time import now_utc, DateTimeUTC
 
 class UserRecord(SQLModel, table=True):
     id: str = Field(primary_key=True)
@@ -51,7 +51,7 @@ class IncidentRecord(SQLModel, table=True):
     # to the free-text reported_by name. Null for operator/broker-filed ones.
     # References the staff member's UserRecord.
     reported_by_staff_id: Optional[str] = Field(default=None, foreign_key="userrecord.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
     evaluation: Optional["IncidentEvaluation"] = Relationship(back_populates="incident")
 
@@ -79,8 +79,8 @@ class ComplianceSignal(SQLModel, table=True):
     provenance: str  # auto_generated|operator_reported|underwriter_verified|ingested
     severity: str    # low|medium|high|urgent
     status: str = Field(default="open")  # open|resolved
-    created_at: datetime = Field(default_factory=now_utc)
-    resolved_at: Optional[datetime] = Field(default=None)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    resolved_at: Optional[datetime] = Field(default=None, sa_type=DateTimeUTC)
     evidence_ref: Optional[str] = Field(default=None)
 
 
@@ -89,8 +89,8 @@ class WorkflowExecution(SQLModel, table=True):
     workflow_name: str
     status: str
     context: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    updated_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class WorkflowTask(SQLModel, table=True):
@@ -115,7 +115,7 @@ class SourceRecord(SQLModel, table=True):
     content_hash: Optional[str] = None
     source_metadata: dict = Field(default_factory=dict, sa_column=Column(JSON))
     retention_policy: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class PolicyDocument(SQLModel, table=True):
@@ -132,7 +132,7 @@ class PolicyDocument(SQLModel, table=True):
     page_count: int = 0
     tree_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
     status: str = Field(default="ready", index=True)  # indexing | ready | failed
-    indexed_at: datetime = Field(default_factory=datetime.utcnow)
+    indexed_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     error: Optional[str] = None
 
 
@@ -143,8 +143,8 @@ class RubricVersion(SQLModel, table=True):
     rules: dict = Field(default_factory=dict, sa_column=Column(JSON))
     prohibited_fields: list = Field(default_factory=list, sa_column=Column(JSON))
     created_by: str = "system"
-    effective_at: datetime = Field(default_factory=datetime.utcnow)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    effective_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class UnderwritingPacket(SQLModel, table=True):
@@ -160,7 +160,7 @@ class UnderwritingPacket(SQLModel, table=True):
     citation_ids: list = Field(default_factory=list, sa_column=Column(JSON))
     validation: dict = Field(default_factory=dict, sa_column=Column(JSON))
     snapshot_hash: str
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     # Structured corroboration verdict (set on the v2 packet after vision runs;
     # previously only prose in memo.summary).
     corroboration_status: Optional[str] = Field(default=None)
@@ -177,7 +177,7 @@ class CitationRecord(SQLModel, table=True):
     field_path: Optional[str] = None
     excerpt: str
     validation_status: str
-    validated_at: datetime = Field(default_factory=datetime.utcnow)
+    validated_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class ReviewDecision(SQLModel, table=True):
@@ -187,7 +187,7 @@ class ReviewDecision(SQLModel, table=True):
     decision: str
     override_reason: Optional[str] = None
     notes: Optional[str] = None
-    decided_at: datetime = Field(default_factory=datetime.utcnow)
+    decided_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class OpenQuestionResponse(SQLModel, table=True):
@@ -231,7 +231,7 @@ class ClaimProposal(SQLModel, table=True):
     packet_id: str = Field(foreign_key="underwritingpacket.id", index=True)
     venue_id: str = Field(index=True)
     proposed_by: str
-    proposed_at: datetime = Field(default_factory=datetime.utcnow)
+    proposed_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     override_recommendation: bool = False
     override_reason: Optional[str] = None
     override_freetext: Optional[str] = None
@@ -276,7 +276,7 @@ class EvidenceFile(SQLModel, table=True):
     file_path: str
     file_size: int = 0
     uploaded_by: str = "operator"
-    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    uploaded_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     content_hash: Optional[str] = Field(default=None)   # SHA-256 of file bytes, at upload
     captured_at: Optional[str] = Field(default=None)     # client-supplied capture time, else upload time
 
@@ -296,7 +296,7 @@ class ComplianceEvidence(SQLModel, table=True):
     file_path: str
     file_size: int = 0
     uploaded_by: str = "operator"
-    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    uploaded_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     # Citation linkage — the policy clause this evidence is being submitted
     # against. Stamped at upload time by retrieving against the compliance
     # item's description. All optional: pre-PageIndex evidence has none.
@@ -315,7 +315,7 @@ class AuditEvent(SQLModel, table=True):
     entity_id: str = Field(index=True)
     event_type: str
     event_metadata: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class CameraFeed(SQLModel, table=True):
@@ -325,7 +325,7 @@ class CameraFeed(SQLModel, table=True):
     rtsp_url: str  # store as-is for MVP; encrypt at rest in production
     enabled: bool = Field(default=True)
     sample_interval_seconds: int = Field(default=8)  # how often to sample a frame
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class AlertEvent(SQLModel, table=True):
@@ -340,7 +340,7 @@ class AlertEvent(SQLModel, table=True):
     alerted: bool = Field(default=False)  # whether a push notification was sent
     feedback: Optional[str] = Field(default=None)  # false_alarm | confirmed | None
     description: str = Field(default="")
-    detected_at: datetime = Field(default_factory=datetime.utcnow)
+    detected_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class PushSubscription(SQLModel, table=True):
@@ -349,7 +349,7 @@ class PushSubscription(SQLModel, table=True):
     endpoint: str
     p256dh: str   # public key
     auth: str     # auth secret
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 # ─── Broker Platform — Phase 1 (Placement) ────────────────────────────────
@@ -379,7 +379,7 @@ class Carrier(SQLModel, table=True):
     am_best_rating: Optional[str] = None            # "A" | "A-" | "B++" etc.
     contact_email: Optional[str] = None
     submission_portal_url: Optional[str] = None
-    created_at: datetime = Field(default_factory=now_utc)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class CoverageLine(SQLModel, table=True):
@@ -432,8 +432,8 @@ class Submission(SQLModel, table=True):
     notes: str = ""
     submitted_at: Optional[datetime] = None          # when it went in_market
     bound_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=now_utc)
-    updated_at: datetime = Field(default_factory=now_utc)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    updated_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class CarrierQuote(SQLModel, table=True):
@@ -451,7 +451,7 @@ class CarrierQuote(SQLModel, table=True):
     # the bind operation runs.
     is_selected: bool = False
 
-    requested_at: datetime = Field(default_factory=now_utc)
+    requested_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     responded_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
     decline_reason: Optional[str] = None             # populated when status=declined
@@ -530,7 +530,7 @@ class Policy(SQLModel, table=True):
         default=None, sa_column=Column(Numeric(12, 2), nullable=True)
     )
 
-    bound_at: datetime = Field(default_factory=now_utc)
+    bound_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class SurplusLinesFiling(SQLModel, table=True):
@@ -557,8 +557,8 @@ class SurplusLinesFiling(SQLModel, table=True):
     transaction_id: Optional[str] = None               # mock ELANY confirmation
     documents: dict = Field(default_factory=dict, sa_column=Column(JSON))
 
-    created_at: datetime = Field(default_factory=now_utc)
-    updated_at: datetime = Field(default_factory=now_utc)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    updated_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class Declination(SQLModel, table=True):
@@ -572,7 +572,7 @@ class Declination(SQLModel, table=True):
     declined_at: date
     reason: str
     recorded_by: Optional[str] = None
-    created_at: datetime = Field(default_factory=now_utc)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class Endorsement(SQLModel, table=True):
@@ -596,7 +596,7 @@ class Endorsement(SQLModel, table=True):
     )
     # Pre-validated discriminated-union payload — see app.schemas.policy.
     terms_diff: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    issued_at: datetime = Field(default_factory=now_utc)
+    issued_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     created_by: str = Field(foreign_key="userrecord.id")
 
 
@@ -616,7 +616,7 @@ class CertificateOfInsurance(SQLModel, table=True):
     description_of_operations: str
     status: str = Field(default="active", index=True)
     # active | superseded | cancelled
-    issued_at: datetime = Field(default_factory=now_utc)
+    issued_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     expires_on: date
     pdf_path: Optional[str] = None                     # blob-storage URL
     issued_by: str = Field(foreign_key="userrecord.id")
@@ -648,7 +648,7 @@ class Claim(SQLModel, table=True):
     status: str = Field(default="notified", index=True)
 
     date_of_loss: date
-    fnol_submitted_at: datetime = Field(default_factory=now_utc)
+    fnol_submitted_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
     current_reserve: Decimal = Field(
         default=Decimal("0.00"),
@@ -704,7 +704,7 @@ class ClaimPayment(SQLModel, table=True):
     paid_on: date
     description: str = ""
     recorded_by: str = Field(foreign_key="userrecord.id")
-    recorded_at: datetime = Field(default_factory=now_utc)
+    recorded_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class ReserveChange(SQLModel, table=True):
@@ -718,7 +718,7 @@ class ReserveChange(SQLModel, table=True):
     received_from: str                                  # adjuster name / carrier letter ref
     received_at: datetime
     recorded_by: str = Field(foreign_key="userrecord.id")
-    recorded_at: datetime = Field(default_factory=now_utc)
+    recorded_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class PolicyRequest(SQLModel, table=True):
@@ -756,8 +756,8 @@ class PolicyRequest(SQLModel, table=True):
     result_entity_type: Optional[str] = None
     result_entity_id: Optional[str] = None
 
-    created_at: datetime = Field(default_factory=now_utc)
-    updated_at: datetime = Field(default_factory=now_utc)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    updated_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class BrokerTask(SQLModel, table=True):
@@ -780,8 +780,8 @@ class BrokerTask(SQLModel, table=True):
     snoozed_until: Optional[date] = None                 # set when status == "snoozed"
     created_by: str = ""                                 # broker user id (token sub)
 
-    created_at: datetime = Field(default_factory=now_utc)
-    updated_at: datetime = Field(default_factory=now_utc)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    updated_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class VenueOperationalEvent(SQLModel, table=True):
@@ -801,7 +801,7 @@ class VenueOperationalEvent(SQLModel, table=True):
     metric_name: str                                    # e.g. over_pour_rate, id_rejection_rate
     value: float
     occurred_at: datetime                               # when the event happened at the source
-    ingested_at: datetime = Field(default_factory=now_utc)
+    ingested_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     content_hash: str = Field(index=True)               # SHA-256 of canonical event identity; dedupe key
     external_ref: Optional[str] = None                  # source-system record id, when available
     event_metadata: dict = Field(default_factory=dict, sa_column=Column(JSON))
@@ -817,7 +817,7 @@ class IngestionRun(SQLModel, table=True):
     id: str = Field(primary_key=True)                   # "ingest-<uuid12>"
     source_system: str = Field(index=True)
     status: str = Field(default="running")              # running | success | error
-    started_at: datetime = Field(default_factory=now_utc)
+    started_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     finished_at: Optional[datetime] = None
     extracted: int = Field(default=0)
     loaded: int = Field(default=0)
@@ -838,7 +838,7 @@ class CommsReviewItem(SQLModel, table=True):
     external_id: str = Field(index=True)
     raw_text: str
     author: Optional[str] = Field(default=None)
-    occurred_at: datetime = Field(default_factory=now_utc)
+    occurred_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     proposed_kind: str
     confidence: float
     rationale: Optional[str] = Field(default=None)
@@ -846,7 +846,7 @@ class CommsReviewItem(SQLModel, table=True):
     status: str = Field(default="pending")   # pending | confirmed | corrected | dismissed
     resolved_by: Optional[str] = Field(default=None)
     resolved_kind: Optional[str] = Field(default=None)
-    created_at: datetime = Field(default_factory=now_utc)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
 
 
 class RiskFindingRecord(SQLModel, table=True):
@@ -874,5 +874,5 @@ class RiskFindingRecord(SQLModel, table=True):
     prediction: dict = Field(default_factory=dict, sa_column=Column(JSON))
     status: str = Field(default="open", index=True)  # open | resolved
     venue_id: Optional[str] = Field(default=None, index=True)
-    computed_at: datetime = Field(default_factory=now_utc)
-    resolved_at: Optional[datetime] = Field(default=None)
+    computed_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    resolved_at: Optional[datetime] = Field(default=None, sa_type=DateTimeUTC)

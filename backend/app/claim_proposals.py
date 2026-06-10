@@ -22,8 +22,9 @@ only writer.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
 from uuid import uuid4
+
+from app.time import now_utc
 
 from sqlmodel import Session, select
 
@@ -176,12 +177,12 @@ def record_broker_decision(
             )
         proposal.state = "needs_more_info"
         proposal.info_requested_by = broker_id
-        proposal.info_requested_at = datetime.utcnow()
+        proposal.info_requested_at = now_utc()
         proposal.info_request_note = notes
     else:
         proposal.state = "approved" if normalized == "approved" else "rejected_by_broker"
         proposal.broker_decided_by = broker_id
-        proposal.broker_decided_at = datetime.utcnow()
+        proposal.broker_decided_at = now_utc()
         proposal.broker_notes = notes
 
     session.add(proposal)
@@ -228,7 +229,7 @@ def record_operator_info_response(
 
     proposal.state = "pending_broker_review"
     proposal.operator_response_note = response_note
-    proposal.operator_responded_at = datetime.utcnow()
+    proposal.operator_responded_at = now_utc()
     session.add(proposal)
     # Audit name deviates from `{entity}.{to_state}` (which would be
     # `claim.pending_broker_review`) for readability — this is specifically the

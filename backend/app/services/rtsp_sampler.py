@@ -21,7 +21,7 @@ import os
 import threading
 import time
 import uuid
-from datetime import datetime
+from app.time import now_utc
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -341,7 +341,7 @@ class RTSPSampler:
             frame_count=frame_count,
             alerted=alerted,
             description=description,
-            detected_at=datetime.utcnow(),
+            detected_at=now_utc(),
         )
 
         try:

@@ -7,7 +7,9 @@ records operator feedback, and logs observability signals for threshold tuning.
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from app.time import now_utc
 
 from sqlmodel import Session, col, select
 
@@ -178,7 +180,7 @@ def _get_operator_subscriptions(
 
 def _maybe_adjust_threshold(alert_event: AlertEvent, session: Session) -> None:
     """Log a warning if a venue has accumulated too many false-alarm signals."""
-    cutoff = datetime.utcnow() - timedelta(days=7)
+    cutoff = now_utc() - timedelta(days=7)
     statement = (
         select(AlertEvent)
         .where(AlertEvent.venue_id == alert_event.venue_id)

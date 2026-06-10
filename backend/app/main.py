@@ -625,8 +625,9 @@ def _process_evidence_sync(evidence_id: str) -> None:
             else:
                 return  # PDFs and other docs — skip vision for now
 
-            from datetime import datetime
             from uuid import uuid4
+
+            from app.time import now_utc
             analysis = EvidenceAnalysis(
                 id=f"ea-{uuid4().hex[:12]}",
                 evidence_id=evidence_id,
@@ -637,7 +638,7 @@ def _process_evidence_sync(evidence_id: str) -> None:
                 confidence_delta=finding.confidence_delta,
                 raw_description=finding.raw_description,
                 status="complete",
-                analyzed_at=datetime.utcnow(),
+                analyzed_at=now_utc(),
             )
             session.add(analysis)
             session.commit()

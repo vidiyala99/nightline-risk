@@ -15,6 +15,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from sqlalchemy import DateTime
+from sqlalchemy.types import TypeDecorator
+
 
 def as_utc(dt: datetime | None) -> datetime | None:
     """Force tzinfo=UTC on a (possibly naive) datetime.
@@ -34,3 +37,34 @@ def now_utc() -> datetime:
     `lambda: datetime.now(timezone.utc)` — easier to import once, less
     boilerplate at the model level, easier to monkey-patch in tests."""
     return datetime.now(timezone.utc)
+
+
+class DateTimeUTC(TypeDecorator):
+    """A DateTime column that always reads back timezone-aware (UTC).
+
+    This is the column-level version of `as_utc()`: instead of remembering to
+    re-attach tzinfo at every read site, the normalization happens in the type.
+
+    - On **bind** (write): an aware value is converted to UTC and stored as a
+      naive-UTC wall-clock. This matches what the legacy `datetime.utcnow()`
+      already wrote, so existing rows on both SQLite and Postgres stay
+      byte-compatible — no DDL migration or data rewrite is needed.
+    - On **result** (read): the (naive on SQLite, possibly naive on a legacy
+      Postgres `TIMESTAMP WITHOUT TIME ZONE` column) value is labeled UTC.
+
+    The net effect: every timestamp is tz-aware in Python regardless of
+    backend, killing the offset-naive/offset-aware mixing class of bug.
+    """
+
+    impl = DateTime  # keep the physical column type unchanged (no timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value: datetime | None, dialect) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is not None:
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value
+
+    def process_result_value(self, value: datetime | None, dialect) -> datetime | None:
+        return as_utc(value)

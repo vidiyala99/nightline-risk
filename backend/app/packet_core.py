@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime
+from app.time import now_utc
 from uuid import uuid4
 
 from sqlmodel import Session, select
@@ -495,4 +495,7 @@ def _snapshot_hash(payload: dict) -> str:
 
 
 def _utc_iso() -> str:
-    return datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    # now_utc() is tz-aware; format the wall-clock fields and append the literal
+    # "Z" so output stays "YYYY-MM-DDTHH:MM:SSZ" (isoformat() would emit a
+    # "+00:00" suffix, producing a double-timezone "...+00:00Z").
+    return now_utc().strftime("%Y-%m-%dT%H:%M:%SZ")
