@@ -906,6 +906,32 @@ See [`go-live-readiness.md`](./go-live-readiness.md) for detail. Summary:
   document-extraction quality tier (Theme A keystone), sufficiency judge (Track 8), SP4
   LLM-as-judge / claims-leakage KPI (Track 14 MEASURE + Theme C), real-embedding vector RAG delta
   (Track 10's pitch number).
+
+  **Key-day order of operations (added 2026-06-10, keys planned):**
+  1. **BEFORE any key lands:** debug-endpoint auth (Track 13 P0 — it burns a live LLM call
+     unauthenticated), copilot rate limiting, and LLM telemetry **with token/cost fields**
+     (Track 14) — protect and *see* spend from day one, not after the first surprise bill.
+  2. **`GEMINI_API_KEY` only AFTER the vision-agent contract + eval gate ships** (order #3) —
+     setting it today activates the one ungoverned LLM-factual path (vision findings → risk
+     scoring + fraud) with zero evals. Gate first, then key.
+  3. **What lights up code-free with `ANTHROPIC_API_KEY`:** the packet agents' memo + risk
+     classifier (`app/providers/anthropic_provider.py` is a real Haiku implementation,
+     resolution Anthropic → Gemini → deterministic) and the nightly `evals-matrix` Anthropic
+     lane (secrets-gated, currently skipping).
+  4. **What does NOT light up — known trap:** the copilot's
+     `app/copilot/anthropic_provider.py` is a **stub that delegates to deterministic**
+     (`v1 delegates … until the Messages-API call is implemented`). Selection order:
+     `COPILOT_LLM_*` (Groq) wins if set; otherwise `ANTHROPIC_API_KEY` routes to the stub →
+     **setting the Anthropic key and dropping the Groq vars leaves the copilot silently
+     deterministic** — the exact silent-fallback class Track 14's telemetry exists to catch.
+     Implement the Messages-API call (small: mirror `_respond_llm`'s tool-pick + synthesis +
+     same faithfulness guard) as part of key-day.
+  5. **Demoted once a paid key exists:** the Groq `llama-3.1-8b-instant` model-swap ops item
+     and "gate LLM to why-questions" (Track 11) become cost optimizations, not survival fixes;
+     429 retry logic stays (good hygiene on any provider).
+  6. **Jumps in priority:** LLM-as-judge + judge-vs-human agreement (recommended order #6)
+     fully unblocks; Track 10's vector-vs-TF-IDF NDCG delta becomes measurable (the pitch
+     number); SP4 / claims-leakage KPI becomes startable.
 - [ ] 🔒 Inbound email infra (Resend inbound / Cloudflare Email Routing — free tiers exist) — the
   delivery rail for the Theme A inbound-email keystone; the extraction core itself can be built +
   eval'd subscription-free against fixture emails first.
