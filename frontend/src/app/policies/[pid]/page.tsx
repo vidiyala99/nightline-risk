@@ -197,16 +197,48 @@ export default function PolicyDetailPage() {
         }
         actions={
           <>
-            <StatusPill tone={POLICY_STATUS_TONE[policy.status]}>
-              {POLICY_STATUS_LABEL[policy.status]}
-            </StatusPill>
+            {/* Quiet back (a prominent "Back to home" already sits above) —
+                navigation shouldn't out-weigh the page's primary action. */}
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-ghost btn-sm"
               onClick={() => router.push("/policies")}
             >
               ← Back
             </button>
+            <StatusPill tone={POLICY_STATUS_TONE[policy.status]}>
+              {POLICY_STATUS_LABEL[policy.status]}
+            </StatusPill>
+            {/* The page's one primary action lives here, right-most: the thing a
+                broker came to do. State-driven — renew / assign # / reinstate. */}
+            {policy.status === "active" && (
+              <Link
+                href={`/policies/${policy.id}/renew`}
+                className="btn btn-primary btn-sm"
+              >
+                Renew
+              </Link>
+            )}
+            {policy.status === "bound_pending_number" && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleAssignNumber}
+                disabled={busy}
+              >
+                + Assign policy number
+              </button>
+            )}
+            {policy.status === "lapsed" && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleReinstate}
+                disabled={busy}
+              >
+                Reinstate
+              </button>
+            )}
           </>
         }
       />
@@ -283,31 +315,12 @@ export default function PolicyDetailPage() {
         </div>
       )}
 
-      {/* Action toolbar — additive actions grouped left, destructive
-          end-of-life cluster grouped right (visually separated). Exactly one
-          primary CTA per state: Renew when active, Assign-number when
-          bound_pending_number. */}
+      {/* Inline servicing toolbar — the day-to-day actions on an in-force
+          policy. The page's primary CTA (renew / assign # / reinstate) lives in
+          the header; rare lifecycle/admin actions live in the Manage menu. */}
       {isActive && (
         <div className="policy-actions">
           <div className="policy-actions__group">
-            {policy.status === "bound_pending_number" && (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleAssignNumber}
-                disabled={busy}
-              >
-                + Assign policy number
-              </button>
-            )}
-            {policy.status === "active" && (
-              <Link
-                href={`/policies/${policy.id}/renew`}
-                className="btn btn-primary btn-sm"
-              >
-                Renew
-              </Link>
-            )}
             <Link
               href={`/policies/${policy.id}/endorse`}
               className="btn btn-secondary btn-sm"
@@ -386,22 +399,6 @@ export default function PolicyDetailPage() {
               )}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* A lapsed policy is the one terminal state that can come back — offer
-          reinstatement (the matrix's only non-terminal exit). */}
-      {policy.status === "lapsed" && (
-        <div className="policy-actions">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={handleReinstate}
-            disabled={busy}
-            style={{ marginLeft: "auto" }}
-          >
-            Reinstate Policy
-          </button>
         </div>
       )}
 
