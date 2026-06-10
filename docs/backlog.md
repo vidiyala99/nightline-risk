@@ -703,6 +703,21 @@ All subscription-free except 🔒.
 - [ ] **Closed-loop MEASURE → RECALIBRATE** — the Risk Intelligence loop today is
   SURFACE→RECOMMEND→ACT only; the measuring/recalibrating phases from the design doc are unbuilt.
   (SP4 LLM-as-judge slots here, 🔒 for the judge model.)
+- [ ] **★ Vision-agent contract + eval gate** — the **only ungoverned LLM-factual-output path** in
+  the product. `app/agents/vision_agent.py` runs **Gemini 2.5 Flash on uploaded images/video** (when
+  `GEMINI_API_KEY` is set) and emits factual findings — injury detail, crowd density, security
+  response time, hazards — that flow downstream into **risk scoring AND fraud detection**. But its
+  prompt is inline in the `.py` with **no `.md` contract and no eval scorer**, unlike the 5 packet
+  agents whose contracts `runtime.py:_CONTRACTS` loads at runtime. `app/agents/README.md` already
+  flags this ("fold the vision/corroboration agents into the same eval-gated contract"). Fix: add
+  `app/agents/vision_agent.md`, register it in `_CONTRACTS`, load it the same way; add a vision eval
+  scorer + fixtures in `app/evals/` under the baseline / `--compare-baseline` CI gate. Closes the
+  README's own TODO, removes the last ungoverned LLM path, and extends the "every AI output carries a
+  contract + is eval-gated" governance story (Theme C / NAIC). Pairs with AI-provenance stamping
+  above. **Scope note:** corroboration + orchestration workers are deterministic (contract = code +
+  tests, no `.md` warranted); copilot is already governed via `prompts.py` + the faithfulness guard +
+  copilot eval scorers — different format, not a gap. Vision is the only agent on the wrong side of
+  the "LLM produces a factual claim" line.
 - [ ] 🔒 **One reliably-live LLM path in prod** — the deterministic floor is a floor, not a ceiling:
   prod copilot currently template-falls-back on *every* question. Now: Groq model swap + gating +
   retry (Track 11 ops/code). With keys: small-budget `ANTHROPIC_API_KEY` (Haiku covers demo traffic
