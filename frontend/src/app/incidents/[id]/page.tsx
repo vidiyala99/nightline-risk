@@ -16,7 +16,7 @@ const RESOLVED_PROPOSAL_STATES = new Set(["rejected_by_broker", "paid", "denied"
 const CLOSED_CLAIM_STATUSES = new Set(["closed_paid", "closed_denied", "closed_dropped"]);
 import {
   AlertTriangle, ArrowLeft, Calendar, MapPin, User,
-  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download, Archive,
+  Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download, Archive, Trash2,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -33,7 +33,11 @@ interface EvidenceItem {
  * can't reach them — the browser won't attach the bearer token. Fetch the blob with
  * authHeaders() and render an object URL instead (same pattern as the gated PDF
  * downloads in lib/claims.ts). */
-function AuthedEvidenceRow({ ev }: { ev: EvidenceItem }) {
+function AuthedEvidenceRow({ ev, onDelete, deleting }: {
+  ev: EvidenceItem;
+  onDelete?: (id: string) => void;
+  deleting?: boolean;
+}) {
   const isImage = ev.content_type.startsWith("image/");
   const isVideo = ev.content_type.startsWith("video/");
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
@@ -77,6 +81,19 @@ function AuthedEvidenceRow({ ev }: { ev: EvidenceItem }) {
         <p className="text-xs text-secondary">{(ev.file_size / 1024).toFixed(1)} KB · {new Date(ev.uploaded_at).toLocaleString()}</p>
       </div>
       <button type="button" onClick={view} className="btn btn-ghost btn-sm text-xs">View</button>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(ev.id)}
+          disabled={deleting}
+          className="btn btn-ghost btn-sm text-xs"
+          aria-label={`Delete ${ev.filename}`}
+          title="Delete evidence"
+          style={{ color: "var(--state-error)", opacity: deleting ? 0.5 : 1 }}
+        >
+          {deleting ? <div className="loading-spinner loading-spinner-sm" aria-hidden="true" /> : <Trash2 size={14} aria-hidden="true" />}
+        </button>
+      )}
     </div>
   );
 }
@@ -185,6 +202,7 @@ export default function IncidentDetailPage() {
   const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
   const [claimStatus, setClaimStatus] = useState<ClaimStatusResponse | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [answerDrafts, setAnswerDrafts] = useState<Record<number, string>>({});
   const [savingQ, setSavingQ] = useState<number | null>(null);
 
@@ -341,6 +359,26 @@ export default function IncidentDetailPage() {
     }
   };
 
+  // Deletion is anti-spoliation-safe server-side (audit-logged); still confirm,
+  // since the bytes are gone from the operator's view immediately.
+  const handleEvidenceDelete = async (evidenceId: string) => {
+    if (!window.confirm("Delete this evidence? This can't be undone (the removal is logged).")) return;
+    setDeletingId(evidenceId);
+    try {
+      const r = await fetch(`${API_URL}/api/evidence/${evidenceId}`, {
+        method: "DELETE", headers: authHeaders(),
+      });
+      if (!r.ok) throw new Error("delete failed");
+      const ev = await fetch(`${API_URL}/api/incidents/${id}/evidence`, { headers: authHeaders() });
+      if (ev.ok) { const d = await ev.json(); setEvidence(Array.isArray(d) ? d : []); }
+      toastSuccess("Evidence removed");
+    } catch {
+      toastError("Couldn't delete — please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleStatusUpdate = async (newStatus: IncidentStatus) => {
     setUpdatingStatus(true);
     try {
@@ -494,7 +532,12 @@ export default function IncidentDetailPage() {
                   {evidence.length > 0 && (
                     <div className="flex flex-col gap-sm">
                       {evidence.map((ev) => (
-                        <AuthedEvidenceRow key={ev.id} ev={ev} />
+                        <AuthedEvidenceRow
+                          key={ev.id}
+                          ev={ev}
+                          onDelete={isOperator && incident.status !== "closed_archived" ? handleEvidenceDelete : undefined}
+                          deleting={deletingId === ev.id}
+                        />
                       ))}
                     </div>
                   )}

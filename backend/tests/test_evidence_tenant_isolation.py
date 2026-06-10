@@ -156,6 +156,55 @@ def test_serve_evidence_allows_owner(client):
     assert r.content == b"sensitive evidence bytes"
 
 
+# ─── delete_evidence ─────────────────────────────────────────────────────
+
+
+def test_delete_evidence_denies_anonymous(client):
+    _, evidence_id = _make_incident_with_evidence(client)
+    r = client.delete(f"/api/evidence/{evidence_id}")
+    assert r.status_code == 401
+
+
+def test_delete_evidence_denies_cross_tenant_operator(client):
+    _, evidence_id = _make_incident_with_evidence(client)
+    r = client.delete(f"/api/evidence/{evidence_id}", headers=_other_op_headers())
+    assert r.status_code == 403
+    # The row must survive a denied delete.
+    assert client.get(f"/api/evidence/{evidence_id}/file", headers=_owner_op_headers()).status_code == 200
+
+
+def test_delete_unknown_evidence_returns_404(client):
+    r = client.delete("/api/evidence/ev-does-not-exist", headers=_owner_op_headers())
+    assert r.status_code == 404
+
+
+def test_delete_evidence_owner_removes_row_and_bytes(client):
+    incident_id, evidence_id = _make_incident_with_evidence(client)
+    r = client.delete(f"/api/evidence/{evidence_id}", headers=_owner_op_headers())
+    assert r.status_code in (200, 204), r.text
+    # Gone from the list and the raw bytes 404.
+    listing = client.get(f"/api/incidents/{incident_id}/evidence", headers=_owner_op_headers())
+    assert all(f["id"] != evidence_id for f in listing.json())
+    assert client.get(f"/api/evidence/{evidence_id}/file", headers=_owner_op_headers()).status_code == 404
+
+
+def test_delete_evidence_writes_audit_event(client):
+    # Deletion is allowed but must leave an immutable record (anti-spoliation):
+    # the bytes go, the audit row proving it existed + who removed it stays.
+    from sqlmodel import Session, select
+    from app.database import engine
+    from app.models import AuditEvent
+
+    _, evidence_id = _make_incident_with_evidence(client)
+    client.delete(f"/api/evidence/{evidence_id}", headers=_owner_op_headers())
+
+    with Session(engine) as s:
+        events = s.exec(
+            select(AuditEvent).where(AuditEvent.entity_id == evidence_id)
+        ).all()
+    assert any(e.event_type == "evidence.deleted" for e in events)
+
+
 # ─── cross-venue incident list scoping ───────────────────────────────────
 
 

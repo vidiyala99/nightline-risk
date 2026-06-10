@@ -231,3 +231,67 @@ def serve_evidence(
         media_type=ev.content_type,
         headers={"Content-Disposition": f'attachment; filename="{ev.filename}"'},
     )
+
+
+@router.delete("/evidence/{evidence_id}")
+def delete_evidence(
+    evidence_id: str,
+    authorization: str = Header(None),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Remove an attachment. Deletion is allowed (operators upload wrong/dupe
+    files) but is anti-spoliation-safe: an immutable `evidence.deleted` audit
+    event records what was removed and by whom *before* the row/bytes go. The
+    dependent vision analyses cascade; storage cleanup is best-effort."""
+    from app.packet_core import _add_audit_event
+
+    ev = session.get(EvidenceFile, evidence_id)
+    if ev is None:
+        raise error_response(
+            "evidence_not_found",
+            f"Evidence {evidence_id!r} not found",
+            status_code=404,
+        )
+    incident = session.get(IncidentRecord, ev.incident_id)
+    if incident is None:
+        raise error_response(
+            "incident_not_found",
+            f"Incident {ev.incident_id!r} not found",
+            status_code=404,
+        )
+    user = require_venue_access(incident.venue_id, authorization, session)
+    if incident.status == "closed_archived":
+        raise error_response(
+            "incident_archived",
+            "This incident is archived; evidence can no longer be modified.",
+            status_code=409,
+        )
+
+    # Record what's being removed BEFORE deleting — the bytes go, the proof stays.
+    _add_audit_event(
+        session=session,
+        actor_id=user.get("sub") or "operator",
+        actor_type=user.get("role") or "operator",
+        entity_type="evidence",
+        entity_id=evidence_id,
+        event_type="evidence.deleted",
+        event_metadata={
+            "incident_id": ev.incident_id,
+            "filename": ev.filename,
+            "content_hash": ev.content_hash,
+            "file_size": ev.file_size,
+        },
+    )
+    # Cascade dependent vision analyses (FK → evidencefile.id).
+    for analysis in session.exec(
+        select(EvidenceAnalysis).where(EvidenceAnalysis.evidence_id == evidence_id)
+    ).all():
+        session.delete(analysis)
+    # Best-effort storage cleanup — a missing blob must not block the delete.
+    try:
+        get_storage().delete(ev.file_path)
+    except Exception:
+        pass
+    session.delete(ev)
+    session.commit()
+    return {"deleted": evidence_id}
