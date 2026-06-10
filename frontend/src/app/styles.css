@@ -5250,6 +5250,57 @@ html, body { overflow-x: clip; }
   border-radius: var(--radius-md);
 }
 
+/* ── Endorsement form polish ─────────────────────────────────────────── */
+/* Why-you're-here banner when arriving from the coverage-gap card. */
+.endorse-context {
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--brand-primary);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+/* Formatted preview under raw inputs ("$1,000,000", "Workers' Comp"). */
+.endorse-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+/* Collapse premium/tax/description for the common pre-filled case. */
+.endorse-advanced { margin: 4px 0 8px; }
+.endorse-advanced__summary {
+  cursor: pointer;
+  width: fit-content;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.endorse-advanced__summary:hover { color: var(--text-secondary); }
+.endorse-advanced__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+/* Action bar pinned to the viewport bottom — never scroll to act. */
+.endorse-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 14px 0;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-base);
+}
+
 /* Danger button shared by cancellation */
 .btn-danger {
   background: rgba(244,63,94,0.12);

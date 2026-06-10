@@ -30,6 +30,25 @@ const ENDORSEMENT_TYPES: ReadonlySet<string> = new Set<EndorsementType>([
   "add_location", "change_class", "correction",
 ]);
 
+// Friendly names so a broker reads "Workers' Comp", not the raw id "wc".
+const COVERAGE_LINE_LABEL: Record<string, string> = {
+  gl: "General Liability",
+  liquor: "Liquor Liability",
+  assault_battery: "Assault & Battery",
+  property: "Property",
+  wc: "Workers' Comp",
+  epli: "Employment Practices (EPLI)",
+  cyber: "Cyber",
+  umbrella: "Umbrella",
+};
+
+// "$1,000,000" preview for a raw numeric string (null when not a number).
+function fmtMoney(v: string): string | null {
+  const n = Number(v);
+  if (!v.trim() || Number.isNaN(n)) return null;
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
 
 export default function EndorsePage() {
   const params = useParams<{ pid: string }>();
@@ -80,6 +99,11 @@ export default function EndorsePage() {
     if (cl) setCoverageLine(cl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Arrived from the coverage_gap_eo card → show why we're here, so the broker
+  // can confirm the pre-filled line and submit without second-guessing.
+  const isCoverageGap =
+    search.get("type") === "add_coverage" && !!search.get("coverage_line");
 
   const buildTermsDiff = (): Record<string, unknown> => {
     switch (endorsementType) {
@@ -162,6 +186,12 @@ export default function EndorsePage() {
       />
 
       <form className="submission-wizard__form" onSubmit={submit}>
+        {isCoverageGap && (
+          <div className="endorse-context">
+            Closing coverage gap — adding required line{" "}
+            <strong>{COVERAGE_LINE_LABEL[coverageLine] ?? coverageLine}</strong> to this policy.
+          </div>
+        )}
         {error && <div className="submission-wizard__error">{error}</div>}
 
         <div className="submission-wizard__field">
@@ -252,18 +282,24 @@ export default function EndorsePage() {
             <div className="submission-wizard__field">
               <label className="submission-wizard__label">Coverage Line</label>
               <input className="input-field" value={coverageLine} onChange={e => setCoverageLine(e.target.value)} />
+              {COVERAGE_LINE_LABEL[coverageLine] && (
+                <span className="endorse-hint">{COVERAGE_LINE_LABEL[coverageLine]}</span>
+              )}
             </div>
             <div className="submission-wizard__field">
               <label className="submission-wizard__label">Per-Occurrence Limit</label>
               <input className="input-field" value={perOccLimit} onChange={e => setPerOccLimit(e.target.value)} />
+              {fmtMoney(perOccLimit) && <span className="endorse-hint">{fmtMoney(perOccLimit)}</span>}
             </div>
             <div className="submission-wizard__field">
               <label className="submission-wizard__label">Aggregate Limit (blank for property)</label>
               <input className="input-field" value={aggLimit} onChange={e => setAggLimit(e.target.value)} />
+              {fmtMoney(aggLimit) && <span className="endorse-hint">{fmtMoney(aggLimit)}</span>}
             </div>
             <div className="submission-wizard__field">
               <label className="submission-wizard__label">Deductible</label>
               <input className="input-field" value={deductible} onChange={e => setDeductible(e.target.value)} />
+              {fmtMoney(deductible) && <span className="endorse-hint">{fmtMoney(deductible)}</span>}
             </div>
           </>
         )}
@@ -340,40 +376,51 @@ export default function EndorsePage() {
           </>
         )}
 
-        <div className="submission-wizard__field">
-          <label className="submission-wizard__label">Premium Change ($)</label>
-          <input
-            type="text"
-            className="input-field"
-            value={premiumChange}
-            onChange={e => setPremiumChange(e.target.value)}
-            placeholder="0.00 (signed; negative for refund)"
-          />
-        </div>
+        {/* Premium / tax / description are usually left at defaults for a
+            pre-filled flow (e.g. closing a coverage gap) — tuck them behind a
+            disclosure so the form is short for the common case. */}
+        <details className="endorse-advanced">
+          <summary className="endorse-advanced__summary">
+            Advanced — premium, tax, description
+          </summary>
+          <div className="endorse-advanced__body">
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Premium Change ($)</label>
+              <input
+                type="text"
+                className="input-field"
+                value={premiumChange}
+                onChange={e => setPremiumChange(e.target.value)}
+                placeholder="0.00 (signed; negative for refund)"
+              />
+            </div>
 
-        <div className="submission-wizard__field">
-          <label className="submission-wizard__label">Tax Change ($) — E&S only</label>
-          <input
-            type="text"
-            className="input-field"
-            value={taxChange}
-            onChange={e => setTaxChange(e.target.value)}
-            placeholder="0.00"
-          />
-        </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Tax Change ($) — E&S only</label>
+              <input
+                type="text"
+                className="input-field"
+                value={taxChange}
+                onChange={e => setTaxChange(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
 
-        <div className="submission-wizard__field">
-          <label className="submission-wizard__label">Description</label>
-          <input
-            type="text"
-            className="input-field"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="Short description for the audit trail"
-          />
-        </div>
+            <div className="submission-wizard__field">
+              <label className="submission-wizard__label">Description</label>
+              <input
+                type="text"
+                className="input-field"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Short description for the audit trail"
+              />
+            </div>
+          </div>
+        </details>
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        {/* Sticky so the broker never scrolls past the form to act. */}
+        <div className="endorse-actionbar">
           <button
             type="button"
             className="btn btn-secondary btn-sm"
