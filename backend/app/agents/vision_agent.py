@@ -10,13 +10,21 @@ key is set, file is too large for inline upload, or the API call fails.
 import logging
 import mimetypes
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from app.ai_provenance import make_provenance
 
 logger = logging.getLogger(__name__)
 
 # Gemini inline data has a hard limit around 20MB after base64 encoding.
 # Stay well under to leave headroom for the JSON envelope and prompt.
 _MAX_INLINE_BYTES = 15 * 1024 * 1024
+
+# Provenance constants. Bump VISION_PROMPT_VERSION when _build_vision_prompt or
+# the contract (vision_agent.md) changes materially — it fingerprints the prompt.
+_GEMINI_MODEL = "gemini-2.5-flash"
+_TEMPLATE_MODEL = "template-v1"
+VISION_PROMPT_VERSION = "vision-2026-06-10"
 
 
 @dataclass
@@ -32,6 +40,11 @@ class VisionFinding:
     corroboration: str  # CONSISTENT | PARTIAL | CONTRADICTED | INCONCLUSIVE
     confidence_delta: float
     raw_description: str
+    # AI lineage: {provider, model, prompt_version, input_hash, fallback_reason}.
+    # Stored as a plain dict so it survives the findings-JSON round-trip
+    # (VisionFinding(**a.findings)) the corroboration step relies on. Optional so
+    # the template helpers and existing callers stay constructor-compatible.
+    provenance: dict | None = field(default=None)
 
 
 # ── Gemini Vision integration ──────────────────────────────────────────────
@@ -251,6 +264,55 @@ def _template_finding(
     return _stamp_unverified(finding)
 
 
+def _vision_inputs(
+    incident_summary: str, incident_location: str,
+    injury_observed: bool, police_called: bool, ems_called: bool, media: str,
+) -> dict:
+    return {
+        "summary": incident_summary, "location": incident_location,
+        "injury": injury_observed, "police": police_called, "ems": ems_called,
+        "media": media,
+    }
+
+
+def _analyze(
+    *, file_path: str, incident_summary: str, incident_location: str,
+    injury_observed: bool, police_called: bool, ems_called: bool,
+    is_video: bool,
+) -> VisionFinding:
+    """Shared Gemini-then-template path for image + video, with provenance.
+
+    The Gemini path stamps provider=gemini; any failure (incl. no key) falls
+    back to the template and stamps provider=deterministic with the fallback
+    reason — so the no-key path is honestly recorded as a degraded LLM call.
+    """
+    media = "video" if is_video else "image"
+    inputs = _vision_inputs(
+        incident_summary, incident_location, injury_observed, police_called, ems_called, media
+    )
+    try:
+        prompt = _build_vision_prompt(
+            incident_summary, incident_location, injury_observed, police_called, ems_called, is_video=is_video
+        )
+        mime = _detect_mime_type(file_path, fallback="video/mp4" if is_video else "image/jpeg")
+        parsed = _call_gemini_vision(file_path, mime, prompt)
+        finding = _gemini_finding_to_dataclass(parsed, injury_observed, police_called, ems_called)
+        finding.provenance = make_provenance(
+            provider="gemini", model=_GEMINI_MODEL,
+            prompt_version=VISION_PROMPT_VERSION, inputs=inputs,
+        ).model_dump()
+        return finding
+    except Exception as exc:
+        logger.warning("Gemini vision (%s) failed: %s; using template fallback.", media, exc.__class__.__name__)
+        finding = _template_finding(incident_summary, incident_location, injury_observed, police_called, ems_called)
+        finding.provenance = make_provenance(
+            provider="deterministic", model=_TEMPLATE_MODEL,
+            prompt_version=VISION_PROMPT_VERSION, inputs=inputs,
+            fallback_reason=f"gemini: {exc.__class__.__name__}",
+        ).model_dump()
+        return finding
+
+
 def analyze_image(
     file_path: str,
     incident_summary: str,
@@ -264,16 +326,11 @@ def analyze_image(
     Tries Gemini 2.5 Flash first; falls back to a deterministic template
     if no key is configured, the file is too large, or the API errors.
     """
-    try:
-        prompt = _build_vision_prompt(
-            incident_summary, incident_location, injury_observed, police_called, ems_called, is_video=False
-        )
-        mime = _detect_mime_type(file_path, fallback="image/jpeg")
-        parsed = _call_gemini_vision(file_path, mime, prompt)
-        return _gemini_finding_to_dataclass(parsed, injury_observed, police_called, ems_called)
-    except Exception as exc:
-        logger.warning("Gemini vision (image) failed: %s; using template fallback.", exc.__class__.__name__)
-        return _template_finding(incident_summary, incident_location, injury_observed, police_called, ems_called)
+    return _analyze(
+        file_path=file_path, incident_summary=incident_summary, incident_location=incident_location,
+        injury_observed=injury_observed, police_called=police_called, ems_called=ems_called,
+        is_video=False,
+    )
 
 
 def analyze_video_keyframes(
@@ -288,16 +345,11 @@ def analyze_video_keyframes(
     Analyze a video against the incident report. Gemini 2.5 Flash accepts
     video inline (under ~20MB); larger files fall back to the template.
     """
-    try:
-        prompt = _build_vision_prompt(
-            incident_summary, incident_location, injury_observed, police_called, ems_called, is_video=True
-        )
-        mime = _detect_mime_type(file_path, fallback="video/mp4")
-        parsed = _call_gemini_vision(file_path, mime, prompt)
-        return _gemini_finding_to_dataclass(parsed, injury_observed, police_called, ems_called)
-    except Exception as exc:
-        logger.warning("Gemini vision (video) failed: %s; using template fallback.", exc.__class__.__name__)
-        return _template_finding(incident_summary, incident_location, injury_observed, police_called, ems_called)
+    return _analyze(
+        file_path=file_path, incident_summary=incident_summary, incident_location=incident_location,
+        injury_observed=injury_observed, police_called=police_called, ems_called=ems_called,
+        is_video=True,
+    )
 
 
 # ── Stub finding templates ─────────────────────────────────────────────────
