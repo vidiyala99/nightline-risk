@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 
 from app.copilot.prompts import SYSTEM_PROMPT, TOOL_DESCRIPTIONS
 from app.copilot.provider import ChatProvider, DeterministicChatProvider, _REFUSAL
@@ -52,6 +53,13 @@ class OpenAICompatibleChatProvider(ChatProvider):
     BASE_URL_ENV = "COPILOT_LLM_BASE_URL"
     API_KEY_ENV = "COPILOT_LLM_API_KEY"
 
+    # Transient rate-limit handling: free tiers (Groq) 429 under load. Retry a
+    # couple of times with exponential backoff before degrading to deterministic,
+    # so a momentary 429 doesn't silently demote an answer the user can see.
+    MAX_RETRIES = 2
+    _BACKOFF_BASE_SECONDS = 0.5
+    _BACKOFF_CAP_SECONDS = 8.0
+
     def __init__(self) -> None:
         self.base_url = (os.getenv(self.BASE_URL_ENV) or "").rstrip("/")
         self.model = os.getenv(self.MODEL_ENV) or ""
@@ -61,10 +69,31 @@ class OpenAICompatibleChatProvider(ChatProvider):
                 f"{self.BASE_URL_ENV} and {self.MODEL_ENV} must be set for the LLM copilot provider."
             )
 
-    # ── HTTP seam (mocked in tests) ──────────────────────────────────────────
-    def _chat_completion(self, messages: list[dict], tools: list[dict] | None = None) -> dict:
+    # ── HTTP seams (mocked in tests) ─────────────────────────────────────────
+    def _post_chat(self, payload: dict, headers: dict):
+        """Raw POST to the chat-completions endpoint. Returns the httpx Response
+        un-raised so the retry layer can inspect the status code."""
         import httpx
 
+        with httpx.Client(timeout=45.0) as client:
+            return client.post(
+                f"{self.base_url}/chat/completions", json=payload, headers=headers
+            )
+
+    def _sleep(self, seconds: float) -> None:
+        time.sleep(seconds)
+
+    def _backoff_seconds(self, attempt: int, resp) -> float:
+        # Honor a Retry-After header if the provider sends one; else exp backoff.
+        retry_after = (getattr(resp, "headers", None) or {}).get("Retry-After")
+        if retry_after:
+            try:
+                return min(float(retry_after), self._BACKOFF_CAP_SECONDS)
+            except (TypeError, ValueError):
+                pass
+        return min(self._BACKOFF_BASE_SECONDS * (2 ** attempt), self._BACKOFF_CAP_SECONDS)
+
+    def _chat_completion(self, messages: list[dict], tools: list[dict] | None = None) -> dict:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -72,10 +101,18 @@ class OpenAICompatibleChatProvider(ChatProvider):
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
-        with httpx.Client(timeout=45.0) as client:
-            resp = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
+
+        # The final iteration (attempt == MAX_RETRIES) skips the retry branch, so
+        # a persistent 429 falls through to raise_for_status() and surfaces — let
+        # respond() degrade to deterministic.
+        for attempt in range(self.MAX_RETRIES + 1):
+            resp = self._post_chat(payload, headers)
+            if resp.status_code == 429 and attempt < self.MAX_RETRIES:
+                self._sleep(self._backoff_seconds(attempt, resp))
+                continue
             resp.raise_for_status()
             return resp.json()
+        raise RuntimeError("unreachable: retry loop always returns or raises")
 
     # ── ChatProvider ─────────────────────────────────────────────────────────
     def respond(self, message: str, *, tools, confirm_action=None) -> CopilotReply:
@@ -83,9 +120,14 @@ class OpenAICompatibleChatProvider(ChatProvider):
             return self._respond_llm(message, tools)
         except Exception as exc:  # noqa: BLE001 — never hard-fail; degrade to deterministic
             print(f"[COPILOT] LLM provider failed ({exc!r}); falling back to deterministic")
-            return DeterministicChatProvider().respond(
-                message, tools=tools, confirm_action=confirm_action
-            )
+            return self._deterministic_fallback(message, tools, confirm_action)
+
+    def _deterministic_fallback(self, message, tools, confirm_action=None) -> CopilotReply:
+        reply = DeterministicChatProvider().respond(
+            message, tools=tools, confirm_action=confirm_action
+        )
+        reply.source = "llm_fallback"
+        return reply
 
     def _respond_llm(self, message: str, tools) -> CopilotReply:
         tool_defs = _tool_defs()
@@ -99,7 +141,7 @@ class OpenAICompatibleChatProvider(ChatProvider):
         tool_calls = assistant.get("tool_calls") or []
         if not tool_calls:
             # No grounding tool chosen → refuse rather than answer ungrounded.
-            return CopilotReply(answer_type=AnswerType.refuse, text=_REFUSAL)
+            return CopilotReply(answer_type=AnswerType.refuse, text=_REFUSAL, source="llm")
 
         # Run the model's chosen tool(s) — venue-gated; the model's args are
         # ignored (each read tool is scoped to the operator's own venue).
@@ -120,13 +162,13 @@ class OpenAICompatibleChatProvider(ChatProvider):
             })
 
         if last_result is None:
-            return CopilotReply(answer_type=AnswerType.refuse, text=_REFUSAL)
+            return CopilotReply(answer_type=AnswerType.refuse, text=_REFUSAL, source="llm")
 
         second = self._chat_completion(messages, tools=tool_defs)
         text = (second["choices"][0]["message"].get("content") or "").strip()
         if not text:
             # Model produced no prose — fall back to a deterministic templated answer.
-            return DeterministicChatProvider().respond(message, tools=tools)
+            return self._deterministic_fallback(message, tools)
 
         link = None
         nav_href = last_result.data.get("nav_href")
@@ -137,4 +179,5 @@ class OpenAICompatibleChatProvider(ChatProvider):
             text=text,
             citations=list(last_result.citations),
             link=link,
+            source="llm",
         )

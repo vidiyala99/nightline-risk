@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime
 from typing import Optional
@@ -17,6 +18,8 @@ from app.copilot.tools import (
 from app.intelligence.engine import accessible_venue_ids
 from app.schemas.domain import Citation
 from app.time import now_utc
+
+logger = logging.getLogger(__name__)
 
 _ACT_INTENT = re.compile(r"\b(send|file|submit)\b.*\bbroker\b|\bresolve\b.*\b(compliance|item)\b", re.I)
 _ID = re.compile(r"\b(inc-[\w-]+)\b")  # fixture incident ids are "inc-borderline"
@@ -56,10 +59,23 @@ def respond_to_message(user: dict, session: Session, message: str,
     if reply.answer_type == AnswerType.answer:
         g = assert_grounded(reply.text, bridge.last_results)
         if not g.ok:
-            return CopilotReply(answer_type=AnswerType.clarify,
-                                text="I can only speak to what your records show — let me pull the exact figures.",
-                                citations=[c for r in bridge.last_results for c in r.citations])
+            # Downgrade an ungrounded answer, but preserve the telemetry source
+            # so the LLM-vs-deterministic fallback rate stays measurable.
+            reply = CopilotReply(answer_type=AnswerType.clarify,
+                                 text="I can only speak to what your records show — let me pull the exact figures.",
+                                 citations=[c for r in bridge.last_results for c in r.citations],
+                                 source=reply.source)
+    _log_telemetry(reply)
     return reply
+
+
+def _log_telemetry(reply: CopilotReply) -> None:
+    """One structured line per copilot turn so prod can aggregate the
+    LLM-vs-deterministic fallback rate (the audit's "measured fallback-rate").
+    Cheap and side-effect-free; never raises."""
+    logger.info(
+        "copilot.reply source=%s answer_type=%s", reply.source, reply.answer_type.value
+    )
 
 
 def _propose_action(scope: CopilotScope, message: str) -> CopilotReply:

@@ -49,3 +49,8 @@ class CopilotReply(BaseModel):
     proposed_action: Optional[ProposedAction] = None
     followups: list[str] = Field(default_factory=list)
     link: Optional[ReplyLink] = None
+    # Telemetry: which provider produced this reply. "deterministic" (no-key
+    # keyword path), "llm" (the configured LLM answered), or "llm_fallback" (the
+    # LLM was tried but degraded to deterministic — e.g. rate-limit, no model,
+    # ungrounded output). Lets prod measure the LLM-vs-fallback rate.
+    source: str = "deterministic"
