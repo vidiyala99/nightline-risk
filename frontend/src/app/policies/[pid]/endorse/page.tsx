@@ -14,6 +14,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PlacementApiError, formatCurrency } from "@/lib/placement";
 import { policiesApi, PolicyDetail } from "@/lib/policies";
+import { toastSuccess } from "@/lib/toast";
 
 
 type EndorsementType =
@@ -194,7 +195,16 @@ export default function EndorsePage() {
         tax_change: taxChange || "0.00",
         description: description.trim(),
       });
-      router.push(`/policies/${pid}`);
+      const lineLabel = COVERAGE_LINE_LABEL[coverageLine] ?? coverageLine;
+      toastSuccess(
+        isCoverageGap
+          ? `Coverage gap closed — ${lineLabel} added`
+          : "Endorsement issued",
+      );
+      // Context-aware return: from the dashboard "close gap" task → back to the
+      // task list (the card is now cleared); from the policy page → the policy,
+      // to verify the change.
+      router.push(isCoverageGap ? "/dashboard" : `/policies/${pid}`);
     } catch (e) {
       setError(e instanceof PlacementApiError ? e.message : "Endorsement failed");
       setBusy(false);
