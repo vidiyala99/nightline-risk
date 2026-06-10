@@ -50,7 +50,7 @@ def find(scope: FindingScope) -> list[Finding]:
             why=[Citation(source_id=pol.id, source_type="policy",
                           excerpt=f"Expires in {days} days, no renewal request in motion.")],
             recommended_action=RecommendedAction(
-                label="Start the renewal", href=f"/policies/{pol.id}/renew"),
+                label="Start the renewal", href=f"/policies/{pol.id}"),
             prediction=Prediction(
                 claim="Client will be uninsured at term if no renewal is placed.",
                 falsifiable_by="policy_status", horizon="expiration_date"),

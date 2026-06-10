@@ -143,8 +143,11 @@ def test_broker_finding_hrefs_are_action_scented(session):
                        commission_rate=Decimal("0"), coverage_lines=["liquor"]))
     session.commit()
 
+    # Renewal CTA lands on the policy record (review coverage + loss history),
+    # where the one-click Renew lives — the action-scent is the prominent Renew
+    # button on that page, not a distinct URL.
     risk = next(f for f in find_risk(_scope(session)) if f.subject.entity_id == "pol-h1")
-    assert risk.recommended_action.href == "/policies/pol-h1/renew"
+    assert risk.recommended_action.href == "/policies/pol-h1"
     assert risk.subject.href == "/policies/pol-h1"
 
     gap = next(f for f in find_gap(_scope(session)) if f.subject.entity_id == "pol-h2")

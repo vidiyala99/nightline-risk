@@ -23,7 +23,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusPill } from "@/components/ui/StatusPill";
-import { PlacementApiError, formatCurrency, formatPct } from "@/lib/placement";
+import toast from "react-hot-toast";
+import { PlacementApiError, formatCurrency, formatPct, placementApi } from "@/lib/placement";
 import {
   CertificateOfInsurance,
   ENDORSEMENT_TYPE_LABEL,
@@ -34,9 +35,10 @@ import {
   policiesApi,
   downloadCoiPdf,
 } from "@/lib/policies";
+import { renewalsApi } from "@/lib/renewals";
 import { ClaimStatusPill } from "@/components/claims/ClaimStatusPill";
 import { claimsApi, totalPaidFromClaim, type Claim } from "@/lib/claims";
-import { toastError } from "@/lib/toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 import { formatLedgerMoney } from "@/lib/claim-tokens";
 
 
@@ -172,6 +174,48 @@ export default function PolicyDetailPage() {
     }
   };
 
+  // One-click renewal: create the renewal submission (effective = the prior
+  // term's expiration date, so coverage is continuous) and drop the broker on
+  // the submission to continue re-placement. A mis-click is recoverable via the
+  // Undo toast, which withdraws the just-created submission.
+  const handleRenew = async () => {
+    if (!policy) return;
+    setBusy(true);
+    try {
+      const res = await renewalsApi.renew(policy.id, policy.expiration_date);
+      const sid = res.submission.id;
+      const pid_ = policy.id;
+      router.push(`/submissions/${sid}`);
+      toast(
+        (t) => (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+            Renewal started — sent to placement.
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={async () => {
+                toast.dismiss(t.id);
+                try {
+                  await placementApi.withdrawSubmission(sid, "Renewal undone by broker");
+                  toastSuccess("Renewal undone.");
+                  router.push(`/policies/${pid_}`);
+                } catch (e) {
+                  toastError(e instanceof PlacementApiError ? e.message : "Couldn't undo the renewal");
+                }
+              }}
+            >
+              Undo
+            </button>
+          </span>
+        ),
+        { duration: 8000 },
+      );
+    } catch (e) {
+      toastError(e instanceof PlacementApiError ? e.message : "Renewal failed");
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return <div className="placement-page__loading">Loading…</div>;
   }
@@ -203,12 +247,14 @@ export default function PolicyDetailPage() {
             {/* The page's one primary action lives here, right-most: the thing a
                 broker came to do. State-driven — renew / assign # / reinstate. */}
             {policy.status === "active" && (
-              <Link
-                href={`/policies/${policy.id}/renew`}
+              <button
+                type="button"
                 className="btn btn-primary btn-sm"
+                onClick={handleRenew}
+                disabled={busy}
               >
                 Renew
-              </Link>
+              </button>
             )}
             {policy.status === "bound_pending_number" && (
               <button

@@ -60,17 +60,14 @@ export default function RenewalsPage() {
     );
   }
 
-  async function onRenew(policyId: string) {
+  async function onRenew(policyId: string, expirationDate: string) {
     setBusyId(policyId);
     setError(null);
     setResult(null);
     try {
-      const t = new Date();
-      // effective_date = tomorrow
-      const eff = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1)
-        .toISOString()
-        .slice(0, 10);
-      const res = await renewalsApi.renew(policyId, eff);
+      // Renewal is effective when the prior term expires, so coverage is
+      // continuous (NOT "tomorrow" — that would start the new term early).
+      const res = await renewalsApi.renew(policyId, expirationDate);
       setResult(res);
       // Remove the renewed policy from the due list
       setRows((prev) =>
@@ -226,7 +223,7 @@ export default function RenewalsPage() {
                       type="button"
                       className="renewals-renew-btn"
                       disabled={busyId === r.policy_id}
-                      onClick={() => onRenew(r.policy_id)}
+                      onClick={() => onRenew(r.policy_id, r.expiration_date)}
                     >
                       {busyId === r.policy_id ? "Renewing…" : "Renew"}
                     </button>
