@@ -196,7 +196,7 @@ export default function EndorsePage() {
       />
 
       <div className="form-shell">
-      <form className="submission-wizard__form" onSubmit={submit}>
+      <form id="endorse-form" className="submission-wizard__form" onSubmit={submit}>
         {isCoverageGap && (
           <div className="endorse-context">
             Closing coverage gap — adding required line{" "}
@@ -430,8 +430,13 @@ export default function EndorsePage() {
           </div>
         </details>
 
-        {/* Sticky so the broker never scrolls past the form to act. */}
-        <div className="endorse-actionbar">
+      </form>
+
+      {/* Right pane = action + live summary. Actions sit at the top (sticky, so
+          always in view while the broker fills the form on the left); the
+          summary confirms what they're about to issue, just below. */}
+      <aside className="form-summary">
+        <div className="form-summary__actions">
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -440,15 +445,15 @@ export default function EndorsePage() {
           >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
+          <button
+            type="submit"
+            form="endorse-form"
+            className="btn btn-primary btn-sm"
+            disabled={busy}
+          >
             {busy ? "Issuing…" : "Issue Endorsement"}
           </button>
         </div>
-      </form>
-
-      {/* Live summary in the otherwise-empty right space — confirm at a glance
-          before issuing (the design-system two-pane form rule). */}
-      <aside className="form-summary">
         <div className="form-summary__title">Summary</div>
         <dl style={{ margin: 0 }}>
           <div className="form-summary__row"><dt>Type</dt><dd>{ENDORSEMENT_TYPE_LABEL[endorsementType]}</dd></div>

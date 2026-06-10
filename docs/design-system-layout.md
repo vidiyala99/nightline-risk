@@ -16,9 +16,14 @@ house rules so layout is decided **once** and applied consistently, not per page
    confirms at a glance before submitting. Reference implementation:
    `frontend/src/app/policies/[pid]/endorse/page.tsx`.
 
-3. **The next action is always reachable.** Primary action lives in the header
-   (detail pages) or a **sticky action bar** (long forms, `.endorse-actionbar`) —
-   never below an unscrolled fold. One primary CTA per screen.
+3. **The next action is always reachable.** Placement by surface:
+   - **Detail pages** → primary action in the header (right-most).
+   - **Two-pane forms** → Cancel / primary at the **top of the right summary
+     panel** (`.form-summary__actions`); the panel is sticky, so the action
+     stays in view while the form is filled on the left. Summary sits below it.
+   - **Single-column forms** (no right pane) → sticky bottom bar
+     (`.endorse-actionbar`).
+   Never below an unscrolled fold. One primary CTA per screen.
 
 4. **Collapse what a pre-filled flow already decided.** Advanced/rarely-changed
    fields go behind a disclosure (e.g. premium/tax/description on the endorse

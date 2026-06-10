@@ -5321,6 +5321,14 @@ html, body { overflow-x: clip; }
   border-radius: var(--radius-md);
   padding: 16px 18px;
 }
+.form-summary__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
 .form-summary__title {
   font-size: 9px;
   letter-spacing: 0.12em;
