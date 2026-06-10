@@ -49,7 +49,10 @@ house rules so layout is decided **once** and applied consistently, not per page
 - [x] `policies/[pid]/certificates/new` (Issue COI) — two-pane (certificate summary + policy context)
 - [x] `policies/[pid]/claims/new` (FNOL) — two-pane (claim summary + policy context)
 - [n/a] `policies/[pid]/renew` — retired; renewal is now one-click (creates the submission, lands there, Undo toast) — no form to lay out
-- [ ] `submissions/new` + `submissions/[sid]` edit-terms — apply form-shell where it's a single column today
+- [x] `submissions/new` — two-pane (new-submission summary + prospect savings) + toast
+- [n/a] `submissions/[sid]` — a workspace (summary strip + carrier picker + quote grid), not a
+  "configure→confirm" form; the two-pane rule doesn't apply. Already passed the easy-or-more-work
+  review (appetite-guided carriers, one-click pull quotes, save-before-submit).
 - [ ] audit other single-column form pages against rules 1–6
 
 **Action + return pattern (shipped on all three):** every mutating submit fires a

@@ -23,6 +23,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { placementApi, PlacementApiError } from "@/lib/placement";
 import { authHeaders } from "@/lib/authFetch";
+import { toastSuccess } from "@/lib/toast";
 import { money } from "@/lib/market";
 import { X } from "lucide-react";
 
@@ -143,6 +144,7 @@ function NewSubmissionInner() {
         requested_limits: {},
         notes: notes.trim(),
       });
+      toastSuccess("Submission created — pick carriers next");
       router.push(`/submissions/${sub.id}`);
     } catch (e) {
       setError(e instanceof PlacementApiError ? e.message : "Create failed");
@@ -153,14 +155,15 @@ function NewSubmissionInner() {
   const hasSavings = prospect && (prospect.savings_low || prospect.savings_high);
 
   return (
-    <div className="submission-wizard">
+    <div className="submission-wizard submission-wizard--wide">
       <PageHeader
         eyebrow="Placement"
         title="New Submission"
         subtitle={prospectId ? "Open a placement for this prospect." : "Open a new coverage placement for a venue."}
       />
 
-      <form className="submission-wizard__form" onSubmit={submit}>
+      <div className="form-shell">
+      <form id="newsub-form" className="submission-wizard__form" onSubmit={submit}>
         {error && <div className="submission-wizard__error">{error}</div>}
 
         <div className="submission-wizard__field">
@@ -266,7 +269,10 @@ function NewSubmissionInner() {
           />
         </div>
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+      </form>
+
+      <aside className="form-summary">
+        <div className="form-summary__actions">
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -275,15 +281,31 @@ function NewSubmissionInner() {
           >
             Cancel
           </button>
-          <button
-            type="submit"
-            className="btn btn-primary btn-sm"
-            disabled={busy}
-          >
+          <button type="submit" form="newsub-form" className="btn btn-primary btn-sm" disabled={busy}>
             {busy ? "Creating…" : "Create Submission"}
           </button>
         </div>
-      </form>
+        <div className="form-summary__title">New submission</div>
+        <dl style={{ margin: 0 }}>
+          <div className="form-summary__row"><dt>Venue</dt><dd>{prospect?.name ?? venueId}</dd></div>
+          <div className="form-summary__row"><dt>Effective</dt><dd>{effectiveDate}</dd></div>
+          <div className="form-summary__row"><dt>Lines</dt><dd>{selectedLines.size}</dd></div>
+        </dl>
+        {selectedLines.size > 0 && (
+          <div className="form-summary__note">
+            {COVERAGE_LINE_OPTIONS.filter(l => selectedLines.has(l.id)).map(l => l.name).join(", ")}
+          </div>
+        )}
+        {hasSavings && (
+          <div className="form-summary__section">
+            <div className="form-summary__title">Prospect</div>
+            <div className="form-summary__note" style={{ marginTop: 0, color: "var(--accent-ink)", fontWeight: 700 }}>
+              Est. savings {money(prospect!.savings_low ?? "0")}–{money(prospect!.savings_high ?? "0")}/yr
+            </div>
+          </div>
+        )}
+      </aside>
+      </div>
     </div>
   );
 }
