@@ -9,6 +9,13 @@ import pytest
 # module-level seeding done at fixture/lifespan setup also sees it.
 os.environ.setdefault("TESTING", "1")
 
+# Route ALL integration tests (TestClient / get_session) at a throwaway DB so the
+# suite can never write into the real dev database.db. app.database reads
+# DATABASE_URL and falls back to sqlite:///database.db — so set it here, before the
+# app modules are (re)imported below. The dev backend runs without this env var, so
+# it keeps using database.db; only the pytest process is redirected.
+os.environ.setdefault("DATABASE_URL", "sqlite:///test_run.db")
+
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))

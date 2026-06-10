@@ -8,8 +8,12 @@ venv/
 
 # SQLite databases — never track DB files (local/runtime only)
 *.db
+*.db.bak
+*.db-wal
+*.db-shm
 # Backend runtime artifacts
 backend/database.db
+backend/test_run.db
 backend/*.log
 backend/*.pid
 backend/.test-temp/
