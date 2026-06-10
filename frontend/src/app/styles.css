@@ -5054,10 +5054,10 @@ html, body { overflow-x: clip; }
   background: var(--bg-base);
   border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: 12px 16px;
   text-align: center;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   margin-top: 12px;
 }
 
@@ -5162,9 +5162,24 @@ html, body { overflow-x: clip; }
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
   margin: 12px 0 20px;
   padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
+}
+
+/* Additive actions (left) vs destructive end-of-life cluster (right),
+   visually separated so a Cancel/Lapse never sits next to + Endorse. */
+.policy-actions__group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.policy-actions__group--end {
+  margin-left: auto;
+  padding-left: 16px;
+  border-left: 1px solid var(--border-subtle);
 }
 
 /* Danger button shared by cancellation */

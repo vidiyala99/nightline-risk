@@ -394,6 +394,92 @@ def test_issue_endorsement_rejects_cancelled_policy():
             )
 
 
+def test_issue_endorsement_add_coverage_appends_line():
+    """add_coverage must actually mutate policy.coverage_lines so the
+    coverage_gap_eo finding can clear — not just record history."""
+    with _session() as s:
+        _, q = _make_quoting_submission_with_selected_quote(s)
+        policy = bind_quote(s, q.id, policy_number="P-1", bound_by=USER_ID)
+        s.commit()
+        assert "wc" not in policy.coverage_lines
+        before_hash = policy.snapshot_hash
+
+        issue_endorsement(
+            s, policy.id,
+            endorsement_type="add_coverage",
+            effective_date=date(2027, 1, 15),
+            terms_diff={"coverage_line": "wc", "per_occurrence_limit": "1000000"},
+            issued_by=USER_ID,
+        )
+        s.commit()
+
+        re_policy = s.get(Policy, policy.id)
+        assert "wc" in re_policy.coverage_lines
+        assert re_policy.snapshot_hash != before_hash
+
+
+def test_issue_endorsement_add_coverage_is_idempotent():
+    """Adding a line already present is a no-op on the list (no dup)."""
+    with _session() as s:
+        _, q = _make_quoting_submission_with_selected_quote(s)
+        policy = bind_quote(s, q.id, policy_number="P-1", bound_by=USER_ID)
+        s.commit()
+        assert policy.coverage_lines.count("gl") == 1
+
+        issue_endorsement(
+            s, policy.id,
+            endorsement_type="add_coverage",
+            effective_date=date(2027, 1, 15),
+            terms_diff={"coverage_line": "gl", "per_occurrence_limit": "1000000"},
+            issued_by=USER_ID,
+        )
+        s.commit()
+
+        re_policy = s.get(Policy, policy.id)
+        assert re_policy.coverage_lines.count("gl") == 1
+
+
+def test_issue_endorsement_remove_coverage_drops_line():
+    with _session() as s:
+        _, q = _make_quoting_submission_with_selected_quote(s)
+        policy = bind_quote(s, q.id, policy_number="P-1", bound_by=USER_ID)
+        s.commit()
+        assert "liquor" in policy.coverage_lines
+
+        issue_endorsement(
+            s, policy.id,
+            endorsement_type="remove_coverage",
+            effective_date=date(2027, 1, 15),
+            terms_diff={"coverage_line": "liquor", "reason": "stopped serving"},
+            issued_by=USER_ID,
+        )
+        s.commit()
+
+        re_policy = s.get(Policy, policy.id)
+        assert "liquor" not in re_policy.coverage_lines
+
+
+def test_issue_endorsement_remove_absent_coverage_is_noop():
+    """Removing a line that isn't on the policy doesn't error or change the list."""
+    with _session() as s:
+        _, q = _make_quoting_submission_with_selected_quote(s)
+        policy = bind_quote(s, q.id, policy_number="P-1", bound_by=USER_ID)
+        s.commit()
+        before = sorted(policy.coverage_lines)
+
+        issue_endorsement(
+            s, policy.id,
+            endorsement_type="remove_coverage",
+            effective_date=date(2027, 1, 15),
+            terms_diff={"coverage_line": "wc", "reason": "never had it"},
+            issued_by=USER_ID,
+        )
+        s.commit()
+
+        re_policy = s.get(Policy, policy.id)
+        assert sorted(re_policy.coverage_lines) == before
+
+
 # ─── cancel_policy ───────────────────────────────────────────────────────
 
 

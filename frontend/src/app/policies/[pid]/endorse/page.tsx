@@ -9,8 +9,8 @@
  * provides the right UX scaffolding per type so the broker doesn't have
  * to remember which fields each type needs.
  */
-import React, { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PlacementApiError } from "@/lib/placement";
 import { policiesApi } from "@/lib/policies";
@@ -25,10 +25,16 @@ type EndorsementType =
   | "change_class"
   | "correction";
 
+const ENDORSEMENT_TYPES: ReadonlySet<string> = new Set<EndorsementType>([
+  "change_limit", "add_insured", "add_coverage", "remove_coverage",
+  "add_location", "change_class", "correction",
+]);
+
 
 export default function EndorsePage() {
   const params = useParams<{ pid: string }>();
   const router = useRouter();
+  const search = useSearchParams();
   const pid = params?.pid;
 
   const [endorsementType, setEndorsementType] = useState<EndorsementType>("change_limit");
@@ -63,6 +69,17 @@ export default function EndorsePage() {
   const [valueBefore, setValueBefore] = useState("");
   const [valueAfter, setValueAfter] = useState("");
   const [explanation, setExplanation] = useState("");
+
+  // Deep-link support: a finding CTA (e.g. coverage_gap_eo) can pre-select the
+  // endorsement type and pre-fill the coverage line via query params so the
+  // broker lands on exactly the action the card promised. Run once on mount.
+  useEffect(() => {
+    const t = search.get("type");
+    if (t && ENDORSEMENT_TYPES.has(t)) setEndorsementType(t as EndorsementType);
+    const cl = search.get("coverage_line");
+    if (cl) setCoverageLine(cl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const buildTermsDiff = (): Record<string, unknown> => {
     switch (endorsementType) {

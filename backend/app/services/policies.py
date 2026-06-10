@@ -43,6 +43,7 @@ from uuid import uuid4
 
 from sqlmodel import Session, select
 
+from app.defense_package import _as_list
 from app.lifecycles import (
     POLICY_TRANSITIONS,
     assert_valid_transition,
@@ -450,6 +451,23 @@ def issue_endorsement(
     })
     policy.terms_snapshot = {**policy.terms_snapshot, "endorsement_history": history}
     policy.annual_premium = (policy.annual_premium + premium_change).quantize(Decimal("0.01"))
+
+    # Coverage-line endorsements must actually mutate policy.coverage_lines so
+    # downstream consumers (the coverage_gap_eo finding, COI generation) see the
+    # real set — not just the endorsement history. _as_list coerces the Postgres
+    # JSON-string form; reassign a NEW list so SQLAlchemy marks the column dirty.
+    # Both add/remove are idempotent so a repeated endorsement can't desync the hash.
+    if endorsement_type == "add_coverage":
+        line = validated["coverage_line"]
+        lines = _as_list(policy.coverage_lines)
+        if line not in lines:
+            policy.coverage_lines = [*lines, line]
+    elif endorsement_type == "remove_coverage":
+        line = validated["coverage_line"]
+        lines = _as_list(policy.coverage_lines)
+        if line in lines:
+            policy.coverage_lines = [x for x in lines if x != line]
+
     policy.snapshot_hash = _compute_policy_snapshot_hash(policy)
     session.add(policy)
 

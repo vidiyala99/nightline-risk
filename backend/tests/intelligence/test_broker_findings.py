@@ -83,6 +83,77 @@ def test_renewal_at_risk_flags_expiring_without_request(session):
     assert ids == {"pol-2"}
 
 
+def test_renewal_at_risk_suppressed_by_live_renewal_submission(session):
+    # pol-4 is expiring but already has a live renewal Submission (the canonical
+    # broker "Renew" action) -> not at risk. pol-2 (bare) is still flagged.
+    session.add(Policy(id="pol-2", submission_id="s2", bound_quote_id="q2",
+                       venue_id="v1", carrier_id="c1", status="active",
+                       effective_date=date(2025, 6, 20), expiration_date=date(2026, 7, 1),
+                       annual_premium=Decimal("0"), commission_amount=Decimal("0"),
+                       commission_rate=Decimal("0")))
+    session.add(Policy(id="pol-4", submission_id="s4", bound_quote_id="q4",
+                       venue_id="v1", carrier_id="c1", status="active",
+                       effective_date=date(2025, 6, 20), expiration_date=date(2026, 7, 1),
+                       annual_premium=Decimal("0"), commission_amount=Decimal("0"),
+                       commission_rate=Decimal("0")))
+    session.add(Submission(id="sub-ren", venue_id="v1", status="open",
+                           prior_policy_id="pol-4",
+                           effective_date=date(2026, 7, 1)))
+    session.commit()
+    ids = {f.subject.entity_id for f in find_risk(_scope(session))}
+    assert ids == {"pol-2"}
+
+
+def test_coverage_gap_clears_after_add_coverage_endorsement(session):
+    # End-to-end loop: a policy missing required "gl" fires the finding;
+    # issuing an add_coverage endorsement for "gl" clears it.
+    from app.services.policies import issue_endorsement
+
+    _coverage_lines(session)
+    session.add(Policy(id="pol-gap", submission_id="s1", bound_quote_id="q1",
+                       venue_id="v1", carrier_id="c1", status="active",
+                       effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
+                       annual_premium=Decimal("0"), commission_amount=Decimal("0"),
+                       commission_rate=Decimal("0"), coverage_lines=["liquor"]))
+    session.commit()
+    assert any(f.subject.entity_id == "pol-gap" for f in find_gap(_scope(session)))
+
+    issue_endorsement(
+        session, "pol-gap",
+        endorsement_type="add_coverage",
+        effective_date=date(2026, 6, 1),
+        terms_diff={"coverage_line": "gl", "per_occurrence_limit": "1000000"},
+        issued_by="b1",
+    )
+    session.commit()
+    assert not any(f.subject.entity_id == "pol-gap" for f in find_gap(_scope(session)))
+
+
+def test_broker_finding_hrefs_are_action_scented(session):
+    _coverage_lines(session)
+    session.add(Policy(id="pol-h1", submission_id="s2", bound_quote_id="q2",
+                       venue_id="v1", carrier_id="c1", status="active",
+                       effective_date=date(2025, 6, 20), expiration_date=date(2026, 7, 1),
+                       annual_premium=Decimal("0"), commission_amount=Decimal("0"),
+                       commission_rate=Decimal("0"), coverage_lines=["gl"]))
+    session.add(Policy(id="pol-h2", submission_id="s3", bound_quote_id="q3",
+                       venue_id="v1", carrier_id="c1", status="active",
+                       effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
+                       annual_premium=Decimal("0"), commission_amount=Decimal("0"),
+                       commission_rate=Decimal("0"), coverage_lines=["liquor"]))
+    session.commit()
+
+    risk = next(f for f in find_risk(_scope(session)) if f.subject.entity_id == "pol-h1")
+    assert risk.recommended_action.href == "/policies/pol-h1/renew"
+    assert risk.subject.href == "/policies/pol-h1"
+
+    gap = next(f for f in find_gap(_scope(session)) if f.subject.entity_id == "pol-h2")
+    assert gap.recommended_action.href.startswith(
+        "/policies/pol-h2/endorse?type=add_coverage&coverage_line=")
+    assert "gl" in gap.recommended_action.href
+    assert gap.subject.href == "/policies/pol-h2"
+
+
 def test_submission_stalled_flags_old_non_terminal(session):
     session.add(Submission(id="sub-1", venue_id="v1", status="in_market",
                            effective_date=date(2026, 7, 1),

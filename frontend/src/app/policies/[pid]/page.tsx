@@ -238,7 +238,7 @@ export default function PolicyDetailPage() {
         <div>
           <div className="submission-detail__summary-label">Coverage Lines</div>
           <div className="submission-detail__summary-value" style={{ fontSize: 12 }}>
-            {policy.coverage_lines.join(", ")}
+            {policy.coverage_lines.length ? policy.coverage_lines.join(", ") : "—"}
           </div>
         </div>
       </div>
@@ -276,72 +276,85 @@ export default function PolicyDetailPage() {
         </div>
       )}
 
-      {/* Action toolbar */}
+      {/* Action toolbar — additive actions grouped left, destructive
+          end-of-life cluster grouped right (visually separated). Exactly one
+          primary CTA per state: Renew when active, Assign-number when
+          bound_pending_number. */}
       {isActive && (
         <div className="policy-actions">
-          {policy.status === "bound_pending_number" && (
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={handleAssignNumber}
-              disabled={busy}
+          <div className="policy-actions__group">
+            {policy.status === "bound_pending_number" && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleAssignNumber}
+                disabled={busy}
+              >
+                + Assign policy number
+              </button>
+            )}
+            {policy.status === "active" && (
+              <Link
+                href={`/policies/${policy.id}/renew`}
+                className="btn btn-primary btn-sm"
+              >
+                Renew
+              </Link>
+            )}
+            <Link
+              href={`/policies/${policy.id}/endorse`}
+              className="btn btn-secondary btn-sm"
             >
-              + Assign policy number
-            </button>
-          )}
-          <Link
-            href={`/policies/${policy.id}/endorse`}
-            className="btn btn-secondary btn-sm"
-          >
-            + Endorse
-          </Link>
-          <Link
-            href={`/policies/${policy.id}/certificates/new`}
-            className="btn btn-secondary btn-sm"
-          >
-            + Issue COI
-          </Link>
-          {/* End-of-life cluster, right-aligned. Only 'active' policies can
+              + Endorse
+            </Link>
+            <Link
+              href={`/policies/${policy.id}/certificates/new`}
+              className="btn btn-secondary btn-sm"
+            >
+              + Issue COI
+            </Link>
+          </div>
+          {/* End-of-life cluster. Only 'active' policies can
               expire/non-renew/lapse; a bound_pending_number policy must be
               activated (or cancelled) first per the lifecycle matrix. */}
-          {policy.status === "active" && (
-            <>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleEndOfLife("expire")}
-                disabled={busy}
-                style={{ marginLeft: "auto" }}
-              >
-                Expire
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleEndOfLife("non-renew")}
-                disabled={busy}
-              >
-                Non-renew
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleEndOfLife("lapse")}
-                disabled={busy}
-              >
-                Lapse
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className="btn btn-danger btn-sm"
-            onClick={handleCancel}
-            disabled={busy}
-            style={policy.status === "active" ? undefined : { marginLeft: "auto" }}
-          >
-            Cancel Policy
-          </button>
+          <div className="policy-actions__group policy-actions__group--end">
+            {policy.status === "active" && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleEndOfLife("expire")}
+                  disabled={busy}
+                >
+                  Expire
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleEndOfLife("non-renew")}
+                  disabled={busy}
+                >
+                  Non-renew
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleEndOfLife("lapse")}
+                  disabled={busy}
+                >
+                  Lapse
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={handleCancel}
+              disabled={busy}
+            >
+              Cancel Policy
+            </button>
+          </div>
         </div>
       )}
 
@@ -479,7 +492,7 @@ export default function PolicyDetailPage() {
         <span>Claims ({claims?.length ?? 0})</span>
         <Link
           href={`/policies/${policy.id}/claims/new`}
-          className="btn btn-primary btn-sm"
+          className="btn btn-secondary btn-sm"
           style={{ marginLeft: "auto" }}
         >
           + File FNOL

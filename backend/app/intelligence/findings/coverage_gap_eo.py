@@ -45,7 +45,8 @@ def find(scope: FindingScope) -> list[Finding]:
             why=[Citation(source_id=pol.id, source_type="policy",
                           excerpt=f"Missing required coverage: {', '.join(missing)}.")],
             recommended_action=RecommendedAction(
-                label="Close coverage gap (E&O exposure)", href=f"/policies/{pol.id}"),
+                label="Close coverage gap (E&O exposure)",
+                href=f"/policies/{pol.id}/endorse?type=add_coverage&coverage_line={missing[0]}"),
             prediction=Prediction(
                 claim="A loss on a missing required line is an uncovered E&O exposure.",
                 falsifiable_by="claim_outcome", horizon="on_claim"),

@@ -8,6 +8,7 @@ from app.intelligence.finding import (
 )
 from app.models import Policy, PolicyRequest
 from app.schemas.domain import Citation
+from app.services.renewals import find_live_renewal
 
 WINDOW_DAYS = 60
 IN_FORCE = ("active", "bound_pending_number")
@@ -34,6 +35,11 @@ def find(scope: FindingScope) -> list[Finding]:
         ).first()
         if in_motion:
             continue
+        # The canonical broker "Renew" action creates a renewal *Submission*
+        # (prior_policy_id == pol.id), not a PolicyRequest — count it as in
+        # motion too, otherwise the finding never clears after a broker renews.
+        if find_live_renewal(scope.session, pol.id) is not None:
+            continue
         findings.append(Finding(
             id=f"renewal_at_risk:policy:{pol.id}",
             persona="broker",
@@ -44,7 +50,7 @@ def find(scope: FindingScope) -> list[Finding]:
             why=[Citation(source_id=pol.id, source_type="policy",
                           excerpt=f"Expires in {days} days, no renewal request in motion.")],
             recommended_action=RecommendedAction(
-                label="Start the renewal", href=f"/policies/{pol.id}"),
+                label="Start the renewal", href=f"/policies/{pol.id}/renew"),
             prediction=Prediction(
                 claim="Client will be uninsured at term if no renewal is placed.",
                 falsifiable_by="policy_status", horizon="expiration_date"),
