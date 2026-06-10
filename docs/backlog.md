@@ -299,13 +299,11 @@ These made the spine *incomplete*, not just unpolished:
 Postgres — the Neon class (see the Work Queue fix + `project_neon_json_string_regressions` memory).
 Grep model JSON attrs for `.get(`/iteration and coerce at the read boundary.
 
-- [ ] **Incident create drops the A&B structured fields (added 2026-06-10).** `incident_flow.py`
-  `create_brawl_incident_flow` builds `IncidentRecord(...)` field-by-field and only persists the basics
-  + `incident_category` (fixed this session); it still **drops** `parties`, `witnesses`,
-  `security_response`, `weapon_involved`, `refused_service_or_overserved`, `injury_detail` — the
-  columns exist and `IncidentCreate` accepts them, so API-created incidents silently lose them. Add
-  them to the constructor when defense-packet / underwriting fidelity needs them (heed the JSON-column
-  read-boundary coercion above). See memory `project-incident-flow-drops-ab-fields`.
+- [x] **Incident create A&B structured fields — DONE** (verified 2026-06-10). `incident_flow.py`
+  `create_brawl_incident_flow` now passes `parties`, `witnesses`, `security_response`, and
+  `weapon_involved` into the `IncidentRecord(...)` constructor (`incident_flow.py:57-60`), so
+  API-created incidents preserve the evidence-defensibility fields. (`refused_service_or_overserved`/
+  `injury_detail` follow the same pattern if a future field needs wiring.)
 
 ### 8. AI-native broker-workflow layer — audit + agent roadmap (added 2026-06-01)
 
@@ -743,27 +741,28 @@ subscription-free.
   (`login/page.tsx`) + mobile `RegisterScreen` (public sign-up = Venue Owner; demo personas reach
   broker/carrier via demo buttons), and the e2e `LoginPage.register` helper. Privileged accounts are
   still provisioned only out-of-band (Track 15 admin surface remains the proper path).
-- [ ] **★ P0 — path traversal in evidence upload (2026-06-10 audit).** `api/v1/evidence.py:66` builds
-  the storage key as `f"{evidence_id}_{file.filename}"` with the **client-controlled** filename
-  unsanitized — a `../`-bearing filename escapes `evidence_uploads/` via `LocalStorage.save`'s
-  `base_dir / key` join (`storage.py:54`); the `evidence_id` prefix does NOT neutralize a `../`
-  segment (the variable is named `safe_name` but isn't). Fix: basename + strip path separators
-  (same rule on the S3 key path); the filename also flows into `Content-Disposition` on serve —
-  escape there too (header injection). RED→GREEN traversal test.
-- [ ] **P0 — unauthenticated `/api/debug/llm-provider`** (`main.py:548`) — leaks which API keys are
-  configured (booleans only, but still) and `?test=true` burns a real LLM call: an anonymous
-  quota-drain vector that compounds the Groq 429. Gate behind `require_admin` (or prod-disable).
-- [ ] **P0 — CORS trusts all of `*.vercel.app` with credentials** (`main.py:484-491`) — the
-  `allow_origin_regex` matches ANY Vercel-hosted project on the shared domain, each able to make
-  credentialed requests; methods/headers are `*`. Pin to an env-driven exact-origin list.
-  (Was deferred "verify-first" — verified bad 2026-06-10.)
+- [x] **★ P0 — path traversal in evidence upload — FIXED 2026-06-10.** `api/v1/evidence.py` built the
+  storage key as `f"{evidence_id}_{file.filename}"` with the **client-controlled** filename
+  unsanitized — a `../`-bearing filename escaped `evidence_uploads/` (the `evidence_id` prefix only
+  neutralizes the *first* `../` segment; the var named `safe_name` didn't earn it). (Storage's
+  `_resolve_within_base` already blocked the *write* with a `ValueError` → ugly 500, and S3 keys went
+  unsanitized entirely.) Fix: one `_sanitize_filename` helper — basename (strips `/` **and** `\\` so it
+  holds on any server OS), strips control chars (CRLF/NUL) + quotes, drops leading dots so bare `..`
+  can't survive — applied to the storage key, the stored `EvidenceFile.filename`, **and** re-applied at
+  serve to `Content-Disposition` (defense-in-depth for pre-fix rows / header injection). RED→GREEN:
+  `tests/test_evidence_path_traversal.py` (traversal basename + backslash separators + header injection).
+- [x] **P0 — unauthenticated `/api/debug/llm-provider` — DONE** (verified 2026-06-10): the route at
+  `main.py:553` is now gated `dependencies=[Depends(require_broker)]`.
+- [x] **P0 — CORS no longer trusts all of `*.vercel.app` — DONE** (verified 2026-06-10): the
+  `allow_origin_regex` at `main.py:492` is pinned to `https://nightline-app[a-z0-9-]*\.vercel\.app`
+  (this project's own preview subdomains) + the `exp://` LAN pattern, not the whole shared domain.
 - [ ] **Upload content-type validation** — size limits exist (20MB image / 200MB video,
   `evidence.py:30-31`) but MIME type is client-supplied: no magic-byte sniffing, no extension
   allowlist; arbitrary bytes labeled `image/png` flow into vision analysis. Add server-side sniff +
   allowlist. (Was deferred "verify-first" — limits verified present, type validation verified absent.)
-- [ ] **`DATABASE_URL` startup guard** — `validate_startup_env()` only checks `APP_SECRET`; a prod
-  boot without `DATABASE_URL` silently runs on ephemeral SQLite (the known trap, currently unguarded).
-  One-line fail-fast in prod.
+- [x] **`DATABASE_URL` startup guard — DONE** (verified 2026-06-10): `validate_startup_env()`
+  (`config.py:37`) now fails fast in prod when `DATABASE_URL` is unset, so a prod boot can no longer
+  silently fall back to ephemeral SQLite.
 - [ ] **Rate limiting** — none anywhere in `backend/`. Login is brute-forceable and `/copilot` lets
   any token burn the LLM quota (the Groq 429 problem is partly self-inflictable). slowapi (or a
   small middleware) on auth + copilot endpoints first, then global sane defaults.
@@ -998,11 +997,12 @@ bridge = unoccupied white space) and **flagged one reframe** (documentation→pr
 unvalidated — sell defensibility, not cheaper premiums). Everything below except 🔒 sub-items is
 subscription-free.
 
-0. **★ SAME-DAY — security/correctness P0 sweep (Track 13 + 7c):** evidence-upload **path
-   traversal** fix + auth on **`/api/debug/llm-provider`** + **CORS origin pinning** +
-   **`DATABASE_URL` startup guard** + the **7c A&B field drop** in `incident_flow.py` (the audit
-   rates losing `weapon_involved`/`injury_detail`/`witnesses` as *thesis-level* for an
-   evidence-defensibility product). Each is small; together ~one session with RED→GREEN tests.
+0. ✅ **DONE 2026-06-10 — security/correctness P0 sweep (Track 13 + 7c):** evidence-upload **path
+   traversal** fixed this session (RED→GREEN `test_evidence_path_traversal.py`); auth on
+   **`/api/debug/llm-provider`** (`require_broker`), **CORS origin pinning** (own-subdomain regex),
+   **`DATABASE_URL` startup guard** (`config.py`), and the **7c A&B field drop** in `incident_flow.py`
+   were all verified already-shipped. Next P0-class items now live under Track 13 hardening core
+   (rate limiting / lockout / token revocation / idempotency + row-locking / upload content-type sniff).
 1. **CI honesty fixes (Track 4):** point CI at `test:unit` + add `eslint` to the frontend job
    (~30 min — the Vitest suite currently never runs in CI), then stand up the **Postgres-fidelity
    lane** (structurally kills the Neon JSON-string class instead of sweeping it reactively).

@@ -13,6 +13,7 @@ collapse into a services/evidence.py module after Phase B completes.
 from __future__ import annotations
 
 import hashlib
+import re
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -29,6 +30,28 @@ router = APIRouter()
 
 MAX_IMAGE_SIZE = 20 * 1024 * 1024   # 20MB
 MAX_VIDEO_SIZE = 200 * 1024 * 1024  # 200MB
+
+# CRLF / NUL / other control chars — a filename carrying these injects into the
+# `Content-Disposition` header on serve.
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _sanitize_filename(raw: str | None) -> str:
+    """Reduce a client-supplied filename to a safe basename.
+
+    Defends two sinks with one rule: the storage key (path traversal — a
+    `../`-bearing name escaping the evidence root; the `evidence_id` prefix only
+    neutralizes the *first* segment) and the `Content-Disposition` header on
+    serve (CRLF / quote injection). Strips directory components (both `/` and
+    `\\`, so it holds regardless of server OS), control chars, and quotes;
+    drops leading dots/space so bare `..` can't survive; falls back to "upload".
+    """
+    if not raw:
+        return "upload"
+    basename = raw.replace("\\", "/").split("/")[-1]
+    cleaned = _CONTROL_CHARS.sub("", basename).replace('"', "")
+    cleaned = cleaned.lstrip(". ").strip()
+    return cleaned or "upload"
 
 
 @router.post("/incidents/{incident_id}/evidence", status_code=201)
@@ -63,7 +86,10 @@ async def upload_evidence(
     from app.main import _process_evidence_sync
 
     evidence_id = f"ev-{uuid4().hex[:12]}"
-    safe_name = f"{evidence_id}_{file.filename}"
+    # Sanitize BEFORE building the storage key — the raw client filename can carry
+    # `../` (path traversal) or CRLF/quotes (Content-Disposition injection on serve).
+    safe_filename = _sanitize_filename(file.filename)
+    safe_name = f"{evidence_id}_{safe_filename}"
 
     contents = await file.read()
     max_size = MAX_VIDEO_SIZE if (file.content_type or "").startswith("video/") else MAX_IMAGE_SIZE
@@ -82,7 +108,7 @@ async def upload_evidence(
     evidence = EvidenceFile(
         id=evidence_id,
         incident_id=incident_id,
-        filename=file.filename or "upload",
+        filename=safe_filename,
         content_type=file.content_type or "application/octet-stream",
         file_path=file_ref,
         file_size=len(contents),
@@ -223,13 +249,16 @@ def serve_evidence(
         )
     # Local backend → FileResponse (efficient); remote backend (local_path None)
     # → stream the bytes through read().
+    # Defense-in-depth: sanitize again at serve so a row written before the
+    # upload-time fix (or by another path) can't inject into the header.
+    download_name = _sanitize_filename(ev.filename)
     local = storage.local_path(ev.file_path)
     if local is not None:
-        return FileResponse(str(local), media_type=ev.content_type, filename=ev.filename)
+        return FileResponse(str(local), media_type=ev.content_type, filename=download_name)
     return StreamingResponse(
         iter([storage.read(ev.file_path)]),
         media_type=ev.content_type,
-        headers={"Content-Disposition": f'attachment; filename="{ev.filename}"'},
+        headers={"Content-Disposition": f'attachment; filename="{download_name}"'},
     )
 
 
