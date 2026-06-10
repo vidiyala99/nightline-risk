@@ -8,6 +8,8 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
 from app.auth import create_token
 from app.database import get_session
@@ -29,14 +31,33 @@ def _operator_headers():
 
 
 @pytest.fixture
-def client():
+def _engine():
+    # Isolated in-memory DB so this test never writes its fixture rows
+    # (tasks-venue-a / pol-tasks-soon) into the real database.db. StaticPool keeps
+    # the single in-memory connection alive across sessions.
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    SQLModel.metadata.create_all(engine)
+    return engine
+
+
+@pytest.fixture
+def client(_engine):
+    def _override():
+        with Session(_engine) as s:
+            yield s
+    app.dependency_overrides[get_session] = _override
     with TestClient(app) as c:
         yield c
+    app.dependency_overrides.pop(get_session, None)
 
 
 @pytest.fixture(autouse=True)
-def _seed():
-    s = next(get_session())
+def _seed(_engine):
+    s = Session(_engine)
     try:
         if not s.get(UserRecord, BROKER_ID):
             s.add(UserRecord(id=BROKER_ID, email="b@x.com", password_hash="x", name="B", role="broker"))
