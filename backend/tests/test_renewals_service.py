@@ -138,6 +138,19 @@ def test_create_renewal_falls_back_to_policy_when_prior_submission_missing(sessi
     assert renewal.venue_id == "v1"
 
 
+def test_create_renewal_unknown_venue_raises_renewals_error(session):
+    # A policy referencing a venue that no longer resolves must surface a typed
+    # RenewalsError (router -> 400 with a message), NOT an unmapped
+    # SubmissionsError that escapes as a 500 the frontend can't display.
+    pol = _make_active_policy(session, pid="pol-novenue")
+    pol.venue_id = "ghost-venue"
+    pol.submission_id = "ghost-sub"
+    session.add(pol)
+    session.flush()
+    with pytest.raises(RenewalsError):
+        create_renewal(session, "pol-novenue", effective_date=date(2026, 1, 1))
+
+
 def test_create_renewal_rejects_non_active_policy(session):
     _seed_prior_submission(session)
     pol = _make_active_policy(session, pid="pol-cancelled")

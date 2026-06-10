@@ -22,7 +22,7 @@ from app.lifecycles import SUBMISSION_TERMINAL_STATES
 from app.models import Claim, Policy, Submission
 from app.money import usd
 from app.packet_core import _add_audit_event
-from app.services.submissions import create_submission
+from app.services.submissions import SubmissionsError, create_submission
 
 # A renewal submission that fell through frees the policy to be re-renewed.
 # "Lost / declined / withdrawn" are the dead-end terminal states; "bound" is
@@ -135,16 +135,21 @@ def create_renewal(
         requested_limits = {}
         producer_id = None
 
-    sub = create_submission(
-        session,
-        venue_id=policy.venue_id,
-        effective_date=effective_date,
-        coverage_lines=coverage_lines,
-        requested_limits=requested_limits,
-        producer_id=producer_id,
-        notes=f"Renewal of {policy_id}",
-        actor_id=actor_id,
-    )
+    try:
+        sub = create_submission(
+            session,
+            venue_id=policy.venue_id,
+            effective_date=effective_date,
+            coverage_lines=coverage_lines,
+            requested_limits=requested_limits,
+            producer_id=producer_id,
+            notes=f"Renewal of {policy_id}",
+            actor_id=actor_id,
+        )
+    except SubmissionsError as e:
+        # Keep the renewals service's error contract unified — the router maps
+        # RenewalsError -> 400; don't let another domain's error escape as a 500.
+        raise RenewalsError(str(e))
     sub.prior_policy_id = policy_id
     session.add(sub)
     session.flush()
