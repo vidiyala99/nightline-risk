@@ -29,6 +29,16 @@ The provider-backed wiring is gated by a regression eval harness (`app/evals/`, 
 - `customer_action_agent.md`: converts underwriting gaps into venue/customer-facing evidence tasks.
 - `claims_timeline_agent.md`: reconstructs a source-backed claims defensibility chronology.
 
+### Standalone agent contracts (not in `REQUIRED_CONTRACTS`)
+
+These run outside the packet runtime (the evidence pipeline / claim routing), so
+they are documented + eval-gated but not loaded by `runtime._load_contracts`:
+
+- `fraud_agent.md`: deterministic fraud/SIU scoring; eval `app/evals/fraud_scorer.py`.
+- `vision_agent.md`: Gemini 2.5 Flash (with deterministic template fallback) visual
+  findings feeding risk scoring + fraud; eval `app/evals/vision_scorers.py`
+  (routing / honesty / mapping, all key-free).
+
 ## Future Runtime Integration
 
-Provider setup, the deterministic-fallback boundary, and regression evals now exist (done). Remaining work: route the still-deterministic steps (retrieval, customer-action, claims-timeline) through the provider layer where an LLM adds value, and fold the vision/corroboration agents into the same eval-gated contract. Any new provider-backed step should land behind the eval baseline gate, same as the memo and risk-evaluator steps.
+Provider setup, the deterministic-fallback boundary, and regression evals now exist (done). Remaining work: route the still-deterministic steps (retrieval, customer-action, claims-timeline) through the provider layer where an LLM adds value. The vision agent is now folded into the eval-gated contract (`vision_agent.md` + `app/evals/vision_scorers.py`); the deterministic corroboration/orchestration workers are governed by code + tests (no `.md` warranted). Any new provider-backed step should land behind the eval baseline gate, same as the memo and risk-evaluator steps.

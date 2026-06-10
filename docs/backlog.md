@@ -829,21 +829,20 @@ All subscription-free except 🔒.
 - [ ] **Closed-loop MEASURE → RECALIBRATE** — the Risk Intelligence loop today is
   SURFACE→RECOMMEND→ACT only; the measuring/recalibrating phases from the design doc are unbuilt.
   (SP4 LLM-as-judge slots here, 🔒 for the judge model.)
-- [ ] **★ Vision-agent contract + eval gate** — the **only ungoverned LLM-factual-output path** in
-  the product. `app/agents/vision_agent.py` runs **Gemini 2.5 Flash on uploaded images/video** (when
-  `GEMINI_API_KEY` is set) and emits factual findings — injury detail, crowd density, security
-  response time, hazards — that flow downstream into **risk scoring AND fraud detection**. But its
-  prompt is inline in the `.py` with **no `.md` contract and no eval scorer**, unlike the 5 packet
-  agents whose contracts `runtime.py:_CONTRACTS` loads at runtime. `app/agents/README.md` already
-  flags this ("fold the vision/corroboration agents into the same eval-gated contract"). Fix: add
-  `app/agents/vision_agent.md`, register it in `_CONTRACTS`, load it the same way; add a vision eval
-  scorer + fixtures in `app/evals/` under the baseline / `--compare-baseline` CI gate. Closes the
-  README's own TODO, removes the last ungoverned LLM path, and extends the "every AI output carries a
-  contract + is eval-gated" governance story (Theme C / NAIC). Pairs with AI-provenance stamping
-  above. **Scope note:** corroboration + orchestration workers are deterministic (contract = code +
-  tests, no `.md` warranted); copilot is already governed via `prompts.py` + the faithfulness guard +
-  copilot eval scorers — different format, not a gap. Vision is the only agent on the wrong side of
-  the "LLM produces a factual claim" line.
+- [x] **★ Vision-agent contract + eval gate — DONE 2026-06-10.** The vision agent was the **only
+  ungoverned LLM-factual-output path** (`vision_agent.py` runs Gemini 2.5 Flash on uploaded media →
+  injury detail / crowd density / security / hazards → **risk scoring AND fraud detection**), with the
+  prompt inline and no `.md`/eval. Shipped, mirroring the **fraud-agent precedent** (standalone
+  contract, *not* `REQUIRED_CONTRACTS` — vision runs in the evidence pipeline, not the packet runtime,
+  so the 5-agent trace test stays intact): `app/agents/vision_agent.md` (runtime status + output
+  contract + honesty invariant) + `app/evals/vision_scorers.py` (deterministic, **key-free**, sibling
+  of `fraud_scorer.py`) with three scored dimensions — **routing** (summary → correct finding family),
+  **honesty** (template path always `_stamp_unverified`'d → can't claim unperformed corroboration), and
+  **mapping** (the Gemini→dataclass clamp forces `security_response_seconds`/`timestamp_in_exif` to
+  None and binds `confidence_delta` to the verdict, so the LLM can't inject score-moving integrity
+  fields). RED→GREEN `tests/test_vision_eval.py` (3 tests, all 1.0); `agents/README.md` TODO closed.
+  **Pytest-gated like its siblings** (fraud/comms/intelligence) — promotion into the
+  `--compare-baseline` CI gate is the batched recommended-order #6 item, not per-scorer here.
 - [ ] 🔒 **One reliably-live LLM path in prod** — the deterministic floor is a floor, not a ceiling:
   prod copilot currently template-falls-back on *every* question. Now: Groq model swap + gating +
   retry (Track 11 ops/code). With keys: small-budget `ANTHROPIC_API_KEY` (Haiku covers demo traffic
@@ -1012,11 +1011,11 @@ subscription-free.
    (Track 14) — same code surface, one session. Audit framing: prod copilot is currently
    deterministic-only on every question; telemetry turns that from a silent liability into a
    measured fallback-rate you can demo.
-3. **Vision-agent contract + eval gate** (Track 14 ★) — **pulled up**: the audit ranked it the
-   single highest pitch-value-per-effort item. It's the only ungoverned LLM-factual-output path
-   (Gemini on uploaded media → findings feeding risk scoring AND fraud detection, no contract, no
-   evals) and closing it makes "every AI factual output is contract-bound + eval-gated" literally
-   true end-to-end. Already scoped in `agents/README.md`.
+3. ✅ **DONE 2026-06-10 — Vision-agent contract + eval gate** (Track 14 ★): `vision_agent.md` +
+   `app/evals/vision_scorers.py` (key-free routing/honesty/mapping scorers) + `test_vision_eval.py`,
+   mirroring the fraud-agent precedent. The last ungoverned LLM-factual path is now contract-bound +
+   eval-gated, so "every AI factual output is contract-bound + eval-gated" is literally true
+   end-to-end. (Also the key-day prerequisite: `GEMINI_API_KEY` can now be set safely behind the gate.)
 4. **Track 14 core — provenance stamping + correction flywheel** — ~2-3 days combined,
    subscription-free, and it upgrades *every already-shipped* AI feature (memo, fraud, copilot)
    from "has evals" to "auditable + learning in prod." The flywheel is the AI-native
