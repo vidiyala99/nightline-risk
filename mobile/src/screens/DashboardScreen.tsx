@@ -15,6 +15,7 @@ import { api } from '../api/client';
 import { StatCard } from '../components/StatCard';
 import { QuickActionTile } from '../components/QuickActionTile';
 import { OnboardingCard } from '../components/OnboardingCard';
+import { ExposureCard } from '../components/ExposureCard';
 import { tierColor as getTierColor } from '../theme/tiers';
 import { normalizeFactors, riskAttentionLine, factorGlyph } from '../lib/format';
 
@@ -354,6 +355,9 @@ export function DashboardScreen({ navigation }: any) {
         />
       </View>
 
+      {/* What needs your attention — deterministic exposure feed (web parity) */}
+      <ExposureCard />
+
       {/* On the floor — live operational state (operator-only; capacity is
           gated server-side via can_read_venue_floor). Mirrors web dashboard. */}
       {showFloor && (
@@ -509,6 +513,7 @@ export function DashboardScreen({ navigation }: any) {
       {/* Coverage entry — operator's policy + request surface (nested in DashboardStack) */}
       <View style={styles.actionRow}>
         <QuickActionTile label="MY COVERAGE" onPress={() => navigation.navigate('Coverage')} />
+        <QuickActionTile label="ASK COPILOT" onPress={() => navigation.getParent()?.navigate('More', { screen: 'Copilot' })} />
       </View>
 
       {/* Risk Profile card */}

@@ -24,6 +24,7 @@ import { ReportIncidentScreen } from '../screens/ReportIncidentScreen';
 import { BrokerComplianceScreen } from '../screens/BrokerComplianceScreen';
 import { LossRunScreen } from '../screens/LossRunScreen';
 import { CommsReviewScreen } from '../screens/CommsReviewScreen';
+import { CopilotScreen } from '../screens/CopilotScreen';
 
 // Overflow destinations live under the "More" tab as a nested stack rather than
 // as hidden tabs — a hidden tab still reserves its flex slot and leaves dead
@@ -35,6 +36,7 @@ export function OperatorMoreStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreHome" component={MoreScreen} />
+      <Stack.Screen name="Copilot" component={CopilotScreen} />
       <Stack.Screen name="Alerts" component={AlertsScreen} />
       <Stack.Screen name="Live" component={LiveStack} />
       <Stack.Screen name="Venues" component={VenuesStack} />

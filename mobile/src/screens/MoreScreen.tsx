@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Activity, AlertTriangle, CheckSquare, FileText, FileSearch, Building2, FileSpreadsheet, Bell, ListChecks, MapPin, Database, Settings, TrendingUp, Users, Inbox } from 'lucide-react-native';
+import { ChevronRight, Activity, AlertTriangle, CheckSquare, FileText, FileSearch, Building2, FileSpreadsheet, Bell, ListChecks, MapPin, Database, Settings, TrendingUp, Users, Inbox, Sparkles } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,6 +9,7 @@ type LucideIcon = typeof Activity;
 type Row = { route: string; label: string; description: string; icon: LucideIcon };
 
 const OPERATOR_OVERFLOW: Row[] = [
+  { route: 'Copilot', label: 'Copilot', description: 'Ask the AI about your venue', icon: Sparkles },
   { route: 'Alerts', label: 'Alerts', description: 'Real-time liability detections', icon: Bell },
   { route: 'Live', label: 'Live Terminal', description: 'Real-time venue floor activity', icon: Activity },
   { route: 'Venues', label: 'Venues', description: 'Your venue profile & roster', icon: Building2 },
