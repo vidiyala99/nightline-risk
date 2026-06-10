@@ -119,6 +119,25 @@ def test_create_renewal_carries_forward_terms(session):
     assert any(e.event_type == "submission.renewal_created" for e in events)
 
 
+def test_create_renewal_falls_back_to_policy_when_prior_submission_missing(session):
+    # A policy whose originating submission is gone (imported / migrated / seeded
+    # / purged) must still renew — the in-force policy is the source of truth, so
+    # we carry forward its own coverage lines rather than hard-failing.
+    import json as _json
+    session.add(Venue(id="v1", name="Test Venue", venue_data=_json.dumps({"name": "Test Venue"})))
+    pol = _make_active_policy(session, pid="pol-nosub")
+    pol.submission_id = "ghost-sub"          # references a Submission that doesn't exist
+    pol.coverage_lines = ["gl", "liquor"]
+    session.add(pol)
+    session.flush()
+
+    renewal = create_renewal(session, "pol-nosub", effective_date=date(2026, 1, 1))
+    assert renewal.status == "open"
+    assert renewal.prior_policy_id == "pol-nosub"
+    assert renewal.coverage_lines == ["gl", "liquor"]
+    assert renewal.venue_id == "v1"
+
+
 def test_create_renewal_rejects_non_active_policy(session):
     _seed_prior_submission(session)
     pol = _make_active_policy(session, pid="pol-cancelled")

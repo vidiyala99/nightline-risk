@@ -17,6 +17,7 @@ from decimal import Decimal
 
 from sqlmodel import Session, select
 
+from app.defense_package import _as_list
 from app.lifecycles import SUBMISSION_TERMINAL_STATES
 from app.models import Claim, Policy, Submission
 from app.money import usd
@@ -117,17 +118,30 @@ def create_renewal(
             f"Policy {policy_id} already has a renewal in flight "
             f"({existing.id}, status {existing.status!r}); resolve it first"
         )
-    prior_sub = session.get(Submission, policy.submission_id)
-    if prior_sub is None:
-        raise RenewalsError(f"Prior submission {policy.submission_id} missing")
+    # Carry forward from the originating submission when it still exists (richest
+    # data: requested limits + producer). Otherwise fall back to the in-force
+    # policy itself — a policy may be imported/migrated or have its originating
+    # submission purged, and the policy is the source of truth for what's covered.
+    prior_sub = (
+        session.get(Submission, policy.submission_id)
+        if policy.submission_id else None
+    )
+    if prior_sub is not None:
+        coverage_lines = prior_sub.coverage_lines
+        requested_limits = prior_sub.requested_limits
+        producer_id = prior_sub.assigned_producer_id
+    else:
+        coverage_lines = _as_list(policy.coverage_lines)
+        requested_limits = {}
+        producer_id = None
 
     sub = create_submission(
         session,
         venue_id=policy.venue_id,
         effective_date=effective_date,
-        coverage_lines=prior_sub.coverage_lines,
-        requested_limits=prior_sub.requested_limits,
-        producer_id=prior_sub.assigned_producer_id,
+        coverage_lines=coverage_lines,
+        requested_limits=requested_limits,
+        producer_id=producer_id,
         notes=f"Renewal of {policy_id}",
         actor_id=actor_id,
     )
