@@ -45,9 +45,14 @@ house rules so layout is decided **once** and applied consistently, not per page
 
 ## Rollout checklist (apply the shell + sticky action + format rules)
 
-- [x] `policies/[pid]/endorse` — reference (two-pane summary, sticky bar, collapse, format)
-- [ ] `policies/[pid]/renew` — confirm screen → two-pane (renewal YoY summary on the right)
-- [ ] `policies/[pid]/certificates/new` (Issue COI) — two-pane + sticky action
-- [ ] `policies/[pid]/claims/new` (FNOL) — two-pane + sticky action
+- [x] `policies/[pid]/endorse` — reference (two-pane summary + policy context, action-rail, collapse, format)
+- [x] `policies/[pid]/certificates/new` (Issue COI) — two-pane (certificate summary + policy context)
+- [x] `policies/[pid]/claims/new` (FNOL) — two-pane (claim summary + policy context)
+- [n/a] `policies/[pid]/renew` — retired; renewal is now one-click (creates the submission, lands there, Undo toast) — no form to lay out
 - [ ] `submissions/new` + `submissions/[sid]` edit-terms — apply form-shell where it's a single column today
 - [ ] audit other single-column form pages against rules 1–6
+
+**Action + return pattern (shipped on all three):** every mutating submit fires a
+success toast and lands on a destination that matches the flow it started in
+(endorse: dashboard if from a gap card, else policy; FNOL: the new claim; COI: the
+policy where the cert appears).

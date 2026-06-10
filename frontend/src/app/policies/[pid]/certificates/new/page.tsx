@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PlacementApiError } from "@/lib/placement";
+import { PlacementApiError, formatCurrency } from "@/lib/placement";
 import { Policy, policiesApi } from "@/lib/policies";
 import { toastSuccess } from "@/lib/toast";
 
@@ -63,7 +63,7 @@ export default function IssueCertificatePage() {
   };
 
   return (
-    <div className="submission-wizard">
+    <div className="submission-wizard submission-wizard--wide">
       <PageHeader
         eyebrow="Policy"
         title="Issue Certificate of Insurance"
@@ -74,7 +74,8 @@ export default function IssueCertificatePage() {
         }
       />
 
-      <form className="submission-wizard__form" onSubmit={submit}>
+      <div className="form-shell">
+      <form id="coi-form" className="submission-wizard__form" onSubmit={submit}>
         {error && <div className="submission-wizard__error">{error}</div>}
 
         <div className="submission-wizard__field">
@@ -154,7 +155,10 @@ export default function IssueCertificatePage() {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+      </form>
+
+      <aside className="form-summary">
+        <div className="form-summary__actions">
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -163,11 +167,30 @@ export default function IssueCertificatePage() {
           >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
+          <button type="submit" form="coi-form" className="btn btn-primary btn-sm" disabled={busy}>
             {busy ? "Issuing…" : "Issue Certificate"}
           </button>
         </div>
-      </form>
+        <div className="form-summary__title">Certificate</div>
+        <dl style={{ margin: 0 }}>
+          <div className="form-summary__row"><dt>Holder</dt><dd>{holder.trim() || "—"}</dd></div>
+          <div className="form-summary__row"><dt>Expires</dt><dd>{expiresOn || "—"}</dd></div>
+          <div className="form-summary__row"><dt>Add&apos;l insured</dt><dd>{ai ? aiScope.replace(/_/g, " ") : "No"}</dd></div>
+        </dl>
+        {policy && (
+          <div className="form-summary__section">
+            <div className="form-summary__title">Current policy</div>
+            <dl style={{ margin: 0 }}>
+              <div className="form-summary__row"><dt>Policy</dt><dd>{policy.policy_number || policy.id}</dd></div>
+              <div className="form-summary__row"><dt>Venue</dt><dd>{policy.venue_id}</dd></div>
+              <div className="form-summary__row"><dt>Coverage</dt><dd>{policy.coverage_lines.length ? policy.coverage_lines.join(", ") : "—"}</dd></div>
+              <div className="form-summary__row"><dt>Premium</dt><dd>{formatCurrency(policy.annual_premium)}</dd></div>
+              <div className="form-summary__row"><dt>Expires</dt><dd>{policy.expiration_date}</dd></div>
+            </dl>
+          </div>
+        )}
+      </aside>
+      </div>
     </div>
   );
 }

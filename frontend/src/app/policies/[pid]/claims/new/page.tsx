@@ -161,7 +161,7 @@ export default function FileFnolPage() {
   }
 
   return (
-    <div className="claim-fnol">
+    <div className="claim-fnol" style={{ maxWidth: 960 }}>
       <PageHeader
         eyebrow="FNOL"
         title="File a carrier claim"
@@ -182,7 +182,8 @@ export default function FileFnolPage() {
         <span aria-current="page">File FNOL</span>
       </nav>
 
-      <form className="claim-form claim-fnol__form" onSubmit={submit} noValidate>
+      <div className="form-shell">
+      <form id="fnol-form" className="claim-form claim-fnol__form" onSubmit={submit} noValidate>
         <fieldset className="claim-form__group">
           <legend className="claim-form__group-title">Loss details</legend>
 
@@ -369,15 +370,33 @@ export default function FileFnolPage() {
           </div>
         )}
 
-        <div className="claim-form__actions claim-form__actions--bar">
-          <Link href={`/policies/${pid}`} className="btn btn-sm btn-ghost">
+      </form>
+
+      <aside className="form-summary">
+        <div className="form-summary__actions">
+          <Link href={`/policies/${pid}`} className="btn btn-sm btn-secondary">
             Cancel
           </Link>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
+          <button type="submit" form="fnol-form" className="btn btn-primary btn-sm" disabled={submitting}>
             {submitting ? "Filing…" : "File FNOL"}
           </button>
         </div>
-      </form>
+        <div className="form-summary__title">Claim</div>
+        <dl style={{ margin: 0 }}>
+          <div className="form-summary__row"><dt>Coverage</dt><dd>{coverageLine ? coverageLine.toUpperCase() : "—"}</dd></div>
+          <div className="form-summary__row"><dt>Date of loss</dt><dd>{dateOfLoss || "—"}</dd></div>
+        </dl>
+        <div className="form-summary__section">
+          <div className="form-summary__title">Against policy</div>
+          <dl style={{ margin: 0 }}>
+            <div className="form-summary__row"><dt>Policy</dt><dd>{policy.policy_number ?? policy.id}</dd></div>
+            <div className="form-summary__row"><dt>Venue</dt><dd>{policy.venue_id}</dd></div>
+            <div className="form-summary__row"><dt>Coverage</dt><dd>{policy.coverage_lines.join(", ").toUpperCase()}</dd></div>
+            <div className="form-summary__row"><dt>Term</dt><dd>{policy.effective_date} – {policy.expiration_date}</dd></div>
+          </dl>
+        </div>
+      </aside>
+      </div>
     </div>
   );
 }
