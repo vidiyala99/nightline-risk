@@ -13,10 +13,6 @@ export class LoginPage {
   readonly nameInput: Locator;
   readonly submitButton: Locator;
 
-  // Role picker (sign-up only)
-  readonly venueOwnerRoleButton: Locator;
-  readonly brokerRoleButton: Locator;
-
   // Inline error banner
   readonly errorBanner: Locator;
 
@@ -33,9 +29,6 @@ export class LoginPage {
     this.nameInput = page.locator('input[placeholder="Your name"]');
 
     this.submitButton = page.locator('button[type="submit"]');
-
-    this.venueOwnerRoleButton = page.locator(".lc-login__role-cell", { hasText: "Venue Owner" });
-    this.brokerRoleButton = page.locator(".lc-login__role-cell", { hasText: "Broker" });
 
     // The .lc-login__error div rendered when state.error is set
     this.errorBanner = page.locator(".lc-login__error");
@@ -57,16 +50,13 @@ export class LoginPage {
     await this.createAccountTab.click();
   }
 
-  async register(name: string, email: string, password: string, role: "venue_operator" | "broker" = "venue_operator") {
+  // Public sign-up always creates a venue operator (no role picker; backend
+  // ignores any client-supplied role — escalation guard).
+  async register(name: string, email: string, password: string) {
     await this.switchToCreateAccount();
     await this.nameInput.fill(name);
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
-    if (role === "broker") {
-      await this.brokerRoleButton.click();
-    } else {
-      await this.venueOwnerRoleButton.click();
-    }
     await this.submitButton.click();
   }
 }

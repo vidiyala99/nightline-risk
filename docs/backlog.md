@@ -107,6 +107,30 @@ Last updated: 2026-06-09.
 - [ ] Add eval coverage that pins the deterministic-mode quality (ties into track 1).
 
 ### 4. Test-coverage expansion
+
+**Test infrastructure — speed + selection (shipped 2026-06-09):** the backend suite (~1,314
+tests) ran in **37 min** with no way to run a subset. Root cause was per-test cost, dominated by
+bcrypt (default 12 rounds in every seed + auth test), on a single shared `database.db` with
+pytest-xdist installed-but-unused. Shipped:
+- [x] **Cheap bcrypt under `TESTING`** (`app.auth._bcrypt_rounds`, flag set in `tests/conftest.py`)
+  — 4 rounds in tests (verification is cost-agnostic). Full suite **37 min → ~3.5 min (11×)**; auth
+  files 168 s → 8.5 s. RED→GREEN test (`test_password_hash_cost.py`).
+- [x] **Auto `unit`/`integration` tiers** — `conftest.pytest_collection_modifyitems` tags by source
+  (TestClient/get_session/tables → integration, else unit); zero per-file labels. `pytest -m unit` =
+  880 tests / ~30 s inner loop. Markers registered in `pytest.ini` (`--strict-markers`).
+- [x] **Change-aware selector** `scripts/affected_tests.py` — git diff → only the test files that
+  transitively import the changed `app.*` modules (`--run` executes them). Honest blast radius (a
+  change to `auth` selects ~half the suite because it's imported everywhere; a leaf service selects a
+  handful). Workflow doc: `backend/docs/testing.md`.
+- [ ] **Deferred (no longer urgent at a 3.5-min suite; tracked):** per-test DB isolation +
+  `pytest-xdist -n auto`. Would make the suite deterministic (kills the shared-`database.db` ordering
+  flake — `test_evidence_tenant_isolation` / `test_ingestion_runs_api` pass in isolation but can fail
+  in full-suite order when accumulated rows overflow a limited query window) and parallel (~sub-minute).
+  Carries 121-file regression risk (some tests may rely on accumulation) → do deliberately with
+  full-suite checkpoints, not a big-bang. Approach: extract lifespan seeding into a reusable
+  `seed_runtime(session)`, function-scoped autouse reset (file-copy restore of a per-worker seeded
+  template), per-worker in-memory/temp DB so xdist workers don't collide.
+
 - [ ] Frontend: component/integration tests beyond the `account`/`market` unit tests; broaden the 6 Playwright e2e specs.
 - [ ] Enable the skipped `frontend/e2e/settings.spec.ts` once the backend deploy includes the auth endpoints (it's `describe.skip` pending deploy).
 - [ ] Mobile: tests beyond `format.ts` helpers (lightweight, given Expo render-test flakiness).
@@ -610,13 +634,21 @@ Robustness audit finding: the *enforcement* layers (require_* gates, lifecycle t
 gates) are rigorous, but entry points and ops robustness lag behind. P0 first; everything here is
 subscription-free.
 
-- [ ] **★ P0 — `/register` privilege escalation (real vuln, same-day fix).**
-  `RegisterRequest.role` is client-supplied and unvalidated (`app/auth.py:248-289`): anyone can
-  POST `{"role": "carrier"}` (or broker/staff) and mint a valid privileged token, bypassing every
-  `require_broker`/`require_carrier` gate. Fix: public registration **forces `venue_operator`**
-  (ignore the field); privileged roles created only via an authed admin path (Track 15 admin
-  surface; interim: a guarded script). + RED→GREEN regression test. Audit siblings while in there:
-  grep every code path that mints a token or sets role/tenant_id.
+- [x] **★ P0 — `/register` privilege escalation — FIXED 2026-06-09.**
+  `RegisterRequest.role` was client-supplied and unvalidated: anyone could POST `{"role": "carrier"}`
+  (or broker/admin/staff) and mint a privileged token bypassing every `require_*` gate. Fix:
+  **removed `role` from `RegisterRequest`** (Pydantic drops a posted role) and the `/register` route
+  now hardcodes `register_user(..., "venue_operator", ...)` — `register_user` itself stays
+  role-flexible for the future authed admin/seed path. RED→GREEN regression test
+  (`tests/test_register_role_escalation.py`: 4 escalation params × carrier/broker/admin/staff +
+  default-is-operator, asserts both the user record **and** the minted token are venue_operator).
+  **Sibling-path audit (done):** the only client-controllable role-minting path was `/register`;
+  `login` reads role from the authenticated DB record, `seed_users` uses the server-side `DEMO_USERS`
+  constant, and `create_staff_account` hardcodes `role="staff"` behind a venue-ownership gate. Front
+  door closed too: removed the broker/carrier role picker from the web signup form
+  (`login/page.tsx`) + mobile `RegisterScreen` (public sign-up = Venue Owner; demo personas reach
+  broker/carrier via demo buttons), and the e2e `LoginPage.register` helper. Privileged accounts are
+  still provisioned only out-of-band (Track 15 admin surface remains the proper path).
 - [ ] **Rate limiting** — none anywhere in `backend/`. Login is brute-forceable and `/copilot` lets
   any token burn the LLM quota (the Groq 429 problem is partly self-inflictable). slowapi (or a
   small middleware) on auth + copilot endpoints first, then global sane defaults.
@@ -766,8 +798,8 @@ Updated 2026-06-09 (evening). New since last ordering: code-audit + AI-native ga
 12 **Theme G** (commercial-wide delta). Everything below except the 🔒 sub-items is
 subscription-free.
 
-0. **★ SAME-DAY — Track 13 P0:** `/register` role-escalation fix + regression test + sibling-path
-   audit. A real vuln that bypasses every persona gate; hours, not days. Do before anything else.
+0. ~~**★ SAME-DAY — Track 13 P0:** `/register` role-escalation fix + regression test + sibling-path
+   audit.~~ ✅ **DONE 2026-06-09** — see Track 13. Next-up is now item 1 (Copilot thread).
 1. **Finish the Copilot thread** (Track 11 + the Track 14 riders) — (a) *ops, you:* swap
    `COPILOT_LLM_MODEL` → `llama-3.1-8b-instant` on Railway; (b) LLM gating + 429 retry/caching;
    (c) while in the provider/UI files: **streaming + feedback buttons + LLM telemetry**

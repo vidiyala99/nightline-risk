@@ -27,7 +27,6 @@ export function RegisterScreen({ navigation }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'venue_operator' | 'broker'>('venue_operator');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailTouched, setEmailTouched] = useState(false);
@@ -59,7 +58,9 @@ export function RegisterScreen({ navigation }: Props) {
     setLoading(true);
     setError(null);
     try {
-      await signUp(email.trim(), password, name.trim(), role);
+      // Public sign-up always creates a venue operator; the backend ignores any
+      // client role (escalation guard). Privileged accounts are provisioned out-of-band.
+      await signUp(email.trim(), password, name.trim(), 'venue_operator');
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e: any) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -142,30 +143,6 @@ export function RegisterScreen({ navigation }: Props) {
             {passwordShort && (
               <Text style={styles.fieldError}>At least 6 characters required</Text>
             )}
-          </View>
-
-          <View style={styles.inputWrap}>
-            <Text style={styles.inputLabel}>I AM A</Text>
-            <View style={styles.roleRow}>
-              <Pressable
-                style={[styles.roleBtn, role === 'venue_operator' && styles.roleBtnActive]}
-                onPress={() => setRole('venue_operator')}
-              >
-                <Text style={[styles.roleBtnLabel, role === 'venue_operator' && styles.roleBtnLabelActive]}>
-                  VENUE OPS
-                </Text>
-                <Text style={styles.roleBtnSub}>Venue Owner</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.roleBtn, role === 'broker' && styles.roleBtnActive]}
-                onPress={() => setRole('broker')}
-              >
-                <Text style={[styles.roleBtnLabel, role === 'broker' && styles.roleBtnLabelActive]}>
-                  BROKER
-                </Text>
-                <Text style={styles.roleBtnSub}>Nightline Risk</Text>
-              </Pressable>
-            </View>
           </View>
 
           {hasError && (
@@ -305,30 +282,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontFamily: 'HankenGrotesk_400Regular',
   },
-
-  roleRow: { flexDirection: 'row', gap: 10 },
-  roleBtn: {
-    flex: 1,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(200,240,0,0.2)',
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    gap: 2,
-  },
-  roleBtnActive: {
-    borderColor: Colors.accent,
-    backgroundColor: 'rgba(200,240,0,0.06)',
-  },
-  roleBtnLabel: {
-    color: Colors.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    fontFamily: 'SpaceMono_700Bold',
-  },
-  roleBtnLabelActive: { color: Colors.accentInk },
-  roleBtnSub: { color: Colors.textMuted, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular' },
 
   btn: {
     backgroundColor: Colors.accent,

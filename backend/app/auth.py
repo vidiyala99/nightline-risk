@@ -145,9 +145,17 @@ def _is_bcrypt(hashed: str) -> bool:
     return hashed.startswith(("$2b$", "$2a$", "$2y$"))
 
 
+def _bcrypt_rounds() -> int:
+    """Cost factor for new hashes. bcrypt's slowness is a production security
+    feature but pure overhead in tests, where it dominates suite runtime
+    (seeding + per-test user creation). Under TESTING, drop to the bcrypt minimum
+    (4). Verification is cost-agnostic, so existing 12-round hashes still work."""
+    return 4 if os.getenv("TESTING") else 12
+
+
 def create_password_hash(password: str) -> str:
     """Hash a password with bcrypt (salted, slow). New hashes are '$2b$...'."""
-    return bcrypt.hashpw(_pw_bytes(password), bcrypt.gensalt()).decode("utf-8")
+    return bcrypt.hashpw(_pw_bytes(password), bcrypt.gensalt(rounds=_bcrypt_rounds())).decode("utf-8")
 
 
 def needs_rehash(hashed: str) -> bool:
@@ -249,7 +257,11 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     name: str
-    role: str = "venue_operator"
+    # NOTE: no `role` field. Public registration always creates a venue_operator.
+    # A client-supplied role would be a privilege-escalation vector (anyone could
+    # mint a broker/carrier/admin token that satisfies every require_* gate).
+    # Privileged accounts are provisioned via an authed admin/seed path only.
+    # Pydantic ignores extra fields, so a posted "role" is silently dropped.
 
 
 class ProfileUpdateRequest(BaseModel):
@@ -282,7 +294,8 @@ def login(request: LoginRequest, session: Session = Depends(get_session)):
 
 @router.post("/register")
 def register(request: RegisterRequest, session: Session = Depends(get_session)):
-    user = register_user(request.email, request.password, request.name, request.role, session)
+    # Force venue_operator — never trust a client-supplied role (escalation vector).
+    user = register_user(request.email, request.password, request.name, "venue_operator", session)
     if not user:
         raise HTTPException(status_code=400, detail="User with this email already exists")
     token = create_token(user["id"], user["email"], user["role"], user["tenant_id"])

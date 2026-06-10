@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth, roleHome, type UserRole } from "@/contexts/AuthContext";
+import { useAuth, roleHome } from "@/contexts/AuthContext";
 import { accountApi } from "@/lib/account";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toastError, toastSuccess } from "@/lib/toast";
-import { Building2, Shield, Landmark, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,7 +20,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState("venue_operator");
+  // Public sign-up always creates a venue operator. Broker/carrier are demo
+  // personas reachable via the demo buttons; privileged accounts are provisioned
+  // out-of-band. The backend ignores any client-supplied role (escalation guard).
 
   const performSignIn = async (creds: { email: string; password: string }) => {
     setLoading(true);
@@ -59,13 +61,13 @@ export default function LoginPage() {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/api/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, name, role }),
+          body: JSON.stringify({ email, password, name }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.detail || "Registration failed");
         localStorage.setItem("auth_token", data.access_token);
         toastSuccess("Account created successfully!");
-        router.replace(roleHome(role as UserRole));
+        router.replace(roleHome("venue_operator"));
       } catch (err) {
         const message = err instanceof Error ? err.message : "Request failed";
         setError(message);
@@ -148,38 +150,6 @@ export default function LoginPage() {
               >
                 Forgot password?
               </button>
-            )}
-
-            {isSignUp && (
-              <div className="lc-login__role">
-                <span className="lc-stat-label">I am a</span>
-                <div className="lc-login__role-grid">
-                  <button
-                    type="button"
-                    className={`lc-login__role-cell ${role === "venue_operator" ? "is-active" : ""}`}
-                    onClick={() => setRole("venue_operator")}
-                  >
-                    <Building2 size={18} />
-                    <span>Venue Owner</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`lc-login__role-cell ${role === "broker" ? "is-active" : ""}`}
-                    onClick={() => setRole("broker")}
-                  >
-                    <Shield size={18} />
-                    <span>Broker</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`lc-login__role-cell ${role === "carrier" ? "is-active" : ""}`}
-                    onClick={() => setRole("carrier")}
-                  >
-                    <Landmark size={18} />
-                    <span>Carrier</span>
-                  </button>
-                </div>
-              </div>
             )}
 
             <Button type="submit" isLoading={loading} className="w-full">
