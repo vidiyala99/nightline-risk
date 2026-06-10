@@ -12,8 +12,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PlacementApiError } from "@/lib/placement";
-import { policiesApi } from "@/lib/policies";
+import { PlacementApiError, formatCurrency } from "@/lib/placement";
+import { policiesApi, PolicyDetail } from "@/lib/policies";
 
 
 type EndorsementType =
@@ -75,6 +75,7 @@ export default function EndorsePage() {
   const [taxChange, setTaxChange] = useState("0.00");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [policy, setPolicy] = useState<PolicyDetail | null>(null);
 
   // Per-type fields.
   const [coverageLine, setCoverageLine] = useState("gl");
@@ -114,6 +115,19 @@ export default function EndorsePage() {
   // can confirm the pre-filled line and submit without second-guessing.
   const isCoverageGap =
     search.get("type") === "add_coverage" && !!search.get("coverage_line");
+
+  // Load the policy being endorsed so the right rail can show its context
+  // (what's currently in force) — fills the width with information, not stretched
+  // fields. Tolerates a missing policy (stale link) without blocking the form.
+  useEffect(() => {
+    if (!pid) return;
+    let cancelled = false;
+    policiesApi.getPolicy(pid).then(
+      (p) => { if (!cancelled) setPolicy(p); },
+      () => { /* form still works; context panel just stays empty */ },
+    );
+    return () => { cancelled = true; };
+  }, [pid]);
 
   const buildTermsDiff = (): Record<string, unknown> => {
     switch (endorsementType) {
@@ -472,6 +486,19 @@ export default function EndorsePage() {
             <div className="form-summary__row"><dt>Premium Δ</dt><dd>{fmtMoney(premiumChange)}</dd></div>
           )}
         </dl>
+        {policy && (
+          <div className="form-summary__section">
+            <div className="form-summary__title">Current policy</div>
+            <dl style={{ margin: 0 }}>
+              <div className="form-summary__row"><dt>Policy</dt><dd>{policy.policy_number || policy.id}</dd></div>
+              <div className="form-summary__row"><dt>Venue</dt><dd>{policy.venue_id}</dd></div>
+              <div className="form-summary__row"><dt>Carrier</dt><dd>{policy.carrier_id}</dd></div>
+              <div className="form-summary__row"><dt>Coverage</dt><dd>{policy.coverage_lines.length ? policy.coverage_lines.join(", ") : "—"}</dd></div>
+              <div className="form-summary__row"><dt>Premium</dt><dd>{formatCurrency(policy.annual_premium)}</dd></div>
+              <div className="form-summary__row"><dt>Expires</dt><dd>{policy.expiration_date}</dd></div>
+            </dl>
+          </div>
+        )}
         <div className="form-summary__note">
           Issuing re-hashes the policy snapshot for the audit trail.
         </div>

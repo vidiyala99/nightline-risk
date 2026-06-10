@@ -5313,8 +5313,15 @@ html, body { overflow-x: clip; }
   gap: 32px;
   align-items: start;
   /* Cap so the form column stays a readable measure (~65-75ch) on wide screens
-     instead of stretching edge-to-edge. */
+     instead of stretching edge-to-edge — then center it so the whitespace is
+     balanced (intentional), not dumped on the right. */
   max-width: 920px;
+  margin: 0 auto;
+}
+.form-summary__section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
 }
 .form-summary {
   position: sticky;
