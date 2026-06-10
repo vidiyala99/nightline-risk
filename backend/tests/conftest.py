@@ -19,6 +19,9 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///test_run.db")
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
+# Put the tests dir itself on the path so shared helpers (e.g. `factories`) are
+# importable as top-level modules from any test file (`tests/` is not a package).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 for module_name in list(sys.modules):
     if module_name == "app" or module_name.startswith("app."):
         del sys.modules[module_name]

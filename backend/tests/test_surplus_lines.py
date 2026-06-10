@@ -39,6 +39,7 @@ from app.underwriting.surplus_lines import (
     diligent_search_complete,
 )
 from scripts.seed_demo_placements import seed as seed_placements
+from factories import ensure_policy_parents
 
 
 def test_tax_rate_is_corrected():
@@ -108,6 +109,11 @@ def _throwaway_es_policy(session):
     """A fresh, uniquely-identified bound E&S policy stand-in for state-mutating
     tests — avoids leaking filing state across reruns of the shared database.db."""
     u = uuid4().hex[:8]
+    ensure_policy_parents(
+        session,
+        submission_id=f"sub-sl-{u}", quote_id=f"q-sl-{u}",
+        venue_id=f"v-sl-{u}", carrier_id="burns-wilcox",
+    )
     pol = Policy(
         id=f"pol-sl-{u}", submission_id=f"sub-sl-{u}", bound_quote_id=f"q-sl-{u}",
         venue_id=f"v-sl-{u}", carrier_id="burns-wilcox",

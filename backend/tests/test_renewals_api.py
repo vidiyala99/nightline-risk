@@ -16,6 +16,7 @@ from app.auth import create_token
 from app.database import get_session
 from app.main import app
 from app.models import Policy, Submission
+from factories import ensure_quote
 
 USER_ID = "user-broker-renewals-api"
 # Reuse a real seeded venue (has full venue_data including capacity) so we
@@ -73,6 +74,7 @@ def _seed_renewable():
         soon = date.today() + timedelta(days=30)
         existing_pol = session.get(Policy, "pol-renewals-due")
         if existing_pol is None:
+            ensure_quote(session, "q-renewals-x", "sub-renewals-prior")
             session.add(
                 Policy(
                     id="pol-renewals-due",
@@ -261,6 +263,7 @@ def test_renewal_quote_applies_loss_adjustment(client):
                 )
             )
         if session.get(Policy, "pol-renewal-quote") is None:
+            ensure_quote(session, "q-rq-x", "sub-renewal-quote-prior")
             session.add(
                 Policy(
                     id="pol-renewal-quote",

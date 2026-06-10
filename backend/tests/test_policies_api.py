@@ -8,10 +8,26 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.auth import create_token
+from app.database import get_session
 from app.main import app
+from factories import ensure_user
 
 
 VENUE_ID = "elsewhere-brooklyn"
+
+
+@pytest.fixture(autouse=True)
+def _seed_actor_users():
+    """The endorsement/COI actors are the token users below; persist their
+    UserRecords so created_by/issued_by FKs resolve on Postgres (SQLite
+    silently tolerated the dangling ref)."""
+    sess = next(get_session())
+    try:
+        ensure_user(sess, "user-broker-policy-test", email="broker@example.com", role="broker")
+        ensure_user(sess, "user-op-policy-test", email="op@example.com", role="venue_operator")
+        sess.commit()
+    finally:
+        sess.close()
 
 
 def _broker_headers():

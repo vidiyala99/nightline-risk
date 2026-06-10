@@ -16,6 +16,7 @@ from app.auth import create_token
 from app.database import get_session
 from app.main import app
 from app.models import Policy, PolicyRequest, Submission, UserRecord, Venue
+from factories import ensure_policy, ensure_quote
 
 
 VENUE_A = "elsewhere-brooklyn"
@@ -70,6 +71,7 @@ def _seed():
                 requested_limits={"gl": {"per_occurrence": "1000000"}},
             ))
         if not session.get(Policy, POLICY_ID):
+            ensure_quote(session, "q-preq", "sub-preq")
             session.add(Policy(
                 id=POLICY_ID, policy_number="POL-PREQ", submission_id="sub-preq",
                 bound_quote_id="q-preq", venue_id=VENUE_A, carrier_id="markel-specialty",
@@ -98,6 +100,7 @@ def test_policy_requests_list_scoped_to_operator_venue(client):
     try:
         for vid, rid in [(VENUE_A, "preq-scope-a"), (VENUE_OTHER, "preq-scope-other")]:
             if not session.get(PolicyRequest, rid):
+                ensure_policy(session, f"pol-x-{vid}", vid)
                 session.add(PolicyRequest(
                     id=rid, policy_id=f"pol-x-{vid}", venue_id=vid,
                     request_type="coi", status="pending", requested_by="op",
@@ -237,6 +240,7 @@ def _make_dedicated_active_policy(pid: str) -> str:
             ))
         existing = session.get(Policy, pid)
         if existing is None:
+            ensure_quote(session, f"q-{pid}", sub_id)
             session.add(Policy(
                 id=pid, policy_number=f"POL-{pid}", submission_id=sub_id,
                 bound_quote_id=f"q-{pid}", venue_id=VENUE_A,

@@ -20,6 +20,7 @@ from app.models import (
     Carrier, CarrierQuote, Claim, ClaimProposal, IncidentRecord, Policy,
     Submission, UnderwritingPacket,
 )
+from factories import ensure_packet
 
 
 def _op_headers():
@@ -49,6 +50,7 @@ def test_claim_proposals_list_scoped_to_operator_venue():
     try:
         for vid, pid in [("elsewhere-brooklyn", "cp-scope-a"), ("house-of-yes", "cp-scope-other")]:
             if not session.get(ClaimProposal, pid):
+                ensure_packet(session, f"pkt-{pid}", vid)
                 session.add(ClaimProposal(id=pid, packet_id=f"pkt-{pid}", venue_id=vid, proposed_by="op"))
         session.commit()
 
@@ -561,6 +563,7 @@ def test_inbox_filters_pending_and_sorts_by_priority():
         for pid, conf, median in [("prop-lo", 0.7, 10_000), ("prop-hi", 0.9, 90_000)]:
             pkt_id = f"pk-{pid}"
             if not session.get(ClaimProposal, pid):
+                ensure_packet(session, pkt_id, "elsewhere-brooklyn")
                 session.add(ClaimProposal(
                     id=pid, packet_id=pkt_id, venue_id="elsewhere-brooklyn",
                     proposed_by="auto-router", state="pending_broker_review",

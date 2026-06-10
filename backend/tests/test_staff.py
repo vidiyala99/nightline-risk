@@ -12,8 +12,10 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.auth import create_token
+from app.database import get_session
 from app.main import app
 from app.services.staff import StaffError, create_staff_account, list_staff
+from factories import ensure_user
 
 
 # --- service layer (in-memory, isolated) ------------------------------------
@@ -60,8 +62,16 @@ def _broker_headers():
 
 def _staff_token(venue_id: str) -> tuple[str, dict]:
     """A minted staff token for a venue. Unique user id per call so /mine results
-    don't leak across runs in the shared DB."""
+    don't leak across runs in the shared DB. Also persists the backing UserRecord
+    so incidents filed under this staff_id satisfy the reported_by_staff_id FK
+    (Postgres enforces it; SQLite silently tolerated a dangling ref)."""
     uid = f"staff-{uuid4().hex[:8]}"
+    sess = next(get_session())
+    try:
+        ensure_user(sess, uid, email=f"{uid}@x.com", name="Staff", role="staff")
+        sess.commit()
+    finally:
+        sess.close()
     return uid, {"Authorization": f"Bearer {create_token(uid, f'{uid}@x.com', 'staff', venue_id)}"}
 
 

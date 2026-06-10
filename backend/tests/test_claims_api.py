@@ -23,6 +23,7 @@ from app.services.claims import (
     file_fnol,
     record_carrier_reserve,
 )
+from factories import ensure_policy_parents
 
 
 VENUE_A = "elsewhere-brooklyn"
@@ -71,6 +72,13 @@ def _seed_two_policies_with_claims():
             pid = f"pol-claims-api-{suffix}"
             existing = session.get(Policy, pid)
             if existing is None:
+                ensure_policy_parents(
+                    session,
+                    submission_id=f"sub-claims-api-{suffix}",
+                    quote_id=f"q-claims-api-{suffix}",
+                    venue_id=venue,
+                    carrier_id="markel-specialty",
+                )
                 p = Policy(
                     id=pid,
                     policy_number=f"POL-API-{suffix.upper()}",
