@@ -163,7 +163,17 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Run frontend tests
+      - name: Lint (eslint)
+        working-directory: frontend
+        # Errors fail the build; the 47 react-hooks/set-state-in-effect advisories
+        # are warnings (exit 0) until the burndown lands --max-warnings 0 (Track 4).
+        run: npm run lint
+
+      - name: Run frontend unit tests (vitest)
+        working-directory: frontend
+        run: npm run test:unit
+
+      - name: Run incidentView contract test
         working-directory: frontend
         run: npm run test
 
