@@ -335,3 +335,88 @@ def test_v2_rescore_failure_keeps_corroboration_packet(db_session, monkeypatch):
     ).all()
     v2 = [p for p in packets if p.id != prior_packet.id]
     assert len(v2) == 1, "the committed v2 corroboration packet must survive"
+
+
+def test_corroboration_clears_hold_and_routes(db_session, monkeypatch):
+    """When a v2 corroboration re-score DE-escalates a fraud hold (tier no longer
+    'high') and the recommendation still qualifies, the claim routes automatically
+    — closing the 'under review' dead end instead of waiting for a restart."""
+    from app import claim_routing
+    from app.agents.fraud_agent import FraudSignal
+    from app.main import _run_corroboration_and_update_packet
+    from app.packet_core import create_packet_snapshot
+    from app.schemas.domain import IncidentCreate
+    from app.models import EvidenceAnalysis, EvidenceFile
+
+    # The v2 re-score comes back clean (the hold cleared).
+    monkeypatch.setattr(
+        claim_routing, "fraud_signal_for_packet",
+        lambda session, packet, **kw: FraudSignal(0.0, "none", [], "clean", "v2"),
+    )
+
+    # Active policy so the recommendation can route (no policy → never routes).
+    db_session.add(RubricVersion(id="rv-1", name="demo", version="demo"))
+    db_session.add(Policy(
+        id="pol-v1", submission_id="sub-x", bound_quote_id="q-x", venue_id="v1",
+        carrier_id="markel-specialty", status="active",
+        effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
+        annual_premium=Decimal("5000.00"), commission_amount=Decimal("750.00"),
+        commission_rate=Decimal("0.15"), coverage_lines=["premises_liability"],
+        terms_snapshot={}, snapshot_hash="h",
+    ))
+    incident = IncidentRecord(
+        id="inc-1", venue_id="v1", status="open",
+        occurred_at="2026-05-01T22:00:00Z", location="bar",
+        summary="patron required EMS after altercation; police on scene", reported_by="op",
+        injury_observed=True, police_called=True, ems_called=True,
+    )
+    db_session.add(incident)
+    for i in range(2):
+        db_session.add(EvidenceFile(
+            id=f"ev-{i}", incident_id="inc-1", filename=f"f{i}.jpg",
+            content_type="image/jpeg", file_path=f"k{i}", file_size=10,
+        ))
+    db_session.commit()
+
+    incident_payload = IncidentCreate(
+        occurred_at="2026-05-01T22:00:00Z", location="bar",
+        summary="patron required EMS after altercation; police on scene", reported_by="op",
+        injury_observed=True, police_called=True, ems_called=True,
+    )
+    create_packet_snapshot(
+        session=db_session, venue_id="v1", incident_id="inc-1",
+        incident=incident_payload,
+        risk_signal={"type": "altercation_event", "severity": "high",
+                     "confidence": 0.95, "should_file": True},
+        action_plan=[], claims_timeline=[],
+        underwriting_memo={"summary": "severe altercation with EMS"},
+        citations=[], rubric_version="demo",
+    )
+    db_session.commit()
+
+    # A CORROBORATED finding — visible injury consistent with the report.
+    finding = {
+        "incident_indicators": ["injury"], "injury_detail": "visible laceration",
+        "crowd_density": "high", "security_present": True,
+        "security_response_seconds": 20, "environmental_hazards": [],
+        "timestamp_in_exif": None, "timestamp_matches_report": True,
+        "corroboration": "CORROBORATED", "confidence_delta": 0.1,
+        "raw_description": "visible injury consistent with report",
+    }
+    analysis = EvidenceAnalysis(
+        id="an-1", evidence_id="ev-0", incident_id="inc-1",
+        analysis_type="image", findings=finding, corroboration="CORROBORATED",
+        status="complete",
+    )
+    db_session.add(analysis)
+    db_session.commit()
+
+    _run_corroboration_and_update_packet(db_session, "inc-1", incident, [analysis])
+
+    db_session.expire_all()
+    # A proposal now exists (the claim routed) + an audit event records the route.
+    assert db_session.exec(select(ClaimProposal)).first() is not None
+    routed = db_session.exec(
+        select(AuditEvent).where(AuditEvent.event_type == "claim.routed_after_review")
+    ).all()
+    assert len(routed) == 1

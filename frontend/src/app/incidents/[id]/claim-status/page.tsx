@@ -7,14 +7,10 @@ import { CheckCircle2, Circle, AlertTriangle, Clock, Send, ShieldCheck } from "l
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
 import { CLAIM_STATUS_LABEL, isClosedStatus, formatLedgerMoney, type ClaimStatus } from "@/lib/claim-tokens";
+import { deriveClaimStatus, CLAIM_JOURNEY_STEPS, type ClaimStatusResponse, type ClaimTone } from "@/lib/claimStatus";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-interface ClaimStatusResponse {
-  incident_status: string;
-  proposal: { exists: boolean; state: string | null };
-  claim: { exists: boolean; status: string | null };
-}
 interface IncidentClaim {
   id: string; incident_id: string | null; carrier_claim_number: string | null;
   coverage_line: string; status: string; current_reserve: string;
@@ -31,52 +27,7 @@ interface Rec {
   has_active_policy: boolean;
 }
 
-type Tone = "info" | "success" | "warning" | "error" | "neutral";
-
-/** Plain-language status the operator actually wants: where it stands now + who owns
- * the next move. Honours ADR-0004 — a routed ClaimProposal is NOT a Claim, so we say
- * "recommendation" until a carrier Claim row exists. */
-function deriveStatus(cs: ClaimStatusResponse, claim: IncidentClaim | null): {
-  tone: Tone; headline: string; detail: string; next: string; currentIndex: number;
-} {
-  const ps = cs.proposal.state;
-  const claimStatus = claim?.status ?? cs.claim.status ?? null;
-
-  // Terminal claim outcomes first.
-  if (ps === "paid" || claimStatus === "closed_paid") {
-    return { tone: "success", headline: "Claim paid", detail: "The carrier settled this claim. Nothing more is needed from you.", next: "Resolved — no action required.", currentIndex: 4 };
-  }
-  if (ps === "denied" || claimStatus === "closed_denied") {
-    return { tone: "error", headline: "Claim denied by carrier", detail: "The carrier declined this claim. Your broker can advise on options.", next: "Talk to your broker if you want to dispute or appeal.", currentIndex: 4 };
-  }
-  if (claimStatus === "closed_dropped") {
-    return { tone: "neutral", headline: "Claim withdrawn", detail: "This claim was dropped before settlement.", next: "Resolved — no action required.", currentIndex: 4 };
-  }
-  // Broker declined the recommendation outright — never became a claim.
-  if (ps === "rejected_by_broker") {
-    return { tone: "error", headline: "Declined by your broker", detail: "Your broker reviewed the recommendation and decided not to file. It never became a carrier claim.", next: "Review the recommendation, or talk to your broker about next steps.", currentIndex: 1 };
-  }
-  // Filed with the carrier — a real Claim now exists.
-  if (ps === "filed_with_carrier" || cs.claim.exists) {
-    return { tone: "info", headline: "Filed with the carrier", detail: "Your broker filed this as a carrier claim. It's now in the carrier's hands.", next: "Awaiting the carrier's decision — we'll update this when it settles.", currentIndex: 3 };
-  }
-  // Approved by broker, claim being opened.
-  if (ps === "approved") {
-    return { tone: "success", headline: "Approved — filing with the carrier", detail: "Your broker approved the recommendation. The carrier claim is being opened now.", next: "Your broker has the next move. No action needed from you.", currentIndex: 2 };
-  }
-  // Broker bounced it back for more evidence.
-  if (ps === "needs_more_info") {
-    return { tone: "warning", headline: "Your broker needs more information", detail: "Before filing, your broker asked for additional evidence on this incident.", next: "You have the next move — add the requested evidence on the incident.", currentIndex: 1 };
-  }
-  // Default: routed, sitting in the broker's queue.
-  if (cs.proposal.exists) {
-    return { tone: "info", headline: "Awaiting your broker's decision", detail: "We sent the recommendation to your broker. They'll approve it as a claim, ask for more info, or decline.", next: "Your broker has the next move. We'll update this when they respond.", currentIndex: 1 };
-  }
-  // No proposal yet (shouldn't reach here — pre-claim empty state handles it).
-  return { tone: "neutral", headline: "Not sent to your broker yet", detail: "This is still a recommendation.", next: "Review the recommendation to decide whether to file.", currentIndex: 0 };
-}
-
-const TONE_COLOR: Record<Tone, string> = {
+const TONE_COLOR: Record<ClaimTone, string> = {
   info: "var(--accent-ink)",
   success: "var(--accent-ink)",
   warning: "var(--state-warning)",
@@ -134,8 +85,8 @@ export default function ClaimStatusPage() {
     return <div className="page-loading"><div className="loading-spinner" /></div>;
   }
 
-  const hasProposal = !!cs?.proposal.exists;
-  const stepLabels = ["Reported", "Sent to broker", "Approved", "Filed", "Resolved"];
+  const view = cs ? deriveClaimStatus(cs, claim) : null;
+  const stepLabels = CLAIM_JOURNEY_STEPS;
 
   return (
     <div className="theme-venue min-h-screen p-xl">
@@ -152,7 +103,7 @@ export default function ClaimStatusPage() {
           {summary && <p className="text-secondary" style={{ lineHeight: 1.6, margin: 0 }}>{summary}</p>}
         </header>
 
-        {!hasProposal && !claim ? (
+        {!view?.sent ? (
           <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div className="flex items-center gap-xs text-sm" style={{ fontWeight: 600 }}>
               <Send size={15} className="text-muted" aria-hidden="true" /> Not sent to your broker yet
@@ -163,7 +114,7 @@ export default function ClaimStatusPage() {
             <Link href={`/incidents/${id}/decision`} className="text-sm" style={{ color: "var(--accent-ink)", textDecoration: "none", fontWeight: 600 }}>View the recommendation →</Link>
           </div>
         ) : (() => {
-          const s = deriveStatus(cs!, claim);
+          const s = view!;
           const reserve = claim ? Number(claim.current_reserve) : 0;
           const Icon = s.tone === "error" ? AlertTriangle : s.tone === "warning" ? Clock : s.currentIndex >= 3 ? ShieldCheck : Send;
 

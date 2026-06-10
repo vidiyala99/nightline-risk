@@ -135,6 +135,25 @@ def create_claim_proposal_route(
     snapshot = None
     if packet is not None:
         require_venue_access(packet.venue_id, authorization, session)
+        # Defense in depth: a high fraud tier suppresses auto-routing
+        # (claim_routing.maybe_auto_route_incident returns before creating a
+        # proposal). The manual "send to broker" path must honour the same hold —
+        # otherwise an operator could push an incident the system deliberately
+        # flagged. Coerce the JSON column at the read boundary (Postgres returns
+        # it as a string; see project_neon_json_string_regressions).
+        fraud_sig = packet.fraud_signal
+        if isinstance(fraud_sig, str):
+            import json
+            try:
+                fraud_sig = json.loads(fraud_sig)
+            except (ValueError, TypeError):
+                fraud_sig = None
+        if isinstance(fraud_sig, dict) and fraud_sig.get("tier") == "high":
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=409,
+                detail="Held for fraud review — this incident can't be sent to the broker until it clears review.",
+            )
         from app.claim_routing import recommendation_for_packet
         from app.claim_recommendation import recommendation_to_dict
         snapshot = recommendation_to_dict(recommendation_for_packet(session, packet))

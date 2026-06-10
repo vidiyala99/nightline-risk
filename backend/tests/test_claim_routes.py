@@ -154,6 +154,39 @@ def test_operator_can_create_claim_proposal_without_override():
     assert body["id"].startswith("prop-")
 
 
+def test_high_fraud_packet_manual_send_is_blocked():
+    """Defense in depth: the manual 'send to broker' route must honour a high
+    fraud-tier hold — the same gate the auto-router applies before creating a
+    proposal (claim_routing.maybe_auto_route_incident returns early on tier
+    'high'). Otherwise an operator could push an incident the system flagged."""
+    client = TestClient(app, headers=_op_headers())
+    packet_id = _create_borderline_packet(client)
+
+    # Stamp the packet as a high fraud-tier hold (what the fraud screen persists
+    # on the packet before suppressing the auto-route).
+    session = next(get_session())
+    try:
+        pkt = session.get(UnderwritingPacket, packet_id)
+        assert pkt is not None
+        pkt.fraud_signal = {
+            "score": 0.7, "tier": "high", "red_flags": [],
+            "summary": "high risk", "assessed_stage": "v1",
+        }
+        session.add(pkt)
+        session.commit()
+    finally:
+        session.close()
+
+    response = client.post(
+        f"/api/packets/{packet_id}/claim-proposal",
+        json={"operator_id": "op-1", "override_recommendation": False},
+    )
+    assert response.status_code == 409, response.text
+    assert "fraud review" in response.json()["detail"].lower()
+    # No proposal was created — the hold can't be bypassed.
+    assert client.get(f"/api/claim-proposals/by-packet/{packet_id}").status_code == 404
+
+
 def test_operator_can_create_proposal_with_structured_override_reason():
     client = TestClient(app, headers=_op_headers())
     packet_id = _create_borderline_packet(client)

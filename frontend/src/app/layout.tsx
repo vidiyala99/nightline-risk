@@ -1,4 +1,5 @@
 import "./styles.css";
+import "./mobile-native.css";
 import { Hanken_Grotesk, Bricolage_Grotesque, Space_Mono, Caveat } from "next/font/google";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "react-hot-toast";

@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
+import { deriveClaimStatus, type ClaimStatusResponse } from "@/lib/claimStatus";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -33,10 +35,11 @@ export default function DecisionPage() {
   const [packetId, setPacketId] = useState<string | null>(null);
   const [routingStatus, setRoutingStatus] = useState<string | undefined>(undefined);
   const [riskScore, setRiskScore] = useState<{ total_score: number; tier: string } | null>(null);
-  // Has this packet already been routed (proposal created, auto or manual)? If so
-  // the "Send to broker" button must not show — a second send would create a
-  // duplicate proposal (the manual create path has no idempotency guard).
-  const [proposalSent, setProposalSent] = useState(false);
+  // Claim-status response — the persisted proposal/claim record. This is the
+  // single authority for whether the claim was actually sent to the broker;
+  // `routing_status` below is only a prediction ("would auto-route") and must
+  // never be treated as proof of a send.
+  const [cs, setCs] = useState<ClaimStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { if (isLoaded && !isSignedIn) router.push("/"); }, [isLoaded, isSignedIn, router]);
@@ -66,7 +69,7 @@ export default function DecisionPage() {
       setRec(primary?.claim_recommendation ?? null);
       setPacketId(primary?.id ?? null);
       setRoutingStatus(primary?.routing_status);
-      setProposalSent(!!cs?.proposal?.exists || !!cs?.claim?.exists);
+      setCs(cs);
       setRiskScore(rs);
       setLoading(false);
     })();
@@ -80,12 +83,18 @@ export default function DecisionPage() {
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ operator_id: "operator", override_recommendation: false }),
     });
-    if (res.ok) location.reload();
+    if (res.ok) { location.reload(); return; }
+    // Surface a refusal (e.g. a fraud-review hold) instead of failing silently.
+    const body = await res.json().catch(() => null);
+    toast.error(body?.detail ?? "Couldn't send to the broker. Please try again.");
   };
 
   if (!isLoaded || loading || !isOperator) {
     return <div className="page-loading"><div className="loading-spinner" /></div>;
   }
+
+  // Single source of truth for "sent": a persisted proposal/claim, never routing_status.
+  const view = cs ? deriveClaimStatus(cs, null) : null;
 
   return (
     <div className="theme-venue min-h-screen p-xl">
@@ -207,19 +216,40 @@ export default function DecisionPage() {
             </div>
           )}
 
-          {proposalSent ? (
+          {view?.sent ? (
+            // Persisted proposal/claim exists → truly sent. Report the real stage.
             <span className="badge badge-info">Sent to broker · awaiting their decision</span>
           ) : !rec.has_active_policy ? (
             // No policy → nothing to file against a carrier; it's a coverage
             // conversation, not a claim. Don't offer "Send to broker".
             <span className="text-muted">No active policy — talk to your broker about coverage.</span>
-          ) : routingStatus === "borderline" ? (
-            <button className="btn btn-primary" onClick={sendToBroker} aria-label="Send this incident to the broker for review" style={{ minHeight: 44 }}>Send to broker</button>
-          ) : routingStatus === "auto_routed" ? (
-            <span className="badge badge-info">Sent to broker for review</span>
           ) : routingStatus === "not_routed" ? (
             <span className="text-muted">Logged — below the filing threshold.</span>
-          ) : null}
+          ) : routingStatus === "auto_routed" ? (
+            // Qualifies for auto-routing, yet no proposal is persisted ⇒ held for
+            // review (high fraud tier suppresses auto-routing) or a transient
+            // failure — NOT operator-pushable. But not a dead end: strengthening the
+            // evidence can clear a false flag, and the backend re-routes automatically
+            // once the corroboration re-score de-escalates the hold.
+            <div className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span className="text-sm" style={{ fontWeight: 600 }}>Under review — not yet sent to your broker</span>
+              <p className="text-sm text-secondary" style={{ margin: 0, lineHeight: 1.6 }}>
+                We&rsquo;re reviewing this incident before it goes to your broker. Adding clear
+                evidence — photos, video, or witness details — can help: if the review clears,
+                we&rsquo;ll send it to your broker automatically and the status will update here.
+              </p>
+              <Link
+                href={`/incidents/${id}`}
+                className="btn btn-primary"
+                style={{ minHeight: 44, alignSelf: "flex-start", textDecoration: "none" }}
+              >
+                Add evidence
+              </Link>
+            </div>
+          ) : (
+            // borderline (the only case designed for an operator decision): their call.
+            <button className="btn btn-primary" onClick={sendToBroker} aria-label="Send this incident to the broker for review" style={{ minHeight: 44 }}>Send to broker</button>
+          )}
         </div>
 
         {/* Smooth flow: from "should I file / why" → "where does the claim stand". */}

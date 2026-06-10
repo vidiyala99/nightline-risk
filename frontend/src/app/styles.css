@@ -53,12 +53,13 @@
   --state-error: #C8341E;
   --state-info: #4338CA;
 
-  /* Shadows — hard offset, no blur (brutalist paper) */
-  --shadow-sm: 1px 1px 0 rgba(23, 21, 15, 0.20);
-  --shadow-md: 2px 2px 0 rgba(23, 21, 15, 0.24);
-  --shadow-lg: 3px 3px 0 var(--border-strong);
-  --shadow-glow-primary: 2px 2px 0 var(--border-strong);
-  --shadow-glow-secondary: 2px 2px 0 var(--border-strong);
+  /* Shadows — soft, low-opacity blur (mirrors the RN app, which leans on
+     hairline borders for depth; whisper-soft shadow only for hover lift) */
+  --shadow-sm: 0 1px 2px rgba(23, 21, 15, 0.05);
+  --shadow-md: 0 2px 6px rgba(23, 21, 15, 0.07);
+  --shadow-lg: 0 8px 20px rgba(23, 21, 15, 0.10);
+  --shadow-glow-primary: 0 2px 6px rgba(23, 21, 15, 0.07);
+  --shadow-glow-secondary: 0 2px 6px rgba(23, 21, 15, 0.07);
 
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #c8f000 0%, #94b300 100%);
@@ -101,11 +102,12 @@
   --container-default: 1200px;
   --container-wide:    1440px;
 
-  /* Border Radius — Hard-edged (paper & ink) */
-  --radius-sm: 1px;
-  --radius-md: 2px;
-  --radius-lg: 3px;
-  --radius-xl: 4px;
+  /* Border Radius — gently rounded to mirror the RN app
+     (badges/chips 6 · buttons/inputs 8 · secondary cards 12 · primary cards 16) */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
   --radius-full: 9999px;
 }
 
@@ -322,16 +324,16 @@ a:hover { color: var(--text-primary); }
 
 .card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   padding: var(--space-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .card:hover {
   box-shadow: var(--shadow-md);
-  transform: translate(-1px, -1px);
+  transform: translateY(-1px);
 }
 
 .card-elevated {
@@ -756,7 +758,7 @@ a:hover { color: var(--text-primary); }
   min-height: 100vh;
 }
 .app-shell[data-sidebar-variant="rail"]   { grid-template-columns: 64px minmax(0, 1fr); }
-.app-shell[data-sidebar-variant="drawer"] { grid-template-columns: 1fr; }
+.app-shell[data-sidebar-variant="drawer"] { grid-template-columns: minmax(0, 1fr); }
 
 .sidebar {
   position: sticky;
@@ -2872,57 +2874,37 @@ a:hover { color: var(--text-primary); }
 .lc-ticker__item .down { color: var(--state-error); }
 .lc-ticker__item .dim  { color: var(--text-tertiary); }
 
-/* Gradient-bordered card */
+/* Flat hairline card — mirrors the RN app (cream surface, 1px ink hairline,
+   16px radius, no shadow). Depth comes from the border, not a glow. */
 .lc-card {
   position: relative;
   border-radius: var(--radius-xl);
-  background: var(--border-strong);
-  padding: 1px;
-  box-shadow: var(--shadow-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
   transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow 0.2s;
 }
 
-.lc-card::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: conic-gradient(from 0deg,
-    transparent 0deg,
-    rgba(200, 240, 0, 0.55) 60deg,
-    transparent 120deg,
-    rgba(129, 140, 248, 0.55) 240deg,
-    transparent 300deg);
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  padding: 1px;
-  opacity: 0;
-  transition: opacity 0.4s;
-  animation: lc-conic 9s linear infinite;
-  pointer-events: none;
+.lc-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
-.lc-card:hover::before { opacity: 1; }
-.lc-card:hover { transform: translateY(-3px); }
+.lc-card__inner {
+  position: relative;
+  border-radius: inherit;
+  background: transparent;
+  padding: 22px;
+  height: 100%;
+}
 
 @keyframes lc-conic {
   to { transform: rotate(360deg); }
 }
 
-.lc-card__inner {
-  position: relative;
-  border-radius: calc(var(--radius-xl) - 1px);
-  background: var(--bg-surface-elevated);
-  backdrop-filter: blur(14px);
-  padding: 22px;
-  height: 100%;
-}
-
-/* Demo persona launcher — speaks the same hover language as .lc-card
-   (conic ring + lift) so every landing section reacts consistently. */
+/* Demo persona launcher — landing-page CTA flourish (conic ring + lift).
+   Intentionally keeps the animated ring; it's a marketing surface, not an
+   in-app card. */
 .lc-demo {
   position: relative;
   display: flex;
@@ -4175,12 +4157,19 @@ a:hover { color: var(--text-primary); }
   outline-offset: -2px;
 }
 
+/* Table → stacked cards on small screens. Canonical pattern, shared by the
+   <ResponsiveTable> component (.tsr-rtable) and any raw table that opts in with
+   the .responsive-table class + a data-label on every <td>. */
 @media (max-width: 900px) {
   .tsr-rtable-wrap { overflow-x: visible; border: none; background: transparent; }
   .tsr-rtable, .tsr-rtable thead, .tsr-rtable tbody,
-  .tsr-rtable tr, .tsr-rtable th, .tsr-rtable td { display: block; }
-  .tsr-rtable thead { display: none; }
-  .tsr-rtable tbody tr {
+  .tsr-rtable tr, .tsr-rtable th, .tsr-rtable td,
+  .responsive-table, .responsive-table thead, .responsive-table tbody,
+  .responsive-table tr, .responsive-table th, .responsive-table td { display: block; }
+  .tsr-rtable thead,
+  .responsive-table thead { display: none; }
+  .tsr-rtable tbody tr,
+  .responsive-table tbody tr {
     margin-bottom: var(--space-md);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
@@ -4191,15 +4180,19 @@ a:hover { color: var(--text-primary); }
     background: rgba(23,21,15,0.06);
     transform: scale(0.997);
   }
-  .tsr-rtable tbody td {
+  .tsr-rtable tbody td,
+  .responsive-table tbody td {
     display: grid;
     grid-template-columns: minmax(80px, 35%) 1fr;
     gap: var(--space-sm);
     padding: var(--space-xs) 0;
     border-bottom: 1px dashed var(--border-subtle);
+    text-align: left;
   }
-  .tsr-rtable tbody td:last-child { border-bottom: none; }
-  .tsr-rtable tbody td::before {
+  .tsr-rtable tbody td:last-child,
+  .responsive-table tbody td:last-child { border-bottom: none; }
+  .tsr-rtable tbody td::before,
+  .responsive-table tbody td::before {
     content: attr(data-label);
     color: var(--text-secondary);
     font-size: var(--text-xs);
@@ -7542,4 +7535,53 @@ html, body { overflow-x: clip; }
   white-space: nowrap;
 }
 .copilot__send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ============================================
+   MOBILE POLISH — phone-browser parity with the RN app.
+   Touch targets + table→card stacking are already handled by the Pass 0
+   coarse-pointer block and the .tsr-rtable/.responsive-table rules above;
+   this section only adds phone-scale density + a swipeable board.
+   Appended last so these win the cascade over desktop defaults.
+   ============================================ */
+@media (max-width: 640px) {
+  /* Long unbreakable strings (policy IDs, URLs, venue slugs) wrap instead of
+     forcing the content column wider than the viewport. Pairs with the
+     app-shell `minmax(0, 1fr)` fix that lets the column shrink in the first place. */
+  .main-content { overflow-wrap: break-word; }
+
+  /* Shrink the fat desktop card/page padding to RN phone scale (~16px). */
+  .lc-card__inner { padding: var(--space-md); }
+  .placement-page { padding: var(--space-md); }
+
+  /* Tame oversized page titles on phones, app-wide. The bare <h1> page title
+     (incident detail, etc.), the PageHeader title, and the editorial display
+     heading all collapse to a compact, RN-like title scale with tight leading.
+     Class-based mobile titles (.m-hero__title) keep their explicit sizes —
+     a class selector beats the bare `h1` element selector. */
+  h1 { font-size: 1.15rem; line-height: 1.25; }
+  .page-header__title { font-size: 1.2rem; line-height: 1.2; }
+  .lc-display { font-size: clamp(1.2rem, 5vw, 1.55rem); }
+
+  /* Never truncate a page heading with an ellipsis on phones — let it wrap
+     fully. The incident-detail h1 line-clamps to 2 lines via an inline
+     -webkit-box; override it (mobile only, so desktop is unchanged). */
+  h1.glow-text {
+    display: block !important;
+    -webkit-line-clamp: unset !important;
+    overflow: visible !important;
+  }
+
+  /* Swipeable kanban: one column at a time, snap horizontally — closer to a
+     native board than a single tall stacked wall. */
+  .submission-kanban {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 82vw;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+  .submission-kanban__col { scroll-snap-align: start; }
+}
 

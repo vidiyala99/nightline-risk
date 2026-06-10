@@ -15,6 +15,7 @@ import { TierBadge, Tier as UiTier } from "@/components/ui/TierBadge";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { riskAttentionLine, FACTOR_TIER_COLOR, FACTOR_GLYPH, factorLabel, getFactorTier } from "@/lib/risk";
 import { ExposurePanel } from "@/components/intelligence/ExposurePanel";
+import { DashboardMobile } from "@/components/mobile/DashboardMobile";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -489,6 +490,21 @@ function DashboardPageInner() {
     const capPct = v.current_capacity != null && v.capacity > 0 ? v.current_capacity / v.capacity : 0;
     return v.open_incidents > 0 || v.has_degraded_infra || capPct >= 0.9 || v.compliance_actions > 0;
   }).length;
+
+  // Phone operators get the 1:1 native port (mirrors mobile/ DashboardScreen).
+  // Desktop + broker phone view fall through to the original layout, untouched.
+  if (isPhone && !isBroker) {
+    return (
+      <DashboardMobile
+        userName={user?.name}
+        venueId={selectedVenueId}
+        risk={riskScore}
+        quote={quote}
+        live={liveState}
+        stats={stats}
+      />
+    );
+  }
 
   return (
     <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>

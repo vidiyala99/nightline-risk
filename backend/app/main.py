@@ -751,6 +751,43 @@ def _run_corroboration_and_update_packet(session, incident_id: str, incident: In
                                     "flags": [f.code for f in fraud.red_flags]},
                 )
         session.commit()
+
+        # If corroboration CLEARED a prior fraud hold (tier no longer high) and the
+        # recommendation still qualifies for auto-routing, route the claim NOW —
+        # otherwise an otherwise-auto-routed incident sits "under review" until a
+        # server restart's backfill. Uses the v2 fraud verdict just computed (with
+        # the corroboration context), so it fires ONLY on a genuine de-escalation:
+        # fabricated or contradictory evidence keeps the hold and never routes.
+        if fraud.tier != "high":
+            try:
+                from app.claim_routing import recommendation_for_packet, should_auto_route
+                from app.claim_proposals import create_proposal
+                from app.claim_recommendation import recommendation_to_dict
+                from app.models import ClaimProposal as _ClaimProposal
+                rec = recommendation_for_packet(session, new_packet)
+                already = session.exec(
+                    select(_ClaimProposal).where(_ClaimProposal.packet_id == new_packet.id)
+                ).first()
+                if already is None and should_auto_route(rec):
+                    create_proposal(
+                        session=session,
+                        packet_id=new_packet.id,
+                        operator_id=incident.reported_by or "auto-router",
+                        override_recommendation=False,
+                        override_reason=None,
+                        override_freetext=None,
+                        recommendation_snapshot=recommendation_to_dict(rec),
+                    )
+                    _add_audit_event(
+                        session=session, actor_id="vision-pipeline", actor_type="system",
+                        entity_type="incident", entity_id=incident_id,
+                        event_type="claim.routed_after_review",
+                        event_metadata={"packet_id": new_packet.id, "fraud_tier": fraud.tier},
+                    )
+                    session.commit()
+            except Exception as route_exc:  # noqa: BLE001 - best-effort; never break the vision flow
+                print(f"[ROUTE] post-clear auto-route failed for incident {incident_id}: {route_exc}")
+                session.rollback()
     except Exception as exc:  # noqa: BLE001 - advisory re-score, never break vision flow
         print(f"[FRAUD] v2 re-score failed for incident {incident_id}: {exc}")
         session.rollback()

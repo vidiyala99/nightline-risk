@@ -25,6 +25,7 @@ import {
   MapPin,
   Settings,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -34,6 +35,7 @@ type LucideIcon = typeof Activity;
 type Row = { href: string; label: string; description: string; icon: LucideIcon };
 
 const OPERATOR_OVERFLOW: Row[] = [
+  { href: "/copilot",         label: "Copilot",         description: "Ask the risk copilot",            icon: Sparkles },
   { href: "/alerts",          label: "Alerts",          description: "Real-time liability detections",  icon: Bell },
   { href: "/venues",          label: "Venues",          description: "Your venue profile & roster",      icon: Building2 },
   { href: "/coverage",        label: "Coverage",        description: "Coverage lines & limits",          icon: ShieldCheck },

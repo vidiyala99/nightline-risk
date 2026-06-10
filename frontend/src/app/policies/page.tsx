@@ -78,7 +78,7 @@ export default function PoliciesPage() {
         </div>
       ) : (
         <div className="policies-table-wrap">
-          <table className="policies-table" data-testid="policies-table">
+          <table className="policies-table responsive-table" data-testid="policies-table">
             <thead>
               <tr>
                 <th>Venue</th>
@@ -92,22 +92,22 @@ export default function PoliciesPage() {
             <tbody>
               {policies.map(p => (
                 <tr key={p.id}>
-                  <td>
+                  <td data-label="Venue">
                     <Link href={`/policies/${p.id}`} className="policies-table__link">
                       {p.venue_id}
                     </Link>
                   </td>
-                  <td className="policies-table__mono">{p.carrier_id}</td>
-                  <td className="policies-table__mono">
+                  <td className="policies-table__mono" data-label="Carrier">{p.carrier_id}</td>
+                  <td className="policies-table__mono" data-label="Policy #">
                     {p.policy_number ?? <span style={{ color: "var(--text-tertiary)" }}>pending</span>}
                   </td>
-                  <td className="policies-table__mono">
+                  <td className="policies-table__mono" data-label="Annual Premium">
                     {formatCurrency(p.annual_premium)}
                   </td>
-                  <td className="policies-table__mono">
+                  <td className="policies-table__mono" data-label="Effective">
                     {p.effective_date} → {p.expiration_date}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <StatusPill tone={POLICY_STATUS_TONE[p.status]}>
                       {POLICY_STATUS_LABEL[p.status]}
                     </StatusPill>

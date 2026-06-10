@@ -1,0 +1,357 @@
+/* ============================================================
+   MOBILE NATIVE LAYER  —  `m-` namespace
+   ------------------------------------------------------------
+   1:1 port of the React Native screens (mobile/src/screens, mobile/src/components)
+   to the web phone view. These classes ONLY apply to phone-only DOM rendered
+   behind an `isPhone` branch, so they can never affect the desktop layout — the
+   desktop never renders an `m-` element.
+
+   Values are translated verbatim from the RN StyleSheets. Color/font tokens are
+   the SAME `:root` tokens the RN app uses, so the match is exact, not approximate:
+     RN text       → --text-primary     RN surface     → --bg-surface
+     RN textSecondary → --text-secondary  RN bg          → --bg-base
+     RN textMuted  → --text-tertiary    RN accent      → --brand-primary
+     RN borderSubtle → --border-subtle   RN accentInk   → --accent-ink
+     Bricolage → --font-display · Hanken → --font-body · Space Mono → --font-mono
+   ============================================================ */
+
+/* Screen frame — RN ScrollView content: paddingHorizontal 20, top 16, bottom 32.
+   (Bottom-nav clearance + top safe-area come from .main-content in styles.css.) */
+.m-screen {
+  padding: 16px 20px 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.m-screen * { box-sizing: border-box; }
+
+/* Generic reusable primitives ------------------------------------------------ */
+
+/* Card — RN `card`: cream surface, 1px hairline, 16 radius, 20 padding, no shadow. */
+.m-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 12px;
+}
+a.m-card { display: block; text-decoration: none; color: inherit; }
+a.m-card:active { opacity: 0.85; }
+
+/* Section eyebrow — RN `sectionEyebrow`: mono, 10px, tracked, uppercase. */
+.m-eyebrow {
+  display: block;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+/* Hero ----------------------------------------------------------------------- */
+.m-hero { margin-bottom: 24px; }
+.m-hero__title {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 38px;
+  letter-spacing: -1px;
+}
+.m-hero__title .accent { color: var(--accent-ink); }
+.m-hero__subtitle {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 19px;
+}
+
+/* Stats row — RN `statsRow`: 3 equal StatCards, gap 10. */
+.m-stats { display: flex; gap: 10px; margin-bottom: 12px; }
+.m-stat {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 64px;
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  text-decoration: none;
+}
+.m-stat:active { opacity: 0.8; }
+.m-stat__value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.m-stat__value[data-tone="error"] { color: var(--state-error); }
+.m-stat__value[data-tone="warning"] { color: var(--state-warning); }
+.m-stat__label {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* On the floor — capacity bar + infra chips. ------------------------------- */
+.m-floor-cap { display: flex; align-items: flex-end; justify-content: space-between; }
+.m-floor-cap__value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+.m-floor-cap__max { color: var(--text-tertiary); font-size: 16px; font-weight: 500; font-family: var(--font-body); }
+.m-floor-cap__pct { color: var(--text-secondary); font-size: 13px; font-weight: 700; font-family: var(--font-mono); }
+.m-floor-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border-subtle);
+  margin-top: 8px;
+  overflow: hidden;
+}
+.m-floor-fill { height: 8px; border-radius: 4px; }
+.m-infra-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.m-infra-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+}
+.m-infra-dot { width: 7px; height: 7px; border-radius: 4px; flex: 0 0 auto; }
+.m-infra-name {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Claims in flight ----------------------------------------------------------- */
+.m-flight { display: flex; gap: 10px; margin-bottom: 12px; }
+.m-flight__cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(200, 240, 0, 0.06);
+  border: 1px solid rgba(200, 240, 0, 0.22);
+  text-decoration: none;
+}
+.m-flight__cell:active { opacity: 0.8; }
+.m-flight__cell--warn { background: rgba(180, 83, 9, 0.06); border-color: rgba(180, 83, 9, 0.25); }
+.m-flight__num {
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.m-flight__cell--warn .m-flight__num { color: var(--state-warning); }
+.m-flight__label { color: var(--text-tertiary); font-size: 11px; font-family: var(--font-body); }
+
+/* Your reports — claim-journey step rows ------------------------------------ */
+.m-report {
+  display: block;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  text-decoration: none;
+}
+.m-report:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.m-report:active { opacity: 0.75; }
+.m-report__summary {
+  display: block;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 6px;
+}
+.m-report__steps { display: flex; flex-wrap: wrap; gap: 8px; }
+.m-report__step { font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary); }
+.m-report__step[data-lit="true"] { color: var(--accent-ink); }
+.m-report__step[data-current="true"] { font-weight: 700; }
+
+/* Risk profile --------------------------------------------------------------- */
+.m-risk-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.m-tier-badge {
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.m-score { display: flex; align-items: flex-end; }
+.m-score__value { font-family: var(--font-mono); font-size: 48px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+.m-score__max { color: var(--text-tertiary); font-size: 16px; font-weight: 500; font-family: var(--font-body); padding-bottom: 4px; }
+.m-attn { display: flex; align-items: center; gap: 8px; }
+.m-attn__glyph { font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+.m-attn__text { font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.2px; }
+.m-tap-hint { color: var(--text-tertiary); font-size: 11px; font-family: var(--font-mono); margin-top: 10px; }
+
+/* Policy / premium card ------------------------------------------------------ */
+.m-quote { border-color: rgba(200, 240, 0, 0.15); }
+.m-quote__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.m-quote__type {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+}
+.m-quote__amount {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 44px;
+}
+.m-quote__sub { color: var(--text-tertiary); font-size: 12px; font-family: var(--font-body); margin-bottom: 10px; }
+.m-quote__lines { color: var(--text-secondary); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.4px; margin-top: 6px; }
+.m-quote__cta { color: var(--accent-ink); font-size: 12px; font-family: var(--font-body); font-weight: 600; margin-top: 10px; }
+.m-quote__monthly { color: var(--text-primary); font-family: var(--font-mono); font-size: 20px; font-weight: 600; letter-spacing: -0.5px; }
+.m-quote__monthly-sub { color: var(--text-tertiary); font-size: 13px; font-weight: 400; font-family: var(--font-body); }
+
+/* Filter chips — RN FilterChips: fully-round pill, hairline, lime-wash active. */
+.m-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 14px; }
+.m-chip {
+  min-height: 36px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.m-chip[data-active="true"] {
+  border-color: var(--brand-primary);
+  background: rgba(200, 240, 0, 0.12);
+  color: var(--accent-ink);
+}
+
+/* What needs your attention — exposure feed ---------------------------------- */
+.m-expo__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.m-expo__kpi { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; color: var(--text-secondary); }
+.m-expo__kpi b { color: var(--text-primary); font-weight: 700; }
+.m-expo__kpi .hi { color: var(--state-error); }
+.m-expo__list { display: flex; flex-direction: column; }
+.m-expo-row {
+  display: block;
+  text-decoration: none;
+  padding: 12px 0 12px 12px;
+  border-left: 3px solid var(--sev, var(--text-tertiary));
+  border-bottom: 1px solid var(--border-subtle);
+}
+.m-expo-row:last-child { border-bottom: none; padding-bottom: 0; }
+.m-expo-row:active { opacity: 0.75; }
+.m-expo-row__sev {
+  display: block;
+  color: var(--sev, var(--text-tertiary));
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.m-expo-row__subject {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+}
+.m-expo-row__why {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 4px 0 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.m-expo-row__action { display: inline-block; color: var(--accent-ink); font-size: 12px; font-weight: 600; font-family: var(--font-body); }
+.m-expo__more { display: block; margin-top: 12px; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 12px; }
+
+/* Call-to-action tile — RN QuickActionTile (lime-wash). Used for "Ask the copilot". */
+.m-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  min-height: 56px;
+  border-radius: 12px;
+  background: rgba(200, 240, 0, 0.10);
+  border: 1px solid rgba(200, 240, 0, 0.30);
+  text-decoration: none;
+}
+.m-cta:active { opacity: 0.85; }
+.m-cta__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.m-cta__label {
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.m-cta__sub { color: var(--text-tertiary); font-size: 12px; font-family: var(--font-body); }
+.m-cta__arrow { color: var(--accent-ink); font-size: 18px; flex: 0 0 auto; }
+
+/* Loading / centered state --------------------------------------------------- */
+.m-center {
+  min-height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
