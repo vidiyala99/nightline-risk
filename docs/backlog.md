@@ -629,7 +629,7 @@ drivers, InsTech bordereaux bottleneck):
 - **OFAC payee screening** `extend` — carriers must screen claim payees before paying. Deterministic
   list-check seam in `record_payment`; small, real carrier-compliance credibility.
 
-**Top picks (product + pitch leverage):** (1) inbound email intake [A keystone], (2) operator risk/loss-control dossier [F, most aligned], (3) eval-harness → model-governance reframe [C, ahead-of-market], (4) sublimit-aware coverage analysis [D, hospitality wedge], (5) reserving engine [E, actuarial whitespace]. **Pick which become tracks.**
+**Top picks (product + pitch leverage):** (1) inbound email intake [A keystone], (2) operator risk/loss-control dossier [F, most aligned], (3) eval-harness → model-governance reframe [C, ahead-of-market], (4) sublimit-aware coverage analysis [D, hospitality wedge], (5) reserving engine [E, actuarial whitespace]. **Pick which become tracks.** *(All five independently validated by funded competitors — see "Competitive comparables" below; #1/#3/#4 are the strongest convictions post-comparison.)*
 
 **Market-thesis caution (2026-06-10 sourced market research).** The five-agent audit's web-research
 pass *validated as severe*: the A&B/liquor capacity crisis (NYC premiums ~$2k→$4k/mo with closures;
@@ -655,6 +655,126 @@ emits in practice); premium financing (PFA) integration; ISO ClaimSearch / indus
 reporting; single-location tenant model (`tenant_id == venue_id` — multi-location/multi-entity
 insureds with named/additional-insured schedules are a schema-level assumption, the second hard
 constraint after rating depth on any "all commercial lines" claim).
+
+#### Competitive comparables — what funded peers do (2026-06-10)
+
+Fresh research on five companies in the same space (insurance × AI). Purpose: each maps onto a
+Nightline track/theme, so what they've *funded and shipped* de-risks our roadmap bets and sharpens
+the pitch. The market has split into a **barbell**: horizontal infra/workflow rails (Adapt, Outmarket)
+vs full-stack AI carriers (Corgi), with single-function depth plays between (Adaptional, Tesora).
+Nightline's bet = full-stack **and** vertical (nightlife) **and** owns the operator-evidence feed —
+the intersection none of them occupy.
+
+- **Adaptional** (custom AI for **claims + underwriting**, reads/extracts/analyzes docs; brands as a
+  "system of *intelligence*"; top-10 carriers; $10M seed). → **Learning:** stop leading with "system
+  of record" — our eval-gated decision layer (UW memo, fraud agent, calibration) IS the intelligence
+  layer; reframe the pitch around it. Validates Theme A (extraction) + Theme D (claims).
+- **Adapt API** ("**Plaid for P&C**"; connects to carrier portals, standardizes docs/notices into the
+  AMS, routes tasks, outbound text/email/voicemail on late-pay/cancellation; 95% doc-processing cut).
+  → **Learning:** the unglamorous integration *is* the moat, and their core loop is exactly the
+  **"system of action in the broker's own tools"** boundary (Track 8) we flagged as the AI-native
+  frontier. Elevates the outbound-action arm (Slack adapter → nudge agent on the `dispatch_alert`
+  seam, Track 5/8) from "nice-to-have" to strategically central. Also = the carrier-connectivity
+  named-scope gap, productized.
+- **Tesora** (YC S25, a16z/10VC; agentic **actuarial** workbench — ingests loss runs/SOVs/SERFF →
+  builds/audits/deploys raters with **SOX-grade audit trail + ASOP-aligned reviews**). → **Learning:**
+  they productized *governance as the selling point*. That is our eval/calibration harness + the
+  `AIProvenance` stamping (Track 14) — but we treat it as a pitch *reframe* (Theme C) instead of a
+  named surface. ★ **Build the `/evals` → "Model Governance" screen** (lineage/validation/drift/
+  provenance); a funded team proves buyers pay for the audit trail itself. Also de-risks the
+  reserving-engine bet (Theme E).
+- **Outmarket** ($17M Series A; AI workflow suite for **brokerages**, 250+ live, saves **12–15
+  hrs/person/week**; flagship **Proposal Builder**, quote comparison, policy review, carrier-appetite
+  search, book-wide Q&A, E&O reduction; native AMS integrations + SOC2/ISO/HIPAA). → **Learnings:**
+  (1) their shipped features are a 1:1 checklist against our *unbuilt* Theme A/B — every one is
+  fund-validated. (2) They lead with the **highest-frequency** ritual (proposal/quote-comparison), not
+  the fanciest AI → so should we (Theme A #4 carrier-quote normalization + comparison + proposal, with
+  the nightlife A&B sublimit angle they *can't* do). (3) They quote outcomes in **hours saved**; we
+  pitch capability → instrument + display a time-saved counter. (4) Their moat is distribution (AMS
+  integrations) + trust (compliance certs), not model cleverness.
+- **Corgi** ($160M Series B, **$1.3B valuation, $40M ARR**; **AI-native full-stack insurance
+  *carrier*** for startups — UW + policy + claims in-house, licensed, quote <10 min; D&O/E&O/cyber +
+  an **AI-liability** product; now expanding verticals into trucking). → **Learnings:** this is
+  Nightline's Track 9 destination, *proven at scale*. (1) Full-stack-vertical-carrier owning the whole
+  value chain is venture-rewarded; our hard-to-place nightlife A&B wedge is the analog of Corgi's
+  startup-D&O wedge (a carrier-exiting class — confirmed by the §market research). (2) **Licensing /
+  regulatory approval is the real unlock + moat** (Corgi's ARR started *at* approval, Jul 2025) — a
+  non-eng gate to name honestly in the pitch. (3) "Quote in <10 min" — speed-to-quote is the carrier
+  KPI. (4) Their AI-liability launch = pick an *underserved emerging risk class* incumbents underprice.
+
+**Net adjustments to conviction (no new tracks — reprioritization):**
+1. **Document/email intake (Theme A keystone / Track 14 "Document intelligence")** — now validated by
+   *all four* non-carrier peers leading with unstructured→structured. Unanimous next build; remains #1.
+2. **Model-governance surface (Theme C + Track 14 AIProvenance/telemetry)** — promote from "reframe"
+   to a *named, shipped surface*; Tesora shows it's a sellable feature line, and it's where we're
+   genuinely ahead.
+3. **Carrier-quote comparison + proposal generation (Theme A #4)** — highest-frequency broker ritual
+   (Outmarket's flagship); mostly deterministic over existing `coverage_terms`; pair with the A&B
+   sublimit diff for a wedge Outmarket's horizontal product can't match.
+4. **Outbound action arm (Track 5/8)** — Adapt proves the broker's-own-tools boundary is a whole
+   company; the Slack/email nudge agent is more central than its backlog placement implies.
+5. **Pitch hygiene** — (a) lead with "intelligence," not "record"; (b) quantify time saved; (c) name
+   the two non-eng gates out loud: **carrier connectivity** (Adapt's whole business) + **licensing/
+   regulatory approval** (Corgi's real moat) bound how far the "we are the carrier" claim goes today.
+
+Sources: adaptional.com · adaptinsurance.com · ycombinator.com/companies/tesora · outmarket.ai
+($17M Series A, PRNewswire 2026-05-13) · ycombinator.com/companies/corgi-insurance ($160M Series B,
+SiliconANGLE 2026-05-06). NB: the **Corgi** in the job-pipeline memory is a *different* (ETF-ops)
+company; the relevant one here is corgi.insure.
+
+#### Geographic validity — CA / SF vs the NYC-coded thesis (2026-06-10)
+
+Research question: is the project valid for SF, and who already plays there? Verdict: **valid, but the
+liability *engine* differs — re-point, don't rebuild.** The platform is accidentally **NYC-*coded***
+(dram-shop framing, `elsewhere-brooklyn` seed, NY-only SL tax), but the architecture serves CA cleanly.
+
+**The load-bearing legal wrinkle — CA dram-shop immunity:**
+- **CA Civil Code §1714** broadly **immunizes** bars/restaurants from over-serving/liquor liability
+  ("furnishing alcohol is not the proximate cause"); lone real exception = serving an *obviously
+  intoxicated minor*. NY is the opposite (dram-shop live + central). → **The over-serving/liquor-
+  liability framing that anchors the NYC pitch largely evaporates in CA.**
+- What *replaces* it (and is arguably a stronger fit): **negligent security + assault & battery + the
+  new DFSA regime.** CA A&B is identical to NYC ($250K–$500K sublimits, hard market >40% alcohol,
+  ~$90K premium on $1.6M sales). Negligent security is the *live* theory in CA precisely because
+  dram-shop is off the table — and we already capture `security_response` on incidents (the
+  negligent-security defensibility record, Track 7c). **Premium-reward loop is stated outright by CA
+  insurers** ("risk-control measures — training/security/surveillance/occupancy — lower premiums";
+  "3 yrs no A&B claims → better market") — the one thing the NYC research *couldn't* confirm.
+- **New net-new surface:** CA **drink-spiking / DFSA / gender-based-violence laws** (effective
+  **2025-07-01**) impose fresh documentation duties on venues. Greenfield — nobody has tooling.
+
+**CA competitor map — three fragmented layers, none span the bridge (the wedge holds in CA):**
+- **L1 Insurance distribution (crowded, traditional, no AI/evidence):** RMS Hospitality Group,
+  Entertainment Risk (program administrators); JVRC, Western Pacific, Mighty Oak (SF), Anvo, XINSURANCE
+  — real nightlife-A&B programs. → **compete-with or feed-into**; the cleaner near-term CA wedge is the
+  evidence/defensibility layer that *feeds* these programs, NOT "a better nightclub MGA."
+- **L2 Venue-safety software (capture, no insurance bridge):** ★ **CSA360** (incident reporting w/
+  photo/video/doc upload + live maps — closest analog, **watch it**); Noggin, Momentus WeTrack,
+  Omnilert, 247Software. → differentiate on the insurance/underwriting/claims-defensibility bridge they
+  lack (= the prior national "Solink/LevL360 non-insurance tools" category).
+- **L3 Safety advocacy / DFSA (demand-drivers, *partners not competitors*):** The Night's Watch SF;
+  Good Night Out (UK); Safe Bars (Richmond). → they *create* the DFSA documentation demand and do
+  training/culture, no product. **The Night's Watch = plausible design partner + distribution channel.**
+
+**Net adjustments / new items (re-pointing, mostly existing primitives):**
+1. **Multi-state SL: add CA** — the NY-only SL-tax module (the 3.6% correctness story) needs CA SL tax
+   (~3%) + stamping; generalizes the named-scope "multi-state SL (NY only)" gap. Deterministic state-
+   rules table (SL-tax module pattern).
+2. ★ **CA DFSA / drink-spiking compliance module** — net-new deterministic state-rules + documentation
+   surface (sibling of SL-tax + compliance-deadline engine); first-mover, on-thesis.
+3. **Re-anchor the CA pitch** on negligent-security + A&B + DFSA; drop dram-shop/over-serving for CA.
+   Lead with `security_response` defensibility + the premium-reward loop CA insurers state outright.
+4. **SF demo seed** (SF venues + Entertainment-Commission permit context) for any Bay-area
+   conversation — the seed/prospects are NYC today.
+5. **Partner posture:** treat The Night's Watch as design-partner/demand-signal, not a build target.
+
+**Honest risks:** L1 incumbents (RMS Hospitality, Entertainment Risk) are real + specialized → head-on
+distribution competition is the harder path; **CSA360** is the one to watch on the capture side; the
+whitespace is partly *because* the niche is small/fragmented (validation cuts both ways).
+
+Sources: nolo.com / portersimon.com (CA §1714 dram-shop) · wpinsure.com + insurancejournal.com
+(CA bar A&B market) · 48hills.org (DFSA laws, 2025-07-01) · rmshg.com + entertainmentrisk.com (L1) ·
+csa360software.com (L2) · thenightswatchsf.org (L3).
 
 #### Appendix — full persona pain-point detail (research, 2026-06-09)
 
