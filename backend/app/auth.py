@@ -498,6 +498,21 @@ def require_carrier(authorization: str = Header(None)):
     return decoded
 
 
+def require_broker_or_carrier(authorization: str = Header(None)):
+    """Raises 401 without a valid token, or 403 unless broker/carrier/admin.
+
+    The loss-run import artifact is read by both the placing broker and the
+    underwriting carrier, so the gate admits either persona (+ admin)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    decoded = verify_token(authorization.split(" ")[1])
+    if not decoded:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    if decoded.get("role") not in ("broker", "carrier", "admin"):
+        raise HTTPException(status_code=403, detail="Broker or carrier access required")
+    return decoded
+
+
 def _get_current_user_record(authorization: str, session: Session):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid token")

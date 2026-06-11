@@ -447,6 +447,9 @@ app.include_router(book_router, prefix="/api", tags=["book"])
 from app.api.v1.loss_run import router as loss_run_router  # noqa: E402
 app.include_router(loss_run_router, prefix="/api", tags=["loss-run"])
 
+from app.api.v1.loss_run_imports import router as loss_run_imports_router  # noqa: E402
+app.include_router(loss_run_imports_router, prefix="/api", tags=["loss-run-imports"])
+
 from app.api.v1.underwriting import router as underwriting_router  # noqa: E402
 app.include_router(underwriting_router, prefix="/api", tags=["underwriting"])
 
