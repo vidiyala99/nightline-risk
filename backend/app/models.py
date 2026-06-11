@@ -876,3 +876,39 @@ class RiskFindingRecord(SQLModel, table=True):
     venue_id: Optional[str] = Field(default=None, index=True)
     computed_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
     resolved_at: Optional[datetime] = Field(default=None, sa_type=DateTimeUTC)
+
+
+# ─── Document extraction — loss-run import (review-only artifact) ─────────
+
+
+class LossRunImport(SQLModel, table=True):
+    """A parsed external loss-run document (review-only artifact; no Claim rows)."""
+    id: str = Field(primary_key=True)                   # "lri-<uuid12>"
+    filename: str
+    storage_key: str
+    source_format: str                                  # "csv" | "xlsx"
+    venue_id: Optional[str] = None
+    submission_id: Optional[str] = None
+    uploaded_by: str
+    row_count: int = 0
+    status: str = "extracted"
+    provenance: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+
+
+class LossRunImportRow(SQLModel, table=True):
+    """One canonical row extracted from a LossRunImport."""
+    id: str = Field(primary_key=True)                   # "lrr-<uuid12>"
+    import_id: str = Field(foreign_key="lossrunimport.id", index=True)
+    row_index: int
+    date_of_loss: Optional[date] = None
+    coverage_line: Optional[str] = None
+    claim_status: Optional[str] = None
+    claimant: Optional[str] = None
+    description: Optional[str] = None
+    carrier_claim_number: Optional[str] = None
+    reserve: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(12, 2), nullable=True))
+    paid: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(12, 2), nullable=True))
+    incurred: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(12, 2), nullable=True))
+    field_confidence: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    raw_values: dict = Field(default_factory=dict, sa_column=Column(JSON))
