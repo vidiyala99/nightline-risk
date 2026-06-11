@@ -562,7 +562,15 @@ does **not** yet cover. `extend` = builds on existing primitives; `net-new` = ne
 
 **Theme A — Front-of-funnel intake** `extend` (highest cross-persona consensus):
 - ★ Inbound email/PDF/spreadsheet → structured submission (the connector above).
-- Loss-run extraction & normalization across carrier formats → feeds the existing loss-ratio engine.
+- [~] Loss-run extraction & normalization across carrier formats → feeds the existing loss-ratio engine.
+  **v1 shipped 2026-06-11** (spec `2026-06-10-loss-run-extraction-design.md`, plan
+  `2026-06-11-loss-run-extraction.md`): CSV+xlsx → canonical rows + **per-field confidence**, persisted
+  as a **review-only `LossRunImport` artifact** (no auto-create of money rows), broker+carrier-gated,
+  `AIProvenance`-stamped + audit event; deterministic header-synonym mapper with an **injectable LLM
+  `extractor` seam** (mirrors `classifier.py`); **key-free eval scorers** (field-mapping + confidence
+  calibration). 23 TDD tests green. **Follow-ups:** PDF via the LLM/OCR seam; feed the rows into the
+  underwriting memo / submission risk view; promote scorers into `--compare-baseline`; web/mobile
+  review UI (low-confidence fields → correction-flywheel capture point).
 - Missing-info / NIGO completeness checker at intake (extends the request-info loop).
 - ★ Carrier-quote normalization + apples-to-apples comparison + proposal generation —
   **promoted to the recommended order 2026-06-10**: the highest-frequency broker spreadsheet
@@ -968,10 +976,11 @@ All subscription-free except 🔒.
   retry (Track 11 ops/code). With keys: small-budget `ANTHROPIC_API_KEY` (Haiku covers demo traffic
   for single-digit $/mo) as the dependable path.
 - **Document intelligence — the big build** = Track 12 Theme A keystone (inbound email/PDF/loss-run
-  intake). THE table-stakes AI-insurance capability and the largest AI-native hole: **zero document
-  extraction is shipped today** (the vision pipeline reads camera frames, not PDFs). Deterministic-
-  first extraction + the LLM provider seam means it can *start* subscription-free; a real key only
-  raises the quality tier.
+  intake). THE table-stakes AI-insurance capability and the largest AI-native hole. **First slice
+  shipped 2026-06-11: loss-run extraction v1** (CSV+xlsx → confidence-scored review-only artifact,
+  deterministic + key-free + LLM seam reserved — see Theme A above). The deterministic-first pattern is
+  now proven end-to-end; remaining intake surfaces (inbound email, PDF/OCR, SOV, ACORD) extend the same
+  `readers → parser → review-only artifact` spine. A real key only raises the quality tier (PDF/OCR).
 
 ### 15. Platform basics (added 2026-06-09)
 
