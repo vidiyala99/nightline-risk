@@ -29,3 +29,6 @@ boto3>=1.34,<2.0
 # lazily in app/ingestion/comms/mcp_source.py — only needed when a real MCP source
 # is configured; the simulated sources and tests don't require it.
 mcp>=1.0,<2.0
+# xlsx loss-run parsing (app/extraction/readers.py). Imported lazily — only the
+# xlsx reader path needs it; CSV extraction is stdlib-only.
+openpyxl>=3.1
