@@ -151,7 +151,8 @@ def maybe_auto_route_incident(
                 entity_type="incident", entity_id=packet.incident_id,
                 event_type="fraud.hold",
                 event_metadata={"packet_id": packet.id, "score": fraud.score,
-                                "flags": [f.code for f in fraud.red_flags]},
+                                "flags": [f.code for f in fraud.red_flags],
+                                "provenance": fraud.provenance},
             )
         # Persist the fraud signal (and any hold) regardless of routing outcome —
         # the request session does not auto-commit, and the auto-route path below

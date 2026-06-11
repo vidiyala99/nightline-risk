@@ -12,6 +12,11 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
 
 from app.agents.corroboration_agent import INJURY_NOT_VISIBLE_FLAG, TIMESTAMP_DISCREPANCY_FLAG
+from app.ai_provenance import make_provenance
+
+# Bump when the scoring logic / thresholds / flag weights change materially —
+# it's the deterministic agent's equivalent of a prompt version.
+FRAUD_LOGIC_VERSION = "fraud-v1-2026-06-04"
 
 
 def _high_threshold() -> float:
@@ -41,6 +46,9 @@ class FraudSignal:
     red_flags: list[FraudFlag]
     summary: str
     assessed_stage: str  # "v1" | "v2"
+    # AI lineage {provider, model, prompt_version, input_hash}. Optional/last so
+    # existing positional constructors stay compatible; populated by assess_fraud.
+    provenance: dict | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -49,6 +57,7 @@ class FraudSignal:
             "red_flags": [asdict(f) for f in self.red_flags],
             "summary": self.summary,
             "assessed_stage": self.assessed_stage,
+            "provenance": self.provenance,
         }
 
 
@@ -164,5 +173,22 @@ def assess_fraud(
 
     score = min(1.0, round(sum(f.weight for f in flags), 3))
     tier = tier_for_score(score)
+    # Fingerprint the inputs (not the raw policy object — its repr is unstable);
+    # policy presence + the report timestamp are the stable bits that matter.
+    provenance = make_provenance(
+        provider="deterministic", model="fraud-scorer", prompt_version=FRAUD_LOGIC_VERSION,
+        inputs={
+            "risk_signal": risk_signal,
+            "incident": incident,
+            "reported_at": str(reported_at) if reported_at is not None else None,
+            "prior_claim_count": prior_claim_count,
+            "evidence_file_count": evidence_file_count,
+            "corroboration_status": corroboration_status,
+            "corroboration_flags": list(corroboration_flags or []),
+            "policy_present": policy is not None,
+            "stage": stage,
+        },
+    ).model_dump()
     return FraudSignal(score=score, tier=tier, red_flags=flags,
-                       summary=_summarize(tier, flags, stage), assessed_stage=stage)
+                       summary=_summarize(tier, flags, stage), assessed_stage=stage,
+                       provenance=provenance)

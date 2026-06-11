@@ -748,7 +748,8 @@ def _run_corroboration_and_update_packet(session, incident_id: str, incident: In
                     entity_type="incident", entity_id=incident_id,
                     event_type="fraud.flagged",
                     event_metadata={"packet_id": new_packet.id, "score": fraud.score,
-                                    "flags": [f.code for f in fraud.red_flags]},
+                                    "flags": [f.code for f in fraud.red_flags],
+                                    "provenance": fraud.provenance},
                 )
         session.commit()
 
