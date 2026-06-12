@@ -236,7 +236,36 @@ export const policiesApi = {
     const q = include === "active" ? "" : `?include=${include}`;
     return call<CertificateOfInsurance[]>(`/api/policies/${pid}/certificates${q}`);
   },
+
+  // Prior holders across the broker's book, for auto-filling a new COI.
+  listCertificateHolders: () => call<CertificateHolder[]>(`/api/certificate-holders`),
 };
+
+export interface CertificateHolder {
+  certificate_holder: string;
+  certificate_holder_address: string;
+  additional_insured: boolean;
+  additional_insured_scope: string | null;
+  description_of_operations: string;
+  times_used: number;
+  last_issued_at: string;
+}
+
+/** Case/punctuation/whitespace-insensitive holder key — mirrors the backend's
+ *  normalize_holder so the FE prefill matches the server's supersede logic. */
+export function normalizeHolder(name: string): string {
+  return (name || "").toLowerCase().replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/** The prior holder whose normalized name matches what the broker typed, or null. */
+export function matchHolder(
+  holders: CertificateHolder[],
+  typed: string,
+): CertificateHolder | null {
+  const key = normalizeHolder(typed);
+  if (!key) return null;
+  return holders.find((h) => normalizeHolder(h.certificate_holder) === key) ?? null;
+}
 
 // ─── Display helpers ─────────────────────────────────────────────────────
 

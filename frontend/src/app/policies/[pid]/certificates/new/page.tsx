@@ -10,7 +10,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PlacementApiError, formatCurrency } from "@/lib/placement";
-import { Policy, policiesApi } from "@/lib/policies";
+import { Policy, policiesApi, matchHolder, type CertificateHolder } from "@/lib/policies";
 import { toastSuccess } from "@/lib/toast";
 
 
@@ -29,6 +29,14 @@ export default function IssueCertificatePage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Auto-fill: prior holders across the broker's book. Picking one pre-fills the
+  // recurring fields and reuses the canonical spelling (so the new COI supersedes
+  // the prior one instead of minting a duplicate). Edited fields aren't clobbered.
+  const [holders, setHolders] = useState<CertificateHolder[]>([]);
+  const [addressTouched, setAddressTouched] = useState(false);
+  const [descTouched, setDescTouched] = useState(false);
+  const [prefilledFrom, setPrefilledFrom] = useState<string | null>(null);
+
   useEffect(() => {
     if (!pid) return;
     policiesApi.getPolicy(pid).then(p => {
@@ -39,6 +47,21 @@ export default function IssueCertificatePage() {
       setError(e instanceof PlacementApiError ? e.message : "Failed to load policy");
     });
   }, [pid]);
+
+  useEffect(() => {
+    policiesApi.listCertificateHolders().then(setHolders).catch(() => {});
+  }, []);
+
+  function onHolderChange(value: string) {
+    setHolder(value);
+    const m = matchHolder(holders, value);
+    if (!m) { setPrefilledFrom(null); return; }
+    if (!addressTouched) setHolderAddress(m.certificate_holder_address);
+    if (!descTouched) setDescription(m.description_of_operations);
+    setAi(m.additional_insured);
+    if (m.additional_insured_scope) setAiScope(m.additional_insured_scope as typeof aiScope);
+    setPrefilledFrom(m.certificate_holder);
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,10 +106,24 @@ export default function IssueCertificatePage() {
           <input
             className="input-field"
             value={holder}
-            onChange={e => setHolder(e.target.value)}
+            onChange={e => onHolderChange(e.target.value)}
             placeholder="599 Johnson LLC"
+            list="coi-holders"
+            autoComplete="off"
             required
           />
+          {holders.length > 0 && (
+            <datalist id="coi-holders">
+              {holders.map(h => (
+                <option key={h.certificate_holder} value={h.certificate_holder} />
+              ))}
+            </datalist>
+          )}
+          {prefilledFrom && (
+            <span className="text-xs text-secondary" style={{ marginTop: 4 }}>
+              Pre-filled from a prior certificate to {prefilledFrom} — edit any field to override.
+            </span>
+          )}
         </div>
 
         <div className="submission-wizard__field">
@@ -94,7 +131,7 @@ export default function IssueCertificatePage() {
           <input
             className="input-field"
             value={holderAddress}
-            onChange={e => setHolderAddress(e.target.value)}
+            onChange={e => { setHolderAddress(e.target.value); setAddressTouched(true); }}
             placeholder="599 Johnson Ave, Brooklyn, NY 11237"
             required
           />
@@ -106,7 +143,7 @@ export default function IssueCertificatePage() {
             className="input-field"
             rows={2}
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={e => { setDescription(e.target.value); setDescTouched(true); }}
             required
           />
         </div>

@@ -472,6 +472,28 @@ def api_list_certificates(
     return [_coi_to_dict(c) for c in rows]
 
 
+@router.get("/certificate-holders", dependencies=[Depends(require_broker)])
+def api_certificate_holders(session: Session = Depends(get_session)) -> list[dict]:
+    """Prior certificate holders (newest details first) for auto-filling a new
+    COI. Broker-wide — the same landlord / event client recurs across the book.
+    Picking a suggestion pre-fills the recurring fields AND reuses the canonical
+    spelling, so the new COI supersedes the prior one instead of duplicating."""
+    from app.services.coi_autofill import summarize_holders
+    certs = session.exec(select(CertificateOfInsurance)).all()
+    return [
+        {
+            "certificate_holder": s.certificate_holder,
+            "certificate_holder_address": s.certificate_holder_address,
+            "additional_insured": s.additional_insured,
+            "additional_insured_scope": s.additional_insured_scope,
+            "description_of_operations": s.description_of_operations,
+            "times_used": s.times_used,
+            "last_issued_at": s.last_issued_at,
+        }
+        for s in summarize_holders(certs)
+    ]
+
+
 @router.get("/certificates/{coi_id}/pdf", dependencies=[Depends(require_broker)])
 def api_certificate_pdf(coi_id: str, session: Session = Depends(get_session)) -> Response:
     """Render the certificate as a downloadable PDF (ACORD-25 flavored).
