@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import {
   fetchExposure,
+  filterFindingsForVenue,
   findingToAdvicePayload,
   recordCoverageAdvice,
   type Finding,
@@ -45,7 +46,7 @@ const SEVERITY_WEIGHT: Record<string, number> = {
   low: 3,
 };
 
-export function ExposurePanel() {
+export function ExposurePanel({ venueId }: { venueId?: string } = {}) {
   const [findings, setFindings] = useState<Finding[] | null>(null);
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<SeverityFilter>("all");
@@ -85,11 +86,11 @@ export function ExposurePanel() {
   const sorted = useMemo(
     () =>
       findings
-        ? [...findings].sort(
+        ? [...filterFindingsForVenue(findings, venueId)].sort(
             (a, b) => (SEVERITY_WEIGHT[a.severity] ?? 9) - (SEVERITY_WEIGHT[b.severity] ?? 9),
           )
         : [],
-    [findings],
+    [findings, venueId],
   );
 
   const counts = useMemo(() => {

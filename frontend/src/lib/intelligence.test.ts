@@ -3,6 +3,7 @@ import {
   fetchExposure,
   findingToAdvicePayload,
   recordCoverageAdvice,
+  filterFindingsForVenue,
   type Finding,
 } from "./intelligence";
 
@@ -56,6 +57,17 @@ describe("findingToAdvicePayload", () => {
     expect(findingToAdvicePayload(_finding({
       subject: { entity_type: "incident", entity_id: "inc-1", label: "x", href: "/x" },
     }))).toBeNull();
+  });
+});
+
+describe("filterFindingsForVenue", () => {
+  const fs = [_finding({ venue_id: "v1" }), _finding({ venue_id: "v2" }), _finding({ venue_id: "v1" })];
+  it("keeps only the named venue's findings", () => {
+    expect(filterFindingsForVenue(fs, "v1")).toHaveLength(2);
+    expect(filterFindingsForVenue(fs, "v2")).toHaveLength(1);
+  });
+  it("returns all findings when no venue is given (book-wide)", () => {
+    expect(filterFindingsForVenue(fs)).toHaveLength(3);
   });
 });
 

@@ -34,6 +34,13 @@ export interface ExposureResponse {
 
 export class IntelligenceApiError extends Error {}
 
+/** Findings scoped to one venue (for a per-venue surface like the risk
+ *  profile), or all of them when venueId is omitted (the book-wide panel). */
+export function filterFindingsForVenue(findings: Finding[], venueId?: string): Finding[] {
+  if (!venueId) return findings;
+  return findings.filter((f) => f.venue_id === venueId);
+}
+
 export async function fetchExposure(): Promise<ExposureResponse> {
   const res = await fetch(`${API_URL}/api/intelligence/exposure`, {
     headers: { ...authHeaders() },

@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { AlertTriangle, CheckCircle2, DollarSign, FileText, Minus, ChevronLeft, ChevronRight, ClipboardCheck, Building2, Lock, TrendingDown } from "lucide-react";
-import { estimatePremiumDeltaForFix } from "@/lib/risk";
+import { estimatePremiumDeltaForFix, getFactorTier, FACTOR_TIER_COLOR } from "@/lib/risk";
 import { actionableFirst, CLAIM_STATUS_PRIORITY } from "@/lib/sort";
 import { usePageBack } from "@/components/layout/BackNavContext";
+import { ExposurePanel } from "@/components/intelligence/ExposurePanel";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -90,18 +91,6 @@ const FACTOR_EXPLANATIONS: Record<string, {
     action: "Maintain consistent carrier relationships and document your operational standards.",
   },
 };
-
-function getFactorTier(score: number): "good" | "moderate" | "poor" {
-  if (score >= 85) return "good";
-  if (score >= 65) return "moderate";
-  return "poor";
-}
-
-function getFactorColor(score: number): string {
-  if (score >= 85) return "var(--tier-a)";
-  if (score >= 65) return "var(--state-warning)";
-  return "var(--state-error)";
-}
 
 /** Where a factor's fix lives. Shared by the Factor Breakdown rows and the
  *  "What to Improve" advice so the operator's next-step text is a real
@@ -244,22 +233,6 @@ export default function RiskProfilePage() {
           const c = await countsRes.json();
           setIncidentCounts({ total: c.total ?? 0, open: c.open ?? 0 });
         }
-        // Broker action-hub data — pending/needs-info proposals + open claims
-        // for this venue. Broker-only (the claims endpoint is broker-gated) and
-        // skipped for prospects (no claims/proposals exist yet).
-        if (isBroker && !venueId.startsWith("prospect-")) {
-          const [propRes, claimsRes] = await Promise.all([
-            fetch(`${API_URL}/api/claim-proposals?venue_id=${encodeURIComponent(venueId)}`, { headers: authH }),
-            fetch(`${API_URL}/api/claims?venue_id=${encodeURIComponent(venueId)}&open_only=true`, { headers: authH }),
-          ]);
-          if (propRes.ok) {
-            const all = await propRes.json();
-            setHubDecisions(
-              all.filter((p: any) => p.state === "pending_broker_review" || p.state === "needs_more_info"),
-            );
-          }
-          if (claimsRes.ok) setHubClaims(await claimsRes.json());
-        }
       } catch {
         setError(true);
       } finally {
@@ -268,6 +241,33 @@ export default function RiskProfilePage() {
     }
     if (venueId) load();
   }, [venueId]);
+
+  // Broker action-hub (pending/needs-info proposals + open claims for this
+  // venue) runs in its OWN effect keyed on isBroker. `role` resolves
+  // asynchronously, so folding this into the main load() (keyed on venueId
+  // only) silently left the hub empty whenever the broker role arrived after
+  // the first fetch. Broker-only + skipped for prospects.
+  useEffect(() => {
+    if (!isBroker || !venueId || venueId.startsWith("prospect-")) return;
+    let active = true;
+    (async () => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+      const authH: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const [propRes, claimsRes] = await Promise.all([
+        fetch(`${API_URL}/api/claim-proposals?venue_id=${encodeURIComponent(venueId)}`, { headers: authH }),
+        fetch(`${API_URL}/api/claims?venue_id=${encodeURIComponent(venueId)}&open_only=true`, { headers: authH }),
+      ]);
+      if (!active) return;
+      if (propRes.ok) {
+        const all = await propRes.json();
+        setHubDecisions(
+          all.filter((p: any) => p.state === "pending_broker_review" || p.state === "needs_more_info"),
+        );
+      }
+      if (claimsRes.ok) setHubClaims(await claimsRes.json());
+    })().catch(() => {});
+    return () => { active = false; };
+  }, [venueId, isBroker]);
 
   // A prospect is a real NYC lead (not underwritten) — its figures are
   // estimates, so the operator/broker policy-ingestion tooling doesn't apply.
@@ -634,7 +634,7 @@ export default function RiskProfilePage() {
             <div className="flex flex-col gap-lg">
               {Object.entries(factors).map(([key, val]) => {
                 const s = Number(val);
-                const color = getFactorColor(s);
+                const color = FACTOR_TIER_COLOR[getFactorTier(s)];
                 const info = FACTOR_EXPLANATIONS[key];
                 const ft = getFactorTier(s);
                 const label = info?.label ?? key.replace(/_/g, " ");
@@ -718,6 +718,12 @@ export default function RiskProfilePage() {
               })}
             </div>
           </div>
+
+          {/* Coverage / E&O exposure findings for THIS venue — the highest-stakes
+              broker surface (coverage gaps, renewal coverage drift, exclusion
+              review). Venue-scoped so the broker sees this venue's exposure where
+              they work it, not only the book-wide dashboard. */}
+          {isBroker && !isProspect && <ExposurePanel venueId={venueId} />}
 
           {/* Decisions awaiting you — the broker's action surface for this
               venue. Pending/needs-info proposals + open claims, each linking to
@@ -951,7 +957,7 @@ export default function RiskProfilePage() {
                   const s = Number(val);
                   const info = FACTOR_EXPLANATIONS[key];
                   const ft = getFactorTier(s);
-                  const color = getFactorColor(s);
+                  const color = FACTOR_TIER_COLOR[getFactorTier(s)];
                   const w = factorWeights[key] ?? 0;
                   const weightPct = weightSum > 0 ? Math.round((w / weightSum) * 100) : null;
                   const projected = projectedTotalIfFixed(key);
