@@ -6,9 +6,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import Decimal
 
+from app.ai_provenance import make_provenance
 from app.schemas.domain import UnderwritingRecommendation
 
 PROVIDER_NAME = "deterministic-uw-v1"
+# Bump when the recommender's logic / thresholds change materially — the
+# deterministic agent's equivalent of a prompt version (mirrors FRAUD_LOGIC_VERSION).
+RECOMMENDER_LOGIC_VERSION = "uw-recommender-v1-2026-06-11"
 
 # Tiers run A (best) → D (worst).
 _ELEVATED_TIERS = {"C", "D"}
@@ -121,6 +125,13 @@ def recommend(inputs: RecommenderInputs) -> UnderwritingRecommendation:
         "in_appetite": inputs.in_appetite,
     }
 
+    # Stamp AI lineage. `grounding` already is the canonical input bundle, so it
+    # doubles as the fingerprint source (order-insensitive hash, per house rules).
+    provenance = make_provenance(
+        provider="deterministic", model="uw-recommender",
+        prompt_version=RECOMMENDER_LOGIC_VERSION, inputs=grounding,
+    ).model_dump()
+
     return UnderwritingRecommendation(
         posture=posture,
         summary=summary,
@@ -132,4 +143,5 @@ def recommend(inputs: RecommenderInputs) -> UnderwritingRecommendation:
         grounding=grounding,
         provider=PROVIDER_NAME,
         mode="deterministic",
+        provenance=provenance,
     )

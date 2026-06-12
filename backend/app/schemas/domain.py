@@ -103,6 +103,9 @@ class UnderwritingRecommendation(BaseModel):
     model: Optional[str] = None
     mode: Optional[str] = None          # "deterministic" | "llm"
     fallback_reason: Optional[str] = None
+    # Unified AI lineage {provider, model, prompt_version, input_hash} — sibling of
+    # fraud_signal/vision provenance; rides inside the persisted JSON (no migration).
+    provenance: Optional[dict] = None
 
 class InfrastructureItem(BaseModel):
     name: str

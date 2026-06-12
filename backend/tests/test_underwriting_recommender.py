@@ -84,6 +84,28 @@ def test_rate_adequacy_adequate_with_no_losses():
     assert r.rate_adequacy == "adequate"
 
 
+from app.ai_provenance import AIProvenance
+
+
+def test_recommendation_carries_provenance():
+    # Every AI output must carry its lineage {provider, model, prompt_version,
+    # input_hash} — the sibling of fraud_signal/vision provenance + the flywheel key.
+    r = recommend(_inputs(tier="A", total_score=20))
+    assert r.provenance is not None
+    prov = AIProvenance(**r.provenance)
+    assert prov.provider == "deterministic"
+    assert prov.model == "uw-recommender"
+    assert prov.prompt_version  # a non-empty contract version
+    assert len(prov.input_hash) == 16
+
+
+def test_recommendation_provenance_hash_reflects_inputs():
+    # The fingerprint must reflect the actual underwriting inputs, not be a constant.
+    a = recommend(_inputs(tier="A", total_score=20)).provenance["input_hash"]
+    b = recommend(_inputs(tier="D", total_score=95)).provenance["input_hash"]
+    assert a != b
+
+
 def test_summary_and_grounding_reference_real_numbers():
     r = recommend(_inputs(
         tier="C", total_score=68,
