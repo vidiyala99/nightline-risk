@@ -1254,18 +1254,18 @@ function TriageRow({
         {hasSignals && (
           <div className="lc-triage__row-chips">
             {venue.open_incidents > 0 && (
-              <span className="lc-triage__chip-sig" style={{ color: "var(--state-error)", borderColor: "var(--state-error)" }}>
-                <AlertTriangle size={10} aria-hidden /> {venue.open_incidents} {venue.open_incidents === 1 ? "incident" : "incidents"}
+              <span className="lc-triage__chip-sig">
+                <AlertTriangle size={11} style={{ color: "var(--state-error)" }} aria-hidden /> {venue.open_incidents} {venue.open_incidents === 1 ? "incident" : "incidents"}
               </span>
             )}
             {venue.compliance_actions > 0 && (
-              <span className="lc-triage__chip-sig" style={{ color: "var(--state-warning)", borderColor: "var(--state-warning)" }}>
-                <CheckSquare size={10} aria-hidden /> {venue.compliance_actions} to clear
+              <span className="lc-triage__chip-sig">
+                <CheckSquare size={11} style={{ color: "var(--state-warning)" }} aria-hidden /> {venue.compliance_actions} to clear
               </span>
             )}
             {venue.has_degraded_infra && (
-              <span className="lc-triage__chip-sig" style={{ color: "var(--state-warning)", borderColor: "var(--state-warning)" }}>
-                <WifiOff size={10} aria-hidden /> infra degraded
+              <span className="lc-triage__chip-sig">
+                <WifiOff size={11} style={{ color: "var(--state-warning)" }} aria-hidden /> infra degraded
               </span>
             )}
           </div>

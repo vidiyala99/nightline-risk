@@ -36,8 +36,8 @@ const PILLARS = [
   },
   {
     icon: Landmark,
-    title: "The AI-native carrier",
-    body: "Nightline doesn't just place coverage — it underwrites its own submissions and adjudicates its own claims, end to end.",
+    title: "Built like an AI-native carrier",
+    body: "Beyond placement: this prototype underwrites its own submissions and adjudicates its own claims end to end — modeling the full carrier loop, not just a quoting tool.",
   },
 ];
 
@@ -148,6 +148,10 @@ export default function LandingPage() {
 
       {/* 2. Three pillars */}
       <section style={{ maxWidth: 1100, margin: "0 auto", paddingBottom: "clamp(40px, 7vh, 80px)" }}>
+        <span className="lc-eyebrow">THE MODEL</span>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: "0.95rem", color: "var(--text-secondary)", margin: "12px 0 var(--space-lg)", maxWidth: "56ch" }}>
+          A working prototype on seeded demo data — each pillar runs end to end, so you can click through the whole chain rather than read about it.
+        </p>
         <div
           style={{
             display: "grid",

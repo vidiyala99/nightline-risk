@@ -3434,21 +3434,23 @@ a:hover { color: var(--text-primary); }
 .lc-triage__row-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 6px;
+  gap: 14px;        /* wider gap reads as distinct tokens now that pills are gone */
+  margin-top: 7px;
 }
+/* Lightweight signal tokens, NOT loud bordered pills: color lives only in the
+   small icon, the label stays quiet (secondary text). Keeps every signal legible
+   while letting the tier score/meter remain the row's primary cue — lower the
+   wall-of-badges cognitive load a broker scans through. */
 .lc-triage__chip-sig {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 6px;
-  border: 1px solid currentColor;
-  border-radius: 999px;
   font-family: var(--font-mono);
   font-style: normal;
-  font-size: 0.65rem;
+  font-size: 0.64rem;
   line-height: 1;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
   white-space: nowrap;
   font-variant-numeric: tabular-nums lining-nums;
 }
