@@ -300,6 +300,16 @@ function DashboardPageInner() {
 
   const isBroker = role === "broker" || role === "admin";
 
+  // The broker home is the whole portfolio (The Book lists every venue), so a
+  // ?venue= scope means nothing here — it only confuses ("why does Home say
+  // Elsewhere Brooklyn?"). If a stale navigation carried one in, strip it so the
+  // URL matches what's actually shown. Operators keep ?venue= (their switcher).
+  useEffect(() => {
+    if (isLoaded && isBroker && venueParam) {
+      router.replace("/dashboard");
+    }
+  }, [isLoaded, isBroker, venueParam, router]);
+
   const filteredPortfolioVenues = searchQuery.trim()
     ? portfolioVenues.filter(v => {
         const q = searchQuery.toLowerCase();
