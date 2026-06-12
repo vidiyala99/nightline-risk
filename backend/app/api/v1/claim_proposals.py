@@ -356,11 +356,16 @@ def get_cross_venue_override_stats(session: Session = Depends(get_session)) -> d
 @router.get("/venues/{venue_id}/override-stats")
 def get_venue_override_stats(
     venue_id: str,
+    authorization: str = Header(None),
     session: Session = Depends(get_session),
 ) -> dict:
-    """Per-venue override-accuracy aggregates. Unknown venue is a hard 404."""
+    """Per-venue override-accuracy aggregates. Unknown venue is a hard 404.
+
+    Venue-scoped like its siblings (risk-score / quote / incident-counts):
+    the owning operator + brokers may read it; anyone else is 403."""
     from app.main import _resolve_venue
     _resolve_venue(venue_id, session)
+    require_venue_access(venue_id, authorization, session)
     stats = compute_override_stats(session=session, venue_id=venue_id)
     return override_stats_to_dict(stats)
 

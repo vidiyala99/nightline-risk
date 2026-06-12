@@ -120,12 +120,25 @@ def test_per_venue_override_stats_scopes_to_venue():
     prop = _propose(client, p, override=True, reason="additional_evidence")
     _decide(client, prop, "approved")
 
-    response = client.get("/api/venues/elsewhere-brooklyn/override-stats")
+    response = client.get(
+        "/api/venues/elsewhere-brooklyn/override-stats", headers=_broker()
+    )
 
     assert response.status_code == 200
     body = response.json()
     assert body["override_total"] >= 1
     assert "additional_evidence" in body["by_reason"]
+
+
+def test_per_venue_override_stats_requires_access():
+    """Venue-scoped like its siblings — an unauthenticated caller can't read
+    another venue's QA aggregates by id (was an unscoped IDOR)."""
+    client = TestClient(app)
+    _create_packet_for_venue(client, "elsewhere-brooklyn")
+
+    response = client.get("/api/venues/elsewhere-brooklyn/override-stats")
+
+    assert response.status_code == 401
 
 
 def test_per_venue_override_stats_for_unknown_venue_returns_404():
