@@ -40,6 +40,42 @@ import { ClaimStatusPill } from "@/components/claims/ClaimStatusPill";
 import { claimsApi, totalPaidFromClaim, type Claim } from "@/lib/claims";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { formatLedgerMoney } from "@/lib/claim-tokens";
+import { PromptDialog, type PromptField } from "@/components/ui/PromptDialog";
+
+type PromptKind = "assign" | "cancel" | "nonrenew" | "lapse";
+
+const PROMPT_CONFIG: Record<PromptKind, { title: string; subtitle?: string; submitLabel: string; fields: PromptField[] }> = {
+  assign: {
+    title: "Assign policy number",
+    submitLabel: "Assign",
+    fields: [{ name: "number", label: "Carrier-issued policy number", type: "text", required: true, placeholder: "BW-2026-00123" }],
+  },
+  cancel: {
+    title: "Cancel policy",
+    subtitle: "Mid-term cancellation — captures the refund basis for the audit trail.",
+    submitLabel: "Cancel policy",
+    fields: [
+      { name: "method", label: "Cancellation method", type: "select", required: true,
+        options: [
+          { value: "pro_rata", label: "Pro-rata (friendly — full unearned refund)" },
+          { value: "short_rate", label: "Short-rate (carrier penalty — 10%)" },
+        ] },
+      { name: "reason", label: "Reason", type: "textarea", required: true },
+      { name: "cancellation_date", label: "Cancellation date", type: "date", required: true },
+    ],
+  },
+  nonrenew: {
+    title: "Non-renew policy",
+    submitLabel: "Non-renew",
+    fields: [{ name: "reason", label: "Reason for non-renewal", type: "textarea", required: true }],
+  },
+  lapse: {
+    title: "Lapse policy",
+    subtitle: "Premium not paid — a lapsed policy can be reinstated later.",
+    submitLabel: "Mark lapsed",
+    fields: [{ name: "reason", label: "Reason for lapse", type: "textarea", required: true }],
+  },
+};
 
 
 export default function PolicyDetailPage() {
@@ -55,6 +91,7 @@ export default function PolicyDetailPage() {
   const [manageOpen, setManageOpen] = useState(false);
   const [claims, setClaims] = useState<Claim[] | null>(null);
   const [claimsError, setClaimsError] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState<PromptKind | null>(null);
 
   const load = async () => {
     if (!pid) return;
@@ -92,73 +129,57 @@ export default function PolicyDetailPage() {
     return policy.certificates.filter(c => c.status === "active");
   }, [policy, showSupersededCois]);
 
-  const handleAssignNumber = async () => {
-    if (!policy) return;
-    const number = window.prompt("Carrier-issued policy number:");
-    if (!number || !number.trim()) return;
-    setBusy(true);
-    try {
-      await policiesApi.assignPolicyNumber(policy.id, number.trim());
-      await load();
-    } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : "Assign failed");
-    } finally {
-      setBusy(false);
-    }
-  };
+  // Lifecycle data-entry now runs through a single PromptDialog (was a chain of
+  // native window.prompt() dialogs). The button handlers just open it; runPrompt
+  // performs the API call for whichever action is pending.
+  const handleAssignNumber = () => setPrompt("assign");
+  const handleCancel = () => setPrompt("cancel");
 
-  const handleCancel = async () => {
-    if (!policy) return;
-    const method = window.prompt(
-      "Cancellation method? Type 'pro_rata' for friendly refund or 'short_rate' for carrier penalty (10%):",
-      "pro_rata",
-    );
-    if (!method || !["pro_rata", "short_rate"].includes(method.trim())) return;
-    const reason = window.prompt("Cancellation reason:");
-    if (!reason || !reason.trim()) return;
-    const date = window.prompt("Cancellation date (YYYY-MM-DD):");
-    if (!date) return;
-    setBusy(true);
-    try {
-      await policiesApi.cancelPolicy(policy.id, {
-        method: method.trim() as "pro_rata" | "short_rate",
-        reason: reason.trim(),
-        cancellation_date: date,
-      });
-      await load();
-    } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : "Cancel failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // End-of-life transitions (active → expired / non_renewed / lapsed).
-  // Mirror handleCancel's confirm-then-reload shape. expire is benign (term
-  // ended); non-renew and lapse are adverse and capture a reason.
+  // expire is a benign yes/no (term ended) — a confirm is fine. non-renew / lapse
+  // capture a reason, so they open the dialog.
   const handleEndOfLife = async (action: "expire" | "non-renew" | "lapse") => {
     if (!policy) return;
-    let reason = "";
     if (action === "expire") {
       if (!window.confirm("Mark this policy expired at end of term? This is terminal.")) return;
-    } else {
-      const label = action === "non-renew" ? "non-renewal" : "lapse";
-      const r = window.prompt(`Reason for ${label}:`);
-      if (!r || !r.trim()) return;
-      reason = r.trim();
+      setBusy(true);
+      try {
+        await policiesApi.expirePolicy(policy.id);
+        await load();
+      } catch (e) {
+        alert(e instanceof PlacementApiError ? e.message : "expire failed");
+      } finally {
+        setBusy(false);
+      }
+      return;
     }
+    setPrompt(action === "non-renew" ? "nonrenew" : "lapse");
+  };
+
+  async function runPrompt(values: Record<string, string>) {
+    if (!policy || !prompt) return;
     setBusy(true);
     try {
-      if (action === "expire") await policiesApi.expirePolicy(policy.id);
-      else if (action === "non-renew") await policiesApi.nonRenewPolicy(policy.id, reason);
-      else await policiesApi.lapsePolicy(policy.id, reason);
+      if (prompt === "assign") {
+        await policiesApi.assignPolicyNumber(policy.id, values.number.trim());
+      } else if (prompt === "cancel") {
+        await policiesApi.cancelPolicy(policy.id, {
+          method: values.method as "pro_rata" | "short_rate",
+          reason: values.reason.trim(),
+          cancellation_date: values.cancellation_date,
+        });
+      } else if (prompt === "nonrenew") {
+        await policiesApi.nonRenewPolicy(policy.id, values.reason.trim());
+      } else if (prompt === "lapse") {
+        await policiesApi.lapsePolicy(policy.id, values.reason.trim());
+      }
+      setPrompt(null);
       await load();
     } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : `${action} failed`);
+      alert(e instanceof PlacementApiError ? e.message : "Action failed");
     } finally {
       setBusy(false);
     }
-  };
+  }
 
   const handleReinstate = async () => {
     if (!policy) return;
@@ -625,6 +646,19 @@ export default function PolicyDetailPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {prompt && (
+        <PromptDialog
+          open
+          title={PROMPT_CONFIG[prompt].title}
+          subtitle={PROMPT_CONFIG[prompt].subtitle}
+          submitLabel={PROMPT_CONFIG[prompt].submitLabel}
+          fields={PROMPT_CONFIG[prompt].fields}
+          busy={busy}
+          onSubmit={runPrompt}
+          onClose={() => setPrompt(null)}
+        />
       )}
     </div>
   );
