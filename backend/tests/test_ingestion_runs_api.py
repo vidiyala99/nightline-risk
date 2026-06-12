@@ -1,6 +1,7 @@
 """HTTP tests for GET /api/ingestion/runs (broker/admin observability)."""
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import SQLModel, Session, create_engine
 
 from app.auth import create_token
 from app.database import get_session
@@ -9,9 +10,31 @@ from app.models import IngestionRun
 
 
 @pytest.fixture
-def client():
+def client(tmp_path, monkeypatch):
+    # Isolated engine: the prior version shared the real database.db via
+    # get_session(), so app-startup-created IngestionRun rows (comms, etc.)
+    # flooded the limited recent-runs list and crowded out this test's seeded
+    # rows non-deterministically (order-dependent flake). Scope to a tmp DB.
+    engine = create_engine(
+        f"sqlite:///{tmp_path/'ingestion_runs.db'}",
+        connect_args={"check_same_thread": False},
+    )
+    SQLModel.metadata.create_all(engine)
+    monkeypatch.setattr("app.database.engine", engine)
+    monkeypatch.setattr("app.main.engine", engine)
+    with Session(engine) as s:
+        for i in range(2):
+            s.add(IngestionRun(id=f"ingest-apitest-{i}", source_system="pos", status="success", loaded=3))
+        s.commit()
+
+    def override_get_session():
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_session] = override_get_session
     with TestClient(app) as c:
         yield c
+    app.dependency_overrides.clear()
 
 
 def _broker_headers():
@@ -20,19 +43,6 @@ def _broker_headers():
 
 def _operator_headers():
     return {"Authorization": f"Bearer {create_token('op-ing', 'o@x.com', 'venue_operator', 'v1')}"}
-
-
-@pytest.fixture(autouse=True)
-def _seed_runs():
-    session = next(get_session())
-    try:
-        for i in range(2):
-            rid = f"ingest-apitest-{i}"
-            if not session.get(IngestionRun, rid):
-                session.add(IngestionRun(id=rid, source_system="pos", status="success", loaded=3))
-        session.commit()
-    finally:
-        session.close()
 
 
 def test_runs_requires_auth(client):
