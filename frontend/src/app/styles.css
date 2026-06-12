@@ -5054,6 +5054,76 @@ html, body { overflow-x: clip; }
   margin-top: 12px;
 }
 
+/* Coverage-gap remediation cards (/policies/[pid]/gaps). Each card pairs a
+   missing required line with its one-click fix — problem and action together. */
+.coverage-gap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.coverage-gap-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--state-error);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.coverage-gap-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.coverage-gap-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.coverage-gap-card__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.coverage-gap-card__name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.coverage-gap-card__tag {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+.coverage-gap-card__reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 0 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.coverage-gap-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
 .policies-table-wrap {
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);

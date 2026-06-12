@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
 import { pickEvidence } from '../lib/pickEvidence';
+import { bySeverity } from '../lib/listSort';
 
 const PRIORITY_COLOR: Record<string, string> = {
   urgent: Colors.error,
@@ -104,7 +105,7 @@ export function OperatorComplianceScreen({ navigation, route }: any) {
           <Text style={styles.clearSub}>No pending compliance actions.</Text>
         </View>
       ) : (
-        queue.map(item => {
+        [...queue].sort(bySeverity((i) => i.priority)).map(item => {
           const color = PRIORITY_COLOR[item.priority] ?? Colors.textMuted;
           return (
             <Pressable

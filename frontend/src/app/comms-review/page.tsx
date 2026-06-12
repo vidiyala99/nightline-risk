@@ -57,7 +57,7 @@ export default function CommsReviewPage() {
       </section>
 
       <div className="incidents-list stagger-children">
-        {items.length > 0 ? items.map((it) => (
+        {items.length > 0 ? [...items].sort((a, b) => a.confidence - b.confidence).map((it) => (
           <div key={it.id} className="incident-card" style={{ cursor: "default" }}>
             <div className="incident-icon"><Inbox size={20} aria-hidden /></div>
             <div className="incident-info">

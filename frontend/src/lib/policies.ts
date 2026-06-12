@@ -81,6 +81,32 @@ export interface PolicyDetail extends Policy {
   certificates: CertificateOfInsurance[];
 }
 
+// ─── Coverage-gap remediation (backs /policies/[pid]/gaps) ───────────────
+
+export interface CoverageGapLine {
+  id: string;
+  name: string;
+  limit: string | null;
+}
+
+export interface CoverageGap {
+  id: string;
+  name: string;
+  severity: string;
+  reason: string;
+  recommended_limit: string | null;
+  endorse_href: string;
+}
+
+export interface CoverageGapReport {
+  policy_id: string;
+  venue_id: string;
+  status: string;
+  covered: CoverageGapLine[];
+  gaps: CoverageGap[];
+  summary: { gap_count: number; highest_severity: string | null };
+}
+
 // ─── Fetch wrapper (mirrors placement.ts) ────────────────────────────────
 
 async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -134,6 +160,9 @@ export const policiesApi = {
   },
 
   getPolicy: (pid: string) => call<PolicyDetail>(`/api/policies/${pid}`),
+
+  getCoverageGaps: (pid: string) =>
+    call<CoverageGapReport>(`/api/policies/${pid}/coverage-gaps`),
 
   assignPolicyNumber: (pid: string, policy_number: string) =>
     call<Policy>(`/api/policies/${pid}/policy-number`, {

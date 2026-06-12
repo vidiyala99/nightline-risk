@@ -123,7 +123,9 @@ export function AdjusterQueueScreen({ navigation }: any) {
         </View>
       ) : (
         <FlatList
-          data={rows!}
+          data={[...rows!].sort(
+            (a, b) => (a.coverage_decision == null ? 0 : 1) - (b.coverage_decision == null ? 0 : 1),
+          )}
           keyExtractor={(r) => r.claim_id}
           contentContainerStyle={{ paddingBottom: 32 }}
           refreshControl={

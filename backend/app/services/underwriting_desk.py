@@ -236,7 +236,12 @@ def underwriting_queue(session: Session) -> list[dict]:
     with submission + venue context, the calibrated risk read, and the pricing
     engine's suggested premium so the decision form prefills. Carrier sees the
     whole queue (it's Nightline's own underwriting desk)."""
-    all_quotes = session.exec(select(CarrierQuote)).all()
+    # Oldest-in-queue first: a decision desk should drain the quote that has
+    # been waiting longest, not an arbitrary UUID order. requested_at is the
+    # queue-entry time.
+    all_quotes = session.exec(
+        select(CarrierQuote).order_by(CarrierQuote.requested_at.asc())
+    ).all()
     rows: list[dict] = []
     for q in all_quotes:
         if q.status not in AWAITING_QUOTE_STATES:
@@ -258,7 +263,7 @@ def underwriting_queue(session: Session) -> list[dict]:
             "status": q.status,
             "suggested_premium_breakdown": suggested,
         })
-    rows.sort(key=lambda r: r["quote_id"])
+    # rows already in oldest-first order from the query above.
     return rows
 
 

@@ -19,9 +19,11 @@ from app.auth import can_access_venue, require_staff, require_venue_access, veri
 from app.database import get_session
 from app.incident_flow import create_brawl_incident_flow
 from app.lifecycles import (
+    INCIDENT_STATUS_PRIORITY,
     INCIDENT_TRANSITIONS,
     InvalidTransitionError,
     assert_valid_transition,
+    status_priority_case,
 )
 from app.models import Claim, ClaimProposal, IncidentRecord, UnderwritingPacket
 from app.packet_core import _add_audit_event
@@ -63,7 +65,13 @@ def list_incidents_by_venue(
     query = select(IncidentRecord).where(IncidentRecord.venue_id == venue_id)
     if status:
         query = query.where(IncidentRecord.status == status)
-    query = query.order_by(IncidentRecord.created_at.desc())
+    # Actionable-first: open → under_review → closed, recency breaks ties.
+    # The operator "Tonight's floor" view is a triage queue, not a chronological
+    # feed, so status priority leads (matches lib/sort.ts on the client).
+    query = query.order_by(
+        status_priority_case(IncidentRecord.status, INCIDENT_STATUS_PRIORITY).desc(),
+        IncidentRecord.created_at.desc(),
+    )
     records = session.exec(query).all()
     return [_incident_to_response(r) for r in records]
 
@@ -129,7 +137,10 @@ def list_all_incidents(
             "message": "Invalid or expired token",
         })
     records = session.exec(
-        select(IncidentRecord).order_by(IncidentRecord.occurred_at.desc()).limit(limit)
+        select(IncidentRecord).order_by(
+            status_priority_case(IncidentRecord.status, INCIDENT_STATUS_PRIORITY).desc(),
+            IncidentRecord.occurred_at.desc(),
+        ).limit(limit)
     ).all()
     if user.get("role") not in ("broker", "admin"):
         # Operator scoping. Filter post-query against the audited helper rather

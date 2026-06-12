@@ -239,6 +239,55 @@ SL_FILING_TERMINAL_STATES: frozenset[str] = frozenset(
 )
 
 
+# ─── Status sort priority (cross-cutting list ordering) ──────────────────
+#
+# Canonical "actionable-first" ranks for list ordering. HIGHER rank sorts
+# first (order DESC). This is the single source of truth backing both the SQL
+# ORDER BY helper below and the frontend lib/sort.ts / mobile listSort.ts
+# mirrors, so the server and client agree on what "needs attention" means.
+# Recency (created_at/occurred_at DESC) should break ties at the call site.
+
+INCIDENT_STATUS_PRIORITY: dict[str, int] = {
+    "open": 100,            # needs triage now
+    "under_review": 60,     # being worked
+    "closed": 10,           # resolved
+    "closed_archived": 0,   # hidden
+}
+
+CLAIM_STATUS_PRIORITY: dict[str, int] = {
+    "notified": 100,            # brand new, needs acknowledgement
+    "reopened": 95,             # back on the desk
+    "acknowledged": 80,
+    "under_investigation": 70,
+    "reserved": 60,
+    "settling": 50,
+    "closed_paid": 10,
+    "closed_denied": 10,
+    "closed_dropped": 5,
+}
+
+SUBMISSION_STATUS_PRIORITY: dict[str, int] = {
+    "quoting": 100,    # quotes in hand, needs a bind decision
+    "in_market": 80,   # awaiting carrier response
+    "open": 60,        # accepted but not yet submitted
+    "bound": 20,       # placed (positive terminal)
+    "lost": 5,
+    "declined": 5,
+    "withdrawn": 5,
+}
+
+
+def status_priority_case(column, mapping: dict[str, int], *, default: int = 0):
+    """Build a SQLAlchemy CASE mapping a status column to a sortable integer
+    rank. Order DESC for 'most actionable first'. Statuses not in `mapping`
+    fall to `default` (sink to the bottom). Keeps SQL ordering identical to the
+    frontend comparators that read the same priority maps above."""
+    from sqlalchemy import case
+
+    whens = [(column == status, rank) for status, rank in mapping.items()]
+    return case(*whens, else_=default)
+
+
 # ─── Errors ──────────────────────────────────────────────────────────────
 
 class InvalidTransitionError(ValueError):

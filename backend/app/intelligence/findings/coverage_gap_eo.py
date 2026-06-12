@@ -39,14 +39,18 @@ def find(scope: FindingScope) -> list[Finding]:
             id=f"coverage_gap_eo:policy:{pol.id}",
             persona="broker",
             kind="coverage_gap_eo",
+            # Both links route to the coverage-gap remediation page (current
+            # coverage + every gap + how to close each) rather than the raw
+            # policy detail / a single-line endorse form. The per-line endorse
+            # deep-links live as "Add this coverage" buttons inside that page.
             subject=Subject(entity_type="policy", entity_id=pol.id,
-                            label=pol.policy_number or pol.id, href=f"/policies/{pol.id}"),
+                            label=pol.policy_number or pol.id, href=f"/policies/{pol.id}/gaps"),
             severity="high",
             why=[Citation(source_id=pol.id, source_type="policy",
                           excerpt=f"Missing required coverage: {', '.join(missing)}.")],
             recommended_action=RecommendedAction(
                 label="Close coverage gap (E&O exposure)",
-                href=f"/policies/{pol.id}/endorse?type=add_coverage&coverage_line={missing[0]}"),
+                href=f"/policies/{pol.id}/gaps"),
             prediction=Prediction(
                 claim="A loss on a missing required line is an uncovered E&O exposure.",
                 falsifiable_by="claim_outcome", horizon="on_claim"),

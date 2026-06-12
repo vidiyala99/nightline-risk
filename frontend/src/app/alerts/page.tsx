@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTenantId, useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { authHeaders } from "@/lib/authFetch";
+import { bySeverity } from "@/lib/sort";
 import Link from "next/link";
 import { Bell, CheckCircle2, XCircle, ChevronDown, RefreshCw, ShieldAlert, ShieldCheck, Zap, ArrowRight } from "lucide-react";
 
@@ -462,7 +463,11 @@ function AlertsPageInner() {
 
       {/* Empty state + active list + recent resolved */}
       {!loading && (() => {
-        const activeAlerts = alerts.filter((a) => !a.feedback);
+        // Severity-first (critical → low) so the most dangerous exposure leads,
+        // newest breaking ties — was newest-first, ignoring severity.
+        const activeAlerts = alerts
+          .filter((a) => !a.feedback)
+          .sort(bySeverity((a) => a.severity, (a) => a.detected_at));
         const resolvedAlerts = alerts.filter((a) => !!a.feedback).slice(0, 5);
         if (activeAlerts.length === 0) {
           return (

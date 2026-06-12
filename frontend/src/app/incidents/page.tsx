@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTenantId, useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { authHeaders } from "@/lib/authFetch";
+import { actionableFirst, incidentUrgency } from "@/lib/sort";
 import {
   AlertTriangle, Plus, Calendar, MapPin, User,
   ShieldAlert, CheckCircle2, Clock, ArrowRight, X,
@@ -280,25 +281,17 @@ export default function IncidentsPage() {
   };
 
   const _base = statusFilter === "all" ? incidents : incidents.filter((i) => i.status === statusFilter);
-  // Broker view = decisions across the book: surface incidents most likely to
-  // need a filing decision first (open/under-review + injury/police/EMS signals;
-  // already-filed claims sink). Operators keep the server's chronological order
-  // (their own venue — a status feed, not a decision queue). Recency breaks ties.
-  const incidentUrgency = (i: Incident): number => {
-    let score = 0;
-    if (i.status === "open") score += 100;
-    else if (i.status === "under_review") score += 60;
-    if (claimByIncident[i.id]) score -= 50;
-    if (i.injury_observed) score += 8;
-    if (i.police_called) score += 4;
-    if (i.ems_called) score += 4;
-    return score;
-  };
-  const filteredIncidents = isBroker
-    ? [..._base].sort((a, b) =>
-        (incidentUrgency(b) - incidentUrgency(a)) ||
-        (new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime()))
-    : _base;
+  // Actionable-first for EVERY persona: open → under_review → closed, boosted by
+  // injury/police/EMS signals, with already-filed incidents sinking (a claim is
+  // in motion). The operator "Tonight's floor" view is a triage queue too — not
+  // a chronological feed — so closed incidents must not float to the top.
+  // Recency breaks ties. Shared with the backend ORDER BY via lib/sort.ts.
+  const filteredIncidents = [..._base].sort(
+    actionableFirst(
+      (i) => incidentUrgency(i, Boolean(claimByIncident[i.id])),
+      (i) => i.occurred_at,
+    ),
+  );
 
   if (!isSignedIn || loading) {
     return <div className="page-loading"><div className="loading-spinner" /></div>;

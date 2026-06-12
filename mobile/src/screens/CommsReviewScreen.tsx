@@ -95,7 +95,7 @@ export function CommsReviewScreen() {
       </View>
 
       <FlatList
-        data={items}
+        data={[...items].sort((a, b) => a.confidence - b.confidence)}
         keyExtractor={(i) => i.id}
         contentContainerStyle={styles.list}
         refreshControl={

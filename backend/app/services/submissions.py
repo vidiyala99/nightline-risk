@@ -37,9 +37,11 @@ from sqlmodel import Session, col, select
 
 from app.lifecycles import (
     QUOTE_TRANSITIONS,
+    SUBMISSION_STATUS_PRIORITY,
     SUBMISSION_TERMINAL_STATES,
     SUBMISSION_TRANSITIONS,
     assert_valid_transition,
+    status_priority_case,
 )
 from app.models import Carrier, CarrierQuote, Submission, Venue
 from app.money import json_to_usd
@@ -717,6 +719,13 @@ def list_submissions(
         stmt = stmt.where(Submission.assigned_producer_id == producer_id)
     if venue_id is not None:
         stmt = stmt.where(Submission.venue_id == venue_id)
+
+    # Actionable-first: quoting (needs a bind decision) → in_market → open,
+    # newest first within a status. Was DB insertion order.
+    stmt = stmt.order_by(
+        status_priority_case(Submission.status, SUBMISSION_STATUS_PRIORITY).desc(),
+        Submission.created_at.desc(),
+    )
 
     results = list(session.exec(stmt).all())
 

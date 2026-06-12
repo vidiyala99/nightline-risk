@@ -28,6 +28,7 @@ from app.auth import require_broker, require_venue_access
 from app.database import get_session
 from app.lifecycles import InvalidTransitionError
 from app.models import CertificateOfInsurance, Endorsement, Policy
+from app.services.coverage_gaps import analyze_policy_gaps
 from app.services.policies import (
     PoliciesError,
     QuoteNotBindableError,
@@ -266,6 +267,17 @@ def api_policy_detail(pid: str, session: Session = Depends(get_session)) -> dict
         "endorsements": [_endorsement_to_dict(e) for e in endorsements],
         "certificates": [_coi_to_dict(c) for c in certificates],
     }
+
+
+@router.get("/policies/{pid}/coverage-gaps", dependencies=[Depends(require_broker)])
+def api_policy_coverage_gaps(pid: str, session: Session = Depends(get_session)) -> dict:
+    """Coverage-gap remediation view for one policy: current coverage, the
+    missing required lines, and a deep-link to close each. Backs the broker
+    `/policies/{pid}/gaps` page that the coverage-gap CTA routes to."""
+    p = session.get(Policy, pid)
+    if p is None:
+        raise HTTPException(status_code=404, detail=f"Policy {pid} not found")
+    return analyze_policy_gaps(session, p)
 
 
 @router.patch("/policies/{pid}/policy-number", dependencies=[Depends(require_broker)])

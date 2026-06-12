@@ -28,6 +28,7 @@ import {
   type AlertFeedback,
 } from '../api/alerts';
 import { Fonts } from '../theme/typography';
+import { bySeverity } from '../lib/listSort';
 
 interface VenueLite {
   id: string;
@@ -182,7 +183,7 @@ export function AlertsScreen() {
         </View>
       ) : (
         <FlatList
-          data={alerts}
+          data={[...alerts].sort(bySeverity((a) => a.severity, (a) => a.detected_at))}
           keyExtractor={(a) => a.id}
           contentContainerStyle={{ paddingBottom: 32 }}
           refreshControl={

@@ -13,6 +13,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
+import { actionableFirst, incidentUrgency } from '../lib/listSort';
 import { StatusBadge } from '../components/StatusBadge';
 
 type Filter = 'all' | 'open' | 'under_review' | 'closed';
@@ -107,7 +108,15 @@ export function IncidentListScreen({ navigation, route }: any) {
     return () => { cancelled = true; };
   }, [effectiveVenueId]);
 
-  const filtered = filter === 'all' ? incidents : incidents.filter(i => i.status === filter);
+  // Actionable-first, matching web: open → under_review → closed with injury/
+  // police/EMS boosts and already-filed incidents sinking; recency breaks ties.
+  const _base = filter === 'all' ? incidents : incidents.filter(i => i.status === filter);
+  const filtered = [..._base].sort(
+    actionableFirst(
+      (i) => incidentUrgency(i, Boolean(claimByIncident[i.id])),
+      (i) => i.occurred_at,
+    ),
+  );
 
   if (loading) {
     return (

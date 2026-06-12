@@ -142,7 +142,13 @@ export default function SurplusLinesPage() {
 
       <div className="incidents-list stagger-children">
         {filings.length > 0 ? (
-          filings.map((f) => {
+          // Overdue-first, then soonest deadline — a missed ELANY filing is the
+          // urgent item, so it must not sit in arbitrary server order.
+          [...filings]
+            .sort((a, b) =>
+              (isOverdue(b) ? 1 : 0) - (isOverdue(a) ? 1 : 0) ||
+              new Date(a.filing_deadline).getTime() - new Date(b.filing_deadline).getTime())
+            .map((f) => {
             const overdue = isOverdue(f);
             const canFile = f.status === "pending";
             const canConfirm = f.status === "filed";

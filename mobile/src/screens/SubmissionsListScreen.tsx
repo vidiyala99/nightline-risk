@@ -27,6 +27,7 @@ import {
   type SubmissionStatus,
 } from '../api/submissions';
 import { Fonts } from '../theme/typography';
+import { byStatusPriority, SUBMISSION_STATUS_PRIORITY } from '../lib/listSort';
 
 type Filter = 'active' | SubmissionStatus | 'all';
 const FILTERS: Filter[] = ['active', 'open', 'in_market', 'quoting', 'bound', 'all'];
@@ -74,8 +75,11 @@ export function SubmissionsListScreen({ navigation }: any) {
         : filter === 'active'
           ? rows.filter((s) => !TERMINAL.includes(s.status))
           : rows.filter((s) => s.status === filter);
+    // Actionable-first (quoting → in_market → open), newest breaking ties —
+    // matches the backend ORDER BY and web, instead of overriding it with pure
+    // recency.
     return [...list].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      byStatusPriority(SUBMISSION_STATUS_PRIORITY, (s) => s.status, (s) => s.created_at),
     );
   }, [rows, filter]);
 

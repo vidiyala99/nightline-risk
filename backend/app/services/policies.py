@@ -757,4 +757,7 @@ def list_policies(
         stmt = stmt.where(Policy.venue_id == venue_id)
     if carrier_id is not None:
         stmt = stmt.where(Policy.carrier_id == carrier_id)
+    # Actionable-first for an in-force book = soonest-to-lapse on top, so the
+    # policy nearest renewal/expiry leads instead of arbitrary insertion order.
+    stmt = stmt.order_by(Policy.expiration_date.asc())
     return list(session.exec(stmt).all())

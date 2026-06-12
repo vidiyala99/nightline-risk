@@ -44,8 +44,10 @@ from uuid import uuid4
 from sqlmodel import Session, select
 
 from app.lifecycles import (
+    CLAIM_STATUS_PRIORITY,
     CLAIM_TRANSITIONS,
     assert_valid_transition,
+    status_priority_case,
 )
 from app.models import (
     Claim,
@@ -585,6 +587,12 @@ def list_claims(
     elif status_in is not None and status_in != ["all"]:
         stmt = stmt.where(Claim.status.in_(status_in))  # type: ignore[attr-defined]
 
+    # Actionable-first: open/reopened claims before closed ones, newest FNOL
+    # breaks ties. Without this the carrier book rendered in DB insertion order.
+    stmt = stmt.order_by(
+        status_priority_case(Claim.status, CLAIM_STATUS_PRIORITY).desc(),
+        Claim.fnol_submitted_at.desc(),
+    )
     return list(session.exec(stmt).all())
 
 

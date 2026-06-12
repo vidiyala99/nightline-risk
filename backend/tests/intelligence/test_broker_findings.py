@@ -150,11 +150,12 @@ def test_broker_finding_hrefs_are_action_scented(session):
     assert risk.recommended_action.href == "/policies/pol-h1"
     assert risk.subject.href == "/policies/pol-h1"
 
+    # Both links now route to the coverage-gap remediation page (current
+    # coverage + every gap + how to close each); the per-line endorse deep-links
+    # live as "Add this coverage" buttons inside that page.
     gap = next(f for f in find_gap(_scope(session)) if f.subject.entity_id == "pol-h2")
-    assert gap.recommended_action.href.startswith(
-        "/policies/pol-h2/endorse?type=add_coverage&coverage_line=")
-    assert "gl" in gap.recommended_action.href
-    assert gap.subject.href == "/policies/pol-h2"
+    assert gap.recommended_action.href == "/policies/pol-h2/gaps"
+    assert gap.subject.href == "/policies/pol-h2/gaps"
 
 
 def test_submission_stalled_flags_old_non_terminal(session):

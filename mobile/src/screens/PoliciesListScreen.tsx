@@ -27,6 +27,7 @@ import {
   type PolicyStatus,
 } from '../api/policies';
 import { formatLedgerMoney } from '../api/claim-tokens';
+import { byAscDate } from '../lib/listSort';
 import { Fonts } from '../theme/typography';
 
 type Filter = 'active' | PolicyStatus | 'all';
@@ -74,7 +75,9 @@ export function PoliciesListScreen({ navigation }: any) {
         : filter === 'active'
           ? rows.filter((p) => p.status === 'active' || p.status === 'bound_pending_number')
           : rows.filter((p) => p.status === filter);
-    return [...list].sort((a, b) => (b.bound_at ?? '').localeCompare(a.bound_at ?? ''));
+    // Soonest-to-lapse first — matches the backend ORDER BY and web, instead of
+    // overriding it with bound-date recency.
+    return [...list].sort(byAscDate((p) => p.expiration_date));
   }, [rows, filter]);
 
   if (rows === null && !error) {
