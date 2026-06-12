@@ -149,11 +149,16 @@ FE surfaces (reuse existing patterns):
 
 ## Phasing (each slice ships independently, suite stays green)
 
-- **Phase 1 — Exposure map + exclusion-review finding.** `exposure_map.py` +
-  `exclusion_review.py` + the new finding, rendered read-only on the risk-profile. Pure deterministic
-  + retrieval; no new model yet (findings are ephemeral). Highest-value, lowest-risk: turns ingested
-  exclusions into a broker-readable, clause-cited "what this policy won't cover, given how this venue
-  actually loses money" review. *This is the demo-able core.*
+- **Phase 1 — Exposure map + exclusion-review finding. ✅ Shipped 2026-06-12.**
+  `app/coverage/exposure_map.py` (pure, deterministic keyword brain — chosen over TF-IDF so the
+  finding is explainable, respecting the findings framework's "no LLM/retrieval" contract) +
+  `app/coverage/exclusion_review.py` (failure-isolated consumer) + the
+  `coverage_exclusion_review` broker finding (sibling of `coverage_gap_eo`), registered in the
+  intelligence engine + eval harness so it surfaces wherever broker findings render. 21 TDD tests;
+  no new model yet (findings are ephemeral). Eval is covered by the intelligence harness scenario +
+  unit suite (precision + abstention) rather than a separate scorers module. Turns ingested
+  exclusions into a clause-cited "what this policy won't cover, given how this venue actually loses
+  money" review. *This is the demo-able core.*
 - **Phase 2 — Advice record + lifecycle.** `CoverageAdviceRecord` + `coverage_advice.py` +
   acknowledge/action transitions + audit. The E&O documentation artifact. Adds the "I advised, on this
   clause, at this time" defensibility record.

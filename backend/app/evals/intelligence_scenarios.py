@@ -12,8 +12,9 @@ from sqlmodel import SQLModel, Session, create_engine
 import app.models  # noqa: F401
 from app.models import (
     IncidentRecord, Policy, CoverageLine, ComplianceSignal, Submission,
-    PolicyRequest, Claim, EvidenceAnalysis,
+    PolicyRequest, Claim, EvidenceAnalysis, SourceRecord,
 )
+from app.knowledge_sources import INGESTED_ORIGIN
 
 NOW = datetime(2026, 6, 8, tzinfo=timezone.utc)
 
@@ -76,6 +77,39 @@ def _broker_coverage_gap():
         "session": s,
         "expected_ids": {"coverage_gap_eo:policy:pol-1"},
         "expected_severity": {"coverage_gap_eo:policy:pol-1": "high"},
+    }
+
+
+def _broker_coverage_exclusion_review():
+    """An A&B-heavy venue whose in-force policy *excludes* assault & battery —
+    the canonical nightlife E&O gap. Must fire high and cite the clause."""
+    s = _fresh_session()
+    s.add(Policy(id="pol-ex", submission_id="s1", bound_quote_id="q1", venue_id="v1",
+                 carrier_id="c1", status="active",
+                 effective_date=date(2026, 1, 1), expiration_date=date(2027, 1, 1),
+                 annual_premium=Decimal("0"), commission_amount=Decimal("0"),
+                 commission_rate=Decimal("0"), coverage_lines=["gl"]))
+    s.add(IncidentRecord(id="inc-ab1", venue_id="v1", occurred_at="2026-05-01",
+                         location="x", summary="Brawl at the bar", reported_by="s",
+                         injury_observed=True, police_called=True, ems_called=False,
+                         status="open"))
+    s.add(IncidentRecord(id="inc-ab2", venue_id="v1", occurred_at="2026-05-02",
+                         location="x", summary="altercation by the door", reported_by="s",
+                         injury_observed=False, police_called=False, ems_called=False,
+                         status="open"))
+    s.add(SourceRecord(id="ingested-ab", venue_id="v1", source_type="policy_exclusion",
+                       origin_system=INGESTED_ORIGIN, external_ref="master.md",
+                       excerpt="Claims arising from assault and battery are excluded.",
+                       content_hash="ingested-ab",
+                       source_metadata={"node_id": "node-ab", "doc_id": "policy-abc",
+                                        "clause_id": "9.1", "path": "Exclusions > 9.1"}))
+    s.commit()
+    return {
+        "name": "broker_coverage_exclusion_review",
+        "user": {"sub": "b1", "role": "broker", "tenant_id": None},
+        "session": s,
+        "expected_ids": {"coverage_exclusion_review:policy:pol-ex"},
+        "expected_severity": {"coverage_exclusion_review:policy:pol-ex": "high"},
     }
 
 
@@ -179,6 +213,7 @@ SCENARIOS = [
     _operator_evidence_gap,
     _operator_clean_no_false_alarm,
     _broker_coverage_gap,
+    _broker_coverage_exclusion_review,
     _operator_compliance_overdue,
     _operator_renewal_approaching,
     _broker_renewal_at_risk,

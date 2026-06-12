@@ -1,7 +1,7 @@
 """Registry mapping each judgment kind to its pure find() function."""
 from app.intelligence.findings import (
     evidence_gap, compliance_overdue, renewal_approaching,
-    coverage_gap_eo, renewal_at_risk, submission_stalled,
+    coverage_gap_eo, coverage_exclusion_review, renewal_at_risk, submission_stalled,
     reserve_light, fraud_unreviewed,
 )
 
@@ -10,6 +10,7 @@ REGISTRY = {
     "compliance_overdue": compliance_overdue.find,
     "renewal_approaching": renewal_approaching.find,
     "coverage_gap_eo": coverage_gap_eo.find,
+    "coverage_exclusion_review": coverage_exclusion_review.find,
     "renewal_at_risk": renewal_at_risk.find,
     "submission_stalled": submission_stalled.find,
     "reserve_light": reserve_light.find,
