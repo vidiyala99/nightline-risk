@@ -2,8 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
-import { fetchExposure, type Finding } from "@/lib/intelligence";
+import { AlertTriangle, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import {
+  fetchExposure,
+  findingToAdvicePayload,
+  recordCoverageAdvice,
+  type Finding,
+} from "@/lib/intelligence";
 import { SEVERITY_COLOR } from "@/lib/risk";
 
 /**
@@ -45,6 +50,20 @@ export function ExposurePanel() {
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<SeverityFilter>("all");
   const [page, setPage] = useState(0);
+  // Per-finding E&O acknowledgement state (idle → loading → done / failed).
+  const [ack, setAck] = useState<Record<string, "loading" | "done" | "failed">>({});
+
+  async function acknowledge(f: Finding) {
+    const payload = findingToAdvicePayload(f);
+    if (!payload || ack[f.id] === "loading" || ack[f.id] === "done") return;
+    setAck((s) => ({ ...s, [f.id]: "loading" }));
+    try {
+      await recordCoverageAdvice(payload);
+      setAck((s) => ({ ...s, [f.id]: "done" }));
+    } catch {
+      setAck((s) => ({ ...s, [f.id]: "failed" }));
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -159,6 +178,9 @@ export function ExposurePanel() {
               <Link href={f.recommended_action.href} className="lc-exposure__action">
                 {f.recommended_action.label} →
               </Link>
+              {findingToAdvicePayload(f) && (
+                <AcknowledgeButton state={ack[f.id]} onClick={() => acknowledge(f)} />
+              )}
             </div>
           </li>
         ))}
@@ -195,5 +217,57 @@ export function ExposurePanel() {
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Records the broker's E&O acknowledgement of a coverage finding. Three states:
+ * idle (record), loading (disabled feedback), done (✓ icon + text — never colour
+ * alone). A failed POST degrades to a retry rather than silently swallowing.
+ */
+function AcknowledgeButton({
+  state,
+  onClick,
+}: {
+  state: "loading" | "done" | "failed" | undefined;
+  onClick: () => void;
+}) {
+  if (state === "done") {
+    return (
+      <span
+        className="lc-exposure__ack lc-exposure__ack--done"
+        role="status"
+        aria-live="polite"
+        style={{ color: "var(--state-success)", display: "inline-flex", alignItems: "center", gap: 4 }}
+      >
+        <Check size={13} aria-hidden /> Acknowledged
+      </span>
+    );
+  }
+  const loading = state === "loading";
+  return (
+    <button
+      type="button"
+      className="lc-exposure__ack"
+      onClick={onClick}
+      disabled={loading}
+      aria-label="Acknowledge this coverage exposure for the E&O record"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "3px 10px",
+        fontSize: "0.72rem",
+        fontFamily: "var(--font-mono)",
+        color: state === "failed" ? "var(--state-warning)" : "var(--accent-ink)",
+        background: "transparent",
+        border: `1px solid ${state === "failed" ? "var(--state-warning)" : "var(--border-default)"}`,
+        borderRadius: "var(--radius-sm)",
+        cursor: loading ? "default" : "pointer",
+        opacity: loading ? 0.6 : 1,
+      }}
+    >
+      {loading ? "Recording…" : state === "failed" ? "Retry acknowledge" : "Acknowledge (E&O)"}
+    </button>
   );
 }

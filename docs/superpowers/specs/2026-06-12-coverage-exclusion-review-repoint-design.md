@@ -165,8 +165,10 @@ FE surfaces (reuse existing patterns):
   → `assert_valid_transition` + audit event) + `COVERAGE_ADVICE_TRANSITIONS` lifecycle +
   `app/api/v1/coverage.py` (broker-gated record / transition / list; `CoverageAdviceError → 400/404`,
   `InvalidTransitionError → 422`). 26 TDD tests. The "I advised, on this clause, at this time" record
-  that defuses a failure-to-inform E&O claim. FE acknowledge button on the finding is the remaining
-  wiring (small follow-up).
+  that defuses a failure-to-inform E&O claim. FE: `ExposurePanel` renders an "Acknowledge (E&O)"
+  button on coverage findings (exclusion-review / gap) that POSTs to `/coverage-advice`
+  (idle→loading→done states); `findingToAdvicePayload` + `recordCoverageAdvice` in `lib/intelligence.ts`,
+  6 vitest cases. Mobile (`MobileExposure`) parity is the remaining follow-up.
 - **Phase 3 — Claim-time exclusion-bite check.** `exclusion_bite.py` + the incident/claim banner.
   Wires the review into the moment it matters most (a loss is opened).
 - **Phase 4 — Carrier-policy input + renewal drift.** Shift the input source from broker-uploaded
