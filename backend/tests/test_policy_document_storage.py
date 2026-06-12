@@ -121,8 +121,11 @@ def test_each_source_record_carries_pageindex_metadata(client_and_engine):
             meta = r.source_metadata
             assert meta.get("doc_id") == doc_id, "every leaf must back-reference its PolicyDocument"
             assert meta.get("node_id"), "every leaf must have a stable node_id for citations"
-            assert isinstance(meta.get("page_start"), int)
-            assert isinstance(meta.get("page_end"), int)
+            # Markdown has no real pages — the parser must not fabricate them.
+            # Citations anchor on clause_id/path instead (see test_pageindex_parser).
+            assert meta.get("page_start") is None
+            assert meta.get("page_end") is None
+            assert meta.get("clause_id"), "clause_id is the real citation anchor"
             assert " > " in meta.get("path", ""), "path must be a section > clause breadcrumb"
 
 

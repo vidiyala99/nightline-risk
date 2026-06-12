@@ -38,10 +38,11 @@ def _is_exclusion(*titles: str) -> bool:
 def _regex_build(text: str, source_file: str) -> tuple[dict, list[dict]]:
     """Synthesize a PageIndex-style tree from markdown ## / ### headings.
 
-    Each ### clause becomes a leaf carrying `node_id`, `page_start`, `page_end`,
-    `path`, `section`, `clause_id`, `is_exclusion`, and `source_file`. Pages are
-    synthesized as 1-per-leaf so the citation chip renders a `p.X` anchor in the
-    demo; PageIndex will overwrite with real PDF page ranges in Phase 2.
+    Each ### clause becomes a leaf carrying `node_id`, `path`, `section`,
+    `clause_id`, `is_exclusion`, and `source_file`. Markdown has no real pages,
+    so `page_start`/`page_end` are left null — citations anchor on the real
+    `clause_id` ("§4.2") instead. PageIndex fills in true PDF page ranges in
+    Phase 2; we never fabricate a page number the source doesn't have.
 
     The flat leaf list is what `ingest_policy_doc` persists as SourceRecord rows.
     """
@@ -52,7 +53,6 @@ def _regex_build(text: str, source_file: str) -> tuple[dict, list[dict]]:
         "children": [],
     }
     leaves: list[dict] = []
-    page_counter = 1
 
     for section in sections:
         section_match = re.search(r"^([^\n]+)", section)
@@ -83,8 +83,8 @@ def _regex_build(text: str, source_file: str) -> tuple[dict, list[dict]]:
             section_node["children"].append({
                 "title": clause_title,
                 "node_id": leaf_node_id,
-                "page_start": page_counter,
-                "page_end": page_counter,
+                "page_start": None,
+                "page_end": None,
                 "summary": content[:200],
                 "children": [],
             })
@@ -99,11 +99,10 @@ def _regex_build(text: str, source_file: str) -> tuple[dict, list[dict]]:
                     "node_id": leaf_node_id,
                     "parent_id": section_node["node_id"],
                     "path": path,
-                    "page_start": page_counter,
-                    "page_end": page_counter,
+                    "page_start": None,
+                    "page_end": None,
                 },
             })
-            page_counter += 1
 
         if section_node["children"]:
             tree["children"].append(section_node)

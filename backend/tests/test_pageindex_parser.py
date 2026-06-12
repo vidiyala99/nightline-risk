@@ -56,15 +56,19 @@ def test_regex_fallback_preserves_section_and_clause_id():
     assert "5.1" in clause_ids
 
 
-def test_regex_fallback_assigns_sequential_page_numbers():
-    """Markdown has no real pages; we synthesize one page per leaf so the
-    citation chip can still render a `p.X` anchor in the demo. PageIndex will
-    overwrite with real PDF pages in Phase 2."""
+def test_regex_fallback_does_not_fabricate_page_numbers():
+    """Markdown has no real pages, so the regex parser MUST NOT invent them —
+    a fabricated `p.X` anchor is a credibility risk for a defensibility product.
+    Citations anchor on the real `clause_id`/`path` instead; page ranges stay
+    null until PageIndex supplies true PDF pages in Phase 2."""
     _, leaves = build_policy_tree(text=SAMPLE_POLICY, source_file="master.md")
-    page_starts = [leaf["metadata"]["page_start"] for leaf in leaves]
-    assert page_starts == list(range(1, len(leaves) + 1))
     for leaf in leaves:
-        assert leaf["metadata"]["page_end"] == leaf["metadata"]["page_start"]
+        assert leaf["metadata"]["page_start"] is None
+        assert leaf["metadata"]["page_end"] is None
+        # The real anchor — the clause id parsed from the `### N.N` heading —
+        # must survive so the citation chip can still render "§4.2".
+        assert leaf["metadata"]["clause_id"]
+        assert leaf["metadata"]["path"]
 
 
 def test_regex_fallback_assigns_unique_node_ids():

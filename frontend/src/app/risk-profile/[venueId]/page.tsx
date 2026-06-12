@@ -603,14 +603,7 @@ export default function RiskProfilePage() {
   const isPolicyEmpty = isBroker && !isProspect && ingestedSources.length === 0;
 
   const masterPolicyCard = isBroker && !isProspect ? (
-    <div
-      className="card"
-      style={
-        isPolicyEmpty
-          ? { borderColor: "var(--brand-primary)", boxShadow: "0 0 0 1px var(--brand-primary)22" }
-          : undefined
-      }
-    >
+    <div className="card">
       <div className="flex items-center gap-sm mb-lg" style={{ justifyContent: "space-between" }}>
         <div className="flex items-center gap-sm">
           <FileText size={16} className="text-secondary" aria-hidden="true" />
@@ -626,7 +619,7 @@ export default function RiskProfilePage() {
               fontSize: "0.65rem",
             }}
           >
-            Onboarding · Step 1
+            Optional · Enrichment
           </span>
         )}
       </div>
@@ -634,7 +627,7 @@ export default function RiskProfilePage() {
       {ingestedSources.length > 0 && (
         <div className="mb-md">
           <p className="text-xs text-secondary mb-sm">
-            {ingestedSources.length} clause{ingestedSources.length === 1 ? "" : "s"} on file. These are cited in generated underwriting memos for this venue.
+            {ingestedSources.length} clause{ingestedSources.length === 1 ? "" : "s"} on file. These are cited in incident risk assessments and compliance reviews for this venue.
           </p>
           <div className="flex flex-col gap-xs" style={{ maxHeight: 180, overflowY: "auto" }} role="list" aria-label="Ingested policy clauses">
             {ingestedSources.slice(0, 8).map(s => (
@@ -664,7 +657,7 @@ export default function RiskProfilePage() {
 
       {isPolicyEmpty && (
         <p className="text-xs text-secondary mb-md" style={{ lineHeight: 1.6 }}>
-          Upload the carrier&apos;s master policy so every underwriting memo generated for this venue cites the actual contract language — not generic best-practice text.
+          Upload the carrier&apos;s master policy so incident risk assessments and compliance reviews for this venue cite the actual contract language — not generic best-practice text.
         </p>
       )}
 

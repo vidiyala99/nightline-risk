@@ -113,20 +113,24 @@ def test_evidence_upload_stamps_citation_link(client_and_engine):
     # without a follow-up GET.
     assert body["citation"] is not None
     assert body["citation"]["doc_id"] == doc_id
-    assert isinstance(body["citation"]["page_start"], int)
+    # Markdown ingestion has no real pages — the chip anchors on the clause, not
+    # a fabricated page number. Real pages arrive only with PageIndex (Phase 2).
+    assert body["citation"]["page_start"] is None
+    assert body["citation"]["clause_id"]
 
     with Session(engine) as session:
         row = session.exec(
             select(ComplianceEvidence)
             .where(ComplianceEvidence.compliance_item_id == "COMP_CAMERA_REAR_001")
         ).one()
-        # The four locator columns are populated — this is what the FE chip reads.
+        # The locator columns the FE chip reads: doc + node identify the clause;
+        # page locators stay null until PageIndex supplies true PDF pages.
         assert row.cited_source_id is not None
         assert row.cited_source_id.startswith("ingested-")
         assert row.cited_doc_id == doc_id
         assert row.cited_node_id is not None
-        assert isinstance(row.cited_page_start, int)
-        assert isinstance(row.cited_page_end, int)
+        assert row.cited_page_start is None
+        assert row.cited_page_end is None
 
 
 def test_citation_preview_endpoint_returns_citation_for_known_item(client_and_engine):
@@ -142,7 +146,11 @@ def test_citation_preview_endpoint_returns_citation_for_known_item(client_and_en
     body = res.json()
     assert body["citation"] is not None
     assert body["citation"]["source_type"] in {"policy", "policy_exclusion"}
-    assert body["citation"]["page_start"] is not None
+    # An ingested doc is distinguished from a seed source by its doc/node
+    # locators (not by a page number — markdown has none).
+    assert body["citation"]["doc_id"] is not None
+    assert body["citation"]["node_id"] is not None
+    assert body["citation"]["page_start"] is None
 
 
 def test_citation_preview_falls_back_to_seed_sources_without_page_anchors(client_and_engine):
