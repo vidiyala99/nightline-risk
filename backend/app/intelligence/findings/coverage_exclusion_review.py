@@ -50,8 +50,8 @@ def find(scope: FindingScope) -> list[Finding]:
                 label="Review excluded exposure (E&O)",
                 href=f"/policies/{pol.id}/gaps"),
             prediction=Prediction(
-                claim=f"A {top.category_label} loss at this venue would hit a policy "
-                      f"exclusion — an uncovered E&O exposure ({excluded}).",
+                claim=f"This venue's exposure to {top.category_label.lower()} is carved out "
+                      f"by a policy exclusion — an uncovered E&O exposure ({excluded}).",
                 falsifiable_by="claim_outcome", horizon="on_claim"),
             venue_id=pol.venue_id,
         ))
