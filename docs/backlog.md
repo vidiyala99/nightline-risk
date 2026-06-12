@@ -167,13 +167,13 @@ pytest-xdist installed-but-unused. Shipped:
   `warn` in `eslint.config.mjs`). Adoption pass: migrate the flagged effects to event-driven / `use()`
   loading where it's a real anti-pattern, or accept the rest. Tighten to `error` + `--max-warnings 0`
   once burned down so the lint becomes a real gate.
-- [ ] **★ CI wiring bug — Vitest + ESLint never actually run in CI (found 2026-06-10).** `ci.yml`'s
+- [x] **★ CI wiring bug — Vitest + ESLint never actually run in CI — FIXED 2026-06-11 (commit `d1df145`).** `ci.yml`'s
   frontend job calls `npm run test`, which runs only the single hand-rolled
   `node src/lib/incidentView.test.mjs` — the real Vitest suite lives under `test:unit` and is **not
   executed in CI**; `eslint` isn't invoked at all (only design-lint + build are). Fix (~30 min):
   point CI at `test:unit` (or fold the `.mjs` into Vitest) + add `npm run lint` (gate at the current
   warning count until the burndown above lands `--max-warnings 0`).
-- [ ] **Postgres-fidelity test lane (2026-06-10 audit).** `tests/conftest.py` pins the entire suite
+- [x] **Postgres-fidelity test lane — DONE 2026-06-11 (commit `404861b`).** `tests/conftest.py` pins the entire suite
   to SQLite (`sqlite:///test_run.db`), so the **JSON-string-on-Postgres class — the documented #1
   prod-only regression source** (see `project_neon_json_string_regressions`) — is structurally
   invisible to all ~1,300 tests. Add a CI lane running the suite (or at minimum a JSON-read-boundary
@@ -1131,9 +1131,10 @@ subscription-free.
    **`DATABASE_URL` startup guard** (`config.py`), and the **7c A&B field drop** in `incident_flow.py`
    were all verified already-shipped. Next P0-class items now live under Track 13 hardening core
    (rate limiting / lockout / token revocation / idempotency + row-locking / upload content-type sniff).
-1. **CI honesty fixes (Track 4):** point CI at `test:unit` + add `eslint` to the frontend job
-   (~30 min — the Vitest suite currently never runs in CI), then stand up the **Postgres-fidelity
-   lane** (structurally kills the Neon JSON-string class instead of sweeping it reactively).
+1. ✅ **DONE 2026-06-11 — CI honesty fixes (Track 4):** CI now runs the real Vitest suite + `eslint`
+   on the frontend (commit `d1df145`), and the **Postgres-fidelity lane** is live (commit `404861b`,
+   which also fixed FK-ordering bugs it caught). Stale "next" pointer retired — the real next
+   substantive item is #2 (copilot thread).
 2. **Finish the Copilot thread** (Track 11 + the Track 14 riders) — (a) *ops, you:* swap
    `COPILOT_LLM_MODEL` → `llama-3.1-8b-instant` on Railway; (b) LLM gating + 429 retry/caching;
    (c) while in the provider/UI files: **streaming + feedback buttons + LLM telemetry**
