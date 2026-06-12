@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
-import { AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye, ClipboardCheck, Building2, Lock, TrendingDown } from "lucide-react";
+import { AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronLeft, ChevronRight, Eye, ClipboardCheck, Building2, Lock, TrendingDown } from "lucide-react";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { estimatePremiumDeltaForFix } from "@/lib/risk";
+import { actionableFirst, CLAIM_STATUS_PRIORITY } from "@/lib/sort";
 import { usePageBack } from "@/components/layout/BackNavContext";
 
 interface IngestedSource {
@@ -218,6 +219,36 @@ export default function RiskProfilePage() {
   // Broker action-hub: this venue's pending/needs-info proposals + open claims.
   const [hubDecisions, setHubDecisions] = useState<any[]>([]);
   const [hubClaims, setHubClaims] = useState<any[]>([]);
+  // Page index for the "Decisions awaiting you" pager (5 per page). Without a cap
+  // the card grows unbounded at 5+ items; see the merged/sorted hubItems below.
+  const [hubPage, setHubPage] = useState(0);
+  // Merge proposals + open claims into one actionable-first list (lib/sort.ts
+  // convention) so the most urgent item — proposal OR claim — is always on page 1,
+  // instead of today's arbitrary "all proposals before all claims" order.
+  type HubItem =
+    | { kind: "proposal"; key: string; row: any; weight: number; date: unknown }
+    | { kind: "claim"; key: string; row: any; weight: number; date: unknown };
+  const hubItems = useMemo<HubItem[]>(() => {
+    const proposalWeight = (state: string) =>
+      state === "pending_broker_review" ? 100 : state === "needs_more_info" ? 40 : 0;
+    const items: HubItem[] = [
+      ...hubDecisions.map((p: any): HubItem => ({
+        kind: "proposal",
+        key: `p-${p.id}`,
+        row: p,
+        weight: proposalWeight(p.state),
+        date: p.created_at,
+      })),
+      ...hubClaims.map((c: any): HubItem => ({
+        kind: "claim",
+        key: `c-${c.id}`,
+        row: c,
+        weight: CLAIM_STATUS_PRIORITY[c.status] ?? 0,
+        date: c.created_at,
+      })),
+    ];
+    return items.sort(actionableFirst((i) => i.weight, (i) => i.date));
+  }, [hubDecisions, hubClaims]);
 
   // Master policy ingestion (broker-only) — see backend POST /api/venues/{id}/policy-docs
   const [policyText, setPolicyText] = useState("");
@@ -1129,51 +1160,98 @@ export default function RiskProfilePage() {
                 <ClipboardCheck size={16} className="text-secondary" aria-hidden="true" />
                 <h3 className="rp-section-title text-xs uppercase tracking-wide text-secondary">Decisions awaiting you</h3>
               </div>
-              {hubDecisions.length === 0 && hubClaims.length === 0 ? (
+              {hubItems.length === 0 ? (
                 <p className="text-xs text-secondary" style={{ lineHeight: 1.6 }}>
                   No proposals or open claims for this venue right now.
                 </p>
               ) : (
-                <div className="rp-dossier-grid" style={{ gridTemplateColumns: "1fr" }}>
-                  {hubDecisions.map((p) => {
-                    const awaiting = p.state === "needs_more_info";
-                    return (
-                      <Link
-                        key={p.id}
-                        href={`/underwriter/${p.packet_id}`}
-                        className="rp-dossier-tile"
-                        aria-label={`Review claim proposal — ${awaiting ? "info requested, awaiting operator" : "pending your review"}`}
-                      >
-                        <FileText size={18} className="rp-dossier-icon" aria-hidden="true" />
-                        <span className="rp-dossier-body">
-                          <span className="rp-dossier-label">Claim proposal</span>
-                          <span
-                            className="rp-dossier-meta font-mono"
-                            style={{ color: awaiting ? "var(--state-warning)" : "var(--accent-ink)" }}
-                          >
-                            {awaiting ? "Info requested · awaiting operator" : "Pending your review"}
+                (() => {
+                  const HUB_PAGE_SIZE = 5;
+                  const total = hubItems.length;
+                  const pageCount = Math.max(1, Math.ceil(total / HUB_PAGE_SIZE));
+                  // Clamp in render so a shrinking set can't strand an empty page.
+                  const safePage = Math.min(hubPage, pageCount - 1);
+                  const start = safePage * HUB_PAGE_SIZE;
+                  const pageItems = hubItems.slice(start, start + HUB_PAGE_SIZE);
+                  return (
+                    <>
+                      <div className="rp-dossier-grid" style={{ gridTemplateColumns: "1fr" }}>
+                        {pageItems.map((item) => {
+                          if (item.kind === "proposal") {
+                            const p = item.row;
+                            const awaiting = p.state === "needs_more_info";
+                            return (
+                              <Link
+                                key={item.key}
+                                href={`/underwriter/${p.packet_id}`}
+                                className="rp-dossier-tile"
+                                aria-label={`Review claim proposal — ${awaiting ? "info requested, awaiting operator" : "pending your review"}`}
+                              >
+                                <FileText size={18} className="rp-dossier-icon" aria-hidden="true" />
+                                <span className="rp-dossier-body">
+                                  <span className="rp-dossier-label">Claim proposal</span>
+                                  <span
+                                    className="rp-dossier-meta font-mono"
+                                    style={{ color: awaiting ? "var(--state-warning)" : "var(--accent-ink)" }}
+                                  >
+                                    {awaiting ? "Info requested · awaiting operator" : "Pending your review"}
+                                  </span>
+                                </span>
+                                <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
+                              </Link>
+                            );
+                          }
+                          const c = item.row;
+                          return (
+                            <Link
+                              key={item.key}
+                              href={`/claims/${c.id}`}
+                              className="rp-dossier-tile"
+                              aria-label={`Open claim ${c.id}`}
+                            >
+                              <DollarSign size={18} className="rp-dossier-icon" aria-hidden="true" />
+                              <span className="rp-dossier-body">
+                                <span className="rp-dossier-label">Open claim</span>
+                                <span className="rp-dossier-meta font-mono">{(c.status ?? "").replace(/_/g, " ")}</span>
+                              </span>
+                              <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
+                            </Link>
+                          );
+                        })}
+                      </div>
+                      {total > HUB_PAGE_SIZE && (
+                        <div className="lc-exposure__pager">
+                          <span className="lc-exposure__pager-info" aria-live="polite">
+                            Showing {start + 1}–{Math.min(start + HUB_PAGE_SIZE, total)} of {total}
                           </span>
-                        </span>
-                        <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
-                      </Link>
-                    );
-                  })}
-                  {hubClaims.map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/claims/${c.id}`}
-                      className="rp-dossier-tile"
-                      aria-label={`Open claim ${c.id}`}
-                    >
-                      <DollarSign size={18} className="rp-dossier-icon" aria-hidden="true" />
-                      <span className="rp-dossier-body">
-                        <span className="rp-dossier-label">Open claim</span>
-                        <span className="rp-dossier-meta font-mono">{(c.status ?? "").replace(/_/g, " ")}</span>
-                      </span>
-                      <ChevronRight size={16} className="rp-dossier-chevron" aria-hidden="true" />
-                    </Link>
-                  ))}
-                </div>
+                          <div className="lc-exposure__pager-controls">
+                            <button
+                              type="button"
+                              className="lc-exposure__pager-btn"
+                              onClick={() => setHubPage((p) => Math.max(0, p - 1))}
+                              disabled={safePage === 0}
+                              aria-label="Previous page"
+                            >
+                              <ChevronLeft size={16} aria-hidden="true" /> Prev
+                            </button>
+                            <span className="lc-exposure__pager-page">
+                              Page {safePage + 1} of {pageCount}
+                            </span>
+                            <button
+                              type="button"
+                              className="lc-exposure__pager-btn"
+                              onClick={() => setHubPage((p) => Math.min(pageCount - 1, p + 1))}
+                              disabled={safePage >= pageCount - 1}
+                              aria-label="Next page"
+                            >
+                              Next <ChevronRight size={16} aria-hidden="true" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
               )}
             </div>
           )}
