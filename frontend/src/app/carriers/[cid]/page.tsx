@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { useAuth, useRole } from "@/contexts/AuthContext";
+import { usePageBack } from "@/components/layout/BackNavContext";
 import { fetchCarrierDetail, type CarrierDetail } from "@/lib/carriers";
 import { fmtUsd, fmtLossRatio, lossBand, LOSS_BAND_META } from "@/lib/book";
 
@@ -71,6 +71,9 @@ export default function CarrierDetailPage() {
     return () => { cancelled = true; };
   }, [isLoaded, isSignedIn, isBroker, cid]);
 
+  // Single contextual back, rendered once by AppShell (see BackNavContext).
+  usePageBack("Back to financials", () => router.push("/book"));
+
   if (!isLoaded || loading || !isBroker) {
     return <div className="page-loading"><div className="loading-spinner" /></div>;
   }
@@ -89,10 +92,6 @@ export default function CarrierDetailPage() {
 
   return (
     <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
-      <Link href="/book" className="flex items-center gap-xs text-secondary text-sm" style={{ textDecoration: "none", padding: "16px 0 0", minHeight: 44 }}>
-        <ArrowLeft size={14} aria-hidden="true" /> Back to financials
-      </Link>
-
       <section className="lc-hero">
         <div>
           <span className="lc-eyebrow">

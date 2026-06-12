@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Download, Lock } from "lucide-react";
+import { Download, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageBack } from "@/components/layout/BackNavContext";
 import { fetchLossRun, downloadLossRunCsv, type LossRun } from "@/lib/lossRun";
 import { fmtUsd } from "@/lib/book";
 import { toastError } from "@/lib/toast";
@@ -60,6 +61,9 @@ export default function LossRunPage() {
     }
   }
 
+  // Single contextual back, rendered once by AppShell (see BackNavContext).
+  usePageBack("Back to risk profile", () => router.push(`/risk-profile/${venueId}`));
+
   if (!isLoaded || loading) {
     return <div className="page-loading"><div className="loading-spinner" /></div>;
   }
@@ -88,14 +92,6 @@ export default function LossRunPage() {
 
   return (
     <div className="lc-shell min-h-screen" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
-      <Link
-        href={`/risk-profile/${venueId}`}
-        className="flex items-center gap-xs text-secondary text-sm"
-        style={{ textDecoration: "none", padding: "16px 0 0", minHeight: 44 }}
-      >
-        <ArrowLeft size={14} aria-hidden="true" /> Back to risk profile
-      </Link>
-
       <section className="lc-hero">
         <div>
           <span className="lc-eyebrow">BROKER<span className="lc-eyebrow__sep" />LOSS RUN</span>

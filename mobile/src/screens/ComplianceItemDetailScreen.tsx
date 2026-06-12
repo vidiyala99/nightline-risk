@@ -129,7 +129,13 @@ export function ComplianceItemDetailScreen({ navigation, route }: any) {
       style={styles.root}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
     >
-      <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
+      <Pressable
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}
+        accessibilityRole="button"
+        accessibilityLabel={venueName ? `Back to ${venueName}` : 'Back'}
+        hitSlop={{ top: 12, bottom: 12, left: 8, right: 16 }}
+      >
         <Text style={styles.backText}>← {venueName ? `Back to ${venueName}` : 'Back'}</Text>
       </Pressable>
 

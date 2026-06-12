@@ -16,8 +16,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { usePageBack } from "@/components/layout/BackNavContext";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { PlacementApiError } from "@/lib/placement";
 import { policiesApi, type CoverageGapReport } from "@/lib/policies";
@@ -52,15 +53,15 @@ export default function CoverageGapsPage() {
       .finally(() => setLoading(false));
   }, [pid]);
 
+  // Single contextual back, rendered once by AppShell (see BackNavContext).
+  usePageBack("Back", () => router.back());
+
   if (loading) {
     return <div className="page-loading"><div className="loading-spinner" /></div>;
   }
   if (error || !report) {
     return (
       <div className="submission-detail">
-        <button type="button" className="link-button" onClick={() => router.back()}>
-          <ArrowLeft size={14} /> Back
-        </button>
         <div className="placement-page__error">{error ?? "Coverage gaps unavailable."}</div>
       </div>
     );
@@ -71,10 +72,6 @@ export default function CoverageGapsPage() {
 
   return (
     <div className="submission-detail">
-      <button type="button" className="link-button" onClick={() => router.back()}>
-        <ArrowLeft size={14} /> Back
-      </button>
-
       <PageHeader
         eyebrow={`Coverage review · ${report.policy_id}`}
         title={report.venue_id}

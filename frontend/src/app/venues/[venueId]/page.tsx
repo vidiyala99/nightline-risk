@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
-import { ArrowLeft } from "lucide-react";
+import { usePageBack } from "@/components/layout/BackNavContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -49,6 +48,9 @@ export default function VenueProfilePage() {
     return () => { cancelled = true; };
   }, [venueId, isSignedIn]);
 
+  // Single contextual back, rendered once by AppShell (see BackNavContext).
+  usePageBack("Back to Risk Profile", () => router.push(`/risk-profile/${venueId}`));
+
   if (!isSignedIn || loading) {
     return <div className="page-loading"><div className="loading-spinner" /></div>;
   }
@@ -66,15 +68,6 @@ export default function VenueProfilePage() {
 
   return (
     <div className="theme-venue page">
-      <div className="mb-md">
-        <Link
-          href={`/risk-profile/${venueId}`}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--text-secondary)", textDecoration: "none", fontSize: "0.85rem" }}
-        >
-          <ArrowLeft size={16} /> Back to Risk Profile
-        </Link>
-      </div>
-
       <span className="lc-eyebrow">Business Profile</span>
       <h1 className="lc-display" style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)", marginBottom: "var(--space-lg)" }}>{name}</h1>
 

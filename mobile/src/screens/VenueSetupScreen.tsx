@@ -93,7 +93,13 @@ export function VenueSetupScreen({ navigation, route }: any) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            hitSlop={{ top: 12, bottom: 12, left: 8, right: 16 }}
+          >
             <Text style={styles.backText}>← Back</Text>
           </Pressable>
           <Text style={styles.eyebrow}>VENUE SETUP</Text>

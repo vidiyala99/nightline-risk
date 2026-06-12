@@ -15,9 +15,10 @@ import { SEVERITY_COLOR } from "@/lib/risk";
 const RESOLVED_PROPOSAL_STATES = new Set(["rejected_by_broker", "paid", "denied"]);
 const CLOSED_CLAIM_STATUSES = new Set(["closed_paid", "closed_denied", "closed_dropped"]);
 import {
-  AlertTriangle, ArrowLeft, Calendar, MapPin, User,
+  AlertTriangle, Calendar, MapPin, User,
   Clock, CheckCircle2, Shield, ExternalLink, FileText, ChevronRight, Download, Archive, Trash2,
 } from "lucide-react";
+import { usePageBack } from "@/components/layout/BackNavContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -415,22 +416,15 @@ export default function IncidentDetailPage() {
     }
   };
 
+  // Single contextual back, rendered once by AppShell (no role gate).
+  usePageBack("Back to Incidents", () => router.push("/incidents"));
+
   if (loading) return <div className="page-loading"><div className="loading-spinner" /></div>;
 
   return (
     <div className="theme-venue min-h-screen p-xl">
-      {/* Back nav */}
-      {/* Operators get a global "Back to home" from the app shell; brokers keep
-          the contextual back to their Incidents list here. */}
-      {!isOperator && (
-        <button
-          onClick={() => router.push("/incidents")}
-          className="flex items-center gap-xs text-secondary text-sm mb-xl"
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 0, minHeight: 44 }}
-        >
-          <ArrowLeft size={14} /> Back to Incidents
-        </button>
-      )}
+      {/* Back nav is registered via usePageBack and rendered once by AppShell
+          (see BackNavContext) — no page-level back here. */}
 
       {!incident ? (
         <div className="page-empty">

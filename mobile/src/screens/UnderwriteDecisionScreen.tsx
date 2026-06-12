@@ -396,7 +396,13 @@ export function UnderwriteDecisionScreen({ route, navigation }: any) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8 }}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Back to desk"
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 16 }}
+        >
           <Text style={styles.backText}>‹ Desk</Text>
         </Pressable>
 

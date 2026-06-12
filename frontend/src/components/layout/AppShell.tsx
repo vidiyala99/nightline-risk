@@ -26,6 +26,7 @@ import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { MobileMoreSheet } from "@/components/layout/MobileMoreSheet";
 import { SidebarNavItem } from "@/components/ui/SidebarNavItem";
+import { BackNavProvider, usePageBackState } from "@/components/layout/BackNavContext";
 
 interface AppShellProps {
   children: ReactNode;
@@ -178,6 +179,16 @@ function NavLinks({ role, tenantId, onNavigate, variant = "full" }: NavLinksProp
 }
 
 export function AppShell({ children }: AppShellProps) {
+  // The back affordance lives inside the provider so a descendant page can
+  // register its own contextual back and have AppShellBody pick it up.
+  return (
+    <BackNavProvider>
+      <AppShellBody>{children}</AppShellBody>
+    </BackNavProvider>
+  );
+}
+
+function AppShellBody({ children }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { signOut, user } = useAuth();
@@ -202,12 +213,21 @@ export function AppShell({ children }: AppShellProps) {
     if (!allowed) router.replace(roleHome(role));
   }, [role, pathname, router]);
 
+  // A detail page can register its own contextual back (e.g. "Back to
+  // Incidents"); when it does, that replaces the generic "Back to home" so the
+  // screen shows exactly one "up" affordance — never two stacked.
+  const pageBack = usePageBackState();
+
   // Each persona gets an explicit "back to home" on every screen except home
-  // itself. Focused personas (carrier, staff) keep a single-surface flow, so
-  // they skip the back-home affordance.
+  // itself, UNLESS the page registered its own back. Focused personas (carrier,
+  // staff) keep a single-surface flow, so they skip the back-home affordance.
   const homeHref = roleHome(role);
   const showBackHome =
-    !!pathname && pathname !== homeHref && role !== "carrier" && role !== "staff";
+    !!pathname &&
+    pathname !== homeHref &&
+    role !== "carrier" &&
+    role !== "staff" &&
+    !pageBack;
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   // Breakpoint gating. SSR + first paint render as "full" sidebar.
@@ -289,15 +309,35 @@ export function AppShell({ children }: AppShellProps) {
       )}
 
       <main className="main-content">
-        {showBackHome && (
+        {/* Exactly one "up" affordance: a page-registered contextual back wins;
+            otherwise the generic "Back to home"; focused personas get neither. */}
+        {pageBack ? (
+          <button
+            type="button"
+            onClick={pageBack.onBack}
+            aria-label={pageBack.label}
+            className="appshell-back-home flex items-center gap-xs text-secondary text-sm"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              textAlign: "left",
+              padding: "16px clamp(20px, 4vw, 56px) 0",
+              minHeight: 44,
+            }}
+          >
+            <ArrowLeft size={14} aria-hidden="true" /> {pageBack.label}
+          </button>
+        ) : showBackHome ? (
           <Link
             href={homeHref}
+            aria-label="Back to home"
             className="appshell-back-home flex items-center gap-xs text-secondary text-sm"
             style={{ textDecoration: "none", padding: "16px clamp(20px, 4vw, 56px) 0", minHeight: 44 }}
           >
             <ArrowLeft size={14} aria-hidden="true" /> Back to home
           </Link>
-        )}
+        ) : null}
         {children}
       </main>
 

@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { ResponsiveTable } from "@/components/ui/ResponsiveTable";
 import { toastSuccess } from "@/lib/toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageBack } from "@/components/layout/BackNavContext";
 import {
   ClaimsApiError,
   claimsApi,
@@ -89,6 +90,10 @@ export default function CarrierClaimDetailPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [claim, isBroker]);
 
+  // Single contextual back, rendered once by AppShell (see BackNavContext).
+  // The parent policy is reachable via the breadcrumb below the header.
+  usePageBack("Back to Claims", () => router.push("/claims"));
+
   if (loading) {
     return (
       <div className="claim-detail">
@@ -105,14 +110,6 @@ export default function CarrierClaimDetailPage() {
           <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
             <button type="button" className="btn btn-sm" onClick={load}>
               Retry
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => router.back()}
-            >
-              <ArrowLeft size={14} aria-hidden style={{ marginRight: 4, verticalAlign: "-2px" }} />
-              Back
             </button>
           </div>
         </div>

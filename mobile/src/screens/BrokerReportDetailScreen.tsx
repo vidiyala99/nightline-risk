@@ -123,7 +123,13 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
     <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: 12 }]}>
       {/* Header */}
       <View style={styles.headerRow}>
-        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Back to Reports"
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 16 }}
+        >
           <Text style={styles.backArrow}>←</Text>
           <Text style={styles.backLabel}>Reports</Text>
         </Pressable>

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { authHeaders } from "@/lib/authFetch";
-import { ArrowLeft, Upload, Clock, AlertCircle, CheckSquare, FileText } from "lucide-react";
+import { usePageBack } from "@/components/layout/BackNavContext";
+import { Upload, Clock, AlertCircle, CheckSquare, FileText } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -148,31 +148,18 @@ export default function ComplianceDetailPage() {
     }
   };
 
+  const backHref = `/compliance?venue=${encodeURIComponent(venueId)}`;
+
+  // Single contextual back, rendered once by AppShell (see BackNavContext).
+  // Label tracks venueName as it loads; the registration re-runs on change.
+  usePageBack(`Back to ${venueName ?? "queue"}`, () => router.push(backHref));
+
   if (!isSignedIn || loading) {
     return <div className="page-loading"><div className="loading-spinner" /></div>;
   }
 
-  const backHref = `/compliance?venue=${encodeURIComponent(venueId)}`;
-
   return (
     <div className="theme-venue page">
-      <div className="mb-md">
-        <Link
-          href={backHref}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            color: "var(--text-secondary)",
-            fontSize: "0.85rem",
-            textDecoration: "none",
-          }}
-        >
-          <ArrowLeft size={14} />
-          Back to {venueName ?? "queue"}
-        </Link>
-      </div>
-
       {item ? (
         <>
           <header className="page-header">
@@ -279,10 +266,6 @@ export default function ComplianceDetailPage() {
           <div className="empty-icon"><CheckSquare size={48} /></div>
           <h2>Item not found</h2>
           <p>This compliance item has been resolved or no longer exists.</p>
-          <Link href={backHref} className="btn btn-secondary" style={{ marginTop: "var(--space-md)" }}>
-            <ArrowLeft size={16} />
-            Back to queue
-          </Link>
         </div>
       )}
     </div>

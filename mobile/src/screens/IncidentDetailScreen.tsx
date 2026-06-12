@@ -236,7 +236,13 @@ export function IncidentDetailScreen({ route, navigation }: any) {
       contentContainerStyle={[styles.content, { paddingTop: 12 }]}
     >
       <View style={styles.backRow}>
-        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Back to Incidents"
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 16 }}
+        >
           <Text style={styles.backArrow}>←</Text>
           <Text style={styles.backLabel}>Incidents</Text>
         </Pressable>

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, FileWarning } from "lucide-react";
+import { FileWarning } from "lucide-react";
 
 import { PageHeader } from "@/components/ui/PageHeader";
+import { usePageBack } from "@/components/layout/BackNavContext";
 import { ClaimsApiError, claimsApi, type FileFnolBody } from "@/lib/claims";
 import { policiesApi, type PolicyDetail } from "@/lib/policies";
 import { toastSuccess } from "@/lib/toast";
@@ -132,6 +133,9 @@ export default function FileFnolPage() {
     }
   }
 
+  // Single contextual back, rendered once by AppShell (see BackNavContext).
+  usePageBack("Back to policy", () => router.push(`/policies/${pid}`));
+
   if (loading) {
     return (
       <div className="claim-fnol">
@@ -147,14 +151,6 @@ export default function FileFnolPage() {
       <div className="claim-fnol">
         <div className="claim-detail__error" role="alert">
           <p>{loadError ?? "Policy not found"}</p>
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft size={14} aria-hidden style={{ marginRight: 4, verticalAlign: "-2px" }} />
-            Back
-          </button>
         </div>
       </div>
     );
@@ -166,12 +162,6 @@ export default function FileFnolPage() {
         eyebrow="FNOL"
         title="File a carrier claim"
         subtitle={`Against policy ${policy.policy_number ?? policy.id} · ${policy.venue_id}`}
-        actions={
-          <Link href={`/policies/${pid}`} className="btn btn-sm btn-ghost">
-            <ArrowLeft size={14} aria-hidden style={{ marginRight: 4, verticalAlign: "-2px" }} />
-            Back to policy
-          </Link>
-        }
       />
 
       <nav className="claim-fnol__breadcrumb" aria-label="Breadcrumb">

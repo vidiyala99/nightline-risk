@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
-import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCheck, FileSpreadsheet, LockKeyhole, RefreshCw, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardCheck, FileSpreadsheet, LockKeyhole, RefreshCw, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
 import ClaimProposeModal, { type OverrideReason } from "@/components/ClaimProposeModal";
+import { usePageBack } from "@/components/layout/BackNavContext";
 import { authHeaders } from "@/lib/authFetch";
 import { toastSuccess } from "@/lib/toast";
 import { byIndex, resolveOpenQuestion, type OpenQuestionResponse } from "@/lib/openQuestions";
@@ -310,12 +310,14 @@ export default function ReportDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proposal?.state, proposal?.id]);
 
+  // Single contextual back, rendered once by AppShell (see BackNavContext).
+  usePageBack("Back to Reports", () => router.push("/underwriter"));
+
   if (loading) return <div className="page-loading"><div className="loading-spinner" /></div>;
   if (!packet) return (
     <div className="page page-empty">
       <AlertTriangle size={48} />
       <h3>Report Not Found</h3>
-      <button className="btn btn-ghost mt-md" onClick={() => router.push("/underwriter")}>Back to Reports</button>
     </div>
   );
 
@@ -326,10 +328,6 @@ export default function ReportDetailPage() {
     <div className="page">
       <header className="page-header">
         <div className="flex items-center gap-md">
-          <button className="btn btn-ghost btn-sm" onClick={() => router.push("/underwriter")}>
-            <ArrowLeft size={16} />
-            Reports
-          </button>
           <div>
             <h1 style={{ fontSize: "1.5rem" }}>
               {packet.venue_id.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())}

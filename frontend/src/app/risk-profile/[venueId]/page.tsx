@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
-import { ArrowLeft, AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye, ClipboardCheck, Building2, Lock, TrendingDown } from "lucide-react";
+import { AlertTriangle, CheckCircle2, DollarSign, FileText, Upload, Minus, ChevronDown, ChevronRight, Eye, ClipboardCheck, Building2, Lock, TrendingDown } from "lucide-react";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { estimatePremiumDeltaForFix } from "@/lib/risk";
+import { usePageBack } from "@/components/layout/BackNavContext";
 
 interface IngestedSource {
   id: string;
@@ -399,6 +400,28 @@ export default function RiskProfilePage() {
     if (venueId) load();
   }, [venueId]);
 
+  // A prospect is a real NYC lead (not underwritten) — its figures are
+  // estimates, so the operator/broker policy-ingestion tooling doesn't apply.
+  const isProspect = venueId.startsWith("prospect-") || venueMeta?.source === "prospect";
+
+  // Brokers reach this page from several surfaces (Book, Market, Venues) and
+  // have no operator terminal to return to — /terminal is operator-only and
+  // redirects brokers right back here, so a `/terminal/{id}` back link is a
+  // no-op loop. Use history with a portfolio fallback; operators and prospects
+  // each have a single stable origin.
+  const backHref = isProspect || isBroker ? "/venues" : "/dashboard";
+  const backLabel = isProspect ? "Back to Venues" : isBroker ? "Back" : "Back to Dashboard";
+  const handleBack = () => {
+    if (isBroker && !isProspect && typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(backHref);
+    }
+  };
+  // Register the single contextual back; AppShell renders it in place of "Back
+  // to home" (no role gate — the back-nav contract dedupes for every persona).
+  usePageBack(backLabel, handleBack);
+
   if (loading) {
     return (
       <div className="page-loading" role="status" aria-live="polite">
@@ -545,26 +568,6 @@ export default function RiskProfilePage() {
 
   const savingsAnnual = quoteData?.savings_annual ?? 0;
   const hasImprovementHeadroom = ["B", "C", "D"].includes(tier);
-
-  // A prospect is a real NYC lead (not underwritten) — its figures are
-  // estimates, so the operator/broker policy-ingestion tooling doesn't apply.
-  const isProspect = venueId.startsWith("prospect-") || venueMeta?.source === "prospect";
-
-  // Brokers reach this page from several surfaces (Book, Market, Venues) and
-  // have no operator terminal to return to — /terminal is operator-only and
-  // redirects brokers right back here, so a `/terminal/{id}` back link is a
-  // no-op loop. Use history with a portfolio fallback; operators and prospects
-  // each have a single stable origin.
-  const backHref = isProspect || isBroker ? "/venues" : "/dashboard";
-  const backLabel = isProspect ? "Back to Venues" : isBroker ? "Back" : "Back to Dashboard";
-
-  const handleBack = () => {
-    if (isBroker && !isProspect && typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push(backHref);
-    }
-  };
 
   const isPolicyEmpty = isBroker && !isProspect && ingestedSources.length === 0;
 
@@ -864,11 +867,6 @@ export default function RiskProfilePage() {
           .rp-grid > .rp-col { display: contents; }
           .rp-grid > .rp-col > * { break-inside: avoid; margin-bottom: var(--space-lg); }
         }
-        .rp-back { display: inline-flex; align-items: center; gap: var(--space-xs); background: none; border: none; cursor: pointer;
-                   padding: var(--space-sm) var(--space-md) var(--space-sm) 0; margin: 0 0 var(--space-lg); min-height: 44px;
-                   color: var(--text-secondary); font-size: 0.875rem; border-radius: var(--radius-sm); }
-        .rp-back:hover { color: var(--text-primary); }
-        .rp-back:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
         .rp-tier { font-size: clamp(4rem, 13vw, 7rem); font-weight: 500; font-style: italic; line-height: 0.85; letter-spacing: -0.06em; font-family: var(--font-display); text-shadow: 0 0 60px currentColor; opacity: 0.92; }
         .rp-score { font-size: clamp(2.75rem, 8vw, 4.5rem); font-weight: 700; font-style: normal; line-height: 0.9; letter-spacing: -0.03em; font-family: var(--font-body); font-variant-numeric: lining-nums tabular-nums; }
         .rp-input, .rp-textarea { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
@@ -921,19 +919,9 @@ export default function RiskProfilePage() {
         }
       `}</style>
       <div className="rp-container">
-        {/* Back nav — brokers/prospects only. Operators get a global "Back to
-            home" from the app shell, so a page-level back here would duplicate it. */}
-        {role !== "venue_operator" && (
-          <button
-            onClick={handleBack}
-            className="rp-back"
-            aria-label={backLabel}
-          >
-            <ArrowLeft size={16} aria-hidden="true" />
-            <span>{backLabel}</span>
-          </button>
-        )}
-
+        {/* Back nav is registered via usePageBack and rendered once by AppShell
+            (see BackNavContext) — no page-level back button here, so brokers no
+            longer see it stacked under the shell's "Back to home". */}
         <header className="mb-xl">
           <div className="flex items-center gap-sm mb-xs" style={{ flexWrap: "wrap" }}>
             {venueName && <p className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>{venueName}</p>}
