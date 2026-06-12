@@ -136,6 +136,30 @@ class PolicyDocument(SQLModel, table=True):
     error: Optional[str] = None
 
 
+class CoverageAdviceRecord(SQLModel, table=True):
+    """Broker E&O documentation artifact: a clause-cited coverage advice item
+    (a gap or an exclusion that bites the venue's real loss exposure) that the
+    broker surfaced, acknowledged, and actioned. The acknowledge→action trail
+    (with the cited clause node_ids frozen here) is the "I advised, on this
+    clause, at this time" record that defuses a failure-to-inform E&O claim.
+
+    See app/lifecycles.py CoverageAdviceStatus / COVERAGE_ADVICE_TRANSITIONS.
+    """
+    id: str = Field(primary_key=True)                 # "covadvice-<sha16>"
+    venue_id: str = Field(index=True)
+    policy_id: str = Field(index=True)
+    kind: str                                         # gap | exclusion_review | exclusion_bite
+    loss_category: Optional[str] = Field(default=None)
+    # The exclusion/gap clause anchors that grounded the advice — sorted before
+    # hashing into `id` so Postgres list-order drift can't mint a duplicate.
+    cited_node_ids: list = Field(default_factory=list, sa_column=Column(JSON))
+    summary: str
+    status: str = Field(default="surfaced", index=True)
+    actor_id: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    updated_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+
+
 class RubricVersion(SQLModel, table=True):
     id: str = Field(primary_key=True)
     name: str

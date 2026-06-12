@@ -159,9 +159,14 @@ FE surfaces (reuse existing patterns):
   unit suite (precision + abstention) rather than a separate scorers module. Turns ingested
   exclusions into a clause-cited "what this policy won't cover, given how this venue actually loses
   money" review. *This is the demo-able core.*
-- **Phase 2 — Advice record + lifecycle.** `CoverageAdviceRecord` + `coverage_advice.py` +
-  acknowledge/action transitions + audit. The E&O documentation artifact. Adds the "I advised, on this
-  clause, at this time" defensibility record.
+- **Phase 2 — Advice record + lifecycle. ✅ Shipped 2026-06-12.** `CoverageAdviceRecord` (new table,
+  auto-created via `create_all`; `cited_node_ids` sorted before hashing into the id) +
+  `app/services/coverage_advice.py` (`record_coverage_advice` idempotent + `_transition_coverage_advice`
+  → `assert_valid_transition` + audit event) + `COVERAGE_ADVICE_TRANSITIONS` lifecycle +
+  `app/api/v1/coverage.py` (broker-gated record / transition / list; `CoverageAdviceError → 400/404`,
+  `InvalidTransitionError → 422`). 26 TDD tests. The "I advised, on this clause, at this time" record
+  that defuses a failure-to-inform E&O claim. FE acknowledge button on the finding is the remaining
+  wiring (small follow-up).
 - **Phase 3 — Claim-time exclusion-bite check.** `exclusion_bite.py` + the incident/claim banner.
   Wires the review into the moment it matters most (a loss is opened).
 - **Phase 4 — Carrier-policy input + renewal drift.** Shift the input source from broker-uploaded

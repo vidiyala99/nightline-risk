@@ -239,6 +239,32 @@ SL_FILING_TERMINAL_STATES: frozenset[str] = frozenset(
 )
 
 
+# ─── CoverageAdviceRecord lifecycle ──────────────────────────────────────
+#
+# The broker E&O documentation artifact: a clause-cited coverage advice item
+# (gap / exclusion) is surfaced by a finding, then the broker acknowledges and
+# actions it (or dismisses it). The acknowledge→action trail is the "I advised,
+# on this clause, at this time" record that defuses a failure-to-inform claim.
+
+CoverageAdviceStatus = Literal[
+    "surfaced",      # raised by a finding, not yet seen by the broker
+    "acknowledged",  # broker has seen + accepted the advice
+    "actioned",      # broker took the corrective step (endorsement, etc.) — terminal
+    "dismissed",     # broker judged it not applicable — terminal
+]
+
+COVERAGE_ADVICE_TRANSITIONS: dict[str, set[str]] = {
+    "surfaced":     {"acknowledged", "dismissed"},
+    "acknowledged": {"actioned", "dismissed"},
+    "actioned":     set(),
+    "dismissed":    set(),
+}
+
+COVERAGE_ADVICE_TERMINAL_STATES: frozenset[str] = frozenset(
+    s for s, nexts in COVERAGE_ADVICE_TRANSITIONS.items() if not nexts
+)
+
+
 # ─── Status sort priority (cross-cutting list ordering) ──────────────────
 #
 # Canonical "actionable-first" ranks for list ordering. HIGHER rank sorts
