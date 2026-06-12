@@ -142,20 +142,6 @@ export default function RiskProfilePage() {
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [error, setError] = useState(false);
-  // Override-calibration aggregates for this venue. Null until first fetch
-  // settles; absent fields rendered as "no signal yet" rather than zero.
-  const [overrideStats, setOverrideStats] = useState<{
-    override_total: number;
-    override_approved: number;
-    override_rejected: number;
-    override_pending: number;
-    override_right_rate: number | null;
-    non_override_total: number;
-    non_override_approved: number;
-    non_override_rejected: number;
-    non_override_right_rate: number | null;
-    by_reason: Record<string, { total: number; approved: number; rejected: number; pending: number }>;
-  } | null>(null);
   // Status-bucketed incident counts for the Incident History factor row.
   // `total` here MUST equal the unfiltered list at /incidents?venue=... and
   // the scoring engine's `incident_count` input — same `IncidentRecord` COUNT(*).
@@ -206,11 +192,10 @@ export default function RiskProfilePage() {
         // bounced to /login above.
         const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
         const authH: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const [riskRes, quoteRes, venueRes, statsRes, countsRes] = await Promise.all([
+        const [riskRes, quoteRes, venueRes, countsRes] = await Promise.all([
           fetch(`${API_URL}/api/venues/${venueId}/risk-score`, { headers: authH }),
           fetch(`${API_URL}/api/venues/${venueId}/quote`, { headers: authH }),
           fetch(`${API_URL}/api/venues/${venueId}`, { headers: authH }),
-          fetch(`${API_URL}/api/venues/${venueId}/override-stats`, { headers: authH }),
           fetch(`${API_URL}/api/venues/${venueId}/incidents/counts`, { headers: authH }),
         ]);
         // A signed-in user reading a venue they don't own gets 403 — don't render
@@ -228,7 +213,6 @@ export default function RiskProfilePage() {
         if (riskRes.ok) setRiskData(await riskRes.json());
         if (quoteRes.ok) setQuoteData(await quoteRes.json());
         if (venueRes.ok) { const v = await venueRes.json(); setVenueName(v.name ?? venueId); setVenueMeta(v); }
-        if (statsRes.ok) setOverrideStats(await statsRes.json());
         if (countsRes.ok) {
           const c = await countsRes.json();
           setIncidentCounts({ total: c.total ?? 0, open: c.open ?? 0 });
@@ -585,12 +569,12 @@ export default function RiskProfilePage() {
                     ? `Tier ${tier} · Estimated from public records`
                     : `Tier ${tier} · Evidence-First Underwriting`}
                 </p>
-                {/* P3: surface savings to both personas with persona-appropriate framing */}
-                {savingsAnnual > 0 && (
+                {/* Savings is a value-reinforcement for the operator (the customer);
+                    a broker doesn't re-sell the client their own savings on every
+                    visit, so it's hidden in the broker's work view. */}
+                {savingsAnnual > 0 && !isBroker && (
                   <p className="text-xs mt-xs" style={{ color: "var(--accent-ink)" }}>
-                    {isBroker
-                      ? `Customer saving $${savingsAnnual.toLocaleString()}/yr vs market`
-                      : `Saving $${savingsAnnual.toLocaleString()}/yr vs market rate`}
+                    Saving ${savingsAnnual.toLocaleString()}/yr vs market rate
                   </p>
                 )}
               </div>
@@ -1085,126 +1069,6 @@ export default function RiskProfilePage() {
               </div>
             </div>
           )}
-
-          {/* Override Calibration — broker QA metric, not operator-facing. */}
-          {isBroker && overrideStats && (() => {
-            const right = overrideStats.override_right_rate;
-            const baseline = overrideStats.non_override_right_rate;
-            const decided = overrideStats.override_approved + overrideStats.override_rejected;
-            // Color the rate against the baseline — only meaningful if both exist
-            const rateColor =
-              right == null
-                ? "var(--text-secondary)"
-                : baseline == null
-                ? "var(--accent-ink)"
-                : right >= baseline
-                ? "var(--accent-ink)"
-                : right >= baseline * 0.6
-                ? "var(--state-warning)"
-                : "var(--state-error)";
-            return (
-              <section className="card">
-                <div
-                  className="flex items-center justify-between mb-lg"
-                  style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}
-                >
-                  <div>
-                    <h3 className="rp-section-title text-xs uppercase tracking-wide text-secondary">
-                      Override Calibration
-                    </h3>
-                    <p className="text-xs text-secondary" style={{ margin: "4px 0 0" }}>
-                      How often this venue's operator overrides of the claim recommender are validated by broker decisions
-                    </p>
-                  </div>
-                </div>
-
-                {overrideStats.override_total === 0 ? (
-                  <p className="text-sm text-secondary" style={{ fontStyle: "italic" }}>
-                    No operator overrides recorded yet for this venue. Stats appear once the operator proposes a claim against a "don't file" recommendation.
-                  </p>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-lg mb-lg">
-                      {/* Headline: override approval rate */}
-                      <div className="p-md" style={{ border: `1px solid ${rateColor}55`, borderRadius: "var(--radius-sm)" }}>
-                        <p className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>Override approval rate</p>
-                        <p className="text-3xl font-bold font-mono" style={{ color: rateColor, margin: "4px 0" }}>
-                          {right == null ? "—" : `${Math.round(right * 100)}%`}
-                        </p>
-                        <p className="text-xs text-secondary" style={{ margin: 0 }}>
-                          {right == null
-                            ? `${overrideStats.override_pending} pending · no decisions yet`
-                            : `${overrideStats.override_approved} of ${decided} decided overrides approved`}
-                        </p>
-                      </div>
-                      {/* Baseline */}
-                      <div className="p-md" style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}>
-                        <p className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>Baseline (non-overrides)</p>
-                        <p className="text-3xl font-bold font-mono text-secondary" style={{ margin: "4px 0" }}>
-                          {baseline == null ? "—" : `${Math.round(baseline * 100)}%`}
-                        </p>
-                        <p className="text-xs text-secondary" style={{ margin: 0 }}>
-                          {baseline == null
-                            ? "No decided non-override proposals to compare"
-                            : `${overrideStats.non_override_approved} of ${overrideStats.non_override_approved + overrideStats.non_override_rejected} decided non-overrides approved`}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Reason breakdown — actionable signal: which override reasons hold up */}
-                    {Object.keys(overrideStats.by_reason).length > 0 && (
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-secondary mb-sm">By override reason</p>
-                        <div className="flex flex-col gap-sm">
-                          {Object.entries(overrideStats.by_reason).map(([reason, counts]) => {
-                            const reasonDecided = counts.approved + counts.rejected;
-                            const reasonRate = reasonDecided > 0 ? counts.approved / reasonDecided : null;
-                            return (
-                              <div
-                                key={reason}
-                                className="flex items-center justify-between p-sm"
-                                style={{ border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}
-                              >
-                                <div>
-                                  <p className="text-sm font-semibold" style={{ margin: 0 }}>
-                                    {reason.replace(/_/g, " ")}
-                                  </p>
-                                  <p className="text-xs text-secondary" style={{ margin: 0 }}>
-                                    {counts.total} total · {counts.approved} approved · {counts.rejected} rejected
-                                    {counts.pending > 0 ? ` · ${counts.pending} pending` : ""}
-                                  </p>
-                                </div>
-                                <span
-                                  className="text-sm font-mono font-bold"
-                                  style={{
-                                    color:
-                                      reasonRate == null
-                                        ? "var(--text-secondary)"
-                                        : reasonRate >= 0.7
-                                        ? "var(--accent-ink)"
-                                        : reasonRate >= 0.4
-                                        ? "var(--state-warning)"
-                                        : "var(--state-error)",
-                                  }}
-                                >
-                                  {reasonRate == null ? "—" : `${Math.round(reasonRate * 100)}%`}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    <p className="text-xs text-tertiary mt-md" style={{ fontStyle: "italic", lineHeight: 1.5 }}>
-                      Every operator override becomes labeled training data for the next rubric version. Patterns that
-                      hold up here strengthen the recommender; patterns that don't get re-weighted at the next rubric bump.
-                    </p>
-                  </>
-                )}
-              </section>
-            );
-          })()}
 
         </div>
         </div>
