@@ -1231,8 +1231,9 @@ function TriageRow({
   const tierColor = TIER_COLOR[venue.tier] || "var(--text-tertiary)";
   const capPct = venue.current_capacity != null && venue.capacity > 0 ? (venue.current_capacity / venue.capacity) * 100 : 0;
   const capCritical = capPct >= 95;
-  const incidentsHot = venue.open_incidents > 0;
   const renewalSoon = venue._daysToRenew != null && venue._daysToRenew <= 14;
+  const hasSignals = venue.open_incidents > 0 || venue.compliance_actions > 0 || venue.has_degraded_infra;
+  const scorePct = Math.max(0, Math.min(100, venue.total_score));
 
   return (
     <Link
@@ -1243,31 +1244,41 @@ function TriageRow({
       aria-label={`Open risk profile for ${venue.name}`}
     >
       <div style={{ minWidth: 0 }}>
-        <div className="lc-triage__row-title" style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{venue.name}</span>
-          {incidentsHot && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--font-mono)", fontStyle: "normal", fontSize: "0.62rem", color: "var(--state-error)", letterSpacing: "0.08em" }}>
-              <AlertTriangle size={9} /> {venue.open_incidents}
-            </span>
-          )}
-          {venue.compliance_actions > 0 && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--font-mono)", fontStyle: "normal", fontSize: "0.62rem", color: "var(--brand-secondary)", letterSpacing: "0.08em" }}>
-              <CheckSquare size={9} /> {venue.compliance_actions}
-            </span>
-          )}
-          {venue.has_degraded_infra && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--font-mono)", fontStyle: "normal", fontSize: "0.62rem", color: "var(--state-warning)", letterSpacing: "0.08em" }}>
-              <WifiOff size={9} /> DEG
-            </span>
-          )}
+        <div className="lc-triage__row-title">
+          <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{venue.name}</span>
         </div>
         <div className="lc-triage__row-sub">
           {venue.venue_type.replace(/_/g, " ")} · {venue.current_capacity != null ? `${venue.current_capacity}/${venue.capacity.toLocaleString()}` : `${venue.capacity.toLocaleString()} cap`}
           {capCritical && <span style={{ color: "var(--state-error)", marginLeft: 6 }}>· {Math.round(capPct)}%</span>}
         </div>
+        {hasSignals && (
+          <div className="lc-triage__row-chips">
+            {venue.open_incidents > 0 && (
+              <span className="lc-triage__chip-sig" style={{ color: "var(--state-error)", borderColor: "var(--state-error)" }}>
+                <AlertTriangle size={10} aria-hidden /> {venue.open_incidents} {venue.open_incidents === 1 ? "incident" : "incidents"}
+              </span>
+            )}
+            {venue.compliance_actions > 0 && (
+              <span className="lc-triage__chip-sig" style={{ color: "var(--state-warning)", borderColor: "var(--state-warning)" }}>
+                <CheckSquare size={10} aria-hidden /> {venue.compliance_actions} to clear
+              </span>
+            )}
+            {venue.has_degraded_infra && (
+              <span className="lc-triage__chip-sig" style={{ color: "var(--state-warning)", borderColor: "var(--state-warning)" }}>
+                <WifiOff size={10} aria-hidden /> infra degraded
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="lc-triage__row-meta">
-        <span className="conf" style={{ color: tierColor }}>{venue.total_score}</span>
+        <div className="lc-triage__score">
+          <span className="conf" style={{ color: tierColor }}>{venue.total_score}</span>
+          <span className="lc-triage__score-max">/100</span>
+        </div>
+        <div className="lc-triage__score-meter" aria-hidden>
+          <div className="lc-triage__score-meter-fill" style={{ width: `${scorePct}%`, background: tierColor }} />
+        </div>
         <div className="lc-triage__row-tierline">
           <TierBadge tier={venue.tier as UiTier} />
           {venue._daysToRenew != null && (
@@ -1277,6 +1288,7 @@ function TriageRow({
           )}
         </div>
       </div>
+      <ArrowUpRight size={16} className="lc-triage__row-go" aria-hidden />
     </Link>
   );
 }
