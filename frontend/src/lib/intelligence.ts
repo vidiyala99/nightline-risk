@@ -73,6 +73,7 @@ export interface RecordAdvicePayload {
 const FINDING_KIND_TO_ADVICE_KIND: Record<string, string> = {
   coverage_exclusion_review: "exclusion_review",
   coverage_gap_eo: "gap",
+  renewal_term_drift: "renewal_drift",
 };
 
 /** Derive the advice payload a finding would record, or null if the finding

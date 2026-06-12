@@ -43,6 +43,11 @@ describe("findingToAdvicePayload", () => {
     expect(p!.cited_node_ids).toEqual([]);
   });
 
+  it("maps a renewal_term_drift finding to a renewal_drift advice payload", () => {
+    const p = findingToAdvicePayload(_finding({ kind: "renewal_term_drift", why: [] }));
+    expect(p!.kind).toBe("renewal_drift");
+  });
+
   it("returns null for a non-coverage finding kind", () => {
     expect(findingToAdvicePayload(_finding({ kind: "evidence_gap" }))).toBeNull();
   });

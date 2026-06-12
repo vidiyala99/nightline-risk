@@ -27,7 +27,7 @@ def rank_for(severity: str) -> int:
 # engine only runs these), never in a prompt. admin sees everything.
 PERSONA_KINDS: dict[str, list[str]] = {
     "venue_operator": ["evidence_gap", "compliance_overdue", "renewal_approaching"],
-    "broker": ["coverage_gap_eo", "coverage_exclusion_review", "renewal_at_risk", "submission_stalled"],
+    "broker": ["coverage_gap_eo", "coverage_exclusion_review", "renewal_term_drift", "renewal_at_risk", "submission_stalled"],
     "carrier": ["reserve_light", "fraud_unreviewed"],
 }
 PERSONA_KINDS["admin"] = [k for kinds in PERSONA_KINDS.values() for k in kinds]

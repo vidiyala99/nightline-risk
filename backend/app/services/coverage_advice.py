@@ -33,7 +33,9 @@ class CoverageAdviceError(Exception):
 
 # Mirrors the finding kinds that produce advice (coverage_gap_eo → "gap",
 # coverage_exclusion_review → "exclusion_review", claim-time → "exclusion_bite").
-VALID_KINDS: frozenset[str] = frozenset({"gap", "exclusion_review", "exclusion_bite"})
+VALID_KINDS: frozenset[str] = frozenset(
+    {"gap", "exclusion_review", "exclusion_bite", "renewal_drift"}
+)
 
 
 def _advice_id(venue_id: str, policy_id: str, kind: str, node_ids: list[str]) -> str:

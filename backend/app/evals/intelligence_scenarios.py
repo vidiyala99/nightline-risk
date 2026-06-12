@@ -113,6 +113,37 @@ def _broker_coverage_exclusion_review():
     }
 
 
+def _broker_renewal_term_drift():
+    """An in-flight renewal that drops liquor coverage AND adds an assault-&-
+    battery exclusion to GL vs the expiring policy — the canonical silent-renewal
+    E&O gap. Must fire high and cite the changes."""
+    from app.models import CarrierQuote
+    s = _fresh_session()
+    s.add(Policy(id="pol-exp", submission_id="s0", bound_quote_id="q0", venue_id="v1",
+                 carrier_id="c1", status="active",
+                 effective_date=date(2025, 6, 1), expiration_date=date(2026, 6, 1),
+                 annual_premium=Decimal("0"), commission_amount=Decimal("0"),
+                 commission_rate=Decimal("0"), coverage_lines=["gl", "liquor"],
+                 terms_snapshot={"coverage_terms": {
+                     "gl": {"per_occurrence": "1000000", "exclusions": []},
+                     "liquor": {"per_occurrence": "1000000"}}}))
+    s.add(Submission(id="sub-ren", venue_id="v1", status="quoting",
+                     effective_date=date(2026, 6, 1), coverage_lines=["gl"],
+                     prior_policy_id="pol-exp"))
+    s.add(CarrierQuote(id="q-ren", submission_id="sub-ren", carrier_id="c1",
+                       status="quoted", is_selected=True,
+                       coverage_terms={"gl": {"per_occurrence": "1000000",
+                                              "exclusions": ["AssaultAndBattery"]}}))
+    s.commit()
+    return {
+        "name": "broker_renewal_term_drift",
+        "user": {"sub": "b1", "role": "broker", "tenant_id": None},
+        "session": s,
+        "expected_ids": {"renewal_term_drift:submission:sub-ren"},
+        "expected_severity": {"renewal_term_drift:submission:sub-ren": "high"},
+    }
+
+
 def _operator_compliance_overdue():
     s = _fresh_session()
     s.add(ComplianceSignal(id="cmp-1", venue_id="v1", title="Fire exit blocked",
@@ -214,6 +245,7 @@ SCENARIOS = [
     _operator_clean_no_false_alarm,
     _broker_coverage_gap,
     _broker_coverage_exclusion_review,
+    _broker_renewal_term_drift,
     _operator_compliance_overdue,
     _operator_renewal_approaching,
     _broker_renewal_at_risk,
