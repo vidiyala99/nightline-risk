@@ -729,17 +729,23 @@ def test_file_fnol_rejects_no_active_policy_explicitly():
     otherwise produce. Isolated no-policy venue."""
     session = next(get_session())
     try:
+        # Flush each parent before its child: these are column-level FKs without
+        # Relationship(), so SQLAlchemy can't order the inserts itself — Postgres
+        # checks the FK on insert and 500s otherwise (project_postgres_fk_ordering).
         session.add(Venue(id="v-ff-iso", name="Uninsured FNOL Test"))
+        session.flush()
         session.add(IncidentRecord(
             id="in-ffn", venue_id="v-ff-iso", occurred_at="2026-05-17T00:46:00Z",
             location="bar", summary="x", reported_by="m", injury_observed=True,
             police_called=False, ems_called=False, status="open",
         ))
+        session.flush()
         session.add(UnderwritingPacket(
             id="pk-ffn", venue_id="v-ff-iso", incident_id="in-ffn",
             rubric_version_id="demo-rubric-v1", status="needs_review", snapshot_hash="h",
             risk_signals={"type": "premises_liability", "severity": "high", "confidence": 0.9},
         ))
+        session.flush()
         session.add(ClaimProposal(
             id="pr-ffn", packet_id="pk-ffn", venue_id="v-ff-iso",
             proposed_by="auto-router", state="approved",
@@ -818,17 +824,23 @@ def test_claim_status_unfileable_when_no_active_policy():
     elsewhere-brooklyn, which would mask the blocker)."""
     session = next(get_session())
     try:
+        # Flush each parent before its child — column-level FKs without
+        # Relationship() aren't insert-ordered by SQLAlchemy; Postgres enforces
+        # the FK on insert (project_postgres_fk_ordering).
         session.add(Venue(id="v-nf-iso", name="Uninsured Test Venue"))
+        session.flush()
         session.add(IncidentRecord(
             id="in-nf", venue_id="v-nf-iso", occurred_at="2026-05-17T00:46:00Z",
             location="bar", summary="x", reported_by="m", injury_observed=True,
             police_called=False, ems_called=False, status="open",
         ))
+        session.flush()
         session.add(UnderwritingPacket(
             id="pk-nf", venue_id="v-nf-iso", incident_id="in-nf",
             rubric_version_id="demo-rubric-v1", status="needs_review", snapshot_hash="h",
             risk_signals={"type": "premises_liability", "severity": "high", "confidence": 0.9},
         ))
+        session.flush()
         session.add(ClaimProposal(
             id="pr-nf", packet_id="pk-nf", venue_id="v-nf-iso",
             proposed_by="auto-router", state="approved",
