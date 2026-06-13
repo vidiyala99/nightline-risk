@@ -154,6 +154,25 @@ def create_claim_proposal_route(
                 status_code=409,
                 detail="Held for fraud review — this incident can't be sent to the broker until it clears review.",
             )
+        # No active policy → nothing to file against a carrier. The auto-router
+        # already refuses this (claim_routing.route_status → 'not_routed' when
+        # has_active_policy is False); the manual path must honour the same
+        # invariant, or an uninsured venue produces an approved-but-unfileable
+        # proposal (the "Approved · ready to file" vs "Cannot file" contradiction).
+        from app.claim_routing import _latest_active_policy
+        if _latest_active_policy(session, packet.venue_id) is None:
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "no_active_policy",
+                    "message": (
+                        "This venue has no active policy — there's nothing to file "
+                        "against a carrier. Re-establish coverage before sending to "
+                        "the broker."
+                    ),
+                },
+            )
         from app.claim_routing import recommendation_for_packet
         from app.claim_recommendation import recommendation_to_dict
         snapshot = recommendation_to_dict(recommendation_for_packet(session, packet))
@@ -399,6 +418,24 @@ def file_fnol_for_proposal(
                 "error": "not_approved",
                 "message": (
                     f"Proposal must be 'approved' to file (state={proposal.state})"
+                ),
+            },
+        )
+
+    # Defense in depth: re-validate fileability server-side. The UI gates the file
+    # button on these blockers, but a direct API caller (or a proposal whose policy
+    # lapsed after approval) must be refused EXPLICITLY here — not via the indirect
+    # "Unknown Policy None" failure a client-supplied null policy_id would trigger.
+    from app.services.fnol import proposal_fileability
+    fileability = proposal_fileability(session, proposal)
+    if "no_active_policy" in fileability["blockers"]:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "no_active_policy",
+                "message": (
+                    "Cannot file: this venue has no active policy. Re-establish "
+                    "coverage before filing with the carrier."
                 ),
             },
         )

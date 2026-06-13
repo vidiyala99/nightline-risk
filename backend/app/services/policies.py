@@ -215,6 +215,16 @@ def _transition_policy(
         event_type=f"policy.{to}",
         event_metadata={"from": from_status, "to": to, **(metadata or {})},
     )
+    # Coverage drift: if this status change flips the venue's coverage on/off,
+    # hold or restore its open claim proposals (a proposal routed while covered
+    # that loses its policy becomes unfileable — the "Approved · ready to file"
+    # vs "Cannot file: no_active_policy" contradiction). Lazy import avoids a
+    # claim_proposals ⇄ policies circular at module load.
+    from app.claim_proposals import reconcile_proposals_on_coverage_change
+    reconcile_proposals_on_coverage_change(
+        session, venue_id=policy.venue_id, policy_id=policy.id,
+        to_status=to, actor_id=actor_id,
+    )
     return policy
 
 

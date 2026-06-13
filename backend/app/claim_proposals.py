@@ -365,6 +365,75 @@ def _add_audit_event(
     )
 
 
+# Open proposal states where a coverage change still matters — a terminal
+# proposal (filed/paid/denied/rejected) is past the point of being held.
+COVERAGE_OPEN_PROPOSAL_STATES: frozenset[str] = frozenset(
+    {"pending_broker_review", "approved", "needs_more_info"}
+)
+# Policy statuses that remove coverage (PolicyStatus terminal-ish + lapsed).
+_DEACTIVATING_POLICY_STATUSES: frozenset[str] = frozenset(
+    {"expired", "lapsed", "non_renewed", "cancelled"}
+)
+
+
+def reconcile_proposals_on_coverage_change(
+    session: Session,
+    *,
+    venue_id: str,
+    policy_id: str,
+    to_status: str,
+    actor_id: str,
+) -> None:
+    """Record the effect of a venue's coverage flipping on/off on its open claim
+    proposals. An open proposal with no active policy is unfileable — a
+    ``coverage_lapsed`` hold; when coverage returns it is ``coverage_restored``.
+
+    Edge-triggered: fires only on the transition that crosses the coverage
+    boundary (last active policy lost, or first one regained), keyed off whether
+    the venue has any OTHER active policy. So unrelated policy churn (one of two
+    live policies expiring, a bind while already covered) emits nothing, and the
+    audit isn't re-stamped on every transition. Called from
+    ``_transition_policy`` (the single policy-status seam).
+    """
+    from app.models import Policy
+    from app.services.fnol import ACTIVE_POLICY_STATUSES
+
+    other_active = any(
+        p.status in ACTIVE_POLICY_STATUSES and p.id != policy_id
+        for p in session.exec(select(Policy).where(Policy.venue_id == venue_id)).all()
+    )
+    if to_status == "active":
+        if other_active:
+            return  # already covered — this isn't a restoration edge
+        event_type = "claim_proposal.coverage_restored"
+    elif to_status in _DEACTIVATING_POLICY_STATUSES:
+        if other_active:
+            return  # still covered by another policy — not a lapse edge
+        event_type = "claim_proposal.coverage_lapsed"
+    else:
+        return  # e.g. bound_pending_number — not a coverage on/off edge
+
+    open_proposals = [
+        p for p in session.exec(
+            select(ClaimProposal).where(ClaimProposal.venue_id == venue_id)
+        ).all()
+        if p.state in COVERAGE_OPEN_PROPOSAL_STATES
+    ]
+    for proposal in open_proposals:
+        _add_audit_event(
+            session=session,
+            actor_id=actor_id,
+            actor_type="system",
+            entity_id=proposal.id,
+            event_type=event_type,
+            event_metadata={
+                "venue_id": venue_id,
+                "policy_id": policy_id,
+                "policy_status": to_status,
+            },
+        )
+
+
 # Terminal states grouped by what they say about the operator's judgment.
 # Anything in APPROVED_STATES means the operator's proposal was accepted by
 # the broker (and, eventually, the carrier). Anything in REJECTED_STATES

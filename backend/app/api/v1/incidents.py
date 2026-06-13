@@ -343,6 +343,18 @@ def incident_claim_status(
             select(Claim).where(Claim.incident_id == incident_id)
         ).first()
 
+    # Fileability is the single truth that the UI badge must respect: an approved
+    # proposal whose venue has no active policy (e.g. coverage lapsed after
+    # routing) is NOT actually fileable, so the surface can't claim "ready to
+    # file". Computed once here via the shared helper, never re-derived per page.
+    fileable = None
+    blockers: list[str] = []
+    if proposal is not None:
+        from app.services.fnol import proposal_fileability
+        f = proposal_fileability(session, proposal)
+        fileable = f["fileable"]
+        blockers = f["blockers"]
+
     return {
         "incident_status": record.status,
         "proposal": {
@@ -353,6 +365,8 @@ def incident_claim_status(
             "exists": claim is not None,
             "status": claim.status if claim else None,
         },
+        "fileable": fileable,
+        "blockers": blockers,
     }
 
 

@@ -53,6 +53,22 @@ def _date_of_loss(occurred_at: str) -> Optional[date]:
         return None
 
 
+def proposal_fileability(session: Session, proposal: ClaimProposal) -> dict:
+    """Single source of fileability truth for a proposal: is it fileable, and if
+    not, what blocks it. A thin wrapper over `resolve_fnol_defaults` so no surface
+    (badge, claim-status, file-fnol guard) re-derives the blocker list — the same
+    SoT discipline that killed the claim-status drift on the frontend.
+    """
+    d = resolve_fnol_defaults(session, proposal)
+    return {
+        "fileable": not d["blockers"],
+        "blockers": d["blockers"],
+        "policy_id": d["policy_id"],
+        "coverage_line": d["coverage_line"],
+        "date_of_loss": d["date_of_loss"],
+    }
+
+
 def resolve_fnol_defaults(session: Session, proposal: ClaimProposal) -> dict:
     blockers: list[str] = []
     notes: list[str] = []

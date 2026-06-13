@@ -20,6 +20,15 @@ export interface ClaimStatusResponse {
   incident_status: string;
   proposal: { exists: boolean; state: string | null };
   claim: { exists: boolean; status: string | null };
+  /**
+   * Whether an approved proposal can actually be filed against a carrier — false
+   * when the venue has no active policy (none bound, or it lapsed after the
+   * proposal was approved). The server computes it once (proposal_fileability);
+   * surfaces must respect it so an unfileable proposal never reads "ready to
+   * file". Omitted (undefined) on older payloads → treated as fileable.
+   */
+  fileable?: boolean | null;
+  blockers?: string[];
 }
 
 /** The helper only needs the claim's status; callers may pass a richer row. */
@@ -64,8 +73,14 @@ export function deriveClaimStatus(cs: ClaimStatusResponse, claim: ClaimStatusRef
   if (ps === "filed_with_carrier" || cs.claim.exists || claim != null) {
     return { tone: "info", headline: "Filed with the carrier", detail: "Your broker filed this as a carrier claim. It's now in the carrier's hands.", next: "Awaiting the carrier's decision — we'll update this when it settles.", currentIndex: 3, sent: true };
   }
-  // Approved by broker, claim being opened.
+  // Approved by broker, claim being opened — UNLESS coverage has lapsed. An
+  // approved proposal with no active policy is unfileable (the policy lapsed
+  // after routing, or was never bound), so it can't claim "filing with the
+  // carrier". Only divert on an explicit fileable===false; undefined is back-compat.
   if (ps === "approved") {
+    if (cs.fileable === false) {
+      return { tone: "warning", headline: "On hold — coverage lapsed", detail: "Your broker approved this, but the venue has no active policy to file the claim against. Coverage has to be re-established before it can be filed.", next: "Re-establish an active policy (renew or bind coverage), then this can be filed.", currentIndex: 2, sent: true };
+    }
     return { tone: "success", headline: "Approved — filing with the carrier", detail: "Your broker approved the recommendation. The carrier claim is being opened now.", next: "Your broker has the next move. No action needed from you.", currentIndex: 2, sent: true };
   }
   // Broker bounced it back for more evidence.

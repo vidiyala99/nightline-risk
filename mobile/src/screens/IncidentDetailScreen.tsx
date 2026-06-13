@@ -49,6 +49,7 @@ function deriveClaimStatus(
   proposalState: string | null,
   claimStatus: string | null,
   claimExists: boolean,
+  fileable?: boolean | null,
 ): { tone: ClaimTone; headline: string; detail: string; next: string; currentIndex: number } {
   const ps = proposalState;
   if (ps === 'paid' || claimStatus === 'closed_paid')
@@ -61,8 +62,13 @@ function deriveClaimStatus(
     return { tone: 'error', headline: 'Declined by your broker', detail: 'Your broker decided not to file. It never became a carrier claim.', next: 'Review the recommendation or talk to your broker.', currentIndex: 1 };
   if (ps === 'filed_with_carrier' || claimExists)
     return { tone: 'info', headline: 'Filed with the carrier', detail: "Your broker filed this as a carrier claim. It's now in the carrier's hands.", next: "Awaiting the carrier's decision.", currentIndex: 3 };
-  if (ps === 'approved')
+  if (ps === 'approved') {
+    // Approved but no active policy to file against (coverage lapsed after
+    // routing, or never bound) → on hold, not "filing". Mirrors web claimStatus.
+    if (fileable === false)
+      return { tone: 'warning', headline: 'On hold — coverage lapsed', detail: 'Your broker approved this, but the venue has no active policy to file the claim against. Coverage has to be re-established first.', next: 'Re-establish an active policy (renew or bind coverage), then this can be filed.', currentIndex: 2 };
     return { tone: 'success', headline: 'Approved — filing with the carrier', detail: 'Your broker approved the recommendation; the carrier claim is being opened.', next: 'Your broker has the next move.', currentIndex: 2 };
+  }
   if (ps === 'needs_more_info')
     return { tone: 'warning', headline: 'Your broker needs more information', detail: 'Your broker asked for additional evidence before filing.', next: 'You have the next move — add the requested evidence.', currentIndex: 1 };
   return { tone: 'info', headline: "Awaiting your broker's decision", detail: "We sent the recommendation to your broker.", next: "Your broker has the next move.", currentIndex: 1 };
@@ -83,6 +89,9 @@ export function IncidentDetailScreen({ route, navigation }: any) {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [proposal, setProposal] = useState<ClaimProposal | null>(null);
   const [claim, setClaim] = useState<any>(null);
+  // Server-computed fileability of an approved proposal (false when the venue
+  // has no active policy). Keeps the "where this stands" tracker honest.
+  const [fileable, setFileable] = useState<boolean | null>(null);
   const [proposeSheetVisible, setProposeSheetVisible] = useState(false);
   const [submittingProposal, setSubmittingProposal] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
@@ -92,13 +101,15 @@ export function IncidentDetailScreen({ route, navigation }: any) {
   useEffect(() => {
     async function load() {
       try {
-        const [inc, pkts, evs, vision] = await Promise.all([
+        const [inc, pkts, evs, vision, cs] = await Promise.all([
           api.request<any>(`/api/incidents/${incidentId}`),
           api.request<any[]>(`/api/incidents/${incidentId}/packets`),
           api.request<any[]>(`/api/incidents/${incidentId}/evidence`),
           api.request<any>(`/api/incidents/${incidentId}/evidence-analysis`).catch(() => null),
+          api.request<any>(`/api/incidents/${incidentId}/claim-status`).catch(() => null),
         ]);
         setIncident(inc);
+        setFileable(cs?.fileable ?? null);
         const pktList = Array.isArray(pkts) ? pkts : [];
         setPackets(pktList);
         if (pktList.length > 0) setProposal(pktList[0].claim_proposal ?? null);
@@ -336,7 +347,7 @@ export function IncidentDetailScreen({ route, navigation }: any) {
           Mirrors the web /incidents/[id]/claim-status page. Shown once the
           incident has entered the claim journey (proposal raised or claim filed). */}
       {!isBroker && (proposal || claim) && (() => {
-        const s = deriveClaimStatus(proposal?.state ?? null, claim?.status ?? null, !!claim);
+        const s = deriveClaimStatus(proposal?.state ?? null, claim?.status ?? null, !!claim, fileable);
         const toneColor = CLAIM_TONE_COLOR[s.tone];
         return (
           <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: toneColor }]}>

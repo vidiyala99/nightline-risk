@@ -812,13 +812,24 @@ export default function ReportDetailPage() {
                   paid: "var(--accent-ink)",
                   denied: "var(--state-error)",
                 };
-                const accent = stateColor[proposal.state];
+                // An approved proposal whose venue has no active policy is NOT
+                // actually fileable (coverage lapsed after routing, or never
+                // bound) — so the badge must say "on hold", never "ready to file".
+                // Reconciles the badge with the FNOL fileability gate below (one
+                // truth, no drift). Other approved proposals are unaffected.
+                const coverageBlocked =
+                  proposal.state === "approved" &&
+                  (fnolDraft?.blockers?.includes("no_active_policy") ?? false);
+                const accent = coverageBlocked ? "var(--state-warning)" : stateColor[proposal.state];
+                const displayLabel = coverageBlocked
+                  ? "Approved · on hold — needs active policy"
+                  : stateLabel[proposal.state];
                 return (
                   <div className="flex flex-col gap-md">
                     <div className="flex items-center justify-between p-md" style={{ border: `1px solid ${accent}`, borderRadius: "var(--radius-sm)", background: `${accent}11` }}>
                       <div>
                         <p className="text-sm font-bold" style={{ color: accent, margin: 0 }}>
-                          {stateLabel[proposal.state]}
+                          {displayLabel}
                         </p>
                         <p className="text-xs text-secondary" style={{ margin: 0, marginTop: 2 }}>
                           Proposed {new Date(proposal.proposed_at).toLocaleString()}
@@ -976,7 +987,22 @@ export default function ReportDetailPage() {
             <section className="card" data-section="fnol-confirm" style={{ marginTop: "var(--space-md)" }}>
               <h3 className="card-title">Confirm &amp; file FNOL</h3>
               {fnolDraft.blockers.length > 0 ? (
-                <p className="text-error">Cannot file: {fnolDraft.blockers.join(", ")}. Resolve the policy first.</p>
+                <div className="flex flex-col gap-sm">
+                  <p className="text-error" style={{ margin: 0 }}>
+                    {fnolDraft.blockers.includes("no_active_policy")
+                      ? "Cannot file: this venue has no active policy. Coverage has to be re-established before this claim can be filed with the carrier."
+                      : `Cannot file: ${fnolDraft.blockers.join(", ")}.`}
+                  </p>
+                  {fnolDraft.blockers.includes("no_active_policy") && (
+                    <a
+                      href={`/risk-profile/${packet.venue_id}`}
+                      className="btn btn-secondary"
+                      style={{ minHeight: 44, alignSelf: "flex-start" }}
+                    >
+                      Go to venue coverage →
+                    </a>
+                  )}
+                </div>
               ) : (
                 <>
                   <p className="text-muted font-mono" style={{ fontSize: "0.85rem" }}>

@@ -93,6 +93,26 @@ def test_blocks_when_no_active_policy():
     assert d["policy_id"] is None
 
 
+from app.services.fnol import proposal_fileability
+
+
+def test_proposal_fileability_true_with_active_policy():
+    s = _session()
+    p = _proposal(s)  # with_policy=True
+    f = proposal_fileability(s, p)
+    assert f["fileable"] is True
+    assert f["blockers"] == []
+    assert f["policy_id"] == "pol-1"
+
+
+def test_proposal_fileability_false_without_active_policy():
+    s = _session()
+    p = _proposal(s, with_policy=False)
+    f = proposal_fileability(s, p)
+    assert f["fileable"] is False
+    assert "no_active_policy" in f["blockers"]
+
+
 from app.services.fnol import venue_line_deductible
 
 
