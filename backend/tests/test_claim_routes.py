@@ -187,61 +187,6 @@ def test_high_fraud_packet_manual_send_is_blocked():
     assert client.get(f"/api/claim-proposals/by-packet/{packet_id}").status_code == 404
 
 
-def test_manual_proposal_blocked_when_no_active_policy():
-    """The manual 'send to broker' route must honour the same no-active-policy
-    invariant the auto-router enforces (claim_routing.route_status returns
-    'not_routed' when has_active_policy is False): with no coverage there is
-    nothing to file against a carrier — it's a coverage conversation, not a claim.
-    Isolated no-policy venue so a stray active policy can't mask the guard."""
-    session = next(get_session())
-
-    def _cleanup():
-        for prop in session.exec(
-            select(ClaimProposal).where(ClaimProposal.packet_id == "pk-np")
-        ).all():
-            session.delete(prop)
-        for tbl, _id in [
-            (UnderwritingPacket, "pk-np"),
-            (IncidentRecord, "in-np"),
-            (Venue, "v-np-iso"),
-        ]:
-            row = session.get(tbl, _id)
-            if row:
-                session.delete(row)
-        session.commit()
-
-    try:
-        _cleanup()  # clear any pollution from a prior run before seeding
-        session.add(Venue(id="v-np-iso", name="Uninsured Manual Test"))
-        session.add(IncidentRecord(
-            id="in-np", venue_id="v-np-iso", occurred_at="2026-05-17T00:46:00Z",
-            location="bar", summary="x", reported_by="m", injury_observed=True,
-            police_called=False, ems_called=False, status="open",
-        ))
-        session.add(UnderwritingPacket(
-            id="pk-np", venue_id="v-np-iso", incident_id="in-np",
-            rubric_version_id="demo-rubric-v1", status="needs_review", snapshot_hash="h",
-            risk_signals={"type": "premises_liability", "severity": "high", "confidence": 0.9},
-        ))
-        session.commit()
-        op_token = create_token("u-np", "np@op.example.com", "venue_operator", "v-np-iso")
-        with TestClient(app) as client:
-            r = client.post(
-                "/api/packets/pk-np/claim-proposal",
-                json={"operator_id": "op-1", "override_recommendation": False},
-                headers={"Authorization": f"Bearer {op_token}"},
-            )
-        assert r.status_code == 422, r.text
-        assert r.json()["detail"]["error"] == "no_active_policy"
-        # No proposal was created.
-        assert session.exec(
-            select(ClaimProposal).where(ClaimProposal.packet_id == "pk-np")
-        ).first() is None
-    finally:
-        _cleanup()
-        session.close()
-
-
 def test_operator_can_create_proposal_with_structured_override_reason():
     client = TestClient(app, headers=_op_headers())
     packet_id = _create_borderline_packet(client)

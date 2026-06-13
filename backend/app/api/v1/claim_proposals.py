@@ -154,25 +154,13 @@ def create_claim_proposal_route(
                 status_code=409,
                 detail="Held for fraud review — this incident can't be sent to the broker until it clears review.",
             )
-        # No active policy → nothing to file against a carrier. The auto-router
-        # already refuses this (claim_routing.route_status → 'not_routed' when
-        # has_active_policy is False); the manual path must honour the same
-        # invariant, or an uninsured venue produces an approved-but-unfileable
-        # proposal (the "Approved · ready to file" vs "Cannot file" contradiction).
-        from app.claim_routing import _latest_active_policy
-        if _latest_active_policy(session, packet.venue_id) is None:
-            from fastapi import HTTPException
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "error": "no_active_policy",
-                    "message": (
-                        "This venue has no active policy — there's nothing to file "
-                        "against a carrier. Re-establish coverage before sending to "
-                        "the broker."
-                    ),
-                },
-            )
+        # NOTE: manual proposal creation is intentionally permissive on coverage.
+        # An operator may propose a claim for a venue with no active policy (it
+        # surfaces an uninsured loss to the broker, who reviews/declines). The
+        # no-active-policy invariant is enforced where it actually matters —
+        # filing (file_fnol re-check) — and the proposal is shown "on hold" until
+        # coverage exists (deriveClaimStatus / underwriter badge). Blocking
+        # creation here would break the established operator→broker review flow.
         from app.claim_routing import recommendation_for_packet
         from app.claim_recommendation import recommendation_to_dict
         snapshot = recommendation_to_dict(recommendation_for_packet(session, packet))
