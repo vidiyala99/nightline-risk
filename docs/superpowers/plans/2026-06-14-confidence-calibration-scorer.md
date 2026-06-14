@@ -1,5 +1,7 @@
 # Confidence Calibration Scorer Implementation Plan
 
+> ⛔ **WITHDRAWN (2026-06-14) — DO NOT IMPLEMENT.** A richer calibration loop already exists (`backend/app/evals/calibration.py` + `scripts/run_calibration.py`, CI-gated), calibrating AI claim recommendations against real broker/carrier outcomes. This plan was written on the false premise that no calibration existed. Kept for history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a baseline-gated `confidence_calibration` metric to the eval harness that scores how well the risk classifier's surfaced `risk_signal.confidence` matches its actual correctness against the gold set.

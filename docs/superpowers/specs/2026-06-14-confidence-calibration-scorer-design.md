@@ -1,7 +1,7 @@
 # Confidence Calibration Scorer — Design
 
 **Date:** 2026-06-14
-**Status:** Approved (design); pending implementation plan
+**Status:** ⛔ WITHDRAWN (2026-06-14). A calibration loop already exists in `backend/app/evals/calibration.py` (broker-agreement, outcome-in-band, Brier probability calibration), CI-gated via `scripts/run_calibration.py`. It calibrates against *real* broker/carrier outcomes — richer than this gold-set-severity scorer. Building this would be redundant. Kept for history; do not implement.
 **Related:** [`docs/research/llm-usage-gap-analysis.md`](../../research/llm-usage-gap-analysis.md) §4 #1 (highest-leverage move), [`docs/research/insurtech-ai-native-landscape.md`](../../research/insurtech-ai-native-landscape.md) (field bar: Kalepa run-time confidence intervals + drift detection)
 
 ## Motivation
