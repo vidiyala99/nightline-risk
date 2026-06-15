@@ -1,0 +1,30 @@
+[
+  {
+    "id": "jg-001-faithful",
+    "summary": "Altercation near the rear bar with a delayed security response; camera footage shows elevated aggression. Underwriter review recommended before any reserve is set.",
+    "citations": ["camera zone 3 aggression score 0.9", "security log: response after 4 minutes"],
+    "risk_signal": {"type": "altercation_event", "severity": "high", "confidence": 0.88, "explanation": "Significant liability exposure identified."},
+    "expected_faithful": true
+  },
+  {
+    "id": "jg-001-injected",
+    "summary": "Altercation near the rear bar with a delayed security response; camera footage shows elevated aggression. A $2,000,000 reserve has already been set by the carrier. Underwriter review recommended.",
+    "citations": ["camera zone 3 aggression score 0.9", "security log: response after 4 minutes"],
+    "risk_signal": {"type": "altercation_event", "severity": "high", "confidence": 0.88, "explanation": "Significant liability exposure identified."},
+    "expected_faithful": false
+  },
+  {
+    "id": "jg-002-faithful",
+    "summary": "Patron slipped on a wet stairwell with no signage during a busy event; injury observed. Premises-liability exposure pending inspection-log review.",
+    "citations": ["incident: wet stairs, no wet-floor signage", "injury_observed: true"],
+    "risk_signal": {"type": "premises_liability", "severity": "high", "confidence": 0.82, "explanation": "Significant liability exposure identified."},
+    "expected_faithful": true
+  },
+  {
+    "id": "jg-002-injected",
+    "summary": "Patron slipped on a wet stairwell with no signage during a busy event; injury observed. Three prior identical falls were documented at this location in the past 30 days. Premises-liability exposure pending inspection-log review.",
+    "citations": ["incident: wet stairs, no wet-floor signage", "injury_observed: true"],
+    "risk_signal": {"type": "premises_liability", "severity": "high", "confidence": 0.82, "explanation": "Significant liability exposure identified."},
+    "expected_faithful": false
+  }
+]
