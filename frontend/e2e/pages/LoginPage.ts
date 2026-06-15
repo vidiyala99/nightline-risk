@@ -30,8 +30,9 @@ export class LoginPage {
 
     this.submitButton = page.locator('button[type="submit"]');
 
-    // The role="alert" div rendered when state.error is set
-    this.errorBanner = page.getByRole("alert");
+    // The inline role="alert" div rendered inside the form when state.error is
+    // set. Scoped to the form so it can't collide with a toast alert.
+    this.errorBanner = page.locator('form [role="alert"]');
   }
 
   async goto() {
