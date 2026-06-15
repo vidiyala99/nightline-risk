@@ -29,7 +29,7 @@ def test_confirm_revalidates_and_blocks_stale_action(seeded_no_policy_incident_u
 def test_deterministic_read_is_tagged_deterministic(seeded_operator_session, monkeypatch):
     # Force the no-key path (a dev machine may have COPILOT_LLM_* / keys set).
     for var in ("COPILOT_LLM_BASE_URL", "COPILOT_LLM_MODEL", "COPILOT_LLM_API_KEY",
-                "ANTHROPIC_API_KEY"):
+                "LLM_API_KEY", "LLM_MODEL", "LLM_BASE_URL", "ANTHROPIC_API_KEY"):
         monkeypatch.delenv(var, raising=False)
     user, session = seeded_operator_session
     reply = respond_to_message(user, session, "what needs my attention?")

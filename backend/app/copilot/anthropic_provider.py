@@ -22,11 +22,18 @@ class AnthropicChatProvider(ChatProvider):
 def get_chat_provider() -> ChatProvider:
     # A configurable OpenAI-compatible endpoint (Ollama / Groq / OpenRouter / vLLM)
     # takes precedence — it's the open-source, keyless-capable upgrade path. Then
-    # the key-gated Anthropic stub. Otherwise the deterministic provider (CI/demo).
+    # xAI Grok via the shared LLM_* namespace, then the key-gated Anthropic stub.
+    # Otherwise the deterministic provider (CI/demo).
     if os.getenv("COPILOT_LLM_BASE_URL") and os.getenv("COPILOT_LLM_MODEL"):
         try:
             from app.copilot.openai_compatible_provider import OpenAICompatibleChatProvider
             return OpenAICompatibleChatProvider()
+        except Exception:  # noqa: BLE001 — misconfig must never break the copilot
+            pass
+    if os.getenv("LLM_API_KEY") and os.getenv("LLM_MODEL"):
+        try:
+            from app.copilot.openai_compatible_provider import GrokChatProvider
+            return GrokChatProvider()
         except Exception:  # noqa: BLE001 — misconfig must never break the copilot
             pass
     if os.getenv("ANTHROPIC_API_KEY"):

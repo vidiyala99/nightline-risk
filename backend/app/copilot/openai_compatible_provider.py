@@ -53,6 +53,10 @@ class OpenAICompatibleChatProvider(ChatProvider):
     BASE_URL_ENV = "COPILOT_LLM_BASE_URL"
     API_KEY_ENV = "COPILOT_LLM_API_KEY"
 
+    # Default base URL applied when only a model+key are configured (e.g. the
+    # xAI Grok subclass, where LLM_BASE_URL may be left implicit).
+    DEFAULT_BASE_URL = ""
+
     # Transient rate-limit handling: free tiers (Groq) 429 under load. Retry a
     # couple of times with exponential backoff before degrading to deterministic,
     # so a momentary 429 doesn't silently demote an answer the user can see.
@@ -61,7 +65,7 @@ class OpenAICompatibleChatProvider(ChatProvider):
     _BACKOFF_CAP_SECONDS = 8.0
 
     def __init__(self) -> None:
-        self.base_url = (os.getenv(self.BASE_URL_ENV) or "").rstrip("/")
+        self.base_url = (os.getenv(self.BASE_URL_ENV) or self.DEFAULT_BASE_URL).rstrip("/")
         self.model = os.getenv(self.MODEL_ENV) or ""
         self.api_key = os.getenv(self.API_KEY_ENV)
         if not self.base_url or not self.model:
@@ -181,3 +185,17 @@ class OpenAICompatibleChatProvider(ChatProvider):
             link=link,
             source="llm",
         )
+
+
+class GrokChatProvider(OpenAICompatibleChatProvider):
+    """Copilot provider backed by xAI Grok (OpenAI-compatible).
+
+    Reads the shared LLM_* namespace (same keys the eval Grok provider uses) so
+    one set of credentials drives both the benchmark and the live copilot. The
+    base URL defaults to xAI's endpoint when LLM_BASE_URL is left unset.
+    """
+
+    MODEL_ENV = "LLM_MODEL"
+    BASE_URL_ENV = "LLM_BASE_URL"
+    API_KEY_ENV = "LLM_API_KEY"
+    DEFAULT_BASE_URL = "https://api.x.ai/v1"

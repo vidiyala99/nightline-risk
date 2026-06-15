@@ -26,6 +26,7 @@ from app.providers.deterministic import (
     DeterministicTranscriptionProvider,
 )
 from app.providers.anthropic_provider import AnthropicProvider, AnthropicRiskClassifier
+from app.providers.grok_provider import GrokProvider, GrokRiskClassifier
 from app.providers.gemini_provider import (
     GeminiEmbeddingProvider,
     GeminiProvider,
@@ -101,6 +102,8 @@ __all__ = [
     "DeterministicEmbeddingProvider",
     "AnthropicProvider",
     "AnthropicRiskClassifier",
+    "GrokProvider",
+    "GrokRiskClassifier",
     "GeminiProvider",
     "GeminiRiskClassifier",
     "GeminiTranscriptionProvider",
