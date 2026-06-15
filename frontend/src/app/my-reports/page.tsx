@@ -6,6 +6,10 @@ import { useAuth, useRole, roleHome } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
 import { AlertTriangle, CheckCircle2, Clock, Calendar, MapPin, Plus, ShieldAlert } from "lucide-react";
 
+import { Button } from "@/components/ds/button";
+import { Card } from "@/components/ds/card";
+import { Badge } from "@/components/ds/badge";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 type IncidentStatus = "open" | "under_review" | "closed";
@@ -27,9 +31,23 @@ const STATUS_ICON: Record<IncidentStatus, typeof AlertTriangle> = {
   under_review: Clock,
   closed: CheckCircle2,
 };
+const STATUS_BADGE: Record<IncidentStatus, "destructive" | "warning" | "success"> = {
+  open: "destructive",
+  under_review: "warning",
+  closed: "success",
+};
+const STATUS_ICON_TINT: Record<IncidentStatus, string> = {
+  open: "bg-destructive/10 text-destructive",
+  under_review: "bg-warning/15 text-warning-foreground",
+  closed: "bg-success/15 text-success",
+};
 
-// Floor-staff "My Reports" — the incidents this staff member filed (server
-// scopes via /api/incidents/mine to reported_by_staff_id). Read-only.
+const DISPLAY = { fontFamily: "var(--font-display)" } as const;
+
+// "Paper & Ink" floor-staff "My Reports" — the incidents this staff member
+// filed (server scopes via /api/incidents/mine to reported_by_staff_id).
+// Read-only. Migrated to the ds/ primitives; every text element carries an
+// explicit colour (the migration rule).
 export default function MyReportsPage() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
@@ -58,61 +76,63 @@ export default function MyReportsPage() {
   }
 
   return (
-    <div className="lc-shell min-h-screen theme-venue" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
-      <section className="lc-hero">
+    <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] pb-16">
+      {/* ── hero ───────────────────────────────────────────────────────── */}
+      <section className="flex flex-wrap items-end justify-between gap-6 py-10">
         <div>
-          <span className="lc-eyebrow">
-            MY REPORTS
-            <span className="lc-eyebrow__sep" />
-            FLOOR STAFF
+          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            My reports
+            <span className="h-1 w-1 rounded-full bg-primary" aria-hidden />
+            Floor staff
           </span>
-          <h1 className="lc-display">What you've <em>reported</em></h1>
-          <p className="lc-sub">Every incident you've filed, and where it stands.</p>
+          <h1 className="mt-3 text-[2.4rem] font-bold leading-[1.05] tracking-tight text-foreground" style={DISPLAY}>
+            What you&apos;ve reported
+          </h1>
+          <p className="mt-2 text-[15px] text-muted-foreground">
+            Every incident you&apos;ve filed, and where it stands.
+          </p>
         </div>
-        <div className="lc-hero__meta">
-          <div className="lc-meta-cell" style={{ borderLeft: "none" }}>
-            <button className="btn btn-primary" onClick={() => router.push("/report")}>
-              <Plus size={16} /> New Report
-            </button>
-          </div>
-        </div>
+        <Button onClick={() => router.push("/report")} className="border border-foreground/15">
+          <Plus className="size-4" /> New report
+        </Button>
       </section>
 
-      <div className="incidents-section">
-        <div className="incidents-list stagger-children">
-          {incidents.length > 0 ? (
-            incidents.map((incident) => {
-              const Icon = STATUS_ICON[incident.status] ?? AlertTriangle;
-              return (
-                <div key={incident.id} className={`incident-card incident-card--${incident.status}`}>
-                  <div className={`incident-icon incident-icon--${incident.status}`}>
-                    <Icon size={20} aria-hidden="true" />
+      {/* ── list ───────────────────────────────────────────────────────── */}
+      {incidents.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {incidents.map((incident) => {
+            const Icon = STATUS_ICON[incident.status] ?? AlertTriangle;
+            return (
+              <Card key={incident.id} className="flex-row items-start gap-4 py-4">
+                <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${STATUS_ICON_TINT[incident.status]}`}>
+                  <Icon size={20} aria-hidden="true" />
+                </div>
+                <div className="min-w-0 flex-1 px-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <h4 className="font-semibold text-foreground">{incident.summary.split(".")[0]}</h4>
+                    <Badge variant={STATUS_BADGE[incident.status]}>{STATUS_LABEL[incident.status]}</Badge>
                   </div>
-                  <div className="incident-info">
-                    <div className="incident-header-row">
-                      <h4>{incident.summary.split(".")[0]}</h4>
-                      <span className={`badge ${incident.status === "open" ? "badge-error" : incident.status === "under_review" ? "badge-warning" : "badge-success"}`}>
-                        {STATUS_LABEL[incident.status]}
-                      </span>
-                    </div>
-                    <p className="incident-desc">{incident.summary}</p>
-                    <div className="incident-meta">
-                      <span><Calendar size={12} />{new Date(incident.occurred_at).toLocaleDateString()}</span>
-                      <span><MapPin size={12} />{incident.location}</span>
-                    </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{incident.summary}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Calendar size={12} />{new Date(incident.occurred_at).toLocaleDateString()}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MapPin size={12} />{incident.location}
+                    </span>
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            <div className="page-empty">
-              <ShieldAlert size={48} />
-              <h3>No reports yet</h3>
-              <p>When you file an incident, it shows up here.</p>
-            </div>
-          )}
+              </Card>
+            );
+          })}
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-20 text-center">
+          <ShieldAlert size={48} className="text-muted-foreground" />
+          <h3 className="text-lg font-semibold text-foreground">No reports yet</h3>
+          <p className="text-sm text-muted-foreground">When you file an incident, it shows up here.</p>
+        </div>
+      )}
     </div>
   );
 }
