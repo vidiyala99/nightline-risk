@@ -29,3 +29,27 @@ def test_run_judge_meta_empty():
     assert report.n == 0
     assert report.accuracy == 0.0
     assert report.confusion == {"tp": 0, "fp": 0, "tn": 0, "fn": 0}
+
+
+from app.agents.runtime import UnderwritingPacketAgentRuntime
+from app.evals import runner
+
+
+def test_build_memo_judge_none_without_key(monkeypatch):
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    assert runner._build_memo_judge() is None
+
+
+def test_run_all_includes_memo_faithfulness_when_judge_passed():
+    runtime = UnderwritingPacketAgentRuntime()  # deterministic stack
+    judge = lambda s, c, r: FaithfulnessVerdict(True, [])
+    results = runner.run_all(runtime, judge=judge)
+    standard = [r for r in results if r.scenario_type != "adversarial" and r.error is None]
+    assert standard
+    assert all(any(s.name == "memo_faithfulness" for s in r.scorers) for r in standard)
+
+
+def test_run_all_omits_memo_faithfulness_without_judge():
+    runtime = UnderwritingPacketAgentRuntime()
+    results = runner.run_all(runtime)  # judge defaults to None
+    assert all(all(s.name != "memo_faithfulness" for s in r.scorers) for r in results)

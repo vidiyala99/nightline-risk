@@ -33,6 +33,8 @@ from app.providers import (
     DeterministicRiskClassifier,
     GeminiProvider,
     GeminiRiskClassifier,
+    GrokProvider,
+    GrokRiskClassifier,
     MemoProvider,
     RiskClassifierProvider,
     get_default_provider,
@@ -254,6 +256,8 @@ _PROVIDER_ALIASES = {
     "gemini": "gemini",
     "anthropic": "anthropic",
     "claude": "anthropic",
+    "grok": "grok",
+    "xai": "grok",
     "auto": "auto",
 }
 
@@ -268,7 +272,7 @@ def resolve_provider(name: str | None) -> MemoProvider:
     canonical = _PROVIDER_ALIASES.get(raw)
     if canonical is None:
         raise ValueError(
-            f"Unknown provider {name!r}. Use one of: stub, gemini, anthropic, auto."
+            f"Unknown provider {name!r}. Use one of: stub, gemini, anthropic, grok, auto."
         )
     if canonical == "stub":
         return DeterministicProvider()
@@ -276,6 +280,8 @@ def resolve_provider(name: str | None) -> MemoProvider:
         return GeminiProvider()
     if canonical == "anthropic":
         return AnthropicProvider()
+    if canonical == "grok":
+        return GrokProvider()
     if canonical == "auto":
         return get_default_provider()
     # Unreachable but keeps mypy happy
@@ -294,7 +300,7 @@ def resolve_risk_provider(name: str | None) -> RiskClassifierProvider:
     canonical = _PROVIDER_ALIASES.get(raw)
     if canonical is None:
         raise ValueError(
-            f"Unknown risk provider {name!r}. Use one of: stub, gemini, anthropic, auto."
+            f"Unknown risk provider {name!r}. Use one of: stub, gemini, anthropic, grok, auto."
         )
     if canonical == "stub":
         return DeterministicRiskClassifier()
@@ -302,6 +308,8 @@ def resolve_risk_provider(name: str | None) -> RiskClassifierProvider:
         return GeminiRiskClassifier()
     if canonical == "anthropic":
         return AnthropicRiskClassifier()
+    if canonical == "grok":
+        return GrokRiskClassifier()
     if canonical == "auto":
         return get_default_risk_classifier()
     raise ValueError(f"Unhandled risk provider {name!r}")
@@ -323,6 +331,30 @@ def _risk_info(provider: RiskClassifierProvider) -> ProviderInfo:
     name = provider.provider_name
     model = name.split("/", 1)[1] if "/" in name else None
     return ProviderInfo(name=name, mode=provider.mode.value, model=model)
+
+
+def _build_memo_judge():
+    """Return a (summary, citations, risk_signal) -> FaithfulnessVerdict callable,
+    or None when no judge LLM is configured (keyless CI lane). Opt-in: only fires
+    when LLM_API_KEY is set, so the deterministic baseline never expects it.
+    """
+    if not os.getenv("LLM_API_KEY"):
+        return None
+    from app.providers.grok_provider import _client, DEFAULT_BASE_URL, DEFAULT_MODEL
+    from app.evals.judge import judge_memo_faithfulness
+
+    api_key = os.getenv("LLM_API_KEY")
+    base_url = (os.getenv("LLM_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
+    model = os.getenv("LLM_MODEL") or DEFAULT_MODEL
+    client = _client(api_key, base_url)
+
+    def judge(summary, citations, risk_signal):
+        return judge_memo_faithfulness(
+            summary=summary, citations=citations, risk_signal=risk_signal,
+            client=client, model=model,
+        )
+
+    return judge
 
 
 def stack_signature(memo: ProviderInfo, risk: ProviderInfo) -> str:
@@ -377,7 +409,7 @@ def _load_scenarios(
 
 
 def _score_standard_scenario(
-    run: _RunOutput, scenario: dict, *, memo_provider_mode: str
+    run: _RunOutput, scenario: dict, *, memo_provider_mode: str, judge=None
 ) -> list[ScorerResult]:
     """Apply the standard scorer suite (severity, citations, retrieval)."""
     ideal = scenario["ideal_output"]
@@ -396,6 +428,13 @@ def _score_standard_scenario(
     # evidence is surfaced but buried at position 8 of 10.
     results.append(retrieval_scorers.score_ndcg_at_k(run.actual, ideal))
     results.append(retrieval_scorers.score_mrr(run.actual, ideal))
+    # Opt-in LLM-as-judge: only present when a judge LLM is configured. Abstains
+    # (skips) on error so a transient judge hiccup never blocks the eval.
+    if judge is not None:
+        try:
+            results.append(scorers.score_memo_faithfulness(run.actual, ideal, judge=judge))
+        except Exception:
+            pass
     return results
 
 
@@ -431,6 +470,7 @@ def run_all(
     *,
     adversarial_path: Path | None = ADVERSARIAL_GOLD_PATH,
     memo_provider_mode: str = "deterministic",
+    judge=None,
 ) -> list[ScenarioResult]:
     scenarios = _load_scenarios(gold_path, adversarial_path)
     results: list[ScenarioResult] = []
@@ -442,7 +482,7 @@ def run_all(
                 scorer_results = _score_adversarial_scenario(run, scenario)
             else:
                 scorer_results = _score_standard_scenario(
-                    run, scenario, memo_provider_mode=memo_provider_mode
+                    run, scenario, memo_provider_mode=memo_provider_mode, judge=judge
                 )
         results.append(
             ScenarioResult(
@@ -516,7 +556,10 @@ def main(argv: list[str] | None = None) -> int:
     signature = stack_signature(info, risk)
 
     RESULTS_DIR.mkdir(exist_ok=True)
-    results = run_all(runtime, memo_provider_mode=info.mode)
+    judge = _build_memo_judge()
+    if judge is not None:
+        print("Memo-faithfulness judge: enabled (LLM_API_KEY set)")
+    results = run_all(runtime, memo_provider_mode=info.mode, judge=judge)
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
     report_path = RESULTS_DIR / f"{timestamp}.md"
     json_path = RESULTS_DIR / f"{timestamp}.json"
