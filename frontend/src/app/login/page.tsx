@@ -153,11 +153,13 @@ export default function LoginPage() {
           </Link>
 
           {/* segmented tabs */}
-          <div className="mb-8 inline-flex h-9 w-full items-center rounded-lg border border-border bg-muted p-1">
+          <div role="tablist" aria-label="Authentication mode" className="mb-8 inline-flex h-9 w-full items-center rounded-lg border border-border bg-muted p-1">
             {tabs.map((t) => (
               <button
                 key={String(t.key)}
                 type="button"
+                role="tab"
+                aria-selected={isSignUp === t.key}
                 onClick={() => setIsSignUp(t.key)}
                 className={cn(
                   "h-7 flex-1 rounded-md text-sm font-medium transition-all cursor-pointer",

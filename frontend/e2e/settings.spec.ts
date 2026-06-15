@@ -31,7 +31,7 @@ async function registerAndInject(page: import("@playwright/test").Page, email: s
   await apiCtx.dispose();
 
   await page.goto("/login");
-  await page.waitForSelector(".lc-login__card", { timeout: 15000 });
+  await page.waitForSelector('input[type="email"]', { timeout: 15000 });
   await page.evaluate((token: string) => localStorage.setItem("auth_token", token), access_token);
 }
 
@@ -69,7 +69,7 @@ test.describe.skip("Settings — profile + password", () => {
     await page.getByRole("button", { name: "Sign Out" }).first().click();
     await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
 
-    await page.locator(".lc-login__tab", { hasText: /sign in/i }).click();
+    await page.getByRole("tab", { name: /sign in/i }).click();
     await page.locator('input[type="email"]').fill(email);
     await page.locator('input[type="password"]').fill("newpass456");
     await page.locator('button[type="submit"]').click();

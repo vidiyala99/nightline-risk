@@ -153,7 +153,7 @@ test("new venue operator account — lands on operator dashboard", async ({ page
   // 2. Load the login page to establish the correct localStorage origin, then
   //    wait for React to fully hydrate the page
   await page.goto("/login");
-  await page.waitForSelector(".lc-login__card", { timeout: 15000 });
+  await page.waitForSelector('input[type="email"]', { timeout: 15000 });
 
   // 3. Inject the JWT into localStorage
   await page.evaluate((token: string) => {

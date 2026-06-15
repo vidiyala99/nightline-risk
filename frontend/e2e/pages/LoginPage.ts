@@ -19,9 +19,9 @@ export class LoginPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Tabs in the redesigned centered-card login. Text is "01 / Sign in" / "02 / Create account".
-    this.signInTab = page.locator(".lc-login__tab", { hasText: /sign in/i });
-    this.createAccountTab = page.locator(".lc-login__tab", { hasText: /create account/i });
+    // Tabs in the migrated (Paper & Ink / ds) login: semantic role="tab".
+    this.signInTab = page.getByRole("tab", { name: /sign in/i });
+    this.createAccountTab = page.getByRole("tab", { name: /create account/i });
 
     // Email input rendered by the Input component — label text "Email"
     this.emailInput = page.locator('input[type="email"]');
@@ -30,8 +30,8 @@ export class LoginPage {
 
     this.submitButton = page.locator('button[type="submit"]');
 
-    // The .lc-login__error div rendered when state.error is set
-    this.errorBanner = page.locator(".lc-login__error");
+    // The role="alert" div rendered when state.error is set
+    this.errorBanner = page.getByRole("alert");
   }
 
   async goto() {
