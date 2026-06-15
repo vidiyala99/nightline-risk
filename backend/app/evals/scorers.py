@@ -236,3 +236,32 @@ def score_factor_recognition(
         score=score,
         detail=detail,
     )
+
+
+def _risk_signal_dict(risk) -> dict:
+    return {
+        "type": risk.type,
+        "severity": risk.severity,
+        "confidence": risk.confidence,
+        "explanation": risk.explanation,
+    }
+
+
+def score_memo_faithfulness(actual: UnderwritingPacketAgentResult, ideal: dict, *, judge) -> ScorerResult:
+    """LLM-judged: does the memo summary only assert claims supported by its
+    citations + risk signal? ``judge`` is a (summary, citations, risk_signal) ->
+    FaithfulnessVerdict callable so this scorer is provider-agnostic + testable.
+    """
+    memo = actual.underwriting_memo
+    verdict = judge(
+        memo.summary,
+        [c.excerpt for c in memo.citations],
+        _risk_signal_dict(actual.risk_signal),
+    )
+    detail = "ok" if verdict.faithful else "; ".join(verdict.unsupported_claims)
+    return ScorerResult(
+        name="memo_faithfulness",
+        passed=verdict.faithful,
+        score=1.0 if verdict.faithful else 0.0,
+        detail=detail,
+    )
