@@ -104,6 +104,48 @@ class WorkflowTask(SQLModel, table=True):
     completed_at: Optional[datetime] = None
 
 
+class AgentRun(SQLModel, table=True):
+    """Durable record of ONE AI-agent execution — the agent-oversight ledger.
+
+    Where WorkflowTask is the orchestrator's *planned step* (status + output),
+    AgentRun is the *execution fact*: provider/model/contract, input fingerprint,
+    cost, latency, outcome, and whether the run auto-completed or escalated to a
+    human. It subsumes the deferred copilot-only `LlmCallRecord`: every agent
+    surface (pipeline, fraud, vision, copilot, worker) writes here.
+
+    Brand-new TABLE → SQLModel.metadata.create_all (database.py) creates it
+    automatically; no `_COLUMN_MIGRATIONS` entry is needed (that allowlist is
+    only for new columns on EXISTING tables). The full column set — including the
+    Phase-3 escalation fields — ships now so no later ALTER is required.
+    """
+    id: str = Field(primary_key=True)
+    agent_name: str = Field(index=True)          # "risk_evaluator_agent" | "copilot:get_exposure"
+    agent_kind: str = Field(index=True)          # pipeline | fraud | vision | copilot | worker
+    contract_version: str                        # the agent's prompt/contract version
+    provider: str                                # groq | gemini | anthropic | deterministic
+    model: str                                   # "llama-3.3-70b-versatile" | "rules-v1" ...
+    input_hash: str                              # ai_provenance.canonical_input_hash (order-insensitive)
+    entity_type: Optional[str] = Field(default=None, index=True)  # "incident" | "claim" ...
+    entity_id: Optional[str] = Field(default=None, index=True)
+    status: str = Field(default="started", index=True)           # AgentRunStatus
+    outcome: Optional[str] = Field(default=None)                 # success | fallback | error
+    fallback_reason: Optional[str] = Field(default=None)
+    confidence: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(5, 4))
+    )
+    prompt_tokens: int = Field(default=0)
+    completion_tokens: int = Field(default=0)
+    # Numeric(12,6): single LLM calls cost << $0.01, so sub-cent precision matters.
+    cost_usd: Decimal = Field(default=Decimal("0"), sa_column=Column(Numeric(12, 6)))
+    latency_ms: int = Field(default=0)
+    auto_completed: bool = Field(default=True)   # False => escalated to a human
+    escalated_to: Optional[str] = Field(default=None)  # human-decision surface ref (Phase 3)
+    run_metadata: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    snapshot_hash: Optional[str] = Field(default=None)  # full SHA-256 of canonical run record
+    created_at: datetime = Field(default_factory=now_utc, sa_type=DateTimeUTC)
+    completed_at: Optional[datetime] = Field(default=None, sa_type=DateTimeUTC)
+
+
 class SourceRecord(SQLModel, table=True):
     id: str = Field(primary_key=True)
     venue_id: str = Field(index=True)

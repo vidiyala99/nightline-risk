@@ -265,6 +265,41 @@ COVERAGE_ADVICE_TERMINAL_STATES: frozenset[str] = frozenset(
 )
 
 
+# ─── AgentRun lifecycle (AI-agent execution ledger) ──────────────────────
+#
+# Every agent execution (pipeline step, fraud/vision screen, copilot tool,
+# orchestrator worker) opens a run in "started" and finalizes to exactly one
+# terminal: it succeeded, it fell back to a deterministic path, or it errored.
+# A run whose confidence/severity crosses a human-oversight threshold ends in
+# "escalated" instead — the only non-terminal terminal — and a human then
+# "approved" or "aborted" it. That escalated→approved/aborted edge is the
+# "agent proposed → human decided" trail (the Shift-2 oversight ledger).
+
+AgentRunStatus = Literal[
+    "started",    # run opened, work in flight
+    "succeeded",  # completed on its primary path — terminal
+    "fell_back",  # primary (LLM) path degraded; deterministic fallback used — terminal
+    "errored",    # raised — terminal
+    "escalated",  # auto-completion withheld; handed to a human
+    "approved",   # human accepted the escalated run — terminal
+    "aborted",    # human rejected the escalated run — terminal
+]
+
+AGENT_RUN_TRANSITIONS: dict[str, set[str]] = {
+    "started":   {"succeeded", "fell_back", "escalated", "errored"},
+    "succeeded": set(),
+    "fell_back": set(),
+    "errored":   set(),
+    "escalated": {"approved", "aborted"},
+    "approved":  set(),
+    "aborted":   set(),
+}
+
+AGENT_RUN_TERMINAL_STATES: frozenset[str] = frozenset(
+    s for s, nexts in AGENT_RUN_TRANSITIONS.items() if not nexts
+)
+
+
 # ─── Status sort priority (cross-cutting list ordering) ──────────────────
 #
 # Canonical "actionable-first" ranks for list ordering. HIGHER rank sorts
