@@ -46,15 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      fetchUser(token);
-    } else {
-      setIsLoaded(true);
-    }
-  }, []);
-
+  // Declared before the bootstrap effect so the effect references an already-
+  // initialized binding (not a forward hoist) — satisfies react-hooks
+  // immutability and reads top-to-bottom.
   async function fetchUser(token: string) {
     try {
       const response = await fetch(`${API_URL}/api/auth/me`, {
@@ -69,6 +63,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoaded(true);
     }
   }
+
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      fetchUser(token);
+    } else {
+      setIsLoaded(true);
+    }
+  }, []);
 
   async function refreshUser() {
     const token = localStorage.getItem("auth_token");

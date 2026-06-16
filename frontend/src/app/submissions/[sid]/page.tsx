@@ -308,13 +308,17 @@ export default function SubmissionDetailPage() {
 
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [sid]);
 
-  // Seed the edit fields from the loaded submission.
+  // Seed the edit fields from the loaded submission — keyed on identity (id),
+  // NOT the whole `submission` object. A background re-fetch returns a new object
+  // reference with the same id; re-seeding on that would clobber edits the broker
+  // is mid-typing. The narrow dep is intentional (hence the disable below).
   useEffect(() => {
     if (submission) {
       setEditNotes(submission.notes ?? "");
       setEditEffective(submission.effective_date ?? "");
       setEditLines(submission.coverage_lines ?? []);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- id-keyed re-seed is deliberate
   }, [submission?.id]);
 
   // Default-select the carriers that fit this venue (once), so the broker starts

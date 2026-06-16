@@ -25,10 +25,12 @@ const eslintConfig = [
   },
   ...next,
   {
-    // Calibration for a first-time lint adoption on an existing app. Real
-    // bug-catchers (rules-of-hooks, exhaustive-deps, unused vars) stay as
-    // errors; the rest are downgraded so the lint is green and signal-rich
-    // rather than a wall of stylistic red. Tighten over time.
+    // Calibration for a first-time lint adoption on an existing app. Rules-of-
+    // hooks and unused vars stay as errors; exhaustive-deps keeps its eslint-
+    // config-next default (warn); the new React-Compiler rules below are
+    // downgraded to warn so the lint is signal-rich rather than a wall of
+    // stylistic red. Tighten over time (e.g. promote exhaustive-deps to error
+    // and drive set-state-in-effect down file-by-file).
     rules: {
       // Apostrophes/quotes in JSX copy are fine — React renders them. Noise.
       "react/no-unescaped-entities": "off",

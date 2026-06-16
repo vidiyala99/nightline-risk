@@ -456,7 +456,6 @@ export default function AdjusterClaimDetailPage() {
   const isCarrier = useIsCarrier();
 
   // Claim data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
