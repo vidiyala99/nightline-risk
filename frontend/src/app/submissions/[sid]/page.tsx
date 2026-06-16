@@ -31,8 +31,10 @@ import {
   formatPct,
   placementApi,
 } from "@/lib/placement";
-import { policiesApi } from "@/lib/policies";
+import { policiesApi, bindPolicyNumberArg } from "@/lib/policies";
 import { authHeaders } from "@/lib/authFetch";
+import { PromptDialog } from "@/components/ui/PromptDialog";
+import { toastError } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -272,6 +274,8 @@ export default function SubmissionDetailPage() {
   const [editEffective, setEditEffective] = useState("");
   const [editLines, setEditLines] = useState<string[]>([]);
   const [savingTerms, setSavingTerms] = useState(false);
+  const [bindTarget, setBindTarget] = useState<CarrierQuote | null>(null);
+  const [binding, setBinding] = useState(false);
 
   const carriersById = useMemo(
     () => new Map(carriers.map(c => [c.id, c])),
@@ -456,20 +460,24 @@ export default function SubmissionDetailPage() {
     await load();
   };
 
-  const handleBind = async (quote: CarrierQuote) => {
-    const policyNumber = window.prompt(
-      "Carrier-issued policy number (optional — leave blank to assign later):",
-      "",
-    );
-    // null = cancelled prompt; empty string = explicit "assign later"
-    if (policyNumber === null) return;
+  // Bind opens an in-app PromptDialog (was a native window.prompt). Cancelling
+  // the dialog makes no API call (the old `null` path); submitting blank binds
+  // with no policy number ("assign later"), per bindPolicyNumberArg.
+  const handleBind = (quote: CarrierQuote) => setBindTarget(quote);
+
+  const runBind = async (values: Record<string, string>) => {
+    if (!bindTarget) return;
+    setBinding(true);
     try {
-      const policy = await policiesApi.bindQuote(quote.id, {
-        policy_number: policyNumber.trim() || undefined,
+      const policy = await policiesApi.bindQuote(bindTarget.id, {
+        policy_number: bindPolicyNumberArg(values.policy_number),
       });
+      setBindTarget(null);
       router.push(`/policies/${policy.id}`);
     } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : "Bind failed");
+      toastError(e instanceof PlacementApiError ? e.message : "Bind failed");
+    } finally {
+      setBinding(false);
     }
   };
 
@@ -680,6 +688,25 @@ export default function SubmissionDetailPage() {
             })}
           </div>
         </>
+      )}
+
+      {bindTarget && (
+        <PromptDialog
+          open
+          title="Bind policy"
+          subtitle="Issue coverage on the selected quote."
+          submitLabel="Bind policy"
+          busy={binding}
+          fields={[{
+            name: "policy_number",
+            label: "Carrier-issued policy number",
+            type: "text",
+            placeholder: "BW-2026-00123",
+            help: "Optional — leave blank to assign later.",
+          }]}
+          onSubmit={runBind}
+          onClose={() => setBindTarget(null)}
+        />
       )}
     </div>
   );

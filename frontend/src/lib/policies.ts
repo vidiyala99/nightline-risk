@@ -136,6 +136,16 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 // ─── Endpoints ───────────────────────────────────────────────────────────
 
+/**
+ * Bind-dialog policy-number mapping. A blank / whitespace-only value means
+ * "assign the carrier policy number later" → `undefined` (NOT an empty string
+ * sent to the API), preserving the old `window.prompt` contract. Cancelling the
+ * dialog makes no API call at all (the call-site's responsibility).
+ */
+export function bindPolicyNumberArg(raw: string): string | undefined {
+  return raw.trim() || undefined;
+}
+
 export const policiesApi = {
   bindQuote: (qid: string, body: {
     policy_number?: string;
