@@ -5,14 +5,43 @@
  *
  * Toggle for additional_insured surfaces the scope dropdown (the ISO
  * endorsement form mapping). On success, redirects back to policy detail.
+ *
+ * "Paper & Ink" — migrated to ds/ via the Field/Row helper pattern (see
+ * the endorse form); explicit colours on every text element.
  */
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { PlacementApiError, formatCurrency } from "@/lib/placement";
 import { Policy, policiesApi, matchHolder, type CertificateHolder } from "@/lib/policies";
 import { toastSuccess } from "@/lib/toast";
+import { Button } from "@/components/ds/button";
+import { Card } from "@/components/ds/card";
+import { Input } from "@/components/ds/input";
+import { Label } from "@/components/ds/label";
 
+const DISPLAY = { fontFamily: "var(--font-display)" } as const;
+
+const controlClass =
+  "flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50";
+
+function Field({ label, hint, children }: { label: string; hint?: string | null; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-2">
+      <Label className="text-foreground">{label}</Label>
+      {children}
+      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+    </div>
+  );
+}
+
+function Row({ dt, dd }: { dt: string; dd: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <dt className="text-muted-foreground">{dt}</dt>
+      <dd className="text-right font-medium text-foreground">{dd}</dd>
+    </div>
+  );
+}
 
 export default function IssueCertificatePage() {
   const params = useParams<{ pid: string }>();
@@ -86,147 +115,118 @@ export default function IssueCertificatePage() {
   };
 
   return (
-    <div className="submission-wizard submission-wizard--wide">
-      <PageHeader
-        eyebrow="Policy"
-        title="Issue Certificate of Insurance"
-        subtitle={
-          policy
-            ? `For policy ${policy.policy_number ?? policy.id} · ${policy.venue_id}`
-            : "Loading policy…"
-        }
-      />
+    <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] pb-16">
+      {/* ── header ─────────────────────────────────────────────────────── */}
+      <section className="py-10">
+        <span className="flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-wider text-[#5A6E00]">
+          <span className="size-1.5 rounded-[2px] bg-primary" aria-hidden />
+          Policy
+        </span>
+        <h1 className="mt-3 text-[2.4rem] font-bold leading-[1.05] tracking-tight text-foreground" style={DISPLAY}>
+          Issue Certificate of Insurance
+        </h1>
+        <p className="mt-2 text-[15px] text-muted-foreground">
+          {policy ? `For policy ${policy.policy_number ?? policy.id} · ${policy.venue_id}` : "Loading policy…"}
+        </p>
+      </section>
 
-      <div className="form-shell">
-      <form id="coi-form" className="submission-wizard__form" onSubmit={submit}>
-        {error && <div className="submission-wizard__error">{error}</div>}
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        {/* ── form ─────────────────────────────────────────────────────── */}
+        <Card className="gap-4 p-6">
+          <form id="coi-form" className="flex flex-col gap-4" onSubmit={submit}>
+            {error && (
+              <div role="alert" className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
-        <div className="submission-wizard__field">
-          <label className="submission-wizard__label">Certificate Holder</label>
-          <input
-            className="input-field"
-            value={holder}
-            onChange={e => onHolderChange(e.target.value)}
-            placeholder="599 Johnson LLC"
-            list="coi-holders"
-            autoComplete="off"
-            required
-          />
-          {holders.length > 0 && (
-            <datalist id="coi-holders">
-              {holders.map(h => (
-                <option key={h.certificate_holder} value={h.certificate_holder} />
-              ))}
-            </datalist>
-          )}
-          {prefilledFrom && (
-            <span className="text-xs text-secondary" style={{ marginTop: 4 }}>
-              Pre-filled from a prior certificate to {prefilledFrom} — edit any field to override.
-            </span>
-          )}
-        </div>
+            <Field label="Certificate Holder" hint={prefilledFrom ? `Pre-filled from a prior certificate to ${prefilledFrom} — edit any field to override.` : undefined}>
+              <Input
+                value={holder}
+                onChange={e => onHolderChange(e.target.value)}
+                placeholder="599 Johnson LLC"
+                list="coi-holders"
+                autoComplete="off"
+                required
+              />
+              {holders.length > 0 && (
+                <datalist id="coi-holders">
+                  {holders.map(h => <option key={h.certificate_holder} value={h.certificate_holder} />)}
+                </datalist>
+              )}
+            </Field>
 
-        <div className="submission-wizard__field">
-          <label className="submission-wizard__label">Holder Address</label>
-          <input
-            className="input-field"
-            value={holderAddress}
-            onChange={e => { setHolderAddress(e.target.value); setAddressTouched(true); }}
-            placeholder="599 Johnson Ave, Brooklyn, NY 11237"
-            required
-          />
-        </div>
+            <Field label="Holder Address">
+              <Input
+                value={holderAddress}
+                onChange={e => { setHolderAddress(e.target.value); setAddressTouched(true); }}
+                placeholder="599 Johnson Ave, Brooklyn, NY 11237"
+                required
+              />
+            </Field>
 
-        <div className="submission-wizard__field">
-          <label className="submission-wizard__label">Description of Operations</label>
-          <textarea
-            className="input-field"
-            rows={2}
-            value={description}
-            onChange={e => { setDescription(e.target.value); setDescTouched(true); }}
-            required
-          />
-        </div>
+            <Field label="Description of Operations">
+              <textarea
+                className={controlClass}
+                rows={2}
+                value={description}
+                onChange={e => { setDescription(e.target.value); setDescTouched(true); }}
+                required
+              />
+            </Field>
 
-        <div className="submission-wizard__field">
-          <label className="submission-wizard__label">Expires On</label>
-          <input
-            type="date"
-            className="input-field"
-            value={expiresOn}
-            onChange={e => setExpiresOn(e.target.value)}
-            required
-          />
-        </div>
+            <Field label="Expires On">
+              <Input type="date" value={expiresOn} onChange={e => setExpiresOn(e.target.value)} required />
+            </Field>
 
-        <div className="submission-wizard__field">
-          <label
-            className="submission-wizard__coverage-chip"
-            style={{ width: "fit-content" }}
-          >
-            <input
-              type="checkbox"
-              checked={ai}
-              onChange={e => setAi(e.target.checked)}
-            />
-            <span className="submission-wizard__coverage-chip-name">
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-foreground">
+              <input type="checkbox" checked={ai} onChange={e => setAi(e.target.checked)} className="size-4 accent-primary" />
               Add holder as Additional Insured
-            </span>
-          </label>
-        </div>
-
-        {ai && (
-          <div className="submission-wizard__field">
-            <label className="submission-wizard__label">
-              Additional Insured Scope (ISO endorsement form)
             </label>
-            <select
-              className="input-field"
-              value={aiScope}
-              onChange={e => setAiScope(e.target.value as typeof aiScope)}
-            >
-              <option value="ongoing_operations">Ongoing Operations (CG 20 10)</option>
-              <option value="completed_operations">Completed Operations (CG 20 26)</option>
-              <option value="single_event">Single Event (CG 20 37)</option>
-            </select>
+
+            {ai && (
+              <Field label="Additional Insured Scope (ISO endorsement form)">
+                <select className={controlClass} value={aiScope} onChange={e => setAiScope(e.target.value as typeof aiScope)}>
+                  <option value="ongoing_operations">Ongoing Operations (CG 20 10)</option>
+                  <option value="completed_operations">Completed Operations (CG 20 26)</option>
+                  <option value="single_event">Single Event (CG 20 37)</option>
+                </select>
+              </Field>
+            )}
+          </form>
+        </Card>
+
+        {/* ── action + summary ─────────────────────────────────────────── */}
+        <Card className="h-fit gap-4 p-6 lg:sticky lg:top-6">
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" className="flex-1 text-foreground" onClick={() => router.push(`/policies/${pid}`)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button type="submit" form="coi-form" size="sm" className="flex-1 border border-foreground/15" disabled={busy}>
+              {busy ? "Issuing…" : "Issue Certificate"}
+            </Button>
           </div>
-        )}
-
-      </form>
-
-      <aside className="form-summary">
-        <div className="form-summary__actions">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => router.push(`/policies/${pid}`)}
-            disabled={busy}
-          >
-            Cancel
-          </button>
-          <button type="submit" form="coi-form" className="btn btn-primary btn-sm" disabled={busy}>
-            {busy ? "Issuing…" : "Issue Certificate"}
-          </button>
-        </div>
-        <div className="form-summary__title">Certificate</div>
-        <dl style={{ margin: 0 }}>
-          <div className="form-summary__row"><dt>Holder</dt><dd>{holder.trim() || "—"}</dd></div>
-          <div className="form-summary__row"><dt>Expires</dt><dd>{expiresOn || "—"}</dd></div>
-          <div className="form-summary__row"><dt>Add&apos;l insured</dt><dd>{ai ? aiScope.replace(/_/g, " ") : "No"}</dd></div>
-        </dl>
-        {policy && (
-          <div className="form-summary__section">
-            <div className="form-summary__title">Current policy</div>
-            <dl style={{ margin: 0 }}>
-              <div className="form-summary__row"><dt>Policy</dt><dd>{policy.policy_number || policy.id}</dd></div>
-              <div className="form-summary__row"><dt>Venue</dt><dd>{policy.venue_id}</dd></div>
-              <div className="form-summary__row"><dt>Coverage</dt><dd>{policy.coverage_lines.length ? policy.coverage_lines.join(", ") : "—"}</dd></div>
-              <div className="form-summary__row"><dt>Premium</dt><dd>{formatCurrency(policy.annual_premium)}</dd></div>
-              <div className="form-summary__row"><dt>Expires</dt><dd>{policy.expiration_date}</dd></div>
+          <div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Certificate</div>
+            <dl className="flex flex-col gap-1.5">
+              <Row dt="Holder" dd={holder.trim() || "—"} />
+              <Row dt="Expires" dd={expiresOn || "—"} />
+              <Row dt="Add'l insured" dd={ai ? aiScope.replace(/_/g, " ") : "No"} />
             </dl>
           </div>
-        )}
-      </aside>
+          {policy && (
+            <div className="border-t border-border pt-4">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current policy</div>
+              <dl className="flex flex-col gap-1.5">
+                <Row dt="Policy" dd={policy.policy_number || policy.id} />
+                <Row dt="Venue" dd={policy.venue_id} />
+                <Row dt="Coverage" dd={policy.coverage_lines.length ? policy.coverage_lines.join(", ") : "—"} />
+                <Row dt="Premium" dd={formatCurrency(policy.annual_premium)} />
+                <Row dt="Expires" dd={policy.expiration_date} />
+              </dl>
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );
