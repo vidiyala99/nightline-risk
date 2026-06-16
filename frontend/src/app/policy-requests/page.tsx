@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   PolicyRequest,
@@ -42,6 +43,7 @@ export default function PolicyRequestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("pending");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [declineTarget, setDeclineTarget] = useState<PolicyRequest | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -71,17 +73,12 @@ export default function PolicyRequestsPage() {
     return c as Record<Filter, number>;
   }, [rows]);
 
-  async function decide(r: PolicyRequest, decision: "approved" | "declined") {
-    let note: string | undefined;
-    if (decision === "declined") {
-      const reason = window.prompt("Reason for declining (optional, shown to the operator):", "");
-      if (reason === null) return; // cancelled the prompt
-      note = reason.trim() || undefined;
-    }
+  async function runDecision(r: PolicyRequest, decision: "approved" | "declined", note?: string) {
     setBusyId(r.id);
     setError(null);
     try {
       await policyRequestsApi.decide(r.id, decision, note);
+      setDeclineTarget(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not record the decision");
@@ -89,6 +86,18 @@ export default function PolicyRequestsPage() {
       setBusyId(null);
     }
   }
+
+  // Approve is a direct action; declining captures an OPTIONAL reason via an
+  // in-app PromptDialog (was a native window.prompt). Blank reason → undefined.
+  const decide = (r: PolicyRequest, decision: "approved" | "declined") => {
+    if (decision === "declined") { setDeclineTarget(r); return; }
+    runDecision(r, "approved");
+  };
+
+  const runDecline = (values: Record<string, string>) => {
+    if (!declineTarget) return;
+    runDecision(declineTarget, "declined", values.reason.trim() || undefined);
+  };
 
   if (!isLoaded) return null;
 
@@ -219,6 +228,24 @@ export default function PolicyRequestsPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {declineTarget && (
+        <PromptDialog
+          open
+          title="Decline request"
+          subtitle="Shown to the operator on their request."
+          submitLabel="Decline request"
+          busy={busyId === declineTarget.id}
+          fields={[{
+            name: "reason",
+            label: "Reason for declining",
+            type: "textarea",
+            help: "Optional — shown to the operator.",
+          }]}
+          onSubmit={runDecline}
+          onClose={() => setDeclineTarget(null)}
+        />
       )}
     </div>
   );

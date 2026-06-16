@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 import { authHeaders } from "@/lib/authFetch";
 import { usePageBack } from "@/components/layout/BackNavContext";
 import { Upload, Clock, AlertCircle, CheckSquare, FileText } from "lucide-react";
@@ -54,6 +55,7 @@ export default function ComplianceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [waiveOpen, setWaiveOpen] = useState(false);
   const [citation, setCitation] = useState<CitationChip | null>(null);
 
   useEffect(() => {
@@ -126,18 +128,16 @@ export default function ComplianceDetailPage() {
     }
   };
 
-  const handleWaive = async () => {
-    const reason = window.prompt(
-      "Resolve / waive this compliance item without operator evidence?\nOptionally note why (recorded in the audit trail):",
-      "",
-    );
-    if (reason === null) return; // cancelled
+  // Opens a PromptDialog with an OPTIONAL note (was a native window.prompt).
+  const handleWaive = () => setWaiveOpen(true);
+
+  const runWaive = async (values: Record<string, string>) => {
     setResolving(true);
     try {
       const res = await fetch(`${API_URL}/api/venues/${venueId}/compliance/${itemId}/resolve`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ reason: reason || null }),
+        body: JSON.stringify({ reason: values.reason.trim() || null }),
       });
       if (!res.ok) throw new Error("Resolve failed");
       toastSuccess("Compliance item resolved");
@@ -267,6 +267,24 @@ export default function ComplianceDetailPage() {
           <h2>Item not found</h2>
           <p>This compliance item has been resolved or no longer exists.</p>
         </div>
+      )}
+
+      {waiveOpen && (
+        <PromptDialog
+          open
+          title="Resolve without evidence"
+          subtitle="Waive this compliance item without operator evidence."
+          submitLabel="Resolve item"
+          busy={resolving}
+          fields={[{
+            name: "reason",
+            label: "Reason",
+            type: "textarea",
+            help: "Optional — recorded in the audit trail.",
+          }]}
+          onSubmit={runWaive}
+          onClose={() => setWaiveOpen(false)}
+        />
       )}
     </div>
   );

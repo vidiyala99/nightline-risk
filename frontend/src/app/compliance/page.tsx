@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTenantId, useAuth, useRole } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 import { authHeaders } from "@/lib/authFetch";
 import { bySeverity } from "@/lib/sort";
 import { CheckSquare, Upload, Clock, AlertCircle, X } from "lucide-react";
@@ -54,6 +55,7 @@ function CompliancePageInner() {
   const [complianceItems, setComplianceItems] = useState<ComplianceItem[]>([]);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [waiveTarget, setWaiveTarget] = useState<string | null>(null);
 
   // Broker portfolio state (only when no ?venue filter)
   const [brokerVenues, setBrokerVenues] = useState<VenueWithCompliance[]>([]);
@@ -143,23 +145,23 @@ function CompliancePageInner() {
     }
   };
 
-  const handleWaive = async (itemId: string) => {
-    if (!detailVenueId) return;
-    const reason = window.prompt(
-      "Resolve / waive this compliance item without operator evidence?\nOptionally note why (recorded in the audit trail):",
-      "",
-    );
-    if (reason === null) return; // cancelled
+  // Opens a PromptDialog with an OPTIONAL note (was a native window.prompt).
+  const handleWaive = (itemId: string) => setWaiveTarget(itemId);
+
+  const runWaive = async (values: Record<string, string>) => {
+    if (!detailVenueId || !waiveTarget) return;
+    const itemId = waiveTarget;
     setResolvingId(itemId);
     try {
       const res = await fetch(`${API_URL}/api/venues/${detailVenueId}/compliance/${itemId}/resolve`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ reason: reason || null }),
+        body: JSON.stringify({ reason: values.reason.trim() || null }),
       });
       if (!res.ok) throw new Error("Resolve failed");
       toastSuccess("Compliance item resolved");
       setComplianceItems((prev) => prev.filter((item) => item.id !== itemId));
+      setWaiveTarget(null);
     } catch {
       toastError("Failed to resolve item");
     } finally {
@@ -394,6 +396,24 @@ function CompliancePageInner() {
           <h2>No Venue Yet</h2>
           <p>Set up your venue first to see compliance actions.</p>
         </div>
+      )}
+
+      {waiveTarget && (
+        <PromptDialog
+          open
+          title="Resolve without evidence"
+          subtitle="Waive this compliance item without operator evidence."
+          submitLabel="Resolve item"
+          busy={resolvingId === waiveTarget}
+          fields={[{
+            name: "reason",
+            label: "Reason",
+            type: "textarea",
+            help: "Optional — recorded in the audit trail.",
+          }]}
+          onSubmit={runWaive}
+          onClose={() => setWaiveTarget(null)}
+        />
       )}
     </div>
   );
