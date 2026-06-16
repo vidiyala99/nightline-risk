@@ -3,12 +3,13 @@
 Working checklist for the subscription-free work (no API keys, no S3/email/SMS
 accounts yet). Gated/integration items live in [`go-live-readiness.md`](./go-live-readiness.md).
 
-Last updated: 2026-06-15.
+Last updated: 2026-06-16.
 
 ---
 
 ## Recently shipped (context for picking back up)
 
+- [~] **Agent-oversight ledger — `AgentRun` (Session 2026-06-16) — PR1 + PR2 SHIPPED (Track 17).** Response to the "Agentic Insurance Enterprise" thesis (headcount→tasks / workflow→agent-oversight / static→real-time): the three shifts are all downstream of ONE missing primitive — a persisted per-execution agent ledger. **PR1 (`2ac0f9f`):** `models.AgentRun` (provider/model/contract, `input_hash`, cost `Numeric(12,6)` Decimal, latency, outcome, confidence, auto-vs-escalated fields) + `AgentRunStatus`/`AGENT_RUN_TRANSITIONS` (`started→succeeded|fell_back|escalated|errored`, human edge `escalated→approved|aborted`) + `app/agents/ledger.py:record_agent_run` (context manager: flushes parent before audit child, **never commits**, emits the new `actor_type="agent"` audit value, full SHA-256 snapshot). New table → auto-created by `create_all`, no `_COLUMN_MIGRATIONS` entry. 7 TDD tests on isolated in-memory engines. **PR2 (`0e435b3`):** instrumented the LIVE 5-agent underwriting pipeline — `runtime.execute` gains optional `session`/`entity_id` and wraps all 5 agents; risk + memo record `fell_back(reason)` on the deterministic-fallback path; `incident_flow` passes session + incident id, so every incident now leaves a per-agent trail. Optional kwargs keep session-less callers + the 62 pricing cells unchanged. 3 TDD tests; full suite 1527 green (lone red = pre-existing `test_evals_baseline` order-dependent flake, passes in isolation). **Remaining: PR3 (read API) + PR4 (oversight panel) + Phase 2 (unify cost/rate-limit, instrument fraud/vision/copilot, escalation approve/abort) — see Track 17.** Complements Track 14 provenance/flywheel (shares `ai_provenance`).
 - [x] **Native-dialog remediation (Session 2026-06-15) — COMPLETE (Phases 1/2/3/4/0b).** All 18 `window.prompt`/`window.confirm`/`alert` sites across the broker/operator placement flows replaced with `PromptDialog` / `ConfirmDialog` / `toastError`. `src/app` is now **native-dialog-free** (verified `grep`); only `ActionModal:76`'s internal "Discard changes?" guard remains, intentionally deferred (replacing it would nest modal-in-modal — tracked as a small follow-up: inline "Discard / Keep editing" footer state). **PR #4 (Phase 3 + 0b):** the 3 optional-reason prompts (`policy-requests` decline, `compliance` waive ×2) → `PromptDialog` (optional textarea, blank→`undefined`/`null` per site); **Phase 0b** restyled `PromptDialog`'s internals to `ds/` (Input/Label/Button + token-matched textarea/select, explicit colors) — logic untouched so the `missingRequired` unit test stayed green (the proof). Gates across all PRs: design-lint 0/0, **vitest 71** (+13 over the sweep: ConfirmDialog 8, bindPolicyNumberArg 3, SUBMISSION_OUTCOME_CONFIG 2), ESLint 0 errors, `next build` ✓. New reusable primitive: `components/ui/ConfirmDialog.tsx` (ds/, on the ActionModal scaffold). Follow-up: `ActionModal` scaffold itself is still legacy-styled (claim-modal* CSS) — migrate in the end-of-sweep modal pass.
 - [~] **Native-dialog remediation (Session 2026-06-15) — PR #1 of N SHIPPED.** Plan: [`docs/superpowers/plans/2026-06-15-native-dialog-remediation.md`](superpowers/plans/2026-06-15-native-dialog-remediation.md) (replace native `window.prompt`/`confirm`/`alert` across broker placement flows with `PromptDialog` / a new `ConfirmDialog` / `toastError`; 18 sites, 8 files, phased). **PR #1 (TDD):** new `ConfirmDialog` (`components/ui/ConfirmDialog.tsx`, first fully-`ds/` modal on the `ActionModal` scaffold; 8 RED→GREEN tests incl. the no-auto-close contract + `data-variant` destructive hook); `bindPolicyNumberArg` pure helper in `lib/policies.ts` (3 tests locking the blank→"assign later"/`undefined` contract); **bind flow migrated** (`submissions/[sid]/page.tsx` `handleBind` → `PromptDialog` + `toastError`, was the reported native-prompt pain); net-new `e2e/placement-bind.spec.ts` (tolerant-empty, non-mutating — the flow had ZERO coverage since native prompts aren't Playwright-drivable). Gates: design-lint 0/0, **vitest 69** (+11), ESLint 0 errors, `next build` ✓. **PR #2 (Phase 2 — decline/outcome reasons) SHIPPED:** detail `handleRecordResponse` decline → `PromptDialog` (REQUIRED reason) + its 3 `alert`s (quoted-record, decline-record, select) → `toastError`; list `handleOutcome` (lost/declined/withdrawn) → `PromptDialog` (REQUIRED reason) with a **data-driven dispatch** `SUBMISSION_OUTCOME_CONFIG` in `lib/placement.ts` (TDD'd, 2 tests — guards the three distinct APIs from swapping) + `alert` → `toastError`. Both `submissions/*` files now native-dialog-free. Gates: design-lint 0/0, **vitest 71**, ESLint 0 errors, `next build` ✓. **PR #3 (Phase 4 — confirm sites → `ConfirmDialog`) SHIPPED:** `coverage` withdraw (non-destructive), `incidents/[id]` delete-evidence (destructive, body copy), `policies/[pid]` expire (destructive) + reinstate (non-destructive) → `ConfirmDialog`; the 2 remaining `policies/[pid]` `alert`s (runPrompt, expire) → `toastError`. **`policies/[pid]` is now fully native-dialog-free** (the reference page is done). Gates: design-lint 0/0, **vitest 71**, ESLint 0 errors, `next build` ✓. **REMAINING:** only Phase 3 (optional-reason prompts: `policy-requests:77`, `compliance:148`, `compliance/[venueId]/[itemId]:130`) + Phase 0b (`PromptDialog` contents → `ds/`). `ActionModal:76` internal `window.confirm` deferred (would nest modals). Phases 1/2/4 done — bind, decline/outcome, and all confirms migrated.
 - [x] **Session 2026-06-15** — **web design-system migration: "Paper & Ink" on shadcn/21st.dev (foundation + login shipped; sweep IN PROGRESS).** All gates green (design-lint, eslint, vitest, `next build`, **full Playwright E2E**). Commits `0a31d26` (foundation+login), `e48cf51`/`8f3bc36` (E2E selector fixes).
@@ -205,11 +206,17 @@ pytest-xdist installed-but-unused. Shipped:
   invisible to all ~1,300 tests. Add a CI lane running the suite (or at minimum a JSON-read-boundary
   subset) against real Postgres (GH Actions service container). Turns the recurring reactive "Neon
   sweep" into a standing gate; pairs with the Alembic item (Track 13 deferred).
-- [ ] **E2E depth + selector seams (2026-06-10 audit).** The 7 Playwright specs (~16 tests) cover
-  auth/settings/venues/renewals smoke but **neither core journey** (incident→evidence→packet→proposal;
-  submission→quote→bind→FNOL), and they pin to CSS classes (`.sidebar-nav-item`, `.venue-card`,
-  `.lc-login__tab`…) that rename invisibly to tsc (the known silent-pin failure mode). Add
-  `data-testid` seams on the hot paths + one spec per core journey.
+- [~] **E2E depth + selector seams (2026-06-10 audit) — SEAMS SHIPPED 2026-06-15.** The specs pinned
+  to CSS classes (`.sidebar-nav-item`, `.venue-card`, `.page-header__title`…) that rename invisibly to
+  tsc — the drift that **broke CI twice on 2026-06-15** (Paper & Ink migration dropped the classes).
+  **Done:** stable `data-testid` seams on the hot paths (`SidebarNavItem` → `nav-<route>`, dashboard
+  book/triage-row, settings tabs, venue card/grid/add-venue, renewals empty-state, prospect badge);
+  migrated both page-objects + 6 specs off the class pins (kept semantic role/heading hooks); fixed the
+  coverage + policy-requests selector drift. Full e2e green against the deploy (14 ✓ / 3 tolerant-skip).
+  **Remaining:** the two core-journey specs (incident→evidence→packet→proposal; submission→quote→bind→
+  FNOL) — deferred to the **local seeded mutating E2E lane** (its own next track: playwright `webServer`
+  boots local Next + FastAPI + a per-run seeded DB so mutating journeys run for real, keeping the prod
+  suite as a smoke lane). The seams just shipped are the shared foundation both lanes use.
 
 ### 5. Data & Defense integration surface — vision-vs-built (added 2026-05-30)
 
@@ -1087,6 +1094,67 @@ The gaps are **interaction patterns**, not visuals. One focused session for item
   *after* Track 13 P0 closes the role-escalation hole (don't widen the front door first).
 - Cross-refs still open: MobileBottomNav broker tabs + orphaned broker `/incidents` + `/claims`
   dual-design split (7c); empty/error-state sweep (Track 15).
+
+### 17. Agent-oversight ledger — `AgentRun` (added 2026-06-16)
+
+The "Agentic Insurance Enterprise" thesis names three shifts (headcount→tasks, workflow→agent
+oversight, static reports→real-time dashboards). Our weakest layer is **agent oversight** — the
+orchestration engine wrote zero audit events, there was no `actor_type="agent"`, cost governance
+was copilot-only, and agent runs lived only in a transient `execution_trace`. The keystone:
+**one persisted `AgentRun` ledger** feeds all three shifts (agent-vs-human task view, oversight/
+audit/cost spine, real-time agent feed). Blueprint context lives in this track; the actuarial
+reuse of the same reproducibility spine is Track 18.
+
+- [x] **PR1 — ledger primitive** (`2ac0f9f`): `AgentRun` model + lifecycle + `record_agent_run` seam.
+- [x] **PR2 — instrument the live pipeline** (`0e435b3`): every incident records 5 agent runs;
+  risk/memo record `fell_back`; optional kwargs keep the 62 pricing cells untouched.
+- [ ] **PR3 — read API.** `GET /api/agents/runs` (reverse-chron feed + per-entity history) and
+  `GET /api/agents/rollup` (cost + fallback-rate + auto-vs-escalated, grouped by agent). Venue-scoped
+  via `accessible_venue_ids` (broker all, operator own — never persona-gated); cost summed as Decimal
+  → money-as-string. New `app/services/agent_runs.py` (typed `AgentRunsError` → 400) + `app/api/v1/agents.py`.
+- [ ] **PR4 — oversight panel (web + mobile).** `AgentActivityPanel` beside `ExposurePanel`, 30s poll
+  (reuse the `alerts/page.tsx` pattern — SSE is over-scope); agent / entity / outcome (success vs
+  fallback chip) / cost / latency / auto-vs-escalated. The fallback chip turns the silent
+  `fallback_reason` into a visible oversight signal.
+- [ ] **Phase 2 — unify cost/rate-limit + widen instrumentation.** Subsume the copilot-only
+  `llm_telemetry`/`rate_limit` into a shared `app/agents/meter.py` + `rate_limit.py` keyed by
+  `(agent_kind, subject)` returning Decimal cost; instrument fraud (`claim_routing.py`), vision, and
+  the copilot tools; retire the deferred `LlmCallRecord` (the ledger IS that table). Also fix
+  `orchestration/engine.py`'s `datetime.now(timezone.utc)` → `now_utc` and have its workers write
+  `AgentRun` rows (resolves the `WorkflowTask`-vs-ledger two-systems tension).
+- [ ] **Phase 3 — human-oversight semantics.** `escalated` runs (e.g. `review_status=="needs_review"`)
+  set `auto_completed=False` + `escalated_to=<claim-proposal/copilot ref>`; `POST /api/agents/runs/{id}/
+  approve|abort` → `_transition_agent_run` (actor_type="user") → `agent_run.approved|aborted` audit.
+  The rollup's auto-vs-escalated ratio becomes the "agent-owned vs human-owned work" headline metric.
+
+### 18. Actuarial experience-rating + loss-development layer (added 2026-06-16)
+
+Benchmarked against **Tesora** ("Frontier AI for Actuaries": loss modeling / on-leveling / rating
+factors / ILFs / reproducible audit trail). Today's quantitative layer is a deterministic rate
+table + hand-weighted scoring heuristic + manual/carrier-relayed reserves — **no fitted actuarial
+math**; loss runs are ingested but used in exactly one thin way (untrended, uncredibility-weighted
+one-year loss ratio → a 4-band step). The honest gap-fill is **two real-but-minimal primitives**
+on data we already capture, riding the Track 17 `AgentRun` reproducibility spine. Full spec:
+[`docs/superpowers/specs/2026-06-16-actuarial-experience-rating-and-loss-development.md`](superpowers/specs/2026-06-16-actuarial-experience-rating-and-loss-development.md).
+Sequenced AFTER the Track 17 ledger track. Intent: product + portfolio (also the strongest Tesora-
+conversation artifact, [[project_tesora_opportunity]]).
+
+- [ ] **(A) Trended credibility-weighted experience mod** — replace `pricing.loss_adjustment_from_
+  loss_ratio` (renewal path only, via the existing `loss_adjustment` kwarg → 62 cells untouched) with
+  a proper mod: multi-year trended incurred + limited-fluctuation credibility `Z=min(1,√(N/std))` blend
+  vs ELR, clamped. Pure module `app/underwriting/experience_rating.py`.
+- [ ] **(B) Volume-weighted chain-ladder** — triangle from `Claim.date_of_loss` × dev-age, incurred-
+  at-age reconstructed from `ClaimPayment`/`ReserveChange` (no JSON coercion — typed columns), link
+  ratios → CDF → ultimate per coverage line. Advisory only (informs `recommender._rate_adequacy` +
+  `reserve_hint`; **never** auto-sets reserves). Degrades honestly on thin data (surfaces `Z`,
+  `claim_count`, `is_credible`). Pure module `app/underwriting/loss_development.py`.
+- [ ] **Reproducibility wiring** — each computation runs inside `record_agent_run(agent_kind=
+  "actuarial")` + carries an `AIProvenance` stamp; same loss data + version → same number + `input_hash`;
+  changing a constant requires bumping the `*_LOGIC_VERSION`.
+- [ ] **Read API** — `GET /api/venues/{id}/actuarial` (experience mod + triangle + ultimate-by-line),
+  scope-gated, money/factors as strings, zero-claim → neutral 200.
+- [ ] **Non-goals (named):** on-leveling, ILFs, fitted tail factors, stochastic/percentile reserves,
+  Bühlmann, auto-setting reserves. Decision-SUPPORT, not filed rates or booked reserves.
 
 ---
 
