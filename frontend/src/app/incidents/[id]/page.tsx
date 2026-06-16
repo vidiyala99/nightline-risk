@@ -7,6 +7,7 @@ import { useAuth, useRole } from "@/contexts/AuthContext";
 import { authHeaders } from "@/lib/authFetch";
 import { answerOpenQuestion, resolveOpenQuestion, byIndex } from "@/lib/openQuestions";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { downloadDefensePackagePdf } from "@/lib/claims";
 import { SEVERITY_COLOR } from "@/lib/risk";
 
@@ -204,6 +205,7 @@ export default function IncidentDetailPage() {
   const [claimStatus, setClaimStatus] = useState<ClaimStatusResponse | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [answerDrafts, setAnswerDrafts] = useState<Record<number, string>>({});
   const [savingQ, setSavingQ] = useState<number | null>(null);
 
@@ -361,9 +363,13 @@ export default function IncidentDetailPage() {
   };
 
   // Deletion is anti-spoliation-safe server-side (audit-logged); still confirm,
-  // since the bytes are gone from the operator's view immediately.
-  const handleEvidenceDelete = async (evidenceId: string) => {
-    if (!window.confirm("Delete this evidence? This can't be undone (the removal is logged).")) return;
+  // since the bytes are gone from the operator's view immediately. Opens a
+  // destructive ConfirmDialog (was a native window.confirm).
+  const handleEvidenceDelete = (evidenceId: string) => setConfirmDeleteId(evidenceId);
+
+  const runEvidenceDelete = async () => {
+    if (!confirmDeleteId) return;
+    const evidenceId = confirmDeleteId;
     setDeletingId(evidenceId);
     try {
       const r = await fetch(`${API_URL}/api/evidence/${evidenceId}`, {
@@ -372,6 +378,7 @@ export default function IncidentDetailPage() {
       if (!r.ok) throw new Error("delete failed");
       const ev = await fetch(`${API_URL}/api/incidents/${id}/evidence`, { headers: authHeaders() });
       if (ev.ok) { const d = await ev.json(); setEvidence(Array.isArray(d) ? d : []); }
+      setConfirmDeleteId(null);
       toastSuccess("Evidence removed");
     } catch {
       toastError("Couldn't delete — please try again.");
@@ -914,6 +921,19 @@ export default function IncidentDetailPage() {
             </div>
           </div>
         </>
+      )}
+
+      {confirmDeleteId && (
+        <ConfirmDialog
+          open
+          title="Delete evidence"
+          body="This can't be undone — the removal is logged for the audit trail."
+          confirmLabel="Delete evidence"
+          destructive
+          busy={deletingId === confirmDeleteId}
+          onConfirm={runEvidenceDelete}
+          onClose={() => setConfirmDeleteId(null)}
+        />
       )}
     </div>
   );

@@ -42,6 +42,7 @@ import { claimsApi, totalPaidFromClaim, type Claim } from "@/lib/claims";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { formatLedgerMoney } from "@/lib/claim-tokens";
 import { PromptDialog, type PromptField } from "@/components/ui/PromptDialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ds/button";
 import { Badge } from "@/components/ds/badge";
 
@@ -110,6 +111,8 @@ export default function PolicyDetailPage() {
   const [claims, setClaims] = useState<Claim[] | null>(null);
   const [claimsError, setClaimsError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<PromptKind | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"expire" | "reinstate" | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   const load = async () => {
     if (!pid) return;
@@ -153,24 +156,28 @@ export default function PolicyDetailPage() {
   const handleAssignNumber = () => setPrompt("assign");
   const handleCancel = () => setPrompt("cancel");
 
-  // expire is a benign yes/no (term ended) — a confirm is fine. non-renew / lapse
-  // capture a reason, so they open the dialog.
-  const handleEndOfLife = async (action: "expire" | "non-renew" | "lapse") => {
+  // expire is a benign yes/no (term ended) → ConfirmDialog. non-renew / lapse
+  // capture a reason, so they open the PromptDialog.
+  const handleEndOfLife = (action: "expire" | "non-renew" | "lapse") => {
     if (!policy) return;
-    if (action === "expire") {
-      if (!window.confirm("Mark this policy expired at end of term? This is terminal.")) return;
-      setBusy(true);
-      try {
-        await policiesApi.expirePolicy(policy.id);
-        await load();
-      } catch (e) {
-        alert(e instanceof PlacementApiError ? e.message : "expire failed");
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
+    if (action === "expire") { setConfirmAction("expire"); return; }
     setPrompt(action === "non-renew" ? "nonrenew" : "lapse");
+  };
+
+  // expire / reinstate confirmation (was two window.confirm calls).
+  const runConfirm = async () => {
+    if (!policy || !confirmAction) return;
+    setConfirmBusy(true);
+    try {
+      if (confirmAction === "expire") await policiesApi.expirePolicy(policy.id);
+      else await policiesApi.reinstatePolicy(policy.id);
+      setConfirmAction(null);
+      await load();
+    } catch (e) {
+      toastError(e instanceof PlacementApiError ? e.message : "Action failed");
+    } finally {
+      setConfirmBusy(false);
+    }
   };
 
   async function runPrompt(values: Record<string, string>) {
@@ -193,24 +200,15 @@ export default function PolicyDetailPage() {
       setPrompt(null);
       await load();
     } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : "Action failed");
+      toastError(e instanceof PlacementApiError ? e.message : "Action failed");
     } finally {
       setBusy(false);
     }
   }
 
-  const handleReinstate = async () => {
+  const handleReinstate = () => {
     if (!policy) return;
-    if (!window.confirm("Reinstate this lapsed policy back to active?")) return;
-    setBusy(true);
-    try {
-      await policiesApi.reinstatePolicy(policy.id);
-      await load();
-    } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : "Reinstate failed");
-    } finally {
-      setBusy(false);
-    }
+    setConfirmAction("reinstate");
   };
 
   // One-click renewal: create the renewal submission (effective = the prior
@@ -615,6 +613,21 @@ export default function PolicyDetailPage() {
           busy={busy}
           onSubmit={runPrompt}
           onClose={() => setPrompt(null)}
+        />
+      )}
+
+      {confirmAction && (
+        <ConfirmDialog
+          open
+          title={confirmAction === "expire" ? "Mark policy expired" : "Reinstate policy"}
+          body={confirmAction === "expire"
+            ? "Mark this policy expired at end of term? This is terminal."
+            : "Reinstate this lapsed policy back to active?"}
+          confirmLabel={confirmAction === "expire" ? "Mark expired" : "Reinstate"}
+          destructive={confirmAction === "expire"}
+          busy={confirmBusy}
+          onConfirm={runConfirm}
+          onClose={() => setConfirmAction(null)}
         />
       )}
     </div>

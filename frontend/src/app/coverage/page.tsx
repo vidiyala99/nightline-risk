@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
 import { PolicyRequestModal } from "@/components/PolicyRequestModal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   CoveragePolicy,
   PolicyRequest,
@@ -61,6 +62,8 @@ export default function CoveragePage() {
   const [requests, setRequests] = useState<PolicyRequest[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [modalPolicy, setModalPolicy] = useState<CoveragePolicy | null>(null);
+  const [withdrawId, setWithdrawId] = useState<string | null>(null);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const load = useCallback(async () => {
     if (venueIds.length === 0) {
@@ -85,13 +88,20 @@ export default function CoveragePage() {
     load();
   }, [isLoaded, isBroker, load]);
 
-  async function onCancelRequest(id: string) {
-    if (!window.confirm("Withdraw this request?")) return;
+  // Opens a ConfirmDialog (was a native window.confirm).
+  const onCancelRequest = (id: string) => setWithdrawId(id);
+
+  async function runWithdraw() {
+    if (!withdrawId) return;
+    setWithdrawing(true);
     try {
-      await policyRequestsApi.cancel(id);
+      await policyRequestsApi.cancel(withdrawId);
+      setWithdrawId(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not withdraw the request");
+    } finally {
+      setWithdrawing(false);
     }
   }
 
@@ -208,6 +218,18 @@ export default function CoveragePage() {
           open={modalPolicy !== null}
           onClose={() => setModalPolicy(null)}
           onSubmitted={load}
+        />
+      )}
+
+      {withdrawId && (
+        <ConfirmDialog
+          open
+          title="Withdraw request"
+          body="Withdraw this coverage request? It returns to you and is removed from the broker's queue."
+          confirmLabel="Withdraw"
+          busy={withdrawing}
+          onConfirm={runWithdraw}
+          onClose={() => setWithdrawId(null)}
         />
       )}
     </div>
