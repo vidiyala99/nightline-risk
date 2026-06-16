@@ -33,7 +33,8 @@ test("broker policy-requests queue — reachable, renders", async ({ page }) => 
   await loginBroker(page);
   await navItem(page, "Requests").click();
   await expect(page).toHaveURL(/\/policy-requests/, { timeout: 20000 });
-  await expect(page.locator(".page-header__title", { hasText: /Policy requests/i })).toBeVisible({ timeout: 15000 });
+  // Migrated to Paper & Ink: <h1>Policy requests</h1> (dropped the legacy .page-header__title class).
+  await expect(page.getByRole("heading", { name: /Policy requests/i })).toBeVisible({ timeout: 15000 });
 });
 
 test("broker claims — reachable, renders", async ({ page }) => {

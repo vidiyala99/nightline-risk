@@ -18,5 +18,7 @@ test("operator coverage page — reachable from sidebar, renders", async ({ page
 
   await page.locator(".sidebar-nav-item", { hasText: /^Coverage$/ }).click();
   await expect(page).toHaveURL(/\/coverage/, { timeout: 20000 });
-  await expect(page.locator(".page-header__title", { hasText: /coverage/i })).toBeVisible({ timeout: 15000 });
+  // Migrated to Paper & Ink: the h1 is now "My safety net" (the eyebrow reads
+  // "Venue · Coverage"); the legacy .page-header__title class is gone.
+  await expect(page.getByRole("heading", { name: /safety net/i })).toBeVisible({ timeout: 15000 });
 });
