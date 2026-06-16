@@ -1,7 +1,15 @@
-/* Cascade-layer order: legacy "Paper & Ink" sits BELOW Tailwind so migrated
-   pages (using Tailwind utilities) win, while not-yet-migrated pages keep their
-   original styling. Delete the two legacy imports once the sweep is complete. */
-@layer legacy, theme, base, components, utilities;
+/* Cascade-layer order: `legacy` sits ABOVE Tailwind's `base` (preflight) but
+   BELOW `components`/`utilities`. This is deliberate:
+     - Migrated pages win via Tailwind UTILITY classes (highest layer), so they
+       render in the new "Paper & Ink" ds/ system regardless of legacy.
+     - Un-migrated pages keep their ORIGINAL styling — legacy beats Tailwind's
+       preflight reset, so its bare-element rules (h1/p/button resets, the
+       global `* { margin:0 }`, etc.) aren't clobbered by preflight. Without
+       this, preflight bled into legacy pages and broke their layout (e.g. the
+       dashboard ticker/"needs you" overlap).
+   Delete the two legacy imports + restore the simple order once the sweep is
+   complete. */
+@layer theme, base, legacy, components, utilities;
 @import "./styles.css" layer(legacy);
 @import "./mobile-native.css" layer(legacy);
 
