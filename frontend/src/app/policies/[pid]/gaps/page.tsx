@@ -12,17 +12,23 @@
  *
  * Severity is never color-only — every gap also carries a "Required line"
  * label. Premium is stated honestly (quoted at endorsement), not fabricated.
+ *
+ * "Paper & Ink" — migrated to ds/ primitives; explicit colours on every text
+ * element. PageHeader/StatusPill replaced inline.
  */
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, ShieldAlert, CheckCircle2 } from "lucide-react";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { usePageBack } from "@/components/layout/BackNavContext";
-import { StatusPill } from "@/components/ui/StatusPill";
 import { PlacementApiError } from "@/lib/placement";
 import { policiesApi, type CoverageGapReport } from "@/lib/policies";
 import { SEVERITY_COLOR } from "@/lib/risk";
+import { Button } from "@/components/ds/button";
+import { Card } from "@/components/ds/card";
+import { Badge } from "@/components/ds/badge";
+
+const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 
 function fmtLimit(v: string | null): string {
   if (!v) return "—";
@@ -61,8 +67,10 @@ export default function CoverageGapsPage() {
   }
   if (error || !report) {
     return (
-      <div className="submission-detail">
-        <div className="placement-page__error">{error ?? "Coverage gaps unavailable."}</div>
+      <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] py-10">
+        <div role="alert" className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error ?? "Coverage gaps unavailable."}
+        </div>
       </div>
     );
   }
@@ -71,114 +79,114 @@ export default function CoverageGapsPage() {
   const hasGaps = gaps.length > 0;
 
   return (
-    <div className="submission-detail">
-      <PageHeader
-        eyebrow={`Coverage review · ${report.policy_id}`}
-        title={report.venue_id}
-        subtitle="Required coverage check for this in-force policy"
-        actions={
-          <StatusPill tone={hasGaps ? "danger" : "success"}>
-            {hasGaps
-              ? `${summary.gap_count} gap${summary.gap_count === 1 ? "" : "s"}`
-              : "Fully covered"}
-          </StatusPill>
-        }
-      />
-
-      {/* Summary strip — the headline read. */}
-      <div className="submission-detail__summary">
+    <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] pb-16">
+      {/* ── header ─────────────────────────────────────────────────────── */}
+      <section className="flex flex-wrap items-start justify-between gap-4 py-10">
         <div>
-          <div className="submission-detail__summary-label">Required gaps</div>
-          <div
-            className="submission-detail__summary-value"
-            style={{ color: hasGaps ? "var(--state-error)" : "var(--text-secondary)" }}
-          >
+          <span className="flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-wider text-[#5A6E00]">
+            <span className="size-1.5 rounded-[2px] bg-primary" aria-hidden />
+            Coverage review · {report.policy_id}
+          </span>
+          <h1 className="mt-3 text-[2.4rem] font-bold leading-[1.05] tracking-tight text-foreground" style={DISPLAY}>
+            {report.venue_id}
+          </h1>
+          <p className="mt-2 text-[15px] text-muted-foreground">
+            Required coverage check for this in-force policy
+          </p>
+        </div>
+        <Badge variant={hasGaps ? "destructive" : "success"}>
+          {hasGaps
+            ? `${summary.gap_count} gap${summary.gap_count === 1 ? "" : "s"}`
+            : "Fully covered"}
+        </Badge>
+      </section>
+
+      {/* ── summary strip ──────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Required gaps</div>
+          <div className={`mt-1 text-lg font-semibold ${hasGaps ? "text-destructive" : "text-foreground"}`}>
             {summary.gap_count}
           </div>
         </div>
-        <div>
-          <div className="submission-detail__summary-label">Lines in force</div>
-          <div className="submission-detail__summary-value">{covered.length}</div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Lines in force</div>
+          <div className="mt-1 text-lg font-semibold text-foreground">{covered.length}</div>
         </div>
-        <div>
-          <div className="submission-detail__summary-label">Exposure</div>
-          <div className="submission-detail__summary-value" style={{ fontSize: 12 }}>
+        <div className="col-span-2 rounded-xl border border-border bg-card p-4 sm:col-span-1">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Exposure</div>
+          <div className="mt-1 text-sm text-foreground">
             {hasGaps ? "Broker E&O — uncovered required line" : "None — required coverage complete"}
           </div>
         </div>
       </div>
 
-      {/* 1. Gaps — led because it's the reason for the visit. Each row pairs the
-          problem with its fix so there's no hunting for the next action. */}
+      {/* 1. Gaps — led because it's the reason for the visit. */}
       {hasGaps ? (
         <>
-          <h2 className="submission-detail__section-title">
+          <h2 className="mb-3 mt-10 text-base font-semibold text-foreground">
             Coverage gaps ({summary.gap_count})
           </h2>
-          <div className="coverage-gap-list">
+          <div className="flex flex-col gap-3">
             {gaps.map((g) => (
-              <div key={g.id} className="coverage-gap-card">
-                <div className="coverage-gap-card__head">
+              <Card key={g.id} className="gap-3 p-5">
+                <div className="flex items-start gap-3">
                   <span
-                    className="coverage-gap-card__dot"
+                    className="mt-1.5 size-2.5 shrink-0 rounded-full"
                     style={{ background: SEVERITY_COLOR[g.severity] ?? "var(--state-error)" }}
                     aria-hidden
                   />
-                  <div className="coverage-gap-card__title">
-                    <span className="coverage-gap-card__name">{g.name}</span>
-                    <span className="coverage-gap-card__tag">Required line</span>
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-semibold text-foreground">{g.name}</span>
+                    <Badge variant="muted">Required line</Badge>
                   </div>
-                  <Link href={g.endorse_href} className="btn btn-primary btn-sm">
-                    Add this coverage <ArrowRight size={14} />
-                  </Link>
+                  <Button asChild size="sm" className="border border-foreground/15">
+                    <Link href={g.endorse_href}>Add this coverage <ArrowRight className="size-3.5" /></Link>
+                  </Button>
                 </div>
-                <p className="coverage-gap-card__reason">
-                  <ShieldAlert size={14} style={{ color: "var(--state-error)", flexShrink: 0 }} />
+                <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <ShieldAlert size={14} className="mt-0.5 shrink-0 text-destructive" />
                   {g.reason}
                 </p>
-                <div className="coverage-gap-card__meta">
+                <div className="text-xs text-muted-foreground">
                   Recommended limit{" "}
-                  <span style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
-                    {fmtLimit(g.recommended_limit)}
-                  </span>
-                  <span style={{ color: "var(--text-tertiary)" }}>
-                    · final premium quoted at endorsement
-                  </span>
+                  <span className="tabular-nums text-foreground">{fmtLimit(g.recommended_limit)}</span>
+                  <span className="text-muted-foreground/70"> · final premium quoted at endorsement</span>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </>
       ) : (
-        <div className="policies-empty" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <CheckCircle2 size={16} style={{ color: "var(--accent-ink)" }} />
+        <div className="mt-6 flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+          <CheckCircle2 size={16} className="text-[#5A6E00]" />
           No coverage gaps — every default-required line is in force on this policy.
         </div>
       )}
 
       {/* 3. Current coverage — supporting context, intentionally muted. */}
-      <h2 className="submission-detail__section-title">Current coverage</h2>
+      <h2 className="mb-3 mt-10 text-base font-semibold text-foreground">Current coverage</h2>
       {covered.length ? (
-        <div className="policies-table-wrap">
-          <table className="policies-table">
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full min-w-[420px] text-sm">
             <thead>
-              <tr>
-                <th>Coverage line</th>
-                <th>Per-occurrence limit</th>
+              <tr className="border-b border-border">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Coverage line</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Per-occurrence limit</th>
               </tr>
             </thead>
             <tbody>
               {covered.map((c) => (
-                <tr key={c.id}>
-                  <td>{c.name}</td>
-                  <td className="policies-table__mono">{fmtLimit(c.limit)}</td>
+                <tr key={c.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 text-foreground">{c.name}</td>
+                  <td className="px-4 py-3 font-mono text-foreground">{fmtLimit(c.limit)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ) : (
-        <div className="policies-empty">No coverage lines on this policy.</div>
+        <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">No coverage lines on this policy.</div>
       )}
     </div>
   );
