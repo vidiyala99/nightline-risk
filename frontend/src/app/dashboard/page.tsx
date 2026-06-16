@@ -219,52 +219,9 @@ function OperatorReportFeed({ venueId }: { venueId: string }) {
   );
 }
 
-// ---- Broker triage (hoisted so Link subtree isn't remounted on state update) -
-
-// Hoisted out of BrokerTriageStrip so it isn't re-created (and its <Link>
-// subtree remounted) on every state update.
-function TriageCell({ n, label, href }: { n: number; label: string; href: string }) {
-  if (n <= 0) return null;
-  return (
-    <Link href={href} className="lc-card" style={{ flex: 1, minWidth: 150, textDecoration: "none", minHeight: 44, display: "block" }}>
-      <div className="lc-card__inner">
-        <div className="font-mono" style={{ fontSize: "1.25rem", color: "var(--accent-ink)" }}>{n}</div>
-        <div className="text-xs text-muted">{label}</div>
-      </div>
-    </Link>
-  );
-}
-
-function BrokerTriageStrip({ expiringRenewals }: { expiringRenewals: number }) {
-  const [pending, setPending] = useState(0);
-  const [requests, setRequests] = useState(0);
-  useEffect(() => {
-    (async () => {
-      const [p, r] = await Promise.all([
-        fetch(`${API_URL}/api/claim-proposals?status=pending_broker_review`, { headers: authHeaders() }),
-        fetch(`${API_URL}/api/policy-requests`, { headers: authHeaders() }),
-      ]);
-      if (p.ok) { const d = await p.json(); setPending(Array.isArray(d) ? d.length : 0); }
-      if (r.ok) {
-        const d = await r.json();
-        const open = Array.isArray(d) ? d.filter((x: { status: string }) => ["requested", "pending", "open"].includes(x.status)).length : 0;
-        setRequests(open);
-      }
-    })();
-  }, []);
-  const total = pending + expiringRenewals + requests;
-  if (total === 0) return null;
-  return (
-    <section className="mb-lg" aria-label="Needs you">
-      <div className="text-xs uppercase tracking-wide text-secondary mb-sm">Needs you · {total}</div>
-      <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
-        <TriageCell n={pending} label="proposals to decide" href="/work-queue" />
-        <TriageCell n={expiringRenewals} label="renewals expiring (60d)" href="/renewals" />
-        <TriageCell n={requests} label="open requests" href="/policy-requests" />
-      </div>
-    </section>
-  );
-}
+// The former BrokerTriageStrip ("Needs you" — proposals / renewals / requests)
+// was merged into ExposurePanel's "Your queues" footer so the broker dashboard
+// has a single attention surface. See components/intelligence/ExposurePanel.tsx.
 
 interface VenueSummary { id: string; name: string; }
 
@@ -466,6 +423,14 @@ function DashboardPageInner() {
     acc[v.tier] = (acc[v.tier] ?? 0) + 1; return acc;
   }, {});
 
+  // Broker renewals expiring within 60d — feeds the exposure panel's "Your
+  // queues" footer (the merged-in replacement for the old "Needs you" strip).
+  const expiringRenewals = portfolioVenues.filter((v) => {
+    if (!v.renewal_date) return false;
+    const d = new Date(v.renewal_date).getTime() - Date.now();
+    return d >= 0 && d <= 60 * 24 * 60 * 60 * 1000;
+  }).length;
+
   // Ticker items (duplicated for seamless scroll)
   const tickerCore: React.ReactNode[] = isBroker ? [
     <span className="lc-ticker__item" key="t1"><b>PORTFOLIO</b> {stats.venues} venues</span>,
@@ -637,8 +602,12 @@ function DashboardPageInner() {
       )}
 
       {/* PROACTIVE EXPOSURE — Risk Intelligence Layer's deterministic "what
-          matters now" banner. Self-fetches; self-hides on error/empty. */}
-      <ExposurePanel />
+          matters now" banner. Self-fetches; self-hides on error/empty. For
+          brokers it also renders the "Your queues" footer (proposals / renewals
+          / requests), folding in the former standalone "Needs you" strip so the
+          dashboard has ONE attention surface. The header count stays
+          findings-only — queue depth never inflates it. */}
+      <ExposurePanel brokerQueues={isBroker ? { expiringRenewals } : null} />
 
       {/* OPERATOR: launch the Risk Intelligence Copilot for a conversational
           read of the same exposure surface. Operator-only (broker/carrier
@@ -681,16 +650,6 @@ function DashboardPageInner() {
           </div>
         </div>
       )}
-
-      {/* BROKER: needs-you triage strip */}
-      {isBroker && (() => {
-        const expiringRenewals = portfolioVenues.filter((v) => {
-          if (!v.renewal_date) return false;
-          const d = new Date(v.renewal_date).getTime() - Date.now();
-          return d >= 0 && d <= 60 * 24 * 60 * 60 * 1000;
-        }).length;
-        return <BrokerTriageStrip expiringRenewals={expiringRenewals} />;
-      })()}
 
       {/* BROKER: triage console */}
       {isBroker && (

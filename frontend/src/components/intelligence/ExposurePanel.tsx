@@ -11,6 +11,29 @@ import {
   type Finding,
 } from "@/lib/intelligence";
 import { SEVERITY_COLOR } from "@/lib/risk";
+import { authHeaders } from "@/lib/authFetch";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+/** The broker's queue depth — folded into this panel as a subordinate footer so
+ *  the dashboard has ONE attention surface, not two. `expiringRenewals` is
+ *  passed in because it derives from portfolio data the panel doesn't fetch. */
+export interface BrokerQueues {
+  expiringRenewals: number;
+}
+
+/** One queue counter → a number, a label, and a deep-link. Hidden at 0, mirroring
+ *  the old BrokerTriageStrip's TriageCell. Pure navigation: no severity, never a
+ *  Finding — these counts must never touch the calibration loop. */
+function QueueTile({ n, label, href }: { n: number; label: string; href: string }) {
+  if (n <= 0) return null;
+  return (
+    <Link href={href} className="lc-exposure__queue-tile" style={{ textDecoration: "none" }}>
+      <span className="lc-exposure__queue-num">{n}</span>
+      <span className="lc-exposure__queue-label">{label}</span>
+    </Link>
+  );
+}
 
 /**
  * Proactive "Attention / Exposure" panel — the deterministic surface of the
@@ -46,13 +69,69 @@ const SEVERITY_WEIGHT: Record<string, number> = {
   low: 3,
 };
 
-export function ExposurePanel({ venueId }: { venueId?: string } = {}) {
+export function ExposurePanel(
+  { venueId, brokerQueues }: { venueId?: string; brokerQueues?: BrokerQueues | null } = {},
+) {
   const [findings, setFindings] = useState<Finding[] | null>(null);
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<SeverityFilter>("all");
   const [page, setPage] = useState(0);
   // Per-finding E&O acknowledgement state (idle → loading → done / failed).
   const [ack, setAck] = useState<Record<string, "loading" | "done" | "failed">>({});
+
+  // Broker queue depth — fetched independently of findings so a findings error
+  // never hides the (cheap, always-relevant) queue counts, and vice versa.
+  const brokerQueuesEnabled = !!brokerQueues;
+  const [qProposals, setQProposals] = useState(0);
+  const [qRequests, setQRequests] = useState(0);
+  useEffect(() => {
+    if (!brokerQueuesEnabled) return;
+    let active = true;
+    (async () => {
+      try {
+        const [p, r] = await Promise.all([
+          fetch(`${API_URL}/api/claim-proposals?status=pending_broker_review`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/policy-requests`, { headers: authHeaders() }),
+        ]);
+        if (!active) return;
+        if (p.ok) {
+          const d = await p.json();
+          setQProposals(Array.isArray(d) ? d.length : 0);
+        }
+        if (r.ok) {
+          const d = await r.json();
+          setQRequests(
+            Array.isArray(d)
+              ? d.filter((x: { status: string }) => ["requested", "pending", "open"].includes(x.status)).length
+              : 0,
+          );
+        }
+      } catch {
+        /* queues are best-effort navigation — degrade silently */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [brokerQueuesEnabled]);
+
+  // GUARDRAIL: this total drives ONLY the footer's visibility — never the header
+  // count. The header "N open · M need eyes" stays findings-only (see below), so
+  // raw queue volume can't dilute the judgment signal.
+  const queueTotal = brokerQueuesEnabled
+    ? qProposals + qRequests + (brokerQueues?.expiringRenewals ?? 0)
+    : 0;
+  const queueFooter =
+    queueTotal > 0 ? (
+      <div className="lc-exposure__queues">
+        <div className="lc-exposure__queues-label lc-stat-label">Your queues</div>
+        <div className="lc-exposure__queue-tiles">
+          <QueueTile n={qProposals} label="proposals to decide" href="/work-queue" />
+          <QueueTile n={brokerQueues?.expiringRenewals ?? 0} label="renewals expiring (60d)" href="/renewals" />
+          <QueueTile n={qRequests} label="open requests" href="/policy-requests" />
+        </div>
+      </div>
+    ) : null;
 
   async function acknowledge(f: Finding) {
     const payload = findingToAdvicePayload(f);
@@ -112,9 +191,19 @@ export function ExposurePanel({ venueId }: { venueId?: string } = {}) {
   // "need eyes" = the urgent bucket (critical + high), mirroring the broker book.
   const urgent = counts.critical + counts.high;
 
-  if (error) return null; // degrade silently — never block the dashboard
+  // Findings failed to load, but the queue footer is independent — still surface
+  // it if anything's queued. Otherwise degrade silently (never block the dashboard).
+  if (error) {
+    return queueFooter ? (
+      <section aria-label="What needs attention" className="lc-exposure">
+        {queueFooter}
+      </section>
+    ) : null;
+  }
   if (findings === null) return null; // loading: no skeleton needed for v1
-  if (sorted.length === 0) {
+  // Truly empty only when there are no findings AND nothing queued. With queued
+  // items we fall through to the normal render (header "0 open" + footer).
+  if (sorted.length === 0 && queueTotal === 0) {
     return (
       <section aria-label="What needs attention" className="lc-exposure">
         <p style={{ color: "var(--text-tertiary)" }}>✓ Nothing needs your attention right now.</p>
@@ -129,7 +218,10 @@ export function ExposurePanel({ venueId }: { venueId?: string } = {}) {
           <AlertTriangle size={18} aria-hidden /> What needs your attention
         </h2>
         <span className="lc-exposure__kpi">
-          <b>{counts.all}</b> open
+          {/* GUARDRAIL: findings-only count. Queue depth lives in the footer and
+              must never inflate this number — that's what keeps the judgment
+              signal ("need eyes") clean. */}
+          <b data-testid="exposure-open-count">{counts.all}</b> open
           {urgent > 0 && (
             <>
               {" · "}
@@ -217,6 +309,9 @@ export function ExposurePanel({ venueId }: { venueId?: string } = {}) {
           </div>
         </div>
       )}
+
+      {/* Your queues — subordinate navigation footer (broker only). */}
+      {queueFooter}
     </section>
   );
 }

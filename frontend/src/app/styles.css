@@ -7353,6 +7353,52 @@ html, body { overflow-x: clip; }
   text-align: center;
 }
 
+/* "Your queues" — subordinate navigation footer (broker only). Visually quieter
+   than the findings rows above: a divider + a row of count tiles. Pure links;
+   never carries severity. Kept distinct so it never reads as a Finding. */
+.lc-exposure__queues {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+}
+.lc-exposure__queues-label {
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+.lc-exposure__queue-tiles {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.lc-exposure__queue-tile {
+  flex: 1;
+  min-width: 150px;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.lc-exposure__queue-tile:hover {
+  border-color: var(--accent-ink);
+  background: var(--bg-base);
+}
+.lc-exposure__queue-num {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  color: var(--accent-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.lc-exposure__queue-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
 /* ── Copilot — conversational intelligence surface (spec §7). Reuses the
    .lc-card frame, .lc-triage__chip language for followups, and the paper/ink
    token system. Grounded replies render citation chips; proposed actions show
