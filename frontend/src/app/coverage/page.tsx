@@ -14,11 +14,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { PageHeader } from "@/components/ui/PageHeader";
-import { StatusPill } from "@/components/ui/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
 import { PolicyRequestModal } from "@/components/PolicyRequestModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ds/button";
+import { Card } from "@/components/ds/card";
+import { Badge } from "@/components/ds/badge";
 import {
   CoveragePolicy,
   PolicyRequest,
@@ -27,6 +28,12 @@ import {
   REQUEST_TYPE_LABEL,
   policyRequestsApi,
 } from "@/lib/policyRequests";
+
+const DISPLAY = { fontFamily: "var(--font-display)" } as const;
+const SCRIPT = { fontFamily: "var(--font-caveat)" } as const;
+const TONE_VARIANT = {
+  neutral: "muted", info: "info", success: "success", warning: "warning", danger: "destructive",
+} as const;
 
 function fmtMoney(s: string): string {
   const n = parseFloat(s);
@@ -109,97 +116,101 @@ export default function CoveragePage() {
 
   if (isBroker) {
     return (
-      <div className="page page-empty">
-        <h3>Coverage is the operator&rsquo;s view.</h3>
-        <p className="text-secondary">
-          Operators see and manage their own policy here. Head to{" "}
-          <button className="link-button" onClick={() => router.push("/policy-requests")}>
-            Policy Requests
-          </button>{" "}
-          to action what they&rsquo;ve asked for.
-        </p>
+      <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] pb-16">
+        <div className="mt-10 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-20 text-center">
+          <h3 className="text-lg font-semibold text-foreground">Coverage is the operator&rsquo;s view.</h3>
+          <p className="text-sm text-muted-foreground">
+            Operators see and manage their own policy here. Head to{" "}
+            <button className="text-[#5A6E00] hover:underline" onClick={() => router.push("/policy-requests")}>Policy Requests</button>{" "}
+            to action what they&rsquo;ve asked for.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="claims-portfolio">
-      <PageHeader
-        eyebrow="VENUE · COVERAGE"
-        title="My coverage"
-        accent="your safety net"
-        subtitle="Your active policy and anything you've asked your broker to action."
-      />
+    <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] pb-16">
+      {/* ── header ─────────────────────────────────────────────────────── */}
+      <section className="py-10">
+        <span className="flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-wider text-[#5A6E00]">
+          <span className="size-1.5 rounded-[2px] bg-primary" aria-hidden />
+          Venue · Coverage
+        </span>
+        <h1 className="mt-3 text-[2.4rem] font-bold leading-[1.05] tracking-tight text-foreground" style={DISPLAY}>
+          My <span className="text-[#5A6E00]" style={SCRIPT}>safety net</span>
+        </h1>
+        <p className="mt-2 max-w-[60ch] text-[15px] text-muted-foreground">
+          Your active policy and anything you&apos;ve asked your broker to action.
+        </p>
+      </section>
 
       {error && (
-        <div className="policies-empty" role="alert" style={{ borderColor: "var(--state-error)", color: "var(--state-error)" }}>
+        <div role="alert" className="mb-4 rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {policies === null ? (
-        <div className="claims-section__skeleton" aria-busy="true"><div /><div /></div>
+        <div className="grid gap-4 sm:grid-cols-2" aria-busy="true">
+          {[0, 1].map((i) => <div key={i} className="h-40 animate-pulse rounded-xl border border-border bg-muted/40" />)}
+        </div>
       ) : policies.length === 0 ? (
-        <div className="policies-empty">
-          No coverage on file yet. Once your broker binds a policy for your
-          venue, it&rsquo;ll show up here.
+        <div className="rounded-xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
+          No coverage on file yet. Once your broker binds a policy for your venue, it&rsquo;ll show up here.
         </div>
       ) : (
-        <div className="coverage-grid">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {policies.map((p) => (
-            <article key={p.id} className="coverage-card">
-              <div className="coverage-card__top">
-                <div>
-                  <div className="coverage-card__eyebrow">{p.carrier_id}</div>
-                  <div className="coverage-card__number">{p.policy_number ?? p.id}</div>
+            <Card key={p.id} className="gap-4 p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">{p.carrier_id}</div>
+                  <div className="truncate font-mono text-sm font-semibold text-foreground">{p.policy_number ?? p.id}</div>
                 </div>
-                <StatusPill tone={POLICY_STATUS_TONE[p.status] ?? "neutral"}>
+                <Badge variant={TONE_VARIANT[POLICY_STATUS_TONE[p.status] ?? "neutral"]}>
                   {p.status.replace(/_/g, " ")}
-                </StatusPill>
+                </Badge>
               </div>
-              <dl className="coverage-card__facts">
-                <div><dt>Annual premium</dt><dd className="coverage-card__mono">{fmtMoney(p.annual_premium)}</dd></div>
-                <div><dt>Effective</dt><dd className="coverage-card__mono">{p.effective_date}</dd></div>
-                <div><dt>Expires</dt><dd className="coverage-card__mono">{p.expiration_date}</dd></div>
-                <div><dt>Lines</dt><dd>{p.coverage_lines.map((l) => l.toUpperCase()).join(", ") || "—"}</dd></div>
+              <dl className="flex flex-col gap-1.5 text-sm">
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Annual premium</dt><dd className="font-mono text-foreground">{fmtMoney(p.annual_premium)}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Effective</dt><dd className="font-mono text-foreground">{p.effective_date}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Expires</dt><dd className="font-mono text-foreground">{p.expiration_date}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Lines</dt><dd className="text-right text-foreground">{p.coverage_lines.map((l) => l.toUpperCase()).join(", ") || "—"}</dd></div>
               </dl>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm coverage-card__cta"
-                onClick={() => setModalPolicy(p)}
-              >
+              <Button type="button" size="sm" className="w-full border border-foreground/15" onClick={() => setModalPolicy(p)}>
                 Request an action
-              </button>
-            </article>
+              </Button>
+            </Card>
           ))}
         </div>
       )}
 
       {/* Request history */}
       {requests.length > 0 && (
-        <section className="coverage-requests">
-          <h2 className="coverage-requests__title">Your requests</h2>
-          <div className="policies-table-wrap">
-            <table className="policies-table" aria-label="Your policy requests">
+        <section className="mt-10">
+          <h2 className="mb-3 text-base font-semibold text-foreground">Your requests</h2>
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full min-w-[640px] text-sm" aria-label="Your policy requests">
               <thead>
-                <tr>
-                  <th scope="col">Type</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Note</th>
-                  <th scope="col">Sent</th>
-                  <th scope="col" />
+                <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                  <th scope="col" className="px-4 py-3 text-left font-medium">Type</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium">Status</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium">Note</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium">Sent</th>
+                  <th scope="col" className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
                 {requests.map((r) => (
-                  <tr key={r.id}>
-                    <td>{REQUEST_TYPE_LABEL[r.request_type]}</td>
-                    <td><StatusPill tone={REQUEST_STATUS_TONE[r.status]}>{REQUEST_STATUS_LABEL[r.status]}</StatusPill></td>
-                    <td className="coverage-requests__note">{r.decision_note || r.note || "—"}</td>
-                    <td className="policies-table__mono">{r.created_at.slice(0, 10)}</td>
-                    <td style={{ textAlign: "right" }}>
+                  <tr key={r.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 text-foreground">{REQUEST_TYPE_LABEL[r.request_type]}</td>
+                    <td className="px-4 py-3"><Badge variant={TONE_VARIANT[REQUEST_STATUS_TONE[r.status]]}>{REQUEST_STATUS_LABEL[r.status]}</Badge></td>
+                    <td className="px-4 py-3 text-muted-foreground">{r.decision_note || r.note || "—"}</td>
+                    <td className="px-4 py-3 font-mono text-muted-foreground">{r.created_at.slice(0, 10)}</td>
+                    <td className="px-4 py-3 text-right">
                       {r.status === "pending" && (
-                        <button type="button" className="link-button link-button--danger" onClick={() => onCancelRequest(r.id)}>
+                        <button type="button" className="text-xs text-destructive hover:underline" onClick={() => onCancelRequest(r.id)}>
                           Withdraw
                         </button>
                       )}
