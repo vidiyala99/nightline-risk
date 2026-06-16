@@ -311,6 +311,17 @@ export const placementApi = {
     }),
 };
 
+/**
+ * Submissions-kanban terminal outcomes → distinct API method + display verb.
+ * Data-driven so the dispatch can't silently swap (a lost marked as declined
+ * would mis-report win/loss). Each method shares the `(sid, reason)` shape.
+ */
+export const SUBMISSION_OUTCOME_CONFIG = {
+  lost: { verb: "Mark lost", method: "loseSubmission" },
+  declined: { verb: "Mark declined", method: "declineSubmission" },
+  withdrawn: { verb: "Withdraw", method: "withdrawSubmission" },
+} as const;
+
 // ─── Formatting helpers ──────────────────────────────────────────────────
 
 /** Render a string-money value (from a JSON column) as "$1,234.56" with

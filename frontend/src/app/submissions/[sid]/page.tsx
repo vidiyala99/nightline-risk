@@ -276,6 +276,8 @@ export default function SubmissionDetailPage() {
   const [savingTerms, setSavingTerms] = useState(false);
   const [bindTarget, setBindTarget] = useState<CarrierQuote | null>(null);
   const [binding, setBinding] = useState(false);
+  const [declineTarget, setDeclineTarget] = useState<CarrierQuote | null>(null);
+  const [declining, setDeclining] = useState(false);
 
   const carriersById = useMemo(
     () => new Map(carriers.map(c => [c.id, c])),
@@ -377,17 +379,9 @@ export default function SubmissionDetailPage() {
     status: "quoted" | "declined",
   ) => {
     if (status === "declined") {
-      const reason = window.prompt("Decline reason (required):");
-      if (!reason || !reason.trim()) return;
-      try {
-        await placementApi.recordQuoteResponse(quote.id, {
-          status: "declined",
-          decline_reason: reason.trim(),
-        });
-        await load();
-      } catch (e) {
-        alert(e instanceof PlacementApiError ? e.message : "Record failed");
-      }
+      // Decline opens an in-app PromptDialog with a REQUIRED reason
+      // (was a native window.prompt).
+      setDeclineTarget(quote);
       return;
     }
     // 'quoted' — fetch the indicative quote from the broker-path engine
@@ -404,7 +398,24 @@ export default function SubmissionDetailPage() {
       });
       await load();
     } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : "Record failed");
+      toastError(e instanceof PlacementApiError ? e.message : "Record failed");
+    }
+  };
+
+  const runDecline = async (values: Record<string, string>) => {
+    if (!declineTarget) return;
+    setDeclining(true);
+    try {
+      await placementApi.recordQuoteResponse(declineTarget.id, {
+        status: "declined",
+        decline_reason: values.decline_reason.trim(),
+      });
+      setDeclineTarget(null);
+      await load();
+    } catch (e) {
+      toastError(e instanceof PlacementApiError ? e.message : "Record failed");
+    } finally {
+      setDeclining(false);
     }
   };
 
@@ -440,7 +451,7 @@ export default function SubmissionDetailPage() {
       await placementApi.selectQuote(quote.id);
       await load();
     } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : "Select failed");
+      toastError(e instanceof PlacementApiError ? e.message : "Select failed");
     }
   };
 
@@ -706,6 +717,24 @@ export default function SubmissionDetailPage() {
           }]}
           onSubmit={runBind}
           onClose={() => setBindTarget(null)}
+        />
+      )}
+
+      {declineTarget && (
+        <PromptDialog
+          open
+          title="Record carrier decline"
+          subtitle="Logged against the quote for the placement audit trail."
+          submitLabel="Record decline"
+          busy={declining}
+          fields={[{
+            name: "decline_reason",
+            label: "Decline reason",
+            type: "textarea",
+            required: true,
+          }]}
+          onSubmit={runDecline}
+          onClose={() => setDeclineTarget(null)}
         />
       )}
     </div>

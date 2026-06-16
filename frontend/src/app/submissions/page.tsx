@@ -26,8 +26,11 @@ import {
   SubmissionStatus,
   STATUS_LABEL,
   STATUS_TONE,
+  SUBMISSION_OUTCOME_CONFIG,
   TransitionMatrix,
 } from "@/lib/placement";
+import { PromptDialog } from "@/components/ui/PromptDialog";
+import { toastError } from "@/lib/toast";
 
 // Visible columns + their lifecycle states. We collapse the four terminal
 // states into one "Recently closed" column so the kanban stays scannable.
@@ -151,6 +154,8 @@ export default function SubmissionsPage() {
   const [transitions, setTransitions] = useState<TransitionMatrix | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showClosed, setShowClosed] = useState(false);
+  const [outcomeTarget, setOutcomeTarget] = useState<{ sub: Submission; outcome: "lost" | "declined" | "withdrawn" } | null>(null);
+  const [outcomeBusy, setOutcomeBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -195,29 +200,26 @@ export default function SubmissionsPage() {
   };
 
   // Withdraw (broker pulled it) / Lost (venue went elsewhere) / Declined
-  // (carriers said no) are all terminal marks with a reason. One handler,
-  // distinct API calls, so win/loss reporting can tell them apart.
-  const OUTCOME_VERB: Record<"lost" | "declined" | "withdrawn", string> = {
-    lost: "Mark lost",
-    declined: "Mark declined",
-    withdrawn: "Withdraw",
-  };
-  const handleOutcome = async (
+  // (carriers said no) are all terminal marks with a REQUIRED reason. Opens an
+  // in-app PromptDialog (was a native window.prompt); the dispatch is data-
+  // driven (SUBMISSION_OUTCOME_CONFIG) so the three distinct APIs can't swap.
+  const handleOutcome = (
     sub: Submission,
     outcome: "lost" | "declined" | "withdrawn",
-  ) => {
-    const reason = window.prompt(
-      `${OUTCOME_VERB[outcome]} — submission for ${sub.venue_id}. Enter a reason:`,
-    );
-    if (!reason || !reason.trim()) return;
+  ) => setOutcomeTarget({ sub, outcome });
+
+  const runOutcome = async (values: Record<string, string>) => {
+    if (!outcomeTarget) return;
+    const { sub, outcome } = outcomeTarget;
+    setOutcomeBusy(true);
     try {
-      const r = reason.trim();
-      if (outcome === "lost") await placementApi.loseSubmission(sub.id, r);
-      else if (outcome === "declined") await placementApi.declineSubmission(sub.id, r);
-      else await placementApi.withdrawSubmission(sub.id, r);
+      await placementApi[SUBMISSION_OUTCOME_CONFIG[outcome].method](sub.id, values.reason.trim());
+      setOutcomeTarget(null);
       await load();
     } catch (e) {
-      alert(e instanceof PlacementApiError ? e.message : `${OUTCOME_VERB[outcome]} failed`);
+      toastError(e instanceof PlacementApiError ? e.message : `${SUBMISSION_OUTCOME_CONFIG[outcome].verb} failed`);
+    } finally {
+      setOutcomeBusy(false);
     }
   };
 
@@ -288,6 +290,24 @@ export default function SubmissionsPage() {
             );
           })}
         </div>
+      )}
+
+      {outcomeTarget && (
+        <PromptDialog
+          open
+          title={`${SUBMISSION_OUTCOME_CONFIG[outcomeTarget.outcome].verb} — ${outcomeTarget.sub.venue_id}`}
+          subtitle="Recorded on the audit trail for win/loss reporting."
+          submitLabel={SUBMISSION_OUTCOME_CONFIG[outcomeTarget.outcome].verb}
+          busy={outcomeBusy}
+          fields={[{
+            name: "reason",
+            label: "Reason",
+            type: "textarea",
+            required: true,
+          }]}
+          onSubmit={runOutcome}
+          onClose={() => setOutcomeTarget(null)}
+        />
       )}
     </div>
   );
