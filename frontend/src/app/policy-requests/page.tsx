@@ -10,9 +10,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { PageHeader } from "@/components/ui/PageHeader";
-import { StatusPill } from "@/components/ui/StatusPill";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { Button } from "@/components/ds/button";
+import { Badge } from "@/components/ds/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   PolicyRequest,
@@ -23,6 +23,11 @@ import {
   approvalResultLink,
   policyRequestsApi,
 } from "@/lib/policyRequests";
+
+const DISPLAY = { fontFamily: "var(--font-display)" } as const;
+const TONE_VARIANT = {
+  neutral: "muted", info: "info", success: "success", warning: "warning", danger: "destructive",
+} as const;
 
 type Filter = "pending" | "approved" | "declined" | "all";
 const FILTERS: Filter[] = ["pending", "approved", "declined", "all"];
@@ -103,118 +108,116 @@ export default function PolicyRequestsPage() {
 
   if (!isBroker) {
     return (
-      <div className="page page-empty">
-        <h3>Policy Requests is a broker surface.</h3>
-        <p className="text-secondary">
-          Raise renewal, cancellation, or certificate requests from your{" "}
-          <button className="link-button" onClick={() => router.push("/coverage")}>
-            Coverage
-          </button>{" "}
-          page instead.
-        </p>
+      <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] pb-16">
+        <div className="mt-10 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-20 text-center">
+          <h3 className="text-lg font-semibold text-foreground">Policy Requests is a broker surface.</h3>
+          <p className="text-sm text-muted-foreground">
+            Raise renewal, cancellation, or certificate requests from your{" "}
+            <button className="text-[#5A6E00] hover:underline" onClick={() => router.push("/coverage")}>Coverage</button>{" "}
+            page instead.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="claims-portfolio">
-      <PageHeader
-        eyebrow="BROKER · REQUESTS"
-        title="Policy requests"
-        subtitle="What your venues have asked you to action — renewals, cancellations, certificates, coverage changes."
-      />
+    <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] pb-16">
+      {/* ── header ─────────────────────────────────────────────────────── */}
+      <section className="py-10">
+        <span className="flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-wider text-[#5A6E00]">
+          <span className="size-1.5 rounded-[2px] bg-primary" aria-hidden />
+          Broker · Requests
+        </span>
+        <h1 className="mt-3 text-[2.4rem] font-bold leading-[1.05] tracking-tight text-foreground" style={DISPLAY}>
+          Policy requests
+        </h1>
+        <p className="mt-2 max-w-[68ch] text-[15px] text-muted-foreground">
+          What your venues have asked you to action — renewals, cancellations, certificates, coverage changes.
+        </p>
+      </section>
 
       {error && (
-        <div className="policies-empty" role="alert" style={{ borderColor: "var(--state-error)", color: "var(--state-error)" }}>
+        <div role="alert" className="mb-4 rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      <div className="filter-bar">
+      <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
             key={f}
             type="button"
-            className={`filter-chip${filter === f ? " filter-chip--active" : ""}`}
             onClick={() => setFilter(f)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              filter === f ? "border-foreground/30 bg-muted text-foreground" : "border-border text-muted-foreground hover:text-foreground"
+            }`}
           >
             {f[0].toUpperCase() + f.slice(1)}
-            <span className="filter-chip__count">{counts[f] ?? 0}</span>
+            <span className="text-muted-foreground">{counts[f] ?? 0}</span>
           </button>
         ))}
       </div>
 
       {rows === null ? (
-        <div className="claims-section__skeleton" aria-busy="true"><div /><div /><div /></div>
+        <div className="flex flex-col gap-2" aria-busy="true">
+          {[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl border border-border bg-muted/40" />)}
+        </div>
       ) : visible.length === 0 ? (
-        <div className="policies-empty">
+        <div className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
           {filter === "pending" ? "No pending requests. You're all caught up." : "Nothing here for this filter."}
         </div>
       ) : (
-        <div className="policies-table-wrap">
-          <table className="policies-table" aria-label="Policy requests">
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full min-w-[760px] text-sm" aria-label="Policy requests">
             <thead>
-              <tr>
-                <th scope="col">Venue</th>
-                <th scope="col">Type</th>
-                <th scope="col">Detail</th>
-                <th scope="col">Status</th>
-                <th scope="col">Sent</th>
-                <th scope="col" />
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                <th scope="col" className="px-4 py-3 text-left font-medium">Venue</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium">Type</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium">Detail</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium">Status</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium">Sent</th>
+                <th scope="col" className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {visible.map((r) => {
                 const detail = payloadSummary(r);
                 return (
-                  <tr key={r.id}>
-                    <td>{r.venue_id}</td>
-                    <td>{REQUEST_TYPE_LABEL[r.request_type]}</td>
-                    <td className="coverage-requests__note">
+                  <tr key={r.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 text-foreground">{r.venue_id}</td>
+                    <td className="px-4 py-3 text-foreground">{REQUEST_TYPE_LABEL[r.request_type]}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
                       {r.note || detail || "—"}
-                      {r.note && detail && <span className="preq-detail-sub"> · {detail}</span>}
+                      {r.note && detail && <span className="text-muted-foreground/70"> · {detail}</span>}
                       <button
-                        className="link-button preq-policy-link"
+                        className="ml-2 text-xs text-[#5A6E00] hover:underline"
                         onClick={() => router.push(`/policies/${r.policy_id}`)}
                       >
                         View policy
                       </button>
                     </td>
-                    <td><StatusPill tone={REQUEST_STATUS_TONE[r.status]}>{REQUEST_STATUS_LABEL[r.status]}</StatusPill></td>
-                    <td className="policies-table__mono">{r.created_at.slice(0, 10)}</td>
-                    <td style={{ textAlign: "right" }}>
+                    <td className="px-4 py-3">
+                      <Badge variant={TONE_VARIANT[REQUEST_STATUS_TONE[r.status]]}>{REQUEST_STATUS_LABEL[r.status]}</Badge>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-muted-foreground">{r.created_at.slice(0, 10)}</td>
+                    <td className="px-4 py-3 text-right">
                       {r.status === "pending" ? (
-                        <div className="preq-actions">
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm preq-actions__decline"
-                            disabled={busyId === r.id}
-                            onClick={() => decide(r, "declined")}
-                          >
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" size="sm" className="text-foreground" disabled={busyId === r.id} onClick={() => decide(r, "declined")}>
                             Decline
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            disabled={busyId === r.id}
-                            onClick={() => decide(r, "approved")}
-                          >
+                          </Button>
+                          <Button type="button" size="sm" className="border border-foreground/15" disabled={busyId === r.id} onClick={() => decide(r, "approved")}>
                             {busyId === r.id ? "…" : "Approve"}
-                          </button>
+                          </Button>
                         </div>
                       ) : (
-                        <div className="preq-decided">
-                          {r.decided_by && (
-                            <span className="preq-decided-by">by {r.decided_by}</span>
-                          )}
+                        <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+                          {r.decided_by && <span>by {r.decided_by}</span>}
                           {(() => {
                             const link = approvalResultLink(r);
                             return link ? (
-                              <button
-                                type="button"
-                                className="link-button preq-result-link"
-                                onClick={() => router.push(link.href)}
-                              >
+                              <button type="button" className="text-[#5A6E00] hover:underline" onClick={() => router.push(link.href)}>
                                 {link.label}
                               </button>
                             ) : null;
