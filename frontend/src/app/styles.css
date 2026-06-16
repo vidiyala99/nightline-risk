@@ -32,8 +32,8 @@
   /* Text Colors — Ink */
   --text-primary: #17150F;
   --text-secondary: #4A463B;
-  --text-tertiary: #8A8472;
-  --text-muted: #B3AC97;
+  --text-tertiary: #6F6A58;  /* ~4.8:1 on paper — was #8A8472 (3.2:1, below AA) */
+  --text-muted: #837D6B;     /* ~3.6:1 on paper — was #B3AC97 (1.9:1, well below AA) */
   --text-inverse: #17150F;   /* dark ink — text on the lime accent button */
 
   /* Legacy aliases */
