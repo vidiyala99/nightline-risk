@@ -1,6 +1,11 @@
+import contextlib
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 
+from sqlmodel import Session
+
+from app.agents.ledger import record_agent_run
 from app.rag import SemanticKnowledgeBase as VenueKnowledgeBase
 from app.providers import (
     MemoProvider,
@@ -56,6 +61,36 @@ class UnderwritingPacketAgentRuntime:
         self._risk_classifier = risk_classifier or get_default_risk_classifier()
         self._last_risk_evaluator_mode = "deterministic"
         self._last_memo_mode = "deterministic"
+        self._last_risk_fallback_reason: str | None = None
+
+    def _record(
+        self,
+        session: Session | None,
+        entity_id: str | None,
+        agent_name: str,
+        *,
+        provider: str,
+        model: str,
+        inputs: dict,
+    ):
+        """Open a ledger run for one agent, or a no-op when no session is wired.
+
+        Keeping `session` optional means session-less callers (and the 62
+        pricing-cell characterization tests) record nothing and behave exactly
+        as before — the ledger is purely additive."""
+        if session is None:
+            return contextlib.nullcontext()
+        return record_agent_run(
+            session,
+            agent_name=agent_name,
+            agent_kind="pipeline",
+            provider=provider,
+            model=model,
+            contract_version=CONTRACT_VERSION,
+            inputs=inputs,
+            entity_type="incident",
+            entity_id=entity_id,
+        )
 
     def execute(
         self,
@@ -67,36 +102,81 @@ class UnderwritingPacketAgentRuntime:
         stream_events: list[dict],
         policy_context: dict | None = None,
         prior_packet_outputs: dict | None = None,
+        session: Session | None = None,
+        entity_id: str | None = None,
     ) -> UnderwritingPacketAgentResult:
         contracts = self._load_contracts()
         trace: list[AgentExecutionStep] = []
 
-        citations = self._run_retrieval_agent(
-            venue_id=venue_id,
-            incident=incident,
-            knowledge_sources=knowledge_sources,
-            stream_events=stream_events,
-        )
+        with self._record(
+            session, entity_id, "retrieval_agent",
+            provider="deterministic", model="rag-v1",
+            inputs={"summary": incident.summary, "location": incident.location, "venue_id": venue_id},
+        ):
+            citations = self._run_retrieval_agent(
+                venue_id=venue_id,
+                incident=incident,
+                knowledge_sources=knowledge_sources,
+                stream_events=stream_events,
+            )
         trace.append(self._trace_step("retrieval_agent", contracts))
 
-        risk_signal = self._run_risk_evaluator_agent(citations=citations, incident=incident)
+        with self._record(
+            session, entity_id, "risk_evaluator_agent",
+            provider=getattr(self._risk_classifier, "provider_name", "deterministic"),
+            model="risk-classifier",
+            inputs={"summary": incident.summary, "location": incident.location,
+                    "citation_excerpts": [c.excerpt for c in citations]},
+        ) as run:
+            risk_signal = self._run_risk_evaluator_agent(citations=citations, incident=incident)
+            if run is not None:
+                run.run.model = self._last_risk_evaluator_mode
+                run.confidence(Decimal(str(risk_signal.confidence)))
+                if self._last_risk_fallback_reason:
+                    run.fell_back(self._last_risk_fallback_reason)
         trace.append(self._trace_step(
             "risk_evaluator_agent", contracts, execution_mode=self._last_risk_evaluator_mode,
         ))
 
-        action_plan = self._run_customer_action_agent(incident=incident, risk_signal=risk_signal)
+        with self._record(
+            session, entity_id, "customer_action_agent",
+            provider="deterministic", model="rules-v1",
+            inputs={"risk_type": risk_signal.type, "severity": risk_signal.severity},
+        ):
+            action_plan = self._run_customer_action_agent(incident=incident, risk_signal=risk_signal)
         trace.append(self._trace_step("customer_action_agent", contracts))
 
-        claims_timeline, claims_timeline_meta = self._run_claims_timeline_agent(
-            venue_id=venue_id,
-            incident=incident,
-            stream_events=stream_events,
-        )
+        with self._record(
+            session, entity_id, "claims_timeline_agent",
+            provider="deterministic", model="rules-v1",
+            inputs={"venue_id": venue_id, "incident_at": incident.occurred_at},
+        ):
+            claims_timeline, claims_timeline_meta = self._run_claims_timeline_agent(
+                venue_id=venue_id,
+                incident=incident,
+                stream_events=stream_events,
+            )
         trace.append(self._trace_step("claims_timeline_agent", contracts))
 
-        underwriting_memo = self._run_underwriter_memo_agent(
-            incident=incident, risk_signal=risk_signal, citations=citations
-        )
+        with self._record(
+            session, entity_id, "underwriter_memo_agent",
+            provider=getattr(self._memo_provider, "provider_name", "deterministic"),
+            model="underwriter-memo",
+            inputs={"summary": incident.summary, "risk_type": risk_signal.type,
+                    "severity": risk_signal.severity},
+        ) as run:
+            underwriting_memo = self._run_underwriter_memo_agent(
+                incident=incident, risk_signal=risk_signal, citations=citations
+            )
+            if run is not None:
+                # Override the placeholders with the memo's actual lineage when it
+                # reports one (the deterministic provider leaves model None).
+                if underwriting_memo.provider:
+                    run.run.provider = underwriting_memo.provider
+                if underwriting_memo.model:
+                    run.run.model = underwriting_memo.model
+                if underwriting_memo.fallback_reason:
+                    run.fell_back(underwriting_memo.fallback_reason)
         trace.append(self._trace_step(
             "underwriter_memo_agent", contracts, execution_mode=self._last_memo_mode,
         ))
@@ -234,6 +314,7 @@ class UnderwritingPacketAgentRuntime:
         A transient LLM hiccup must never block a packet — the deterministic
         keyword ladder is a complete classifier on its own.
         """
+        self._last_risk_fallback_reason = None
         try:
             return self._risk_classifier.classify(
                 incident_summary=incident_summary,
@@ -243,6 +324,9 @@ class UnderwritingPacketAgentRuntime:
         except Exception as exc:
             import logging
             primary = getattr(self._risk_classifier, "provider_name", "unknown")
+            self._last_risk_fallback_reason = (
+                f"{primary} failed: {exc.__class__.__name__}: {str(exc)[:200]}"
+            )
             logging.warning(
                 "Risk classifier %s failed (%s); using deterministic.",
                 primary, exc.__class__.__name__,
@@ -636,6 +720,8 @@ def execute_underwriting_packet_agents(
     stream_events: list[dict],
     policy_context: dict | None = None,
     prior_packet_outputs: dict | None = None,
+    session: Session | None = None,
+    entity_id: str | None = None,
 ) -> UnderwritingPacketAgentResult:
     runtime = UnderwritingPacketAgentRuntime()
     return runtime.execute(
@@ -646,4 +732,6 @@ def execute_underwriting_packet_agents(
         stream_events=stream_events,
         policy_context=policy_context,
         prior_packet_outputs=prior_packet_outputs,
+        session=session,
+        entity_id=entity_id,
     )

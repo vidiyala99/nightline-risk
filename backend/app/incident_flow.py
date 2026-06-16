@@ -36,6 +36,8 @@ def create_brawl_incident_flow(
         incident=payload,
         knowledge_sources=knowledge_sources,
         stream_events=STREAM_EVENTS,
+        session=session,
+        entity_id=incident.id,
     )
 
     # Persist to database
