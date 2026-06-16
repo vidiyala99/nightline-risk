@@ -7,7 +7,16 @@ import { authHeaders } from "@/lib/authFetch";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { Plus, Users, Copy, Mail } from "lucide-react";
 
+import { Button } from "@/components/ds/button";
+import { Card } from "@/components/ds/card";
+import { Input } from "@/components/ds/input";
+import { Label } from "@/components/ds/label";
+import { Badge } from "@/components/ds/badge";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+const DISPLAY = { fontFamily: "var(--font-display)" } as const;
+const SCRIPT = { fontFamily: "var(--font-caveat)" } as const;
 
 interface StaffMember {
   id: string;
@@ -18,7 +27,8 @@ interface StaffMember {
 }
 
 // Operator's "Floor Team" — provision and view staff logins for the venue.
-// Each staff member gets a set-password link the operator relays.
+// Each staff member gets a set-password link the operator relays. "Paper & Ink"
+// — migrated to ds/ primitives; explicit colours on every text element.
 export default function TeamPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -69,8 +79,8 @@ export default function TeamPage() {
       toastSuccess(`${data.name} added to the floor team`);
       setName(""); setEmail("");
       load();
-    } catch (err: any) {
-      toastError(err?.message || "Failed to add staff");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to add staff");
     } finally {
       setSubmitting(false);
     }
@@ -81,116 +91,114 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="lc-shell min-h-screen theme-venue" style={{ padding: "0 clamp(20px, 4vw, 56px) 64px" }}>
-      <section className="lc-hero">
+    <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] pb-16">
+      {/* ── hero ───────────────────────────────────────────────────────── */}
+      <section className="flex flex-wrap items-end justify-between gap-6 py-10">
         <div>
-          <span className="lc-eyebrow">
-            FLOOR TEAM
-            <span className="lc-eyebrow__sep" />
-            {isBroker ? "BROKER" : "OPERATOR"}
+          <span className="flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-wider text-[#5A6E00]">
+            <span className="size-1.5 rounded-[2px] bg-primary" aria-hidden />
+            Floor team
+            <span className="text-muted-foreground">· {isBroker ? "Broker" : "Operator"}</span>
           </span>
-          <h1 className="lc-display">Your <em>floor team</em></h1>
-          <p className="lc-sub">Give security, bar, and door staff a login so they can report incidents straight from the floor.</p>
+          <h1 className="mt-3 text-[2.4rem] font-bold leading-[1.05] tracking-tight text-foreground" style={DISPLAY}>
+            Your <span className="text-[#5A6E00]" style={SCRIPT}>floor team</span>
+          </h1>
+          <p className="mt-2 max-w-[60ch] text-[15px] text-muted-foreground">
+            Give security, bar, and door staff a login so they can report incidents straight from the floor.
+          </p>
         </div>
-        <div className="lc-hero__meta">
-          <div className="lc-meta-cell">
-            <span className="lc-stat-label">Staff</span>
-            <strong>{staff.length.toString().padStart(2, "0")}</strong>
-          </div>
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Staff</div>
+          <div className="mt-0.5 text-2xl font-semibold text-foreground">{staff.length.toString().padStart(2, "0")}</div>
         </div>
       </section>
 
       {!venueId ? (
-        <div className="page-empty">
-          <Users size={48} />
-          <h3>No venue in scope</h3>
-          <p>Open this from a venue to manage its floor team.</p>
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-20 text-center">
+          <Users size={48} className="text-muted-foreground" />
+          <h3 className="text-lg font-semibold text-foreground">No venue in scope</h3>
+          <p className="text-sm text-muted-foreground">Open this from a venue to manage its floor team.</p>
         </div>
       ) : (
         <>
-          <div className="form-shell" style={{ maxWidth: 960, margin: "0 0 var(--space-xl)" }}>
-          <form id="addstaff-form" onSubmit={handleAdd} className="incident-form" style={{ maxWidth: "none", margin: 0 }}>
-            <div className="incident-form-header">
-              <div className="incident-form-dot" />
-              <span className="incident-form-header-label">Add a staff member</span>
-            </div>
-            <div className="form-row">
-              <div className="input-wrapper">
-                <label className="input-label">Name</label>
-                <input type="text" className="input-field" placeholder="e.g., Dana Ruiz" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" required />
+          <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+            {/* add-staff form */}
+            <Card className="gap-4 p-6">
+              <div className="flex items-center gap-2">
+                <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+                <span className="text-sm font-semibold text-foreground">Add a staff member</span>
               </div>
-              <div className="input-wrapper">
-                <label className="input-label">Work email</label>
-                <input type="email" className="input-field" placeholder="name@venue.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" required />
-              </div>
-            </div>
-          </form>
+              <form id="addstaff-form" onSubmit={handleAdd} className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="staff-name" className="text-foreground">Name</Label>
+                  <Input id="staff-name" type="text" placeholder="e.g., Dana Ruiz" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="staff-email" className="text-foreground">Work email</Label>
+                  <Input id="staff-email" type="email" placeholder="name@venue.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" required />
+                </div>
+              </form>
+            </Card>
 
-          <aside className="form-summary">
-            <div className="form-summary__actions">
-              <button type="submit" form="addstaff-form" className="btn btn-primary btn-sm" disabled={submitting}>
-                <Plus size={14} aria-hidden style={{ marginRight: 4, verticalAlign: "-2px" }} />
+            {/* invite link OR summary */}
+            <Card className="gap-3 p-6">
+              <Button type="submit" form="addstaff-form" disabled={submitting} className="w-full border border-foreground/15">
+                <Plus className="size-3.5" />
                 {submitting ? "Adding…" : "Add to team"}
-              </button>
-            </div>
-            {invite ? (
-              <div>
-                <div className="form-summary__title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Mail size={12} aria-hidden style={{ color: "var(--accent-ink)" }} /> Set-password link · {invite.name}
+              </Button>
+              {invite ? (
+                <div>
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                    <Mail size={12} aria-hidden className="text-[#5A6E00]" /> Set-password link · {invite.name}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Send this to {invite.name} to set a password and sign in. Expires in 1 hour.
+                  </p>
+                  <code className="mt-2 block break-all text-xs text-muted-foreground">{invite.url}</code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 text-foreground"
+                    onClick={() => { navigator.clipboard?.writeText(invite.url); toastSuccess("Link copied"); }}
+                  >
+                    <Copy className="size-3.5" /> Copy link
+                  </Button>
                 </div>
-                <p className="text-xs text-secondary" style={{ margin: "0 0 8px" }}>
-                  Send this to {invite.name} to set a password and sign in. Expires in 1 hour.
-                </p>
-                <code className="text-xs" style={{ wordBreak: "break-all", display: "block", color: "var(--text-secondary)", marginBottom: 8 }}>
-                  {invite.url}
-                </code>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => { navigator.clipboard?.writeText(invite.url); toastSuccess("Link copied"); }}
-                >
-                  <Copy size={14} aria-hidden style={{ marginRight: 4, verticalAlign: "-2px" }} /> Copy link
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="form-summary__title">Floor team</div>
-                <dl style={{ margin: 0 }}>
-                  <div className="form-summary__row"><dt>Staff</dt><dd>{staff.length}</dd></div>
-                </dl>
-                <div className="form-summary__note">
+              ) : (
+                <p className="text-xs text-muted-foreground">
                   Adding a member generates a one-hour set-password link to relay to them.
-                </div>
-              </>
-            )}
-          </aside>
+                </p>
+              )}
+            </Card>
           </div>
 
-          <div className="incidents-section">
-            <div className="incidents-list stagger-children">
-              {staff.length > 0 ? (
-                staff.map((s) => (
-                  <div key={s.id} className="incident-card" style={{ cursor: "default" }}>
-                    <div className="incident-icon"><Users size={20} aria-hidden="true" /></div>
-                    <div className="incident-info">
-                      <div className="incident-header-row">
-                        <h4>{s.name}</h4>
-                        <span className="badge">STAFF</span>
-                      </div>
-                      <div className="incident-meta">
-                        <span><Mail size={12} />{s.email}</span>
-                      </div>
+          {/* staff list */}
+          <div className="mt-6 flex flex-col gap-3">
+            {staff.length > 0 ? (
+              staff.map((s) => (
+                <Card key={s.id} className="flex-row items-center gap-4 py-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <Users size={20} aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1 px-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="font-semibold text-foreground">{s.name}</h4>
+                      <Badge variant="muted">STAFF</Badge>
+                    </div>
+                    <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                      <Mail size={12} />{s.email}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="page-empty">
-                  <Users size={48} />
-                  <h3>No staff yet</h3>
-                  <p>Add your floor team above so they can report incidents.</p>
-                </div>
-              )}
-            </div>
+                </Card>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-16 text-center">
+                <Users size={48} className="text-muted-foreground" />
+                <h3 className="text-lg font-semibold text-foreground">No staff yet</h3>
+                <p className="text-sm text-muted-foreground">Add your floor team above so they can report incidents.</p>
+              </div>
+            )}
           </div>
         </>
       )}
