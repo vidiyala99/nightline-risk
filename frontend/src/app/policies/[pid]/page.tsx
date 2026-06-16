@@ -17,18 +17,19 @@
  *   - "+ Endorse" → /policies/[pid]/endorse
  *   - "+ Issue COI" → /policies/[pid]/certificates/new
  *   - "Cancel" → opens a prompt for method + reason
+ *
+ * "Paper & Ink" — migrated to the ds/ primitives. PageHeader/StatusPill are
+ * replaced inline (shared legacy components still serve un-migrated pages);
+ * every text element carries an explicit colour (the migration rule). Shared
+ * PromptDialog + ClaimStatusPill are kept as-is.
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { StatusPill } from "@/components/ui/StatusPill";
 import toast from "react-hot-toast";
 import { PlacementApiError, formatCurrency, formatPct, placementApi } from "@/lib/placement";
 import {
-  CertificateOfInsurance,
   ENDORSEMENT_TYPE_LABEL,
-  Endorsement,
   POLICY_STATUS_LABEL,
   POLICY_STATUS_TONE,
   PolicyDetail,
@@ -41,6 +42,23 @@ import { claimsApi, totalPaidFromClaim, type Claim } from "@/lib/claims";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { formatLedgerMoney } from "@/lib/claim-tokens";
 import { PromptDialog, type PromptField } from "@/components/ui/PromptDialog";
+import { Button } from "@/components/ds/button";
+import { Badge } from "@/components/ds/badge";
+
+const DISPLAY = { fontFamily: "var(--font-display)" } as const;
+
+// StatusPill tone → ds Badge variant.
+const TONE_VARIANT = {
+  neutral: "muted",
+  info: "info",
+  success: "success",
+  warning: "warning",
+  danger: "destructive",
+} as const;
+
+const thCls = "px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground";
+const tdCls = "px-4 py-3 text-foreground";
+const monoCls = "px-4 py-3 font-mono text-foreground";
 
 type PromptKind = "assign" | "cancel" | "nonrenew" | "lapse";
 
@@ -213,7 +231,7 @@ export default function PolicyDetailPage() {
             Renewal started — sent to placement.
             <button
               type="button"
-              className="btn btn-sm"
+              className="rounded-md border border-foreground/20 px-2 py-1 text-xs font-medium"
               onClick={async () => {
                 toast.dismiss(t.id);
                 try {
@@ -238,12 +256,14 @@ export default function PolicyDetailPage() {
   };
 
   if (loading) {
-    return <div className="placement-page__loading">Loading…</div>;
+    return <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>;
   }
   if (!policy) {
     return (
-      <div className="submission-detail">
-        <div className="placement-page__error">{error ?? "Policy not found"}</div>
+      <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] py-10">
+        <div role="alert" className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error ?? "Policy not found"}
+        </div>
       </div>
     );
   }
@@ -251,101 +271,79 @@ export default function PolicyDetailPage() {
   const isActive = policy.status === "active" || policy.status === "bound_pending_number";
 
   return (
-    <div className="submission-detail">
-      <PageHeader
-        eyebrow={`Policy · ${policy.id}`}
-        title={policy.venue_id}
-        subtitle={
-          policy.policy_number
-            ? `${policy.carrier_id} · ${policy.policy_number}`
-            : `${policy.carrier_id} · policy # pending`
-        }
-        actions={
-          <>
-            <StatusPill tone={POLICY_STATUS_TONE[policy.status]}>
-              {POLICY_STATUS_LABEL[policy.status]}
-            </StatusPill>
-            {/* The page's one primary action lives here, right-most: the thing a
-                broker came to do. State-driven — renew / assign # / reinstate. */}
-            {policy.status === "active" && (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleRenew}
-                disabled={busy}
-              >
-                Renew
-              </button>
-            )}
-            {policy.status === "bound_pending_number" && (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleAssignNumber}
-                disabled={busy}
-              >
-                + Assign policy number
-              </button>
-            )}
-            {policy.status === "lapsed" && (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleReinstate}
-                disabled={busy}
-              >
-                Reinstate
-              </button>
-            )}
-          </>
-        }
-      />
-
-      {error && <div className="placement-page__error">{error}</div>}
-
-      {/* Summary strip */}
-      <div className="submission-detail__summary">
+    <div className="relative min-h-screen overflow-x-clip px-[clamp(20px,4vw,56px)] pb-16">
+      {/* ── header ─────────────────────────────────────────────────────── */}
+      <section className="flex flex-wrap items-start justify-between gap-4 py-10">
         <div>
-          <div className="submission-detail__summary-label">Annual Premium</div>
-          <div className="submission-detail__summary-value">
-            {formatCurrency(policy.annual_premium)}
-          </div>
+          <span className="flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-wider text-[#5A6E00]">
+            <span className="size-1.5 rounded-[2px] bg-primary" aria-hidden />
+            Policy · {policy.id}
+          </span>
+          <h1 className="mt-3 text-[2.4rem] font-bold leading-[1.05] tracking-tight text-foreground" style={DISPLAY}>
+            {policy.venue_id}
+          </h1>
+          <p className="mt-2 font-mono text-sm text-muted-foreground">
+            {policy.policy_number
+              ? `${policy.carrier_id} · ${policy.policy_number}`
+              : `${policy.carrier_id} · policy # pending`}
+          </p>
         </div>
-        <div>
-          <div className="submission-detail__summary-label">Commission</div>
-          <div className="submission-detail__summary-value">
+        <div className="flex items-center gap-3">
+          <Badge variant={TONE_VARIANT[POLICY_STATUS_TONE[policy.status]]}>
+            {POLICY_STATUS_LABEL[policy.status]}
+          </Badge>
+          {/* The page's one primary action — state-driven (renew / assign # / reinstate). */}
+          {policy.status === "active" && (
+            <Button size="sm" onClick={handleRenew} disabled={busy} className="border border-foreground/15">Renew</Button>
+          )}
+          {policy.status === "bound_pending_number" && (
+            <Button size="sm" onClick={handleAssignNumber} disabled={busy} className="border border-foreground/15">+ Assign policy number</Button>
+          )}
+          {policy.status === "lapsed" && (
+            <Button size="sm" onClick={handleReinstate} disabled={busy} className="border border-foreground/15">Reinstate</Button>
+          )}
+        </div>
+      </section>
+
+      {error && (
+        <div role="alert" className="mb-4 rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* ── summary strip ──────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Annual Premium</div>
+          <div className="mt-1 text-lg font-semibold text-foreground">{formatCurrency(policy.annual_premium)}</div>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Commission</div>
+          <div className="mt-1 text-lg font-semibold text-foreground">
             {formatCurrency(policy.commission_amount)}{" "}
-            <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
-              @ {formatPct(policy.commission_rate)}
-            </span>
+            <span className="text-xs font-normal text-muted-foreground">@ {formatPct(policy.commission_rate)}</span>
           </div>
         </div>
-        <div>
-          <div className="submission-detail__summary-label">Effective</div>
-          <div className="submission-detail__summary-value" style={{ fontSize: 12 }}>
-            {policy.effective_date} → {policy.expiration_date}
-          </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Effective</div>
+          <div className="mt-1 font-mono text-sm text-foreground">{policy.effective_date} → {policy.expiration_date}</div>
         </div>
-        <div>
-          <div className="submission-detail__summary-label">Coverage Lines</div>
-          <div className="submission-detail__summary-value" style={{ fontSize: 12 }}>
-            {policy.coverage_lines.length ? policy.coverage_lines.join(", ") : "—"}
-          </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Coverage Lines</div>
+          <div className="mt-1 text-sm text-foreground">{policy.coverage_lines.length ? policy.coverage_lines.join(", ") : "—"}</div>
         </div>
       </div>
 
-      {/* Snapshot integrity — audit metadata, collapsed by default. A broker
-          doesn't need the SHA-256 at eye level; it anchors defense packages,
-          so keep it one disclosure away rather than a prominent strip. */}
-      <details className="policy-integrity">
-        <summary className="policy-integrity__summary">
+      {/* Snapshot integrity — audit metadata, collapsed by default. */}
+      <details className="mt-4 rounded-xl border border-border bg-card">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-foreground">
           Snapshot integrity
         </summary>
-        <div className="policy-integrity__body">
-          <code className="policy-hash__value" title={policy.snapshot_hash}>
+        <div className="flex flex-col gap-1.5 border-t border-border px-4 py-3">
+          <code className="font-mono text-xs text-foreground" title={policy.snapshot_hash}>
             {policy.snapshot_hash.slice(0, 16)}…{policy.snapshot_hash.slice(-8)}
           </code>
-          <span className="policy-hash__note">
+          <span className="text-xs text-muted-foreground">
             Anchors defense packages to this policy version. Re-computed on
             endorse + policy-number assignment; unchanged on status transitions.
           </span>
@@ -354,143 +352,123 @@ export default function PolicyDetailPage() {
 
       {/* Cancellation block (only when cancelled) */}
       {policy.status === "cancelled" && policy.refund_amount && (
-        <div className="policy-cancel-block">
-          <div className="submission-detail__summary-label">Cancellation</div>
-          <div>
+        <div className="mt-4 rounded-xl border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Cancellation</div>
+          <div className="mt-1 text-sm text-foreground">
             {policy.cancellation_method} refund of{" "}
-            <strong>{formatCurrency(policy.refund_amount)}</strong>
+            <strong className="font-semibold">{formatCurrency(policy.refund_amount)}</strong>
             {policy.cancelled_at && (
-              <span style={{ color: "var(--text-tertiary)" }}>
-                {" "}· {policy.cancelled_at.slice(0, 10)}
-              </span>
+              <span className="text-muted-foreground"> · {policy.cancelled_at.slice(0, 10)}</span>
             )}
           </div>
           {policy.cancellation_reason && (
-            <div style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 4 }}>
-              {policy.cancellation_reason}
-            </div>
+            <div className="mt-1 text-xs text-muted-foreground">{policy.cancellation_reason}</div>
           )}
         </div>
       )}
 
-      {/* Inline servicing toolbar — the day-to-day actions on an in-force
-          policy. The page's primary CTA (renew / assign # / reinstate) lives in
-          the header; rare lifecycle/admin actions live in the Manage menu. */}
+      {/* Inline servicing toolbar — primary CTA lives in the header; rare
+          lifecycle/admin actions live behind the Manage menu. */}
       {isActive && (
-        <div className="policy-actions">
-          <div className="policy-actions__group">
-            <Link
-              href={`/policies/${policy.id}/endorse`}
-              className="btn btn-secondary btn-sm"
-            >
-              + Endorse
-            </Link>
-            <Link
-              href={`/policies/${policy.id}/certificates/new`}
-              className="btn btn-secondary btn-sm"
-            >
-              + Issue COI
-            </Link>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm" className="text-foreground">
+              <Link href={`/policies/${policy.id}/endorse`}>+ Endorse</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="text-foreground">
+              <Link href={`/policies/${policy.id}/certificates/new`}>+ Issue COI</Link>
+            </Button>
           </div>
-          {/* Lifecycle/admin actions live behind an overflow menu — they're
-              rare and mostly outcomes (a broker doesn't proactively "expire" a
-              policy), so they shouldn't sit at the same weight as servicing.
-              Only 'active' policies can expire/non-renew/lapse per the matrix. */}
-          <div className="policy-actions__group policy-actions__group--end">
-            <div
-              className="policy-menu"
-              onKeyDown={(e) => { if (e.key === "Escape") setManageOpen(false); }}
+          <div
+            className="relative"
+            onKeyDown={(e) => { if (e.key === "Escape") setManageOpen(false); }}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-foreground"
+              aria-haspopup="menu"
+              aria-expanded={manageOpen}
+              onClick={() => setManageOpen((o) => !o)}
+              disabled={busy}
             >
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                aria-haspopup="menu"
-                aria-expanded={manageOpen}
-                onClick={() => setManageOpen((o) => !o)}
-                disabled={busy}
-              >
-                Manage ▾
-              </button>
-              {manageOpen && (
-                <>
-                  <div
-                    className="policy-menu__backdrop"
-                    onClick={() => setManageOpen(false)}
-                  />
-                  <div className="policy-menu__list" role="menu">
-                    {policy.status === "active" && (
-                      <>
-                        <button
-                          type="button" role="menuitem" className="policy-menu__item"
-                          onClick={() => { setManageOpen(false); handleEndOfLife("expire"); }}
-                          disabled={busy}
-                        >
-                          Mark expired
-                        </button>
-                        <button
-                          type="button" role="menuitem" className="policy-menu__item"
-                          onClick={() => { setManageOpen(false); handleEndOfLife("non-renew"); }}
-                          disabled={busy}
-                        >
-                          Non-renew
-                        </button>
-                        <button
-                          type="button" role="menuitem" className="policy-menu__item"
-                          onClick={() => { setManageOpen(false); handleEndOfLife("lapse"); }}
-                          disabled={busy}
-                        >
-                          Mark lapsed
-                        </button>
-                        <div className="policy-menu__divider" />
-                      </>
-                    )}
-                    <button
-                      type="button" role="menuitem"
-                      className="policy-menu__item policy-menu__item--danger"
-                      onClick={() => { setManageOpen(false); handleCancel(); }}
-                      disabled={busy}
-                    >
-                      Cancel policy
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+              Manage ▾
+            </Button>
+            {manageOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setManageOpen(false)} />
+                <div className="absolute right-0 z-50 mt-1 min-w-[180px] overflow-hidden rounded-lg border border-border bg-card py-1 shadow-md" role="menu">
+                  {policy.status === "active" && (
+                    <>
+                      <button
+                        type="button" role="menuitem"
+                        className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted disabled:opacity-50"
+                        onClick={() => { setManageOpen(false); handleEndOfLife("expire"); }}
+                        disabled={busy}
+                      >
+                        Mark expired
+                      </button>
+                      <button
+                        type="button" role="menuitem"
+                        className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted disabled:opacity-50"
+                        onClick={() => { setManageOpen(false); handleEndOfLife("non-renew"); }}
+                        disabled={busy}
+                      >
+                        Non-renew
+                      </button>
+                      <button
+                        type="button" role="menuitem"
+                        className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted disabled:opacity-50"
+                        onClick={() => { setManageOpen(false); handleEndOfLife("lapse"); }}
+                        disabled={busy}
+                      >
+                        Mark lapsed
+                      </button>
+                      <div className="my-1 border-t border-border" />
+                    </>
+                  )}
+                  <button
+                    type="button" role="menuitem"
+                    className="block w-full px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                    onClick={() => { setManageOpen(false); handleCancel(); }}
+                    disabled={busy}
+                  >
+                    Cancel policy
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* Endorsements */}
-      <div className="submission-detail__section-title">
+      {/* ── Endorsements ───────────────────────────────────────────────── */}
+      <h2 className="mb-3 mt-10 text-base font-semibold text-foreground">
         Endorsements ({policy.endorsements.length})
-      </div>
+      </h2>
       {policy.endorsements.length === 0 ? (
-        <div className="policies-empty">No endorsements issued.</div>
+        <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">No endorsements issued.</div>
       ) : (
-        <div className="policies-table-wrap">
-          <table className="policies-table">
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr>
-                <th>Type</th>
-                <th>Effective</th>
-                <th>Description</th>
-                <th>Premium Δ</th>
+              <tr className="border-b border-border">
+                <th className={thCls}>Type</th>
+                <th className={thCls}>Effective</th>
+                <th className={thCls}>Description</th>
+                <th className={thCls}>Premium Δ</th>
               </tr>
             </thead>
             <tbody>
               {policy.endorsements.map(e => (
-                <tr key={e.id}>
-                  <td>
-                    {ENDORSEMENT_TYPE_LABEL[e.endorsement_type] ?? e.endorsement_type}
-                  </td>
-                  <td className="policies-table__mono">{e.effective_date}</td>
-                  <td>{e.description}</td>
-                  <td className="policies-table__mono">
+                <tr key={e.id} className="border-b border-border last:border-0">
+                  <td className={tdCls}>{ENDORSEMENT_TYPE_LABEL[e.endorsement_type] ?? e.endorsement_type}</td>
+                  <td className={monoCls}>{e.effective_date}</td>
+                  <td className={tdCls}>{e.description}</td>
+                  <td className={monoCls}>
                     {formatCurrency(e.premium_change)}
                     {parseFloat(e.tax_change) !== 0 && (
-                      <span style={{ color: "var(--text-tertiary)", fontSize: 10 }}>
-                        {" "}(tax {formatCurrency(e.tax_change)})
-                      </span>
+                      <span className="text-[10px] text-muted-foreground"> (tax {formatCurrency(e.tax_change)})</span>
                     )}
                   </td>
                 </tr>
@@ -500,71 +478,66 @@ export default function PolicyDetailPage() {
         </div>
       )}
 
-      {/* Certificates of Insurance */}
-      <div className="submission-detail__section-title" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span>Certificates of Insurance ({visibleCois.length})</span>
+      {/* ── Certificates of Insurance ──────────────────────────────────── */}
+      <div className="mb-3 mt-10 flex items-center gap-3">
+        <h2 className="text-base font-semibold text-foreground">Certificates of Insurance ({visibleCois.length})</h2>
         {policy.certificates.some(c => c.status === "superseded") && (
-          <label className="placement-page__toggle">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
             <input
               type="checkbox"
               checked={showSupersededCois}
               onChange={e => setShowSupersededCois(e.target.checked)}
+              className="size-4 accent-primary"
             />
             Show superseded
           </label>
         )}
       </div>
       {visibleCois.length === 0 ? (
-        <div className="policies-empty">No certificates issued.</div>
+        <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">No certificates issued.</div>
       ) : (
-        <div className="policies-table-wrap">
-          <table className="policies-table">
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
-              <tr>
-                <th>Holder</th>
-                <th>Description</th>
-                <th>Additional Insured</th>
-                <th>Expires</th>
-                <th>Status</th>
-                <th />
+              <tr className="border-b border-border">
+                <th className={thCls}>Holder</th>
+                <th className={thCls}>Description</th>
+                <th className={thCls}>Additional Insured</th>
+                <th className={thCls}>Expires</th>
+                <th className={thCls}>Status</th>
+                <th className={thCls} />
               </tr>
             </thead>
             <tbody>
               {visibleCois.map(c => (
-                <tr key={c.id}>
-                  <td>
-                    <div>{c.certificate_holder}</div>
-                    <div style={{ color: "var(--text-tertiary)", fontSize: 10 }}>
-                      {c.certificate_holder_address}
-                    </div>
+                <tr key={c.id} className="border-b border-border last:border-0">
+                  <td className={tdCls}>
+                    <div className="text-foreground">{c.certificate_holder}</div>
+                    <div className="text-[10px] text-muted-foreground">{c.certificate_holder_address}</div>
                   </td>
-                  <td>{c.description_of_operations}</td>
-                  <td>
+                  <td className={tdCls}>{c.description_of_operations}</td>
+                  <td className={tdCls}>
                     {c.additional_insured ? (
-                      <span>
-                        ✓ {c.additional_insured_scope?.replace(/_/g, " ")}
-                      </span>
+                      <span className="text-foreground">✓ {c.additional_insured_scope?.replace(/_/g, " ")}</span>
                     ) : (
-                      <span style={{ color: "var(--text-tertiary)" }}>—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="policies-table__mono">{c.expires_on}</td>
-                  <td>
-                    <StatusPill tone={
-                      c.status === "active" ? "success" :
-                      c.status === "superseded" ? "neutral" : "danger"
-                    }>
+                  <td className={monoCls}>{c.expires_on}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={c.status === "active" ? "success" : c.status === "superseded" ? "muted" : "destructive"}>
                       {c.status}
-                    </StatusPill>
+                    </Badge>
                   </td>
-                  <td style={{ textAlign: "right" }}>
-                    <button
-                      type="button"
-                      className="link-button"
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-[#5A6E00]"
                       onClick={() => downloadCoiPdf(c.id).catch(() => toastError("Could not download the certificate PDF"))}
                     >
                       Download PDF
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -573,41 +546,35 @@ export default function PolicyDetailPage() {
         </div>
       )}
 
-      {/* Claims (carrier-side) */}
-      <div className="submission-detail__section-title" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span>Claims ({claims?.length ?? 0})</span>
-        <Link
-          href={`/policies/${policy.id}/claims/new`}
-          className="btn btn-secondary btn-sm"
-          style={{ marginLeft: "auto" }}
-        >
-          + File FNOL
-        </Link>
+      {/* ── Claims (carrier-side) ──────────────────────────────────────── */}
+      <div className="mb-3 mt-10 flex items-center gap-3">
+        <h2 className="text-base font-semibold text-foreground">Claims ({claims?.length ?? 0})</h2>
+        <Button asChild variant="outline" size="sm" className="ml-auto text-foreground">
+          <Link href={`/policies/${policy.id}/claims/new`}>+ File FNOL</Link>
+        </Button>
       </div>
       {claims === null && !claimsError ? (
-        <div className="claims-section__skeleton" aria-busy="true">
-          <div /><div /><div />
+        <div className="flex flex-col gap-2" aria-busy="true">
+          {[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl border border-border bg-muted/40" />)}
         </div>
       ) : claimsError ? (
-        <div className="policies-empty" role="alert" style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <div role="alert" className="flex items-center gap-3 rounded-xl border border-dashed border-border py-6 px-4 text-sm text-muted-foreground">
           <span>Couldn&apos;t load claims — {claimsError}</span>
-          <button type="button" className="btn btn-sm" onClick={loadClaims}>Retry</button>
+          <Button variant="outline" size="sm" onClick={loadClaims} className="text-foreground">Retry</Button>
         </div>
       ) : claims!.length === 0 ? (
-        <div className="policies-empty">
-          No claims filed against this policy.
-        </div>
+        <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">No claims filed against this policy.</div>
       ) : (
-        <div className="policies-table-wrap">
-          <table className="policies-table" aria-label="Carrier claims on this policy">
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full min-w-[760px] text-sm" aria-label="Carrier claims on this policy">
             <thead>
-              <tr>
-                <th scope="col">Claim</th>
-                <th scope="col">Coverage line</th>
-                <th scope="col">Status</th>
-                <th scope="col">Date of loss</th>
-                <th scope="col" style={{ textAlign: "right" }}>Reserve</th>
-                <th scope="col" style={{ textAlign: "right" }}>Paid (ind + exp)</th>
+              <tr className="border-b border-border">
+                <th scope="col" className={thCls}>Claim</th>
+                <th scope="col" className={thCls}>Coverage line</th>
+                <th scope="col" className={thCls}>Status</th>
+                <th scope="col" className={thCls}>Date of loss</th>
+                <th scope="col" className={`${thCls} text-right`}>Reserve</th>
+                <th scope="col" className={`${thCls} text-right`}>Paid (ind + exp)</th>
               </tr>
             </thead>
             <tbody>
@@ -623,24 +590,14 @@ export default function PolicyDetailPage() {
                       router.push(`/claims/${c.id}`);
                     }
                   }}
-                  style={{ cursor: "pointer" }}
+                  className="cursor-pointer border-b border-border last:border-0 transition-colors hover:bg-muted/40"
                 >
-                  <td className="policies-table__mono">{c.carrier_claim_number ?? c.id}</td>
-                  <td>{c.coverage_line.toUpperCase()}</td>
-                  <td><ClaimStatusPill status={c.status} reopenCount={c.reopen_count} /></td>
-                  <td className="policies-table__mono">{new Date(c.date_of_loss).toLocaleDateString()}</td>
-                  <td
-                    className="policies-table__mono"
-                    style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
-                  >
-                    {formatLedgerMoney(c.current_reserve)}
-                  </td>
-                  <td
-                    className="policies-table__mono"
-                    style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}
-                  >
-                    {formatLedgerMoney(totalPaidFromClaim(c))}
-                  </td>
+                  <td className={monoCls}>{c.carrier_claim_number ?? c.id}</td>
+                  <td className={tdCls}>{c.coverage_line.toUpperCase()}</td>
+                  <td className="px-4 py-3"><ClaimStatusPill status={c.status} reopenCount={c.reopen_count} /></td>
+                  <td className={monoCls}>{new Date(c.date_of_loss).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-foreground">{formatLedgerMoney(c.current_reserve)}</td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-foreground">{formatLedgerMoney(totalPaidFromClaim(c))}</td>
                 </tr>
               ))}
             </tbody>
