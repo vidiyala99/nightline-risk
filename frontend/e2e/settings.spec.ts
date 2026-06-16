@@ -57,7 +57,7 @@ test.describe.skip("Settings — profile + password", () => {
     await registerAndInject(page, email, "testpass123", "Pw Tester");
 
     await page.goto("/settings");
-    await page.locator(".settings-tab", { hasText: "Security" }).click();
+    await page.getByTestId("settings-tab-security").click();
 
     await page.locator("#old-pw").fill("testpass123");
     await page.locator("#new-pw").fill("newpass456");

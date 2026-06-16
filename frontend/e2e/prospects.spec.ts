@@ -23,10 +23,13 @@ test("broker venues — book-only, no source filter, no prospect cards", async (
   await expect(page).toHaveURL(/\/venues/, { timeout: 20000 });
 
   // At least one venue card must render (book is seeded with operators).
-  await expect(page.locator(".venue-card").first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByTestId("venue-card").first()).toBeVisible({ timeout: 15000 });
 
-  // Source filter and prospect tagging are gone from /venues.
+  // Source filter and prospect tagging are gone from /venues. The prospect badge
+  // has a stable seam (it renders on risk-profile), so its absence here is a
+  // meaningful leak guard. The two remaining class checks assert *removed*
+  // constructs stay removed — there's no element on /venues to seam them to.
   await expect(page.locator(".filter-chip", { hasText: /Prospects/ })).toHaveCount(0);
   await expect(page.locator(".venue-card--prospect")).toHaveCount(0);
-  await expect(page.locator(".venue-prospect-badge")).toHaveCount(0);
+  await expect(page.getByTestId("venue-prospect-badge")).toHaveCount(0);
 });

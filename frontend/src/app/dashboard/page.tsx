@@ -1137,7 +1137,7 @@ function BrokerTriage({ venues, totalCount, searchQuery, onSearch }: BrokerTriag
   return (
     <>
       <div className="lc-triage__head">
-        <span className="lc-triage__title">The Book</span>
+        <span className="lc-triage__title" data-testid="dashboard-book">The Book</span>
         <span className="lc-triage__kpi">
           {searchQuery.trim() ? <><b>{visible.length}</b> / {totalCount}</> : <><b>{String(totalCount).padStart(2, "0")}</b> venues</>}
           {counts.tonight > 0 && <> · <span className="lc-triage__kpi-hi">{counts.tonight} need eyes</span></>}
@@ -1208,6 +1208,7 @@ function TriageRow({
     <Link
       href={`/risk-profile/${venue.id}`}
       className="lc-triage__row"
+      data-testid="triage-row"
       data-bucket={venue._bucket}
       style={{ borderLeftColor: tierColor }}
       aria-label={`Open risk profile for ${venue.name}`}

@@ -61,10 +61,10 @@ test("broker dashboard — multiple venue portfolio cards visible in a grid", as
   // The broker triage console header ("The Book") should be visible
   await expect(dashboardPage.portfolioGrid).toBeVisible({ timeout: 15000 });
 
-  // There should be more than one venue row in the triage list. Each row is
-  // now an anchor (a.lc-triage__row) that navigates straight to the venue's
+  // There should be more than one venue row in the triage list. Each row is an
+  // anchor (data-testid="triage-row") that navigates straight to the venue's
   // risk profile — consistent on desktop and mobile (no hidden preview pane).
-  const venueRows = page.locator(".lc-triage__row");
+  const venueRows = page.getByTestId("triage-row");
   const count = await venueRows.count();
   expect(count).toBeGreaterThan(1);
 

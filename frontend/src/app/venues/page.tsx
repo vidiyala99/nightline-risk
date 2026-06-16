@@ -270,7 +270,7 @@ export default function VenuesPage() {
           )}
           {!isBroker && (
             <div className="lc-meta-cell" style={{ borderLeft: "none" }}>
-              <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+              <button data-testid="add-venue" className="btn btn-primary" onClick={() => setShowForm(true)}>
                 <Plus size={16} /> Add Venue
               </button>
             </div>
@@ -394,13 +394,13 @@ export default function VenuesPage() {
         <div className="lc-rule__line" />
       </div>
 
-      <div className="venues-grid">
+      <div className="venues-grid" data-testid="venues-grid">
         {filteredVenues.map((venue) => {
           // Both personas drill into the venue's risk profile — the canonical
           // venue-detail surface. (The live terminal was retired.)
           const detailHref = `/risk-profile/${venue.id}`;
           return (
-          <div key={venue.id} className="venue-card" style={{ textDecoration: "none", display: "block" }}>
+          <div key={venue.id} data-testid="venue-card" className="venue-card" style={{ textDecoration: "none", display: "block" }}>
             {editingId === venue.id ? (
               /* Inline edit form */
               <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%" }}>

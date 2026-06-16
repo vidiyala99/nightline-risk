@@ -67,7 +67,7 @@ test("broker renewals — Renew button triggers YoY result panel (skips if empty
   if (!isPresent) {
     // Empty due-list is valid — assert the empty-state message and skip the
     // renew branch so the test doesn't hard-fail against a clean demo dataset.
-    const emptyMsg = page.locator(".policies-empty");
+    const emptyMsg = page.getByTestId("renewals-empty");
     await expect(emptyMsg).toBeVisible({ timeout: 5000 });
     return;
   }

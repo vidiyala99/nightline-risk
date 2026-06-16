@@ -562,7 +562,7 @@ export default function RiskProfilePage() {
               <div>
                 <div className="rp-score" style={{ color: tierColor, display: "flex", alignItems: "center", gap: "10px" }}>
                   <span>{score}<span className="text-xl text-secondary font-normal"> / 100</span></span>
-                  {isProspect && <span className="venue-prospect-badge" title="Estimated from public records — not live telemetry">EST.</span>}
+                  {isProspect && <span className="venue-prospect-badge" data-testid="venue-prospect-badge" title="Estimated from public records — not live telemetry">EST.</span>}
                 </div>
                 <p className="text-xs font-mono text-secondary mt-xs">
                   {isProspect
@@ -876,7 +876,7 @@ export default function RiskProfilePage() {
             <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
               <div className="flex items-center gap-sm" style={{ justifyContent: "space-between" }}>
                 <h3 className="rp-section-title text-xs uppercase tracking-wide text-secondary">Prospect</h3>
-                <span className="venue-prospect-badge">Estimated</span>
+                <span className="venue-prospect-badge" data-testid="venue-prospect-badge">Estimated</span>
               </div>
               <p className="text-sm text-secondary" style={{ margin: 0 }}>
                 Real NYC licensee, not yet on your book. Figures below are modeled

@@ -106,7 +106,7 @@ export default function RenewalsPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="policies-empty" role="alert" style={{ borderColor: "var(--state-error)", color: "var(--state-error)" }}>
+        <div className="policies-empty" data-testid="renewals-error" role="alert" style={{ borderColor: "var(--state-error)", color: "var(--state-error)" }}>
           {error}
         </div>
       )}
@@ -172,7 +172,7 @@ export default function RenewalsPage() {
           <div /><div /><div /><div />
         </div>
       ) : rows.length === 0 ? (
-        <div className="policies-empty">
+        <div className="policies-empty" data-testid="renewals-empty">
           No policies expiring in the next 60 days. Check back closer to renewal
           season.
         </div>

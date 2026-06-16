@@ -54,7 +54,7 @@ export default function SettingsPage() {
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} className={`settings-tab ${activeTab === tab.id ? "active" : ""}`} onClick={() => setActiveTab(tab.id)}>
+            <button key={tab.id} data-testid={`settings-tab-${tab.id}`} className={`settings-tab ${activeTab === tab.id ? "active" : ""}`} onClick={() => setActiveTab(tab.id)}>
               <Icon size={16} /> {tab.label}
             </button>
           );

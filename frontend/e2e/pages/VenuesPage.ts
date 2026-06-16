@@ -11,9 +11,9 @@ export class VenuesPage {
     this.page = page;
 
     this.heading = page.locator("h1", { hasText: "Venues" });
-    // "Add Venue" button in the page header
-    this.addVenueButton = page.locator("button.btn.btn-primary", { hasText: "Add Venue" });
-    this.venuesGrid = page.locator(".venues-grid");
+    // Stable data-testid seams (were .btn.btn-primary / .venues-grid CSS pins).
+    this.addVenueButton = page.getByTestId("add-venue");
+    this.venuesGrid = page.getByTestId("venues-grid");
   }
 
   async goto() {
@@ -22,6 +22,6 @@ export class VenuesPage {
   }
 
   venueCardByName(name: string): Locator {
-    return this.page.locator(".venue-card h3", { hasText: name });
+    return this.page.getByTestId("venue-card").filter({ hasText: name });
   }
 }

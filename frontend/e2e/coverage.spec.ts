@@ -16,7 +16,7 @@ test("operator coverage page — reachable from sidebar, renders", async ({ page
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
   await dashboard.waitForLoad();
 
-  await page.locator(".sidebar-nav-item", { hasText: /^Coverage$/ }).click();
+  await page.getByTestId("nav-coverage").click();
   await expect(page).toHaveURL(/\/coverage/, { timeout: 20000 });
   // Migrated to Paper & Ink: the h1 is now "My safety net" (the eyebrow reads
   // "Venue · Coverage"); the legacy .page-header__title class is gone.
