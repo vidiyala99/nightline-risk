@@ -25,7 +25,8 @@ test("broker tasks page — renders via direct nav (not in the IA sidebar spine)
   await loginBroker(page);
   await page.goto("/tasks");
   await expect(page).toHaveURL(/\/tasks/, { timeout: 20000 });
-  await expect(page.locator(".page-header__title", { hasText: /Tasks/i })).toBeVisible({ timeout: 15000 });
+  // Migrated to Paper & Ink: semantic heading hook (dropped the legacy .page-header__title class).
+  await expect(page.getByRole("heading", { name: /Tasks/i })).toBeVisible({ timeout: 15000 });
 });
 
 test("broker policy-requests queue — reachable, renders", async ({ page }) => {
