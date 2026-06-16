@@ -9,12 +9,29 @@
        dashboard ticker/"needs you" overlap).
    Delete the two legacy imports + restore the simple order once the sweep is
    complete. */
-@layer theme, base, legacy, components, utilities;
+@layer theme, base, legacy, components, utilities, legacy-shim;
 @import "./styles.css" layer(legacy);
 @import "./mobile-native.css" layer(legacy);
 
 @import "tailwindcss";
 @import "tw-animate-css";
+
+/* ── Legacy utility-name shim (removed at end of sweep) ──────────────────────
+   The legacy app hand-rolled `.text-secondary` / `.text-primary` / `.text-muted`
+   class names that Tailwind v4 now ALSO generates from the ds tokens — and the
+   ds values nearly match the paper bg (`--secondary`/`--muted` = #EFE7D3) or are
+   the lime accent (`--primary`). Tailwind's utilities outrank the legacy layer,
+   so un-migrated pages rendered these as near-invisible / wrong-colour text.
+   This shim layer sits ABOVE `utilities`, restoring the legacy INK colours for
+   exactly these three names. Migrated pages + ds primitives use different names
+   (`text-foreground`, `text-muted-foreground`, `text-primary-foreground`,
+   `bg-primary`), so they're unaffected. `text-tertiary` has no Tailwind utility,
+   so it never collided. */
+@layer legacy-shim {
+  .text-secondary { color: var(--text-secondary); }
+  .text-primary   { color: var(--text-primary); }
+  .text-muted     { color: var(--text-secondary); }
+}
 
 /* Dark mode driven by a `.dark` class on <html> (toggled by the theme provider). */
 @custom-variant dark (&:is(.dark *));
