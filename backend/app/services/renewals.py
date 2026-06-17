@@ -23,6 +23,7 @@ from app.models import Claim, Policy, Submission
 from app.money import usd
 from app.packet_core import _add_audit_event
 from app.services.submissions import SubmissionsError, create_submission
+from app.underwriting.experience_rating import ExperienceYear
 
 # A renewal submission that fell through frees the policy to be re-renewed.
 # "Lost / declined / withdrawn" are the dead-end terminal states; "bound" is
@@ -89,6 +90,44 @@ def compute_loss_experience(session: Session, policy_id: str) -> LossExperience:
         loss_ratio=loss_ratio,
         claim_count=len(claims),
     )
+
+
+def build_experience_years_for_policy(
+    session: Session,
+    policy_id: str,
+    *,
+    annual_premium: Decimal,
+    years_back: int,
+) -> list[ExperienceYear]:
+    """Return a one-element list with the ExperienceYear for one policy term.
+
+    Callers walk the prior_policy_id chain and collect one entry per term,
+    then pass the full list to compute_experience_mod(). Keeping this per-term
+    lets the chain-walk live in the API/renewal service rather than here.
+
+    incurred = total_incurred when set by the adjuster, else the running
+    totals (same formula as compute_loss_experience for consistency).
+    """
+    claims = list(session.exec(select(Claim).where(Claim.policy_id == policy_id)))
+    incurred = Decimal("0.00")
+    for c in claims:
+        if c.total_incurred is not None:
+            incurred += c.total_incurred
+        else:
+            incurred += (
+                c.current_reserve
+                + c.indemnity_paid_to_date
+                + c.expense_paid_to_date
+                - c.recoveries_to_date
+            )
+    return [
+        ExperienceYear(
+            years_back=years_back,
+            incurred=incurred,
+            earned_premium=annual_premium,
+            claim_count=len(claims),
+        )
+    ]
 
 
 def create_renewal(
