@@ -26,6 +26,7 @@ import json
 import os
 import time
 
+from app.copilot.llm_telemetry import log_llm_call
 from app.copilot.prompts import SYSTEM_PROMPT, TOOL_DESCRIPTIONS
 from app.copilot.provider import ChatProvider, DeterministicChatProvider, _REFUSAL
 from app.copilot.schemas import AnswerType, CopilotReply, ReplyLink
@@ -72,6 +73,17 @@ class OpenAICompatibleChatProvider(ChatProvider):
             raise ValueError(
                 f"{self.BASE_URL_ENV} and {self.MODEL_ENV} must be set for the LLM copilot provider."
             )
+        # Per-request token accumulator (summed across the 2 chat calls a single
+        # answer makes), reset at the start of each respond().
+        self._usage = {"prompt_tokens": 0, "completion_tokens": 0}
+
+    def _provider_label(self) -> str:
+        return "grok" if "x.ai" in self.base_url else "openai_compatible"
+
+    def _accumulate_usage(self, resp_json: dict) -> None:
+        usage = (resp_json or {}).get("usage") or {}
+        self._usage["prompt_tokens"] += int(usage.get("prompt_tokens", 0) or 0)
+        self._usage["completion_tokens"] += int(usage.get("completion_tokens", 0) or 0)
 
     # ── HTTP seams (mocked in tests) ─────────────────────────────────────────
     def _post_chat(self, payload: dict, headers: dict):
@@ -120,10 +132,28 @@ class OpenAICompatibleChatProvider(ChatProvider):
 
     # ── ChatProvider ─────────────────────────────────────────────────────────
     def respond(self, message: str, *, tools, confirm_action=None) -> CopilotReply:
+        self._usage = {"prompt_tokens": 0, "completion_tokens": 0}
+        start = time.monotonic()
         try:
-            return self._respond_llm(message, tools)
+            reply = self._respond_llm(message, tools)
+            log_llm_call(
+                provider=self._provider_label(), model=self.model,
+                prompt_tokens=self._usage["prompt_tokens"],
+                completion_tokens=self._usage["completion_tokens"],
+                latency_ms=int((time.monotonic() - start) * 1000),
+                outcome="success",
+            )
+            return reply
         except Exception as exc:  # noqa: BLE001 — never hard-fail; degrade to deterministic
-            print(f"[COPILOT] LLM provider failed ({exc!r}); falling back to deterministic")
+            # Telemetry replaces the old bare print: a fallback is now a *measured*
+            # event (provider/model/tokens/cost/reason), not a silent demotion.
+            log_llm_call(
+                provider=self._provider_label(), model=self.model,
+                prompt_tokens=self._usage["prompt_tokens"],
+                completion_tokens=self._usage["completion_tokens"],
+                latency_ms=int((time.monotonic() - start) * 1000),
+                outcome="fallback", fallback_reason=repr(exc),
+            )
             return self._deterministic_fallback(message, tools, confirm_action)
 
     def _deterministic_fallback(self, message, tools, confirm_action=None) -> CopilotReply:
@@ -141,6 +171,7 @@ class OpenAICompatibleChatProvider(ChatProvider):
         ]
 
         first = self._chat_completion(messages, tools=tool_defs)
+        self._accumulate_usage(first)
         assistant = first["choices"][0]["message"]
         tool_calls = assistant.get("tool_calls") or []
         if not tool_calls:
@@ -169,6 +200,7 @@ class OpenAICompatibleChatProvider(ChatProvider):
             return CopilotReply(answer_type=AnswerType.refuse, text=_REFUSAL, source="llm")
 
         second = self._chat_completion(messages, tools=tool_defs)
+        self._accumulate_usage(second)
         text = (second["choices"][0]["message"].get("content") or "").strip()
         if not text:
             # Model produced no prose — fall back to a deterministic templated answer.

@@ -67,6 +67,9 @@ frontend/*.png
 frontend/screenshot-*.mjs
 frontend/verify-*.mjs
 
+# Claude Code project instructions (local-only, not for repo)
+CLAUDE.md
+
 # Personal / scratch (not part of the codebase)
 design-scratch/
 draft_ui_ux.md.txt
