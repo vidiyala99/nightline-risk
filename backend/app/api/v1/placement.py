@@ -45,7 +45,7 @@ from app.lifecycles import (
     InvalidTransitionError,
     transition_table_to_json,
 )
-from app.models import Carrier, CarrierQuote, Submission
+from app.models import Carrier, CarrierQuote, Policy, Submission
 from app.services.submissions import (
     OutOfAppetiteError,
     PremiumBreakdownMismatchError,
@@ -450,14 +450,21 @@ def api_build_indicative_quote(
     venue = {**VENUES[sub.venue_id], "id": sub.venue_id}
     risk = get_risk_score(sub.venue_id, VENUES, session=session)
 
-    # Renewal pricing: if this submission renews a prior policy, re-price
-    # using that term's realized losses (Phase 4 experience rating).
+    # Renewal pricing: credibility-weighted experience mod (Phase 4 actuarial).
+    # New-business submissions have no prior_policy_id → loss_adjustment=None
+    # falls through to _loss_adjustment_from_risk() inside build_quote_for_carrier.
     loss_adjustment = None
     if sub.prior_policy_id:
-        from app.services.renewals import compute_loss_experience
-        from app.underwriting.pricing import loss_adjustment_from_loss_ratio
-        exp = compute_loss_experience(session, sub.prior_policy_id)
-        loss_adjustment = loss_adjustment_from_loss_ratio(exp.loss_ratio)
+        from app.services.renewals import build_experience_years_for_policy
+        from app.underwriting.experience_rating import compute_experience_mod
+        prior = session.get(Policy, sub.prior_policy_id)
+        if prior is not None:
+            years = build_experience_years_for_policy(
+                session, sub.prior_policy_id,
+                annual_premium=prior.annual_premium,
+                years_back=0,
+            )
+            loss_adjustment = compute_experience_mod(years).mod
 
     full_quote = build_quote_for_carrier(
         venue=venue,

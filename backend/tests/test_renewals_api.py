@@ -144,6 +144,7 @@ def test_renewals_due_lists_expiring_policy(client):
     row = next(row for row in rows if row["policy_id"] == "pol-renewals-due")
     assert "loss_ratio" in row
     assert "projected_loss_adjustment" in row
+    assert "credibility_z" in row
     assert "annual_premium" in row
     assert "expiration_date" in row
 
@@ -209,6 +210,7 @@ def test_renew_creates_submission_with_yoy(client):
     assert yoy["prior_annual_premium"] == "10000.00"
     assert "loss_adjustment" in yoy
     assert "loss_ratio" in yoy
+    assert "credibility_z" in yoy
 
 
 def test_renew_non_existent_policy_returns_404(client):
@@ -245,7 +247,12 @@ def test_renew_non_active_policy_returns_400(client):
 
 
 def test_renewal_quote_applies_loss_adjustment(client):
-    """Renewal submission with loss ratio ≥ 1.0 must get loss_adjustment 1.60."""
+    """Renewal submission re-prices with credibility-weighted experience mod.
+
+    1 claim, total_incurred=12000, premium=10000 → LR=1.2.
+    Z = sqrt(1/82) ≈ 0.11 → credible_LR ≈ 0.711 → mod = clamp(1.093, 0.75, 1.75) = 1.09.
+    (Old 4-band step would give 1.60; credibility blending correctly mutes a single outlier.)
+    """
     from app.models import Claim, CarrierQuote
 
     session = next(get_session())
@@ -322,4 +329,4 @@ def test_renewal_quote_applies_loss_adjustment(client):
     )
     assert r.status_code == 200, r.text
     line = r.json()["lines"]["gl"]
-    assert line["loss_adjustment"] == "1.60"
+    assert line["loss_adjustment"] == "1.09"

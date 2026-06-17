@@ -3,6 +3,8 @@ Broker-gated. Error mapping mirrors the claims/policies routers:
   RenewalsError -> 400, InvalidTransitionError -> 422."""
 from __future__ import annotations
 
+from decimal import Decimal
+
 from datetime import date, timedelta
 from typing import NoReturn
 
@@ -18,11 +20,11 @@ from app.models import Policy
 from app.money import usd_to_json
 from app.services.renewals import (
     RenewalsError,
-    compute_loss_experience,
+    build_experience_years_for_policy,
     create_renewal,
     find_live_renewal,
 )
-from app.underwriting.pricing import loss_adjustment_from_loss_ratio
+from app.underwriting.experience_rating import compute_experience_mod
 
 router = APIRouter()
 
@@ -64,16 +66,22 @@ def renewals_due(
         # forever and invite a duplicate renewal.
         if find_live_renewal(session, pol.id) is not None:
             continue
-        exp = compute_loss_experience(session, pol.id)
+        years = build_experience_years_for_policy(
+            session, pol.id,
+            annual_premium=pol.annual_premium,
+            years_back=0,
+        )
+        mod = compute_experience_mod(years)
         out.append({
             "policy_id": pol.id,
             "policy_number": pol.policy_number,
             "venue_id": pol.venue_id,
             "expiration_date": pol.expiration_date.isoformat(),
             "annual_premium": usd_to_json(pol.annual_premium),
-            "loss_ratio": str(exp.loss_ratio),
-            "claim_count": exp.claim_count,
-            "projected_loss_adjustment": str(loss_adjustment_from_loss_ratio(exp.loss_ratio)),
+            "loss_ratio": str(mod.experience_lr),
+            "claim_count": mod.claim_count,
+            "credibility_z": str(mod.credibility_z.quantize(Decimal("0.0001"))),
+            "projected_loss_adjustment": str(mod.mod),
         })
     return out
 
@@ -93,7 +101,12 @@ def renew_policy(
         prior = session.get(Policy, policy_id)
         if prior is None:
             raise HTTPException(status_code=404, detail=f"Policy {policy_id} not found")
-        exp = compute_loss_experience(session, policy_id)
+        years = build_experience_years_for_policy(
+            session, policy_id,
+            annual_premium=prior.annual_premium,
+            years_back=0,
+        )
+        mod = compute_experience_mod(years)
         sub = create_renewal(
             session,
             policy_id,
@@ -120,8 +133,9 @@ def renew_policy(
             "prior_policy_id": policy_id,
             "prior_annual_premium": usd_to_json(prior.annual_premium),
             "prior_coverage_lines": prior.coverage_lines,
-            "loss_ratio": str(exp.loss_ratio),
-            "claim_count": exp.claim_count,
-            "loss_adjustment": str(loss_adjustment_from_loss_ratio(exp.loss_ratio)),
+            "loss_ratio": str(mod.experience_lr),
+            "claim_count": mod.claim_count,
+            "credibility_z": str(mod.credibility_z.quantize(Decimal("0.0001"))),
+            "loss_adjustment": str(mod.mod),
         },
     }
