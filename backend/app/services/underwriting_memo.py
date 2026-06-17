@@ -16,6 +16,7 @@ def recommendation_from_dossier_parts(
     coverage_lines: list[str] | None,
     suggested_premium_breakdown: dict | None,
     in_appetite: bool | None = None,
+    chain_ladder_ultimate: Decimal | None = None,
 ) -> UnderwritingRecommendation | None:
     try:
         if not risk or not suggested_premium_breakdown:
@@ -37,6 +38,7 @@ def recommendation_from_dossier_parts(
             loss_by_line=loss_by_line,
             indicated_total=Decimal(str(suggested_premium_breakdown.get("total", "0") or "0")),
             in_appetite=in_appetite,
+            ultimate_total=chain_ladder_ultimate,
         )
         return recommend(inputs)
     except Exception:  # noqa: BLE001 — advisory only, never block the desk

@@ -29,6 +29,7 @@ class RecommenderInputs:
     indicated_total: Decimal               # engine's indicated premium total
     in_appetite: bool | None = None        # None = not evaluated here
     requested_limits: dict = field(default_factory=dict)
+    ultimate_total: Decimal | None = None  # chain-ladder projected ultimate (advisory; None = not available)
 
 
 def _total_incurred(loss_by_line: dict) -> Decimal:
@@ -70,9 +71,33 @@ def _posture(inputs: RecommenderInputs, adverse: bool) -> str:
     return "quote"
 
 
-def _rate_adequacy(total_incurred: Decimal, indicated_total: Decimal) -> tuple[str, str]:
+def _rate_adequacy(
+    total_incurred: Decimal,
+    indicated_total: Decimal,
+    *,
+    ultimate_total: Decimal | None = None,
+) -> tuple[str, str]:
     if indicated_total <= 0:
         return "adequate", "No indicated premium to assess."
+    # Prefer chain-ladder projected ultimate when available — it accounts for
+    # IBNR and development tail, giving a more forward-looking adequacy picture.
+    if ultimate_total is not None and ultimate_total > 0:
+        ratio = ultimate_total / indicated_total
+        label = f"projected ultimate ${ultimate_total:,.0f} (chain-ladder)"
+        if ratio >= Decimal("0.8"):
+            return "lean_debit", (
+                f"{label.capitalize()} is high relative to the indicated premium "
+                f"(${indicated_total:,.0f}); the rate looks thin — lean debit."
+            )
+        if ratio <= Decimal("0.3"):
+            return "lean_credit", (
+                f"{label.capitalize()} is low relative to the indicated premium "
+                f"(${indicated_total:,.0f}); room to credit a clean account."
+            )
+        return "adequate", (
+            f"Indicated premium (${indicated_total:,.0f}) is broadly adequate for the "
+            f"loss picture ({label})."
+        )
     if total_incurred == 0:
         return "adequate", (
             f"No prior loss history; indicated premium ${indicated_total:,.0f} stands as adequate."
@@ -99,7 +124,9 @@ def recommend(inputs: RecommenderInputs) -> UnderwritingRecommendation:
     posture = _posture(inputs, adverse)
     subjectivities = _subjectivities(inputs) if posture == "quote_with_conditions" else []
     total_incurred = _total_incurred(inputs.loss_by_line)
-    rate_adequacy, rate_note = _rate_adequacy(total_incurred, inputs.indicated_total)
+    rate_adequacy, rate_note = _rate_adequacy(
+        total_incurred, inputs.indicated_total, ultimate_total=inputs.ultimate_total
+    )
 
     claim_count = sum(int(v.get("claim_count", 0)) for v in inputs.loss_by_line.values())
     summary = (
@@ -123,6 +150,7 @@ def recommend(inputs: RecommenderInputs) -> UnderwritingRecommendation:
         "total_incurred": str(total_incurred),
         "indicated_total": str(inputs.indicated_total),
         "in_appetite": inputs.in_appetite,
+        "ultimate_total": str(inputs.ultimate_total) if inputs.ultimate_total is not None else None,
     }
 
     # Stamp AI lineage. `grounding` already is the canonical input bundle, so it

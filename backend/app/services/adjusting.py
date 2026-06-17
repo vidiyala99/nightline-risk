@@ -176,7 +176,26 @@ def reserve_hint(session, claim) -> dict | None:
         basis = f"{line['claim_count']} prior {claim.coverage_line} loss(es)"
         if signals:
             basis += "; " + ", ".join(signals)
-        return {"low": str(low), "high": str(high), "severity_band": band, "basis": basis}
+        hint: dict = {"low": str(low), "high": str(high), "severity_band": band, "basis": basis}
+
+        # Advisory chain-ladder mean — supersedes simple mean when credible (≥10 claims).
+        # Accounts for IBNR / development tail. Never auto-sets reserve.
+        try:
+            from app.services.loss_development_data import build_development_cells_for_venue
+            from app.underwriting.loss_development import compute_chain_ladder
+            _cells_by_line, _ = build_development_cells_for_venue(session, policy.venue_id)
+            _line_cells = _cells_by_line.get(claim.coverage_line, [])
+            if _line_cells:
+                _cl = compute_chain_ladder(
+                    _line_cells, claim_count=int(line.get("claim_count", 0))
+                )
+                if _cl.is_credible and _cl.ultimate_total > Decimal("0"):
+                    _cl_mean = (_cl.ultimate_total / max(_cl.claim_count, 1)).quantize(Decimal("1"))
+                    hint["chain_ladder_mean"] = str(_cl_mean)
+        except Exception:  # noqa: BLE001
+            pass
+
+        return hint
     except Exception:  # noqa: BLE001 — advisory only, never block the desk
         return None
 

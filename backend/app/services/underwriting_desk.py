@@ -324,6 +324,22 @@ def decision_dossier(session: Session, quote_id: str) -> dict | None:
     loss_run = _loss_run_section(session, venue_id)
     suggested_premium_breakdown = _suggested_breakdown(session, sub, q.carrier_id) if sub else None
 
+    # Chain-ladder projected ultimate — advisory, failure-isolated.
+    # Only passed to the recommender when the result is credible (≥10 claims).
+    _cl_ultimate = None
+    try:
+        from app.services.loss_development_data import build_development_cells_for_venue
+        from app.underwriting.loss_development import compute_chain_ladder
+        if venue_id:
+            _cells_by_line, _cl_count = build_development_cells_for_venue(session, venue_id)
+            if _cells_by_line:
+                _all_cells = [c for cells in _cells_by_line.values() for c in cells]
+                _cl = compute_chain_ladder(_all_cells, claim_count=_cl_count)
+                if _cl.is_credible:
+                    _cl_ultimate = _cl.ultimate_total
+    except Exception:  # noqa: BLE001
+        pass
+
     from app.services.underwriting_memo import recommendation_from_dossier_parts
     _rec = recommendation_from_dossier_parts(
         risk=risk,
@@ -331,6 +347,7 @@ def decision_dossier(session: Session, quote_id: str) -> dict | None:
         coverage_lines=(sub.coverage_lines if sub else []),
         suggested_premium_breakdown=suggested_premium_breakdown,
         in_appetite=None,  # appetite wiring is a fast-follow; recommender handles None
+        chain_ladder_ultimate=_cl_ultimate,
     )
 
     return {
