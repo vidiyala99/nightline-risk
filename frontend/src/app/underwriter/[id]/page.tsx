@@ -618,6 +618,9 @@ export default function ReportDetailPage() {
           {packet.claim_recommendation && (() => {
             const rec = packet.claim_recommendation;
             const accent = rec.should_file ? "var(--brand-primary)" : "var(--text-tertiary)";
+            // Brand lime is a FILL only (the stripe/border earn it). Foreground
+            // text/icons use the legible olive-lime so "File this claim" reads.
+            const accentText = rec.should_file ? "var(--accent-ink)" : "var(--text-tertiary)";
             const netEvFormatted = (rec.net_expected_value_usd >= 0 ? "+" : "−") +
               "$" + Math.abs(rec.net_expected_value_usd).toLocaleString();
             return (
@@ -630,13 +633,13 @@ export default function ReportDetailPage() {
 
                 <div className="flex items-center justify-between mb-md ai-rec-card__head" style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "var(--space-sm)" }}>
                   <div className="flex items-center gap-sm">
-                    <FileSpreadsheet size={16} style={{ color: accent }} aria-hidden="true" />
+                    <FileSpreadsheet size={16} style={{ color: accentText }} aria-hidden="true" />
                     <h2 className="text-xs uppercase tracking-wide text-secondary" style={{ margin: 0 }}>AI Claim Recommendation</h2>
                   </div>
                   <span
                     className="text-xs font-mono"
                     style={{
-                      color: accent,
+                      color: accentText,
                       textTransform: "uppercase",
                       letterSpacing: "0.06em",
                       fontSize: "0.65rem",
@@ -651,7 +654,7 @@ export default function ReportDetailPage() {
                     <span
                       aria-hidden="true"
                       style={{
-                        color: accent,
+                        color: accentText,
                         fontSize: "2rem",
                         lineHeight: 1,
                         fontWeight: 400,
@@ -661,12 +664,12 @@ export default function ReportDetailPage() {
                       {rec.should_file ? "↑" : "↓"}
                     </span>
                   ) : rec.should_file ? (
-                    <TrendingUp size={32} style={{ color: accent }} aria-hidden="true" />
+                    <TrendingUp size={32} style={{ color: accentText }} aria-hidden="true" />
                   ) : (
-                    <TrendingDown size={32} style={{ color: accent }} aria-hidden="true" />
+                    <TrendingDown size={32} style={{ color: accentText }} aria-hidden="true" />
                   )}
                   <div>
-                    <p className="text-lg font-bold" style={{ color: accent, margin: 0, lineHeight: 1.1 }}>
+                    <p className="text-lg font-bold" style={{ color: accentText, margin: 0, lineHeight: 1.1 }}>
                       {rec.should_file ? "File this claim" : "Don't file yet"}
                     </p>
                     <p className="text-xs text-secondary" style={{ margin: 0, marginTop: 2 }}>
@@ -709,7 +712,7 @@ export default function ReportDetailPage() {
                   <ul className="flex flex-col gap-sm" style={{ listStyle: "none", padding: 0, margin: 0 }}>
                     {(rec.reasons ?? []).slice(0, 2).map((reason, i) => (
                       <li key={i} className="text-sm" style={{ lineHeight: 1.45, paddingLeft: "var(--space-lg)", position: "relative", color: "var(--text-primary)" }}>
-                        <span style={{ position: "absolute", left: 0, color: accent }} aria-hidden="true">→</span>
+                        <span style={{ position: "absolute", left: 0, color: accentText }} aria-hidden="true">→</span>
                         {reason}
                       </li>
                     ))}
@@ -722,7 +725,7 @@ export default function ReportDetailPage() {
                     <ul className="mt-sm flex flex-col gap-xs" style={{ listStyle: "none", padding: 0, margin: 0 }}>
                       {(rec.reasons ?? []).map((reason, i) => (
                         <li key={i} className="text-xs text-secondary" style={{ lineHeight: 1.5, paddingLeft: "var(--space-md)", position: "relative" }}>
-                          <span style={{ position: "absolute", left: 0, color: accent }} aria-hidden="true">→</span>
+                          <span style={{ position: "absolute", left: 0, color: accentText }} aria-hidden="true">→</span>
                           {reason}
                         </li>
                       ))}

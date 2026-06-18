@@ -556,7 +556,7 @@ export default function IncidentDetailPage() {
                       </span>
                     ) : (
                       <span className="text-xs font-mono px-sm py-xs" style={{
-                        color: visionAnalysis.analyses[0]?.corroboration === "CONSISTENT" ? "var(--accent-ink)" :
+                        color: visionAnalysis.analyses[0]?.corroboration === "CONSISTENT" ? "var(--state-success)" :
                                visionAnalysis.analyses[0]?.corroboration === "CONTRADICTED" ? "var(--state-error)" : "var(--state-warning)",
                         border: `1px solid currentColor`, borderRadius: "var(--radius-sm)"
                       }}>
@@ -565,7 +565,7 @@ export default function IncidentDetailPage() {
                     )}
                   </div>
                   {visionAnalysis.analyses.map((a, i) => (
-                    <div key={i} className="flex flex-col gap-sm p-sm mb-sm" style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", borderLeft: `3px solid ${a.corroboration === "CONSISTENT" ? "var(--brand-primary)" : a.corroboration === "CONTRADICTED" ? "var(--state-error)" : "var(--state-warning)"}` }}>
+                    <div key={i} className="flex flex-col gap-sm p-sm mb-sm" style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", borderLeft: `3px solid ${a.corroboration === "CONSISTENT" ? "var(--state-success)" : a.corroboration === "CONTRADICTED" ? "var(--state-error)" : "var(--state-warning)"}` }}>
                       <div className="flex items-center justify-between" style={{ flexWrap: "wrap", gap: "var(--space-xs)" }}>
                         <span className="text-xs font-mono uppercase text-secondary">{a.analysis_type} analysis</span>
                         <span className="text-xs" style={{ color: "var(--accent-ink)" }}>+{Math.round(a.confidence_delta * 100)}% confidence</span>
@@ -789,8 +789,8 @@ export default function IncidentDetailPage() {
                           <div className="flex items-center gap-md">
                             <span className="text-xs text-secondary">{Math.round(pkt.risk_signals.confidence * 100)}% confidence</span>
                             <span className="text-xs font-mono uppercase px-2 py-0 rounded" style={{
-                              color: pkt.status === "approved" ? "var(--accent-ink)" : pkt.status === "needs_review" ? "var(--state-warning)" : "var(--text-muted)",
-                              border: `1px solid ${pkt.status === "approved" ? "var(--brand-primary)" : pkt.status === "needs_review" ? "var(--state-warning)" : "var(--border-subtle)"}`,
+                              color: pkt.status === "approved" ? "var(--state-success)" : pkt.status === "needs_review" ? "var(--state-warning)" : "var(--text-muted)",
+                              border: `1px solid ${pkt.status === "approved" ? "var(--state-success)" : pkt.status === "needs_review" ? "var(--state-warning)" : "var(--border-subtle)"}`,
                             }}>
                               {pkt.status.replace(/_/g, " ")}
                             </span>

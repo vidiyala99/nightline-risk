@@ -203,7 +203,7 @@ export default function ComplianceDetailPage() {
                       color:
                         citation.source_type === "policy_exclusion"
                           ? "var(--state-warning)"
-                          : "var(--brand-primary)",
+                          : "var(--accent-ink)",
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
                     }}

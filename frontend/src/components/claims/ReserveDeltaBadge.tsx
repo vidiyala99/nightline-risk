@@ -14,7 +14,7 @@ interface ReserveDeltaBadgeProps {
  * incurred (positive headroom) or there's a gap (under-reserved).
  *
  * Tone:
- *   over-reserved (delta > 0)  → success (lime hint)
+ *   over-reserved (delta > 0)  → success (green)
  *   under-reserved (delta < 0) → danger (rose)
  *   exact match                → neutral
  *
@@ -28,7 +28,7 @@ export function ReserveDeltaBadge({ currentReserve, totalIncurred }: ReserveDelt
   const Icon = tone === "success" ? ArrowUp : tone === "danger" ? ArrowDown : Minus;
   const color =
     tone === "success"
-      ? "var(--brand-primary)"
+      ? "var(--state-success)"
       : tone === "danger"
         ? "var(--brand-tertiary)"
         : "var(--text-tertiary)";

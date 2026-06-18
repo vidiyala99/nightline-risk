@@ -832,7 +832,7 @@ export default function AdjusterClaimDetailPage() {
             : sev === "medium"
             ? "var(--state-warning)"
             : sev === "low"
-            ? "var(--brand-primary)"
+            ? "var(--accent-ink)"
             : "var(--text-muted)";
         const confPct = incidentReport.confidence != null
           ? Math.round(incidentReport.confidence * 100)
@@ -1025,7 +1025,7 @@ export default function AdjusterClaimDetailPage() {
                         fontWeight: 700,
                         color:
                           netEvRaw >= 0
-                            ? "var(--brand-primary)"
+                            ? "var(--state-success)"
                             : "var(--state-error)",
                       }}
                     >
@@ -1078,14 +1078,14 @@ export default function AdjusterClaimDetailPage() {
                       fontWeight: 600,
                       border: `1px solid ${
                         incidentReport.corroboration_status === "CONSISTENT"
-                          ? "var(--brand-primary)"
+                          ? "var(--state-success)"
                           : incidentReport.corroboration_status === "CONTRADICTED"
                           ? "var(--state-error)"
                           : "var(--state-warning)"
                       }`,
                       color:
                         incidentReport.corroboration_status === "CONSISTENT"
-                          ? "var(--brand-primary)"
+                          ? "var(--state-success)"
                           : incidentReport.corroboration_status === "CONTRADICTED"
                           ? "var(--state-error)"
                           : "var(--state-warning)",

@@ -90,7 +90,7 @@ export function ReserveSparkline({
       <path
         d={path}
         fill="none"
-        stroke="var(--brand-primary)"
+        stroke="var(--accent-ink)"
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -101,7 +101,7 @@ export function ReserveSparkline({
           cx={last[0]}
           cy={last[1]}
           r={2.5}
-          fill="var(--brand-primary)"
+          fill="var(--accent-ink)"
         />
       )}
     </svg>

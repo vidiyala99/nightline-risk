@@ -185,7 +185,7 @@ export function DashboardMobile({ userName, venueId, risk, quote, live, stats }:
                   className="m-floor-fill"
                   style={{
                     width: `${capPct}%`,
-                    background: capPct >= 90 ? "var(--state-error)" : capPct >= 70 ? "var(--state-warning)" : "var(--brand-primary)",
+                    background: capPct >= 90 ? "var(--state-error)" : capPct >= 70 ? "var(--state-warning)" : "var(--state-success)",
                   }}
                 />
               </div>
