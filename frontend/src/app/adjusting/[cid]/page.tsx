@@ -838,13 +838,12 @@ export default function AdjusterClaimDetailPage() {
           ? Math.round(incidentReport.confidence * 100)
           : null;
         const rec = incidentReport.recommendation ?? null;
-        const netEvRaw = rec?.net_expected_value_usd ?? 0;
-        const netEvStr =
-          rec != null
-            ? (netEvRaw >= 0 ? "+" : "−") +
-              "$" +
-              Math.abs(netEvRaw).toLocaleString()
-            : null;
+        const exposureRaw = rec?.net_expected_value_usd ?? 0;
+        const exposureStr =
+          rec != null ? "$" + Math.abs(exposureRaw).toLocaleString() : null;
+        // Carrier semantics: higher exposure = more loss = warning/error tone.
+        const exposureColor =
+          exposureRaw > 0 ? "var(--state-error)" : "var(--state-warning)";
         return (
           <div
             className="lc-card"
@@ -914,6 +913,19 @@ export default function AdjusterClaimDetailPage() {
               </div>
 
               {/* Memo summary */}
+              {incidentReport.memo_summary && (
+                <p
+                  style={{
+                    fontSize: "var(--text-xs)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    color: "var(--text-secondary)",
+                    margin: "0 0 var(--space-xs) 0",
+                  }}
+                >
+                  Insured&apos;s defense posture
+                </p>
+              )}
               {incidentReport.memo_summary && (
                 <p
                   style={{
@@ -1015,7 +1027,7 @@ export default function AdjusterClaimDetailPage() {
                         color: "var(--text-secondary)",
                       }}
                     >
-                      Net EV
+                      Indemnity exposure (EV)
                     </span>
                     <span
                       style={{
@@ -1023,13 +1035,10 @@ export default function AdjusterClaimDetailPage() {
                         fontVariantNumeric: "tabular-nums",
                         fontSize: "var(--text-sm)",
                         fontWeight: 700,
-                        color:
-                          netEvRaw >= 0
-                            ? "var(--state-success)"
-                            : "var(--state-error)",
+                        color: exposureColor,
                       }}
                     >
-                      {netEvStr}
+                      {exposureStr}
                     </span>
                   </div>
                 </div>
@@ -1044,7 +1053,7 @@ export default function AdjusterClaimDetailPage() {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {Math.round(rec.probability * 100)}% paid-out probability
+                  {Math.round(rec.probability * 100)}% pay-out likelihood
                 </p>
               )}
 
