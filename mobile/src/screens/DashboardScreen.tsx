@@ -370,7 +370,7 @@ export function DashboardScreen({ navigation }: any) {
                 <Text style={styles.floorCapPct}>{capPct}%</Text>
               </View>
               <View style={styles.floorBarTrack}>
-                <View style={[styles.floorBarFill, { width: `${capPct}%`, backgroundColor: capPct >= 90 ? Colors.error : capPct >= 70 ? Colors.warning : Colors.accent }]} />
+                <View style={[styles.floorBarFill, { width: `${capPct}%`, backgroundColor: capPct >= 90 ? Colors.error : capPct >= 70 ? Colors.warning : Colors.success }]} />
               </View>
             </>
           )}

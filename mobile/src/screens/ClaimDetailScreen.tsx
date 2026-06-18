@@ -149,7 +149,7 @@ export function ClaimDetailScreen({ route, navigation }: any) {
           <View style={s.card}>
             <Text style={s.eyebrow}>FILE VS DON'T FILE</Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={[s.evBox, { borderColor: rec.net_expected_value_usd >= 0 ? Colors.accent : Colors.error }]}>
+              <View style={[s.evBox, { borderColor: rec.net_expected_value_usd >= 0 ? Colors.success : Colors.error }]}>
                 <Text style={s.evLabel}>If you file</Text>
                 <Text style={[s.evNum, { color: rec.net_expected_value_usd >= 0 ? Colors.success : Colors.error }]}>
                   {rec.net_expected_value_usd >= 0 ? '+' : '-'}${Math.abs(rec.net_expected_value_usd).toLocaleString()}

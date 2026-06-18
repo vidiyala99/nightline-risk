@@ -12,13 +12,14 @@ interface Props {
 
 function barColor(pct: number, invertScale = false) {
   if (invertScale) {
-    // High value = good (risk scores, compliance)
-    if (pct >= 0.85) return Colors.accent;
+    // High value = good (risk scores, compliance). Green→amber→red ramp; the
+    // brand lime is a fill accent, not the "good" state — that's success green.
+    if (pct >= 0.85) return Colors.success;
     if (pct >= 0.6) return Colors.warning;
     return Colors.error;
   }
   // High value = bad (capacity)
-  if (pct < 0.6) return Colors.accent;
+  if (pct < 0.6) return Colors.success;
   if (pct < 0.85) return Colors.warning;
   return Colors.error;
 }

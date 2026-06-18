@@ -2,13 +2,14 @@ import React from 'react';
 import { Colors } from "../theme/colors";
 import { StyleSheet, Text, View } from 'react-native';
 
-// Tone palette — keep in sync with the web's status-pill tones.
+// Tone palette — keep in sync with the web's status-pill tones. Washes are
+// derived from the current Paper & Ink tokens (were stale dark-theme rgba).
 const TONES = {
-  info:    { color: Colors.info, bg: 'rgba(91,138,245,0.1)',  border: 'rgba(91,138,245,0.3)' },
-  warning: { color: Colors.warning, bg: 'rgba(255,149,0,0.1)',   border: 'rgba(255,149,0,0.3)'  },
-  success: { color: Colors.success, bg: 'rgba(0,217,126,0.08)',  border: 'rgba(0,217,126,0.25)' },
-  danger:  { color: Colors.error, bg: 'rgba(255,69,87,0.08)',  border: 'rgba(255,69,87,0.25)' },
-  neutral: { color: Colors.textSecondary, bg: 'rgba(139,144,168,0.1)', border: 'rgba(139,144,168,0.2)' },
+  info:    { color: Colors.info, bg: 'rgba(67,56,202,0.10)',  border: 'rgba(67,56,202,0.28)' },
+  warning: { color: Colors.warning, bg: 'rgba(180,83,9,0.10)',   border: 'rgba(180,83,9,0.28)'  },
+  success: { color: Colors.success, bg: 'rgba(31,143,78,0.10)',  border: 'rgba(31,143,78,0.28)' },
+  danger:  { color: Colors.error, bg: 'rgba(200,52,30,0.10)',  border: 'rgba(200,52,30,0.28)' },
+  neutral: { color: Colors.textSecondary, bg: 'rgba(74,70,59,0.08)', border: 'rgba(74,70,59,0.18)' },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; tone: keyof typeof TONES }> = {

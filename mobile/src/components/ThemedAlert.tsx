@@ -94,7 +94,7 @@ export function useAlert(): AlertContextValue {
 }
 
 const VARIANT_ACCENT: Record<NonNullable<AlertOptions['variant']>, string> = {
-  info: Colors.accent,
+  info: Colors.info,
   warning: Colors.warning,
   error: Colors.error,
   success: Colors.success,

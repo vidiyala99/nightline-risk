@@ -705,7 +705,7 @@ function LifecycleStrip({ status, pos, reopenCount }: { status: ClaimStatus; pos
             : finalLit
               ? Colors.textSecondary
               : 'rgba(23,21,15,0.14)';
-          const labelColor = active ? Colors.accent : (lit || finalLit) ? Colors.text : Colors.textMuted;
+          const labelColor = active ? Colors.accentInk : (lit || finalLit) ? Colors.text : Colors.textMuted;
           return (
             <View key={node} style={styles.lifeCol}>
               <View style={[styles.lifeDot, { backgroundColor: dotColor }]} />

@@ -151,6 +151,9 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
       {packet.claim_recommendation && (() => {
         const rec = packet.claim_recommendation;
         const accent = rec.should_file ? Colors.accent : Colors.textMuted;
+        // Lime is a fill only (the left border). Foreground text/glyphs use the
+        // legible olive-lime so "File this claim" reads — matches ClaimDetailScreen.
+        const accentText = rec.should_file ? Colors.accentInk : Colors.textMuted;
         const netEv = rec.net_expected_value_usd;
         const netLabel = (netEv >= 0 ? '+' : '-') + '$' + Math.abs(netEv).toLocaleString();
         return (
@@ -159,14 +162,14 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
               <Text style={[styles.eyebrow, { letterSpacing: 1, flexShrink: 1 }]} numberOfLines={1}>
                 AI CLAIM RECOMMENDATION
               </Text>
-              <Text style={[styles.eyebrow, { color: accent, letterSpacing: 1 }]} numberOfLines={1}>
+              <Text style={[styles.eyebrow, { color: accentText, letterSpacing: 1 }]} numberOfLines={1}>
                 {Math.round(rec.confidence * 100)}% CONFIDENT
               </Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Text style={{ fontSize: 28, color: accent, lineHeight: 32 }}>{rec.should_file ? '↑' : '↓'}</Text>
+              <Text style={{ fontSize: 28, color: accentText, lineHeight: 32 }}>{rec.should_file ? '↑' : '↓'}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: accent, fontSize: 20, fontFamily: 'HankenGrotesk_700Bold', letterSpacing: -0.3 }}>
+                <Text style={{ color: accentText, fontSize: 20, fontFamily: 'HankenGrotesk_700Bold', letterSpacing: -0.3 }}>
                   {rec.should_file ? 'File this claim' : "Don't file yet"}
                 </Text>
                 <Text style={[styles.bodyText, { fontSize: 12 }]}>
@@ -202,7 +205,7 @@ export function BrokerReportDetailScreen({ route, navigation }: any) {
             </View>
             {rec.reasons.slice(0, 2).map((r: string, i: number) => (
               <View key={i} style={{ flexDirection: 'row', gap: 8 }}>
-                <Text style={{ color: accent }}>→</Text>
+                <Text style={{ color: accentText }}>→</Text>
                 <Text style={[styles.bodyText, { flex: 1, fontSize: 12 }]}>{r}</Text>
               </View>
             ))}

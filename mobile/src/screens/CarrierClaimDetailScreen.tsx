@@ -421,7 +421,7 @@ function LifecycleStrip({
               ? Colors.textSecondary
               : 'rgba(23,21,15,0.14)';
           const labelColor = active
-            ? Colors.accent
+            ? Colors.accentInk
             : lit || finalLit
               ? Colors.text
               : Colors.textMuted;

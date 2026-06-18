@@ -305,7 +305,7 @@ export function LiveTerminalScreen({ navigation, route }: any) {
             const isOptional = val.optional === true;
             const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
             const statusText = isIncluded ? 'INCLUDED' : isOptional ? 'OPTIONAL' : '—';
-            const statusColor = isIncluded ? Colors.accent : Colors.textMuted;
+            const statusColor = isIncluded ? Colors.accentInk : Colors.textMuted;
             return (
               <View key={key} style={styles.coverageRow}>
                 <Text style={styles.coverageName}>{label}</Text>
