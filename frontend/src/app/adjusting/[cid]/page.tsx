@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, AlertTriangle, ShieldCheck, ShieldOff, ShieldAlert, Lock } from "lucide-react";
+import { ArrowLeft, AlertTriangle, ShieldCheck, ShieldOff, ShieldAlert } from "lucide-react";
 
 import { useAuth, useIsCarrier } from "@/contexts/AuthContext";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -1130,9 +1130,7 @@ export default function AdjusterClaimDetailPage() {
       {!hasCoverageDecision && (
         <div className="lc-card" style={{ marginBottom: "var(--space-xl)" }}>
           <div className="lc-card__inner">
-            <h2 style={cardLabel}>
-              Coverage determination — required before adjudication
-            </h2>
+            <h2 style={cardLabel}>Coverage determination</h2>
 
             <div
               style={{
@@ -1329,49 +1327,12 @@ export default function AdjusterClaimDetailPage() {
       {/* ------------------------------------------------------------------ */}
       {!isClosed && (
         <>
-          {/* Coverage gate: reserve / payment / close stay locked until the
-              coverage determination is recorded (the card heading above states
-              it is required before adjudication). */}
-          {!hasCoverageDecision && (
-            <div
-              className="lc-card"
-              style={{
-                marginBottom: "var(--space-md)",
-                borderLeft: "3px solid var(--state-warning)",
-              }}
-            >
-              <div
-                className="lc-card__inner"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-sm)",
-                  fontSize: "var(--text-sm)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                <Lock
-                  size={15}
-                  style={{ color: "var(--state-warning)", flexShrink: 0 }}
-                  aria-hidden
-                />
-                <span>
-                  Record the coverage determination above to unlock reserve,
-                  payment, and close actions.
-                </span>
-              </div>
-            </div>
-          )}
           <div
-            inert={!hasCoverageDecision || undefined}
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
               gap: "var(--space-md)",
               marginBottom: "var(--space-xl)",
-              opacity: hasCoverageDecision ? 1 : 0.45,
-              pointerEvents: hasCoverageDecision ? undefined : "none",
-              transition: "opacity 150ms",
             }}
           >
           {/* Set reserve */}
