@@ -262,7 +262,11 @@ function AppShellBody({ children }: AppShellProps) {
 
       <div className="sidebar-user">
         <span className="user-name">{user?.name}</span>
-        <span className="user-role">{ROLE_LABELS[user?.role ?? ""] ?? user?.role}</span>
+        <span className="user-role">
+          {user?.role === "carrier" && pathname?.startsWith("/adjusting")
+            ? "Carrier · Claims"
+            : ROLE_LABELS[user?.role ?? ""] ?? user?.role}
+        </span>
       </div>
 
       <nav className="sidebar-nav">
