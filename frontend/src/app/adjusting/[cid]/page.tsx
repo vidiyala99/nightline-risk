@@ -727,6 +727,7 @@ export default function AdjusterClaimDetailPage() {
     claim.current_reserve,
     String(totalIncurred),
     reserveHint,
+    incidentReport?.recommendation?.expected_payout?.median_usd,
   );
 
   const hasCoverageDecision = claim.coverage_decision !== null;

@@ -35,3 +35,32 @@ describe("reserveAdequacy", () => {
     expect(reserveAdequacy("", "0", hint)).toBeNull();
   });
 });
+
+describe("reserveAdequacy — median fallback ($0–$0 advisory band)", () => {
+  const zeroBand = { low: "0", high: "0" };
+
+  it("falls back to expected median when the band collapses to $0–$0", () => {
+    expect(reserveAdequacy("0", "0", zeroBand, 7000)).toEqual({
+      label: expect.stringContaining("Below expected payout"),
+      tone: "danger",
+    });
+  });
+
+  it("marks a reserve covering the expected median as success", () => {
+    expect(reserveAdequacy("8000", "0", zeroBand, 7000)?.tone).toBe("success");
+  });
+
+  it("uses the median when there is no hint at all", () => {
+    expect(reserveAdequacy("1000", "0", null, 7000)?.tone).toBe("danger");
+  });
+
+  it("returns null when neither a dollar band nor a median is available", () => {
+    expect(reserveAdequacy("1000", "0", zeroBand, null)).toBeNull();
+    expect(reserveAdequacy("1000", "0", null, undefined)).toBeNull();
+  });
+
+  it("still prefers a real advisory band over the median", () => {
+    // band 3000–8000 has real dollars → band wins, median is ignored
+    expect(reserveAdequacy("5000", "0", hint, 7000)?.tone).toBe("neutral");
+  });
+});

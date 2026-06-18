@@ -309,32 +309,56 @@ export function formatReserveDelta(
 }
 
 /**
- * Context-aware reserve adequacy (F-9). Before any money is paid, the model is
- * the only benchmark: compare the reserve to the advisory low–high band. Once
- * payments accrue, switch to reserve-vs-incurred headroom/gap. Returns null
- * when there is no usable benchmark.
+ * Context-aware reserve adequacy (F-9). Branch order:
+ *  1. Money paid (incurred ≥ $0.005) → reserve-vs-incurred headroom/gap.
+ *  2. No money paid → the loss-run advisory band, but only when it carries real
+ *     dollars. Thin / zero-incurred history collapses the band to $0–$0, which
+ *     tells the adjuster nothing — so fall through in that case.
+ *  3. Degenerate / missing band → fall back to the model's expected median
+ *     payout as the benchmark (below it = under-reserved).
+ *  4. No usable benchmark → null.
+ * (chain_ladder_mean is surfaced separately in the hint banner, not consulted here.)
  */
 export function reserveAdequacy(
   reserve: string | number,
   incurred: string | number,
-  hint?: { low: string; high: string; chain_ladder_mean?: string } | null,
+  hint?: { low: string; high: string } | null,
+  expectedMedian?: string | number | null,
 ): { label: string; tone: "success" | "danger" | "neutral" } | null {
   const r = typeof reserve === "number" ? reserve : parseFloat(reserve);
   const i = typeof incurred === "number" ? incurred : parseFloat(incurred);
   if (Number.isNaN(r)) return null;
 
-  // Money has moved → reserve vs incurred (same epsilon as formatReserveDelta).
+  // 1. Money has moved → reserve vs incurred (same epsilon as formatReserveDelta).
   if (!Number.isNaN(i) && i >= 0.005) {
     return formatReserveDelta(r, i);
   }
 
-  // FNOL / no money paid → reserve vs advisory band.
-  if (!hint) return null;
-  const low = parseFloat(hint.low);
-  const high = parseFloat(hint.high);
-  if (Number.isNaN(low) || Number.isNaN(high)) return null;
-  const band = `${formatLedgerMoney(low)}–${formatLedgerMoney(high)}`;
-  if (r < low) return { label: `Below advisory (${band})`, tone: "danger" };
-  if (r > high) return { label: `Above advisory (${band})`, tone: "success" };
-  return { label: `Within advisory (${band})`, tone: "neutral" };
+  // 2. FNOL / no money paid → advisory band, only when it carries real dollars.
+  if (hint) {
+    const low = parseFloat(hint.low);
+    const high = parseFloat(hint.high);
+    if (!Number.isNaN(low) && !Number.isNaN(high) && high > 0) {
+      const band = `${formatLedgerMoney(low)}–${formatLedgerMoney(high)}`;
+      if (r < low) return { label: `Below advisory (${band})`, tone: "danger" };
+      if (r > high) return { label: `Above advisory (${band})`, tone: "success" };
+      return { label: `Within advisory (${band})`, tone: "neutral" };
+    }
+  }
+
+  // 3. Fall back to the model's expected median payout.
+  const median =
+    expectedMedian == null
+      ? NaN
+      : typeof expectedMedian === "number"
+      ? expectedMedian
+      : parseFloat(expectedMedian);
+  if (!Number.isNaN(median) && median > 0) {
+    return r < median
+      ? { label: `Below expected payout (${formatLedgerMoney(median)})`, tone: "danger" }
+      : { label: `Covers expected payout (${formatLedgerMoney(median)})`, tone: "success" };
+  }
+
+  // 4. No usable benchmark.
+  return null;
 }
