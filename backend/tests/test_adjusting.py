@@ -2,7 +2,7 @@
 
 Coverage:
   - decide_coverage("covered"): stamps decision fields + advances notified→under_investigation
-  - decide_coverage("denied"):  stamps decision fields + closes claim as closed_denied
+  - decide_coverage("denied"):  stamps decision fields + advances notified→under_investigation (claim stays open)
   - blank rationale raises ClaimsError
   - invalid decision value raises ClaimsError
 """
@@ -86,12 +86,16 @@ def test_covered_sets_decision_and_advances(make_claim_session):
     assert out.coverage_rationale == "policy responds"
 
 
-def test_denied_closes_the_claim(make_claim_session):
+def test_denied_records_decision_but_does_not_close(make_claim_session):
+    # F-4: denying coverage stamps the decision and advances to
+    # under_investigation, but the claim stays OPEN (closing is a separate,
+    # explicit action — matches dispute/appeal reality).
     s, claim = make_claim_session
     out = decide_coverage(s, claim.id, decision="denied", rationale="A&B exclusion applies", adjuster_id="u-carrier")
     s.commit()
     assert out.coverage_decision == "denied"
-    assert out.status == "closed_denied"
+    assert out.status == "under_investigation"
+    assert not out.status.startswith("closed")
 
 
 def test_rationale_required(make_claim_session):

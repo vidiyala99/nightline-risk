@@ -35,8 +35,9 @@ def decide_coverage(
     covered / reservation_of_rights  — advance the claim to under_investigation
                                        (implicit notified→acknowledged→under_investigation
                                        if needed) and stamp the decision fields.
-    denied                            — same implicit transitions then close_claim
-                                       with disposition='denied' → closed_denied.
+    denied                            — same implicit transitions; stamps the denial
+                                       and leaves the claim open. Closing is a
+                                       separate explicit action (close_claim_as_carrier).
 
     Carrier-owned action (decision_source='carrier_desk').
     """
@@ -92,13 +93,6 @@ def decide_coverage(
         },
     )
 
-    if decision == "denied":
-        return close_claim(
-            session, claim.id,
-            disposition="denied",
-            closed_by=adjuster_id,
-            decision_source="carrier_desk",
-        )
     return claim
 
 
