@@ -154,6 +154,7 @@ def _quote_to_dict(q: CarrierQuote) -> dict:
         "responded_at": q.responded_at.isoformat() if q.responded_at else None,
         "expires_at": q.expires_at.isoformat() if q.expires_at else None,
         "decline_reason": q.decline_reason,
+        "info_request_note": q.info_request_note,
         "premium_breakdown": q.premium_breakdown,
         "coverage_terms": q.coverage_terms,
         "underwriter_name": q.underwriter_name,

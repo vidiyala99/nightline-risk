@@ -660,3 +660,21 @@ def test_update_submission_rejected_once_in_market():
         s.commit()
         with pytest.raises(SubmissionsError, match="can be edited"):
             update_submission(s, sub.id, actor_id="u", notes="too late")
+
+
+def test_update_submission_rejects_empty_coverage_lines():
+    with _session() as s:
+        sub = _make_submission(s)
+        s.commit()
+        with pytest.raises(SubmissionsError, match="coverage_lines must not be empty"):
+            update_submission(s, sub.id, actor_id="u", coverage_lines=[])
+        s.rollback()
+        assert s.get(Submission, sub.id).coverage_lines != []
+
+
+def test_update_submission_rejects_past_effective_date():
+    with _session() as s:
+        sub = _make_submission(s)
+        s.commit()
+        with pytest.raises(SubmissionsError, match="today or in the future"):
+            update_submission(s, sub.id, actor_id="u", effective_date=date(2020, 1, 1))

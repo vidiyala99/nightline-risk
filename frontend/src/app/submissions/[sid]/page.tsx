@@ -34,7 +34,7 @@ import {
 import { policiesApi, bindPolicyNumberArg } from "@/lib/policies";
 import { authHeaders } from "@/lib/authFetch";
 import { PromptDialog } from "@/components/ui/PromptDialog";
-import { toastError } from "@/lib/toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -333,6 +333,10 @@ export default function SubmissionDetailPage() {
 
   const handleSaveTerms = async () => {
     if (!submission) return;
+    if (editLines.length === 0) {
+      setError("Select at least one coverage line before saving.");
+      return;
+    }
     setSavingTerms(true);
     setError(null);
     try {
@@ -342,6 +346,7 @@ export default function SubmissionDetailPage() {
         coverage_lines: editLines,
       });
       await load();
+      toastSuccess("Terms saved");
     } catch (e) {
       setError(e instanceof PlacementApiError ? e.message : "Save failed");
     } finally {
@@ -350,6 +355,7 @@ export default function SubmissionDetailPage() {
   };
 
   const handleSubmitToMarket = async () => {
+    if (savingTerms) return;
     if (!submission || selectedCarriers.size === 0) return;
     setActionBusy(true);
     setError(null);
@@ -559,6 +565,8 @@ export default function SubmissionDetailPage() {
               <input
                 type="date"
                 className="input-field"
+                required
+                min={new Date().toISOString().slice(0, 10)}
                 value={editEffective}
                 onChange={(e) => setEditEffective(e.target.value)}
               />

@@ -347,6 +347,11 @@ def update_submission(
             "submissions can be edited (withdraw and re-create to change terms after going to market)"
         )
 
+    if effective_date is not None and effective_date < date.today():
+        raise SubmissionsError("effective_date must be today or in the future")
+    if coverage_lines is not None and not coverage_lines:
+        raise SubmissionsError("coverage_lines must not be empty")
+
     changed: list[str] = []
     if effective_date is not None and effective_date != sub.effective_date:
         sub.effective_date = effective_date
