@@ -130,6 +130,24 @@ def test_file_fnol_rejects_date_of_loss_outside_term():
         )
 
 
+def test_file_fnol_rejects_future_date_of_loss():
+    # F-10: a loss that hasn't happened yet must be rejected, even when the
+    # future date falls INSIDE the policy term (so only the new guard can
+    # catch it — the policy-term check passes).
+    s = _session()
+    # Policy term comfortably brackets today + 5d so the term check passes.
+    pol = _active_policy(s)
+    pol.expiration_date = date.today() + timedelta(days=365)
+    s.add(pol); s.commit()
+    future = date.today() + timedelta(days=5)
+    assert pol.effective_date <= future <= pol.expiration_date  # term passes
+    with pytest.raises(ClaimsError):
+        file_fnol(
+            s, policy_id=pol.id, coverage_line="gl",
+            date_of_loss=future, filed_by=USER_ID,
+        )
+
+
 def test_file_fnol_rejects_inactive_policy():
     s = _session()
     pol = _active_policy(s)

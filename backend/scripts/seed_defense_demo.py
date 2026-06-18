@@ -50,7 +50,7 @@ def seed(session: Session) -> tuple[str, str] | None:
     eff = policy.effective_date
     if isinstance(eff, str):
         eff = date.fromisoformat(eff)
-    loss_date = eff + timedelta(days=30)
+    loss_date = min(eff + timedelta(days=30), date.today())
     occurred_at = f"{loss_date.isoformat()}T23:13:00"
     report_date = (loss_date + timedelta(days=1)).isoformat()
 

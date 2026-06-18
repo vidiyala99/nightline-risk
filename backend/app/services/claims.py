@@ -159,6 +159,11 @@ def file_fnol(
             f"date_of_loss {date_of_loss.isoformat()} outside policy term "
             f"({policy.effective_date.isoformat()} – {policy.expiration_date.isoformat()})"
         )
+    if date_of_loss > now_utc().date():
+        raise ClaimsError(
+            f"date_of_loss {date_of_loss.isoformat()} is in the future; "
+            "a loss cannot be reported before it occurs"
+        )
     if defense_package_id is not None:
         if session.get(UnderwritingPacket, defense_package_id) is None:
             raise ClaimsError(f"Unknown UnderwritingPacket {defense_package_id!r}")
