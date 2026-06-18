@@ -7433,6 +7433,38 @@ html, body { overflow-x: clip; }
   color: var(--text-muted);
 }
 
+/* ── Underwriting decision workbench — context column (AI rec + suggested
+   premium + scrolling dossier) beside a sticky decision rail, so the wide
+   desk screen is used instead of a short card stranding empty space, and the
+   decision actions stay reachable. Collapses to one column on tablets. */
+.uw-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: var(--space-xl);
+  align-items: start;
+  margin-bottom: var(--space-xl);
+}
+.uw-decision-rail {
+  position: sticky;
+  top: var(--space-lg);
+  align-self: start;
+}
+/* Risk dossier accordions in a two-up grid so they don't stretch full-bleed
+   and short, wasting the lower half of the screen. */
+.uw-dossier-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  align-items: start;
+}
+@media (max-width: 1024px) {
+  .uw-workbench { grid-template-columns: 1fr; }
+  .uw-decision-rail { position: static; }
+}
+@media (max-width: 768px) {
+  .uw-dossier-grid { grid-template-columns: 1fr; }
+}
+
 /* ── Copilot — conversational intelligence surface (spec §7). Reuses the
    .lc-card frame, .lc-triage__chip language for followups, and the paper/ink
    token system. Grounded replies render citation chips; proposed actions show

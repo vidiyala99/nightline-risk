@@ -552,6 +552,13 @@ export default function UnderwriteDecisionPage() {
         </div>
       </section>
 
+      {/* ================================================================== */}
+      {/* Decision workbench — context column (AI rec + suggested premium)    */}
+      {/* on the left, sticky decision rail on the right.                     */}
+      {/* ================================================================== */}
+      <div className="uw-workbench">
+      <div className="uw-workbench__main">
+
       {/* ------------------------------------------------------------------ */}
       {/* 2.5 AI underwriting recommendation — advisory, never auto-fills     */}
       {/* ------------------------------------------------------------------ */}
@@ -660,13 +667,8 @@ export default function UnderwriteDecisionPage() {
       })()}
 
       {/* ------------------------------------------------------------------ */}
-      {/* 3. Decision row — Suggested premium (left) + Decision card (right) */}
+      {/* Engine suggestion — context (left column of the workbench)          */}
       {/* ------------------------------------------------------------------ */}
-      <div
-        className="grid grid-cols-2 gap-xl"
-        style={{ alignItems: "start", marginBottom: "var(--space-xl)" }}
-      >
-        {/* LEFT: engine suggestion — unchanged */}
         <div className="lc-card">
           <div className="lc-card__inner">
             <h2 style={cardLabel}>Suggested premium · pricing engine</h2>
@@ -726,8 +728,10 @@ export default function UnderwriteDecisionPage() {
           </div>
         </div>
 
-        {/* RIGHT: Decision card — the hero fast path */}
-        <div className="lc-card">
+        </div>{/* /uw-workbench__main */}
+
+        {/* Decision rail — sticky on desktop, the hero fast path */}
+        <div className="lc-card uw-decision-rail">
           <div className="lc-card__inner">
             <h2 style={cardLabel}>Decision</h2>
 
@@ -1298,7 +1302,7 @@ export default function UnderwriteDecisionPage() {
       {/* ------------------------------------------------------------------ */}
       {/* 5. Risk dossier accordions — controlled open state                 */}
       {/* ------------------------------------------------------------------ */}
-      <div className="flex flex-col gap-md">
+      <div className="uw-dossier-grid">
         {/* Risk factors */}
         {Object.keys(dossier.risk.factors).length > 0 && (
           <div id="dossier-risk" className="lc-card">
