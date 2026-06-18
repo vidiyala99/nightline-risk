@@ -307,3 +307,34 @@ export function formatReserveDelta(
   }
   return { label: `${money} (${pctLabel} gap)`, tone: "danger" };
 }
+
+/**
+ * Context-aware reserve adequacy (F-9). Before any money is paid, the model is
+ * the only benchmark: compare the reserve to the advisory low–high band. Once
+ * payments accrue, switch to reserve-vs-incurred headroom/gap. Returns null
+ * when there is no usable benchmark.
+ */
+export function reserveAdequacy(
+  reserve: string | number,
+  incurred: string | number,
+  hint?: { low: string; high: string; chain_ladder_mean?: string } | null,
+): { label: string; tone: "success" | "danger" | "neutral" } | null {
+  const r = typeof reserve === "number" ? reserve : parseFloat(reserve);
+  const i = typeof incurred === "number" ? incurred : parseFloat(incurred);
+  if (Number.isNaN(r)) return null;
+
+  // Money has moved → reserve vs incurred (same epsilon as formatReserveDelta).
+  if (!Number.isNaN(i) && i >= 0.005) {
+    return formatReserveDelta(r, i);
+  }
+
+  // FNOL / no money paid → reserve vs advisory band.
+  if (!hint) return null;
+  const low = parseFloat(hint.low);
+  const high = parseFloat(hint.high);
+  if (Number.isNaN(low) || Number.isNaN(high)) return null;
+  const band = `${formatLedgerMoney(low)}–${formatLedgerMoney(high)}`;
+  if (r < low) return { label: `Below advisory (${band})`, tone: "danger" };
+  if (r > high) return { label: `Above advisory (${band})`, tone: "success" };
+  return { label: `Within advisory (${band})`, tone: "neutral" };
+}

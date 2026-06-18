@@ -26,6 +26,7 @@ export interface ReserveHint {
   high: string;
   severity_band: string;
   basis: string;
+  chain_ladder_mean?: string;
 }
 
 export async function fetchAdjusterQueue(): Promise<AdjusterQueueRow[]> {
