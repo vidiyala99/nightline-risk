@@ -225,10 +225,15 @@ export const placementApi = {
     call<SubmissionDetail>(`/api/submissions/${sid}`),
 
   // Per-carrier appetite match for this submission — guides carrier selection.
-  carrierAppetite: (sid: string) =>
-    call<{ carrier_id: string; in_appetite: boolean; reasons: string[] }[]>(
-      `/api/submissions/${sid}/carrier-appetite`,
-    ),
+  // Pass coverageLines to preview appetite against unsaved checkbox edits.
+  carrierAppetite: (sid: string, coverageLines?: string[]) => {
+    const qs = coverageLines?.length
+      ? "?" + coverageLines.map(l => `coverage_lines=${encodeURIComponent(l)}`).join("&")
+      : "";
+    return call<{ carrier_id: string; in_appetite: boolean; reasons: string[] }[]>(
+      `/api/submissions/${sid}/carrier-appetite${qs}`,
+    );
+  },
 
   // Edit a draft submission's terms (server allows this only while 'open').
   updateSubmission: (sid: string, body: {

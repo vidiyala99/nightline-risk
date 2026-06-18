@@ -137,20 +137,30 @@ def check_appetite(
     return (len(reasons) == 0, reasons)
 
 
-def appetite_for_submission(session: Session, submission_id: str) -> list[dict]:
+def appetite_for_submission(
+    session: Session,
+    submission_id: str,
+    *,
+    coverage_lines: Optional[Sequence[str]] = None,
+) -> list[dict]:
     """Per-carrier appetite match for a submission's venue + coverage profile.
 
     Read-only companion to submit_to_market: lets the broker UI *guide* carrier
     selection (flag/sort/pre-select carriers that fit this venue) instead of
     submitting blind and getting rejected. Returns one row per carrier:
-    {carrier_id, in_appetite, reasons}."""
+    {carrier_id, in_appetite, reasons}.
+
+    Pass `coverage_lines` to preview appetite against in-progress edits the
+    broker hasn't saved yet (live checkbox feedback), without persisting them.
+    """
     sub = session.get(Submission, submission_id)
     if sub is None:
         raise SubmissionsError(f"Unknown submission {submission_id!r}")
+    lines = list(coverage_lines) if coverage_lines is not None else sub.coverage_lines
     venue = _venue_dict(sub.venue_id, session)
     out: list[dict] = []
     for carrier in session.exec(select(Carrier)).all():
-        matches, reasons = check_appetite(carrier, venue, sub.coverage_lines)
+        matches, reasons = check_appetite(carrier, venue, lines)
         out.append({
             "carrier_id": carrier.id,
             "in_appetite": matches,

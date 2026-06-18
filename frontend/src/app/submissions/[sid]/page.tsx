@@ -331,6 +331,25 @@ export default function SubmissionDetailPage() {
     }
   }, [submission?.status, carriers, appetite]);
 
+  // Live appetite preview: re-check carrier appetite against the in-progress
+  // coverage-line checkboxes (debounced) so the "out of appetite" badges update
+  // as the broker edits, instead of staying stale until "Save terms" persists.
+  useEffect(() => {
+    if (!sid || submission?.status !== "open" || editLines.length === 0) return;
+    const handle = setTimeout(() => {
+      placementApi
+        .carrierAppetite(sid, editLines)
+        .then(app =>
+          setAppetite(Object.fromEntries(
+            app.map(a => [a.carrier_id, { in_appetite: a.in_appetite, reasons: a.reasons }]),
+          )),
+        )
+        .catch(() => {/* keep last-known appetite on transient failure */});
+    }, 350);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- editLines content drives the re-check
+  }, [sid, submission?.status, editLines.join(",")]);
+
   const handleSaveTerms = async () => {
     if (!submission) return;
     if (editLines.length === 0) {

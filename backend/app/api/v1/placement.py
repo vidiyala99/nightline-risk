@@ -34,7 +34,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -276,11 +276,18 @@ def api_submission_detail(sid: str, session: Session = Depends(get_session)) -> 
 
 
 @router.get("/submissions/{sid}/carrier-appetite", dependencies=[Depends(require_broker)])
-def api_carrier_appetite(sid: str, session: Session = Depends(get_session)) -> list[dict]:
+def api_carrier_appetite(
+    sid: str,
+    coverage_lines: Optional[list[str]] = Query(None),
+    session: Session = Depends(get_session),
+) -> list[dict]:
     """Per-carrier appetite match for this submission — guides carrier selection
-    so the broker doesn't submit blind. Returns [{carrier_id, in_appetite, reasons}]."""
+    so the broker doesn't submit blind. Returns [{carrier_id, in_appetite, reasons}].
+
+    Optional `coverage_lines` query params preview appetite against unsaved edits
+    (live checkbox feedback) instead of the persisted coverage profile."""
     try:
-        return appetite_for_submission(session, sid)
+        return appetite_for_submission(session, sid, coverage_lines=coverage_lines)
     except SubmissionsError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

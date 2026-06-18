@@ -178,6 +178,24 @@ def test_appetite_for_submission_unknown_submission_raises():
             appetite_for_submission(s, "sub-does-not-exist")
 
 
+def test_appetite_for_submission_coverage_lines_override_previews_unsaved_edits():
+    with _session() as s:
+        sub = _make_submission(s)  # persisted gl + liquor → markel in appetite
+        s.commit()
+        baseline = {r["carrier_id"]: r for r in appetite_for_submission(s, sub.id)}
+        assert baseline["markel-specialty"]["in_appetite"] is True
+
+        # Preview against an unsaved line markel won't write — appetite flips,
+        # and the persisted coverage_lines are untouched.
+        preview = {
+            r["carrier_id"]: r
+            for r in appetite_for_submission(s, sub.id, coverage_lines=["wc"])
+        }
+        assert preview["markel-specialty"]["in_appetite"] is False
+        assert preview["markel-specialty"]["reasons"]
+        assert s.get(Submission, sub.id).coverage_lines == ["gl", "liquor"]
+
+
 # ─── submit_to_market ────────────────────────────────────────────────────
 
 def test_submit_to_market_creates_quote_per_carrier_in_appetite():
