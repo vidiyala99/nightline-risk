@@ -7,8 +7,12 @@ import { fetchExposure, type Finding } from '../api/intelligence';
  * "What needs your attention" — the deterministic exposure feed, ported to the
  * RN operator dashboard (parity with the web ExposurePanel / MobileExposure).
  * Self-fetches, sorts critical→low, severity filter chips, self-hides on
- * empty/error. Rows are informational in v1 (the web deep-link href doesn't map
- * onto RN routes; deep-linking is a follow-up).
+ * empty/error.
+ *
+ * Navigation is host-owned: the screen passes `onSelectFinding` (RN routes
+ * differ per stack, so the shared component can't hardcode them). A row is
+ * tappable — and shows the "→" affordance — only when the host says it can
+ * route that finding (`canNavigate`); otherwise it stays honest static text.
  */
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'] as const;
@@ -30,7 +34,14 @@ const SEVERITY_COLOR: Record<string, string> = {
 };
 const MAX_ROWS = 8;
 
-export function ExposureCard() {
+interface ExposureCardProps {
+  /** Host-owned navigation for a tapped finding (routes differ per stack). */
+  onSelectFinding?: (f: Finding) => void;
+  /** Whether the host can route this finding; gates the tap + "→" affordance. */
+  canNavigate?: (f: Finding) => boolean;
+}
+
+export function ExposureCard({ onSelectFinding, canNavigate }: ExposureCardProps = {}) {
   const [findings, setFindings] = useState<Finding[] | null>(null);
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<SeverityFilter>('all');
@@ -89,8 +100,9 @@ export function ExposureCard() {
       <View>
         {rows.map((f) => {
           const color = SEVERITY_COLOR[f.severity] ?? Colors.textMuted;
-          return (
-            <View key={f.id} style={[styles.row, { borderLeftColor: color }]}>
+          const navigable = !!onSelectFinding && (canNavigate ? canNavigate(f) : true);
+          const body = (
+            <>
               <Text style={[styles.rowSev, { color }]}>{SEVERITY_LABEL[f.severity as Severity] ?? f.severity}</Text>
               <Text style={styles.rowSubject}>{f.subject.label || f.subject.entity_id}</Text>
               {!!f.why[0]?.excerpt && (
@@ -98,8 +110,20 @@ export function ExposureCard() {
                   {f.why[0].excerpt}
                 </Text>
               )}
-              <Text style={styles.rowAction}>{f.recommended_action.label} →</Text>
-            </View>
+              {/* The "→" affordance is shown only when the row actually routes. */}
+              <Text style={styles.rowAction}>{f.recommended_action.label}{navigable ? ' →' : ''}</Text>
+            </>
+          );
+          return navigable ? (
+            <Pressable
+              key={f.id}
+              style={({ pressed }) => [styles.row, { borderLeftColor: color }, pressed && { opacity: 0.7 }]}
+              onPress={() => onSelectFinding!(f)}
+            >
+              {body}
+            </Pressable>
+          ) : (
+            <View key={f.id} style={[styles.row, { borderLeftColor: color }]}>{body}</View>
           );
         })}
       </View>

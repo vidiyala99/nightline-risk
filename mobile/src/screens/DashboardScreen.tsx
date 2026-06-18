@@ -355,8 +355,22 @@ export function DashboardScreen({ navigation }: any) {
         />
       </View>
 
-      {/* What needs your attention — deterministic exposure feed (web parity) */}
-      <ExposureCard />
+      {/* What needs your attention — deterministic exposure feed (web parity).
+          Routes the operator-facing finding types within this stack; other
+          types (broker policy/claim/submission) stay informational. */}
+      <ExposureCard
+        canNavigate={(f) =>
+          f.subject.entity_type === 'compliance' || f.subject.entity_type === 'incident'
+        }
+        onSelectFinding={(f) => {
+          const venueId = selectedVenueId || user?.tenant_id;
+          if (f.subject.entity_type === 'compliance') {
+            if (venueId) navigation.navigate('ComplianceDetail', { venueId, itemId: f.subject.entity_id });
+          } else if (f.subject.entity_type === 'incident') {
+            navigation.navigate('IncidentDetail', { incidentId: f.subject.entity_id });
+          }
+        }}
+      />
 
       {/* On the floor — live operational state (operator-only; capacity is
           gated server-side via can_read_venue_floor). Mirrors web dashboard. */}
