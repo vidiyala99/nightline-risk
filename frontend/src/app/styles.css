@@ -7253,25 +7253,45 @@ html, body { overflow-x: clip; }
   gap: 8px;
 }
 .lc-exposure__row {
-  padding: 12px 14px 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-left: 3px solid var(--sev-color, var(--text-tertiary));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.lc-exposure__row-main { min-width: 0; }
+.lc-exposure__row:hover {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+}
+.lc-exposure__row-main { min-width: 0; flex: 1; }
+.lc-exposure__row-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
 .lc-exposure__sev {
-  display: block;
+  display: inline-block;
   font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--sev-color, var(--text-tertiary));
+  background: color-mix(in srgb, var(--sev-color, var(--text-tertiary)) 13%, transparent);
+  padding: 2px 9px;
+  border-radius: 999px;
 }
 .lc-exposure__subject {
   display: block;
-  margin-top: 3px;
+  margin-top: 7px;
+  font-size: 0.98rem;
   font-weight: 600;
   color: var(--text-primary);
   text-decoration: none;
@@ -7281,7 +7301,7 @@ html, body { overflow-x: clip; }
 }
 .lc-exposure__subject:hover { color: var(--accent-ink); }
 .lc-exposure__why {
-  margin: 4px 0 8px;
+  margin: 4px 0 0;
   color: var(--text-secondary);
   font-size: 0.85rem;
   line-height: 1.5;
@@ -7298,8 +7318,22 @@ html, body { overflow-x: clip; }
   font-weight: 600;
   color: var(--accent-ink);
   text-decoration: none;
+  white-space: nowrap;
+  padding: 7px 13px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.lc-exposure__action:hover { text-decoration: underline; }
+.lc-exposure__action:hover {
+  text-decoration: none;
+  border-color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent-ink) 8%, transparent);
+}
+@media (max-width: 640px) {
+  .lc-exposure__row { flex-direction: column; align-items: stretch; gap: 10px; }
+  .lc-exposure__row-aside { flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .lc-exposure__action { flex: 1; justify-content: center; }
+}
 
 /* Pager — horizontal navigation across pages of findings. */
 .lc-exposure__pager {

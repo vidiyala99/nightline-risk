@@ -268,6 +268,8 @@ export function ExposurePanel(
                 {f.subject.label || f.subject.entity_id}
               </Link>
               <p className="lc-exposure__why">{f.why[0]?.excerpt}</p>
+            </div>
+            <div className="lc-exposure__row-aside">
               <Link href={f.recommended_action.href} className="lc-exposure__action">
                 {f.recommended_action.label} →
               </Link>
