@@ -33,6 +33,7 @@ export function FilterChips({ label, options, value, onChange, scroll = true, pa
         key={opt.value}
         style={[styles.chip, active && styles.chipActive]}
         onPress={() => onChange(opt.value)}
+        hitSlop={8}
         accessibilityRole="button"
         accessibilityState={{ selected: active }}
       >

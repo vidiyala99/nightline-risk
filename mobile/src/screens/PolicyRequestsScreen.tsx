@@ -123,7 +123,7 @@ export function PolicyRequestsScreen({ navigation }: any) {
               {FILTERS.map((f) => {
                 const active = filter === f;
                 return (
-                  <Pressable key={f} onPress={() => setFilter(f)} style={[styles.chip, active && styles.chipActive]}>
+                  <Pressable key={f} onPress={() => setFilter(f)} hitSlop={8} style={[styles.chip, active && styles.chipActive]}>
                     <Text style={[styles.chipText, active && styles.chipTextActive]}>
                       {f[0].toUpperCase() + f.slice(1)}
                     </Text>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   rowType: { fontFamily: Fonts.monoBold, fontSize: 12, color: Colors.accentInk, marginBottom: 4 },
   rowNote: { color: Colors.textSecondary, fontFamily: Fonts.sansRegular, fontSize: 12, lineHeight: 17, marginBottom: 10 },
   actions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
-  actionBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 },
+  actionBtn: { paddingHorizontal: 16, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 6 },
   declineBtn: { borderWidth: 1, borderColor: Colors.error },
   declineText: { color: Colors.error, fontFamily: Fonts.sansMedium, fontSize: 13 },
   approveBtn: { backgroundColor: Colors.accent },
