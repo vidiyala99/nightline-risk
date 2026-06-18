@@ -199,3 +199,50 @@ def test_coverage_first_indemnity_without_reserve_advances_to_settling(make_clai
                     paid_on=date(2026, 6, 2), description="advance", adjuster_id="u-carrier")
     s.commit()
     assert s.get(type(claim), claim.id).status == "settling"
+
+
+# ─── F-11: queue resolves venue name DB-first (matches detail route) ─────
+
+
+def test_adjuster_queue_resolves_db_venue_name_not_in_seed_dict():
+    """A Venue that exists in the DB but NOT in the VENUES seed dict must
+    surface its real name in the queue — not the raw id. The detail route
+    already resolves DB-first; the queue must match."""
+    from app.seed_data import VENUES as SEED_VENUES
+
+    db_venue_id = "db-only-venue"
+    assert db_venue_id not in SEED_VENUES  # precondition: not seeded
+
+    s = _session()
+    s.add(Venue(id=db_venue_id, name="DB Only Venue"))
+    s.commit()
+
+    pol = Policy(
+        id="pol-db-only-1",
+        policy_number="POL-2026-9001",
+        submission_id="sub-db-only-1",
+        bound_quote_id="q-db-only-1",
+        venue_id=db_venue_id,
+        carrier_id="markel-specialty",
+        status="active",
+        effective_date=date(2026, 1, 1),
+        expiration_date=date(2027, 1, 1),
+        annual_premium="5000.00",
+        commission_amount="750.00",
+        commission_rate="0.15",
+        coverage_lines=["gl", "liquor"],
+        terms_snapshot={},
+        snapshot_hash="hash-db-only",
+    )
+    s.add(pol)
+    s.commit()
+
+    claim = file_fnol(
+        s, policy_id=pol.id, coverage_line="gl",
+        date_of_loss=date(2026, 3, 15), filed_by=USER_ID,
+    )
+    s.commit()
+
+    row = next((r for r in adjuster_queue(s) if r["claim_id"] == claim.id), None)
+    assert row is not None
+    assert row["venue_name"] == "DB Only Venue"

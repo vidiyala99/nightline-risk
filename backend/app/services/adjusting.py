@@ -198,11 +198,21 @@ def adjuster_queue(session: Session) -> list[dict]:
     """Open (non-closed) claims awaiting carrier adjudication, enriched."""
     from app.services.claims import list_claims
     from app.seed_data import VENUES
+    from app.models import Venue
     rows: list[dict] = []
     for c in list_claims(session, open_only=True):
         policy = session.get(Policy, c.policy_id)
         venue_id = policy.venue_id if policy else None
-        venue_name = VENUES.get(venue_id, {}).get("name", venue_id) if venue_id else None
+        venue_name = None
+        if venue_id:
+            # Resolve DB-first to match the detail route: a venue that exists
+            # in the Venue table but not in the VENUES seed dict shows its real
+            # name, not its raw id. Fall back to the seed dict, then the id.
+            db_venue = session.get(Venue, venue_id)
+            if db_venue is not None and db_venue.name:
+                venue_name = db_venue.name
+            else:
+                venue_name = VENUES.get(venue_id, {}).get("name", venue_id)
         total_paid = (c.indemnity_paid_to_date + c.expense_paid_to_date - c.recoveries_to_date)
         rows.append({
             "claim_id": c.id, "carrier_claim_number": c.carrier_claim_number,
