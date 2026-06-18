@@ -273,13 +273,17 @@ export function LiveTerminalScreen({ navigation, route }: any) {
         ) : (
           data.compliance_queue.map((item, i) => (
             <View key={item.id || i} style={[styles.queueRow, { borderLeftColor: PRIORITY_COLOR[item.severity] ?? Colors.textMuted }]}>
-              <View style={styles.queueContent}>
+              <Pressable
+                style={({ pressed }) => [styles.queueContent, pressed && item.id ? { opacity: 0.7 } : null]}
+                disabled={!item.id}
+                onPress={() => item.id && user?.tenant_id && navigation.navigate('ComplianceDetail', { venueId: user.tenant_id, itemId: item.id })}
+              >
                 <Text style={styles.queueAction}>{item.title}</Text>
                 {!!item.description && <Text style={styles.queueDesc}>{item.description}</Text>}
                 <Text style={[styles.queuePriority, { color: PRIORITY_COLOR[item.severity] ?? Colors.textMuted }]}>
                   {item.severity.toUpperCase()}
                 </Text>
-              </View>
+              </Pressable>
               <Pressable
                 style={({ pressed }) => [styles.uploadBtn, pressed && { opacity: 0.65 }]}
                 onPress={() => handleUpload(item)}

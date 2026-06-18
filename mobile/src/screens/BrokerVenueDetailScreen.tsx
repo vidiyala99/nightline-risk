@@ -54,6 +54,7 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
       }
 
       const queue = (liveRaw.compliance_queue ?? []).map((item: any) => ({
+        id: item.id ? String(item.id) : null,
         action: String(item.action ?? item.title ?? ''),
         priority: String(item.priority ?? item.severity ?? 'low').toLowerCase(),
       }));
@@ -251,11 +252,24 @@ export function BrokerVenueDetailScreen({ route, navigation }: any) {
           <Text style={styles.complianceClear}>{'>'} No pending actions. All clear.</Text>
         ) : live.compliance_queue.map((item: any, i: number) => {
           const pColor = item.priority === 'high' || item.priority === 'urgent' ? Colors.error : item.priority === 'medium' ? Colors.warning : Colors.textMuted;
-          return (
-            <View key={i} style={[styles.queueRow, { borderLeftColor: pColor }]}>
+          const row = (
+            <>
               <Text style={styles.queueAction}>{item.action}</Text>
               <Text style={[styles.queuePriority, { color: pColor }]}>{item.priority.toUpperCase()}</Text>
-            </View>
+            </>
+          );
+          // Tappable → the item's detail, but only when we have an id to route to
+          // (some live feeds emit id-less synthetic rows).
+          return item.id ? (
+            <Pressable
+              key={item.id}
+              style={({ pressed }) => [styles.queueRow, { borderLeftColor: pColor }, pressed && { opacity: 0.7 }]}
+              onPress={() => navigation.navigate('ComplianceDetail', { venueId, itemId: item.id })}
+            >
+              {row}
+            </Pressable>
+          ) : (
+            <View key={i} style={[styles.queueRow, { borderLeftColor: pColor }]}>{row}</View>
           );
         })}
       </View>
