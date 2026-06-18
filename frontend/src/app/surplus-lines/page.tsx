@@ -151,6 +151,10 @@ export default function SurplusLinesPage() {
             .map((f) => {
             const overdue = isOverdue(f);
             const canFile = f.status === "pending";
+            // The backend rejects a file unless diligent search is satisfied
+            // (3 admitted-carrier declinations) or the venue is Export-List
+            // exempt. Mirror that here so the CTA can't dead-end in an error.
+            const fileReady = f.diligent_search_complete || f.export_list_exempt;
             const canConfirm = f.status === "filed";
             const canVoid = f.status !== "void" && f.status !== "confirmed";
             const acting = busy === f.id;
@@ -179,11 +183,13 @@ export default function SurplusLinesPage() {
                     ) : (
                       <span>Filing deadline {f.filing_deadline}</span>
                     )}
-                    <span>
-                      {f.diligent_search_complete
-                        ? "Diligent search ✓"
-                        : "Diligent search incomplete"}
-                    </span>
+                    {f.diligent_search_complete ? (
+                      <span>Diligent search ✓</span>
+                    ) : fileReady ? (
+                      <span>Diligent search incomplete</span>
+                    ) : (
+                      <span className="badge badge-warning">Diligent search incomplete</span>
+                    )}
                     {f.export_list_exempt && <span>Export-list exempt</span>}
                     {f.transaction_id && <span>Txn {f.transaction_id}</span>}
                   </div>
@@ -205,13 +211,25 @@ export default function SurplusLinesPage() {
                   {(canFile || canConfirm || canVoid) && (
                     <div className="flex gap-xs" style={{ marginTop: "var(--space-sm)", flexWrap: "wrap" }}>
                       {canFile && (
-                        <button
-                          className="btn btn-sm btn-primary"
-                          disabled={acting}
-                          onClick={() => act(f.id, "file")}
-                        >
-                          <Send size={14} /> File
-                        </button>
+                        <div className="flex gap-xs" style={{ alignItems: "center", flexWrap: "wrap" }}>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            disabled={acting || !fileReady}
+                            title={
+                              fileReady
+                                ? undefined
+                                : "Record 3 admitted-carrier declinations or an Export-List exemption before filing."
+                            }
+                            onClick={() => act(f.id, "file")}
+                          >
+                            <Send size={14} /> File
+                          </button>
+                          {!fileReady && (
+                            <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                              Needs 3 admitted-carrier declinations or an Export-List exemption to file.
+                            </span>
+                          )}
+                        </div>
                       )}
                       {canConfirm && (
                         <button
