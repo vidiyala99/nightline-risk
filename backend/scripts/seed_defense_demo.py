@@ -6,24 +6,46 @@ Builds the authentic chain — incident (A&B) -> hashed evidence + corroboration
 detail shows "Defense package · Download PDF".
 
 Idempotent: deterministic incident id; skips if the demo claim already exists.
+Pass --refresh to delete and recreate the demo artifacts (useful after the
+loss-date cap changed and the stale prod row needs to be re-seeded).
 Run from backend/:
-    python -m scripts.seed_defense_demo
+    python -m scripts.seed_defense_demo            # skip if present
+    python -m scripts.seed_defense_demo --refresh  # delete + recreate
 """
 from __future__ import annotations
 
 import hashlib
 import sys
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 
 from sqlmodel import Session, select
 
 from app.database import engine
-from app.models import Claim, EvidenceAnalysis, EvidenceFile, IncidentRecord, Policy
+from app.models import (
+    AuditEvent,
+    CitationRecord,
+    Claim,
+    EvidenceAnalysis,
+    EvidenceFile,
+    IncidentRecord,
+    Policy,
+    SourceRecord,
+    UnderwritingPacket,
+)
 from app.packet_core import create_packet_snapshot
 from app.schemas import Citation, IncidentCreate
-from app.services.claims import file_fnol
+from app.services.claims import (
+    close_claim,
+    file_fnol,
+    record_carrier_reserve,
+    record_payment,
+)
+from app.time import now_utc
 
 INCIDENT_ID = "inc-defense-demo"
+PRIOR_INCIDENT_ID = "inc-defense-demo-prior"
+PRIOR_CARRIER_CLAIM_NUMBER = "BW-2026-PRIOR"
 
 
 def _pick_policy(session: Session) -> Policy | None:
@@ -36,7 +58,156 @@ def _pick_policy(session: Session) -> Policy | None:
     )
 
 
-def seed(session: Session) -> tuple[str, str] | None:
+def _delete_demo_artifacts(session: Session) -> None:
+    """Delete every row this script creates for INCIDENT_ID, children before
+    parents so column-level FKs hold on Postgres. Leaves shared rows
+    (RubricVersion) alone. Order:
+      Claim → CitationRecord(s) → UnderwritingPacket(s) → SourceRecord(s)
+      → AuditEvent(s) → EvidenceAnalysis → EvidenceFile → IncidentRecord
+    """
+    # 1. Claim references the packet (ON DELETE RESTRICT) — drop it first.
+    for claim in session.exec(
+        select(Claim).where(Claim.incident_id == INCIDENT_ID)
+    ).all():
+        session.delete(claim)
+    session.flush()
+
+    # 2. Packets for this incident, plus their citation records + source rows
+    #    (create_packet_snapshot writes CitationRecord by packet_id and a
+    #    SourceRecord per citation source_id).
+    packets = session.exec(
+        select(UnderwritingPacket).where(UnderwritingPacket.incident_id == INCIDENT_ID)
+    ).all()
+    for packet in packets:
+        citations = session.exec(
+            select(CitationRecord).where(CitationRecord.packet_id == packet.id)
+        ).all()
+        source_ids = {c.source_id for c in citations}
+        for citation in citations:
+            session.delete(citation)
+        session.flush()
+        session.delete(packet)
+        session.flush()
+        for source_id in source_ids:
+            source = session.get(SourceRecord, source_id)
+            if source is not None:
+                session.delete(source)
+    session.flush()
+
+    # 3. Audit events emitted by create_packet_snapshot reference the packet ids.
+    for packet in packets:
+        for event in session.exec(
+            select(AuditEvent).where(
+                AuditEvent.entity_type == "underwriting_packet",
+                AuditEvent.entity_id == packet.id,
+            )
+        ).all():
+            session.delete(event)
+    session.flush()
+
+    # 4. Evidence analyses (children of evidence files) then evidence files.
+    for analysis in session.exec(
+        select(EvidenceAnalysis).where(EvidenceAnalysis.incident_id == INCIDENT_ID)
+    ).all():
+        session.delete(analysis)
+    session.flush()
+    for ev in session.exec(
+        select(EvidenceFile).where(EvidenceFile.incident_id == INCIDENT_ID)
+    ).all():
+        session.delete(ev)
+    session.flush()
+
+    # 5. The incident itself.
+    incident = session.get(IncidentRecord, INCIDENT_ID)
+    if incident is not None:
+        session.delete(incident)
+    session.flush()
+
+
+def _delete_prior_loss(session: Session) -> None:
+    """Delete the seeded prior closed liquor loss and its child rows."""
+    from app.models import ClaimPayment, ReserveChange
+
+    for claim in session.exec(
+        select(Claim).where(Claim.incident_id == PRIOR_INCIDENT_ID)
+    ).all():
+        for payment in session.exec(
+            select(ClaimPayment).where(ClaimPayment.claim_id == claim.id)
+        ).all():
+            session.delete(payment)
+        for change in session.exec(
+            select(ReserveChange).where(ReserveChange.claim_id == claim.id)
+        ).all():
+            session.delete(change)
+        session.flush()
+        session.delete(claim)
+    session.flush()
+
+
+def _seed_prior_loss(session: Session, policy: Policy, coverage: str) -> Claim | None:
+    """Seed ONE realistic CLOSED prior liquor loss so the venue's loss run has
+    a non-zero incurred band to price against (the demo claim itself carries
+    $0 reserve / $0 paid). Idempotent on PRIOR_INCIDENT_ID.
+
+    Built via the authentic service chain: file_fnol (past date) →
+    record_carrier_reserve → record_payment (indemnity) → close_claim.
+    """
+    existing = session.exec(
+        select(Claim).where(Claim.incident_id == PRIOR_INCIDENT_ID)
+    ).first()
+    if existing is not None:
+        return existing
+
+    eff = policy.effective_date
+    if isinstance(eff, str):
+        eff = date.fromisoformat(eff)
+    exp = policy.expiration_date
+    if isinstance(exp, str):
+        exp = date.fromisoformat(exp)
+    # A past loss well inside the term: ~2 days after effective, never future.
+    prior_loss_date = min(eff + timedelta(days=2), date.today() - timedelta(days=1))
+    if prior_loss_date < eff:
+        prior_loss_date = eff
+
+    claim = file_fnol(
+        session,
+        policy_id=policy.id,
+        coverage_line=coverage,
+        date_of_loss=prior_loss_date,
+        filed_by="seed_demo",
+        incident_id=PRIOR_INCIDENT_ID,
+        carrier_claim_number=PRIOR_CARRIER_CLAIM_NUMBER,
+        adjuster_name="Dana Whitfield",
+        adjuster_email="dana.whitfield@burnswilcox.example",
+    )
+    session.flush()
+    record_carrier_reserve(
+        session, claim.id,
+        new_reserve=Decimal("7500.00"),
+        change_reason="Initial reserve on reported liquor-liability loss",
+        received_from="Burns & Wilcox",
+        received_at=now_utc(),
+        recorded_by="seed_demo",
+    )
+    record_payment(
+        session, claim.id,
+        amount=Decimal("6500.00"),
+        payment_type="indemnity",
+        paid_on=prior_loss_date + timedelta(days=30),
+        description="Indemnity settlement — prior liquor-liability loss",
+        recorded_by="seed_demo",
+    )
+    close_claim(
+        session, claim.id,
+        disposition="paid",
+        final_indemnity=Decimal("6500.00"),
+        closed_by="seed_demo",
+    )
+    session.flush()
+    return claim
+
+
+def seed(session: Session, *, refresh: bool = False) -> tuple[str, str] | None:
     policy = _pick_policy(session)
     if policy is None:
         print("[seed] no policy found — run scripts.seed_demo_placements first.")
@@ -54,11 +225,21 @@ def seed(session: Session) -> tuple[str, str] | None:
     occurred_at = f"{loss_date.isoformat()}T23:13:00"
     report_date = (loss_date + timedelta(days=1)).isoformat()
 
+    if refresh:
+        # Drop the stale demo artifacts so the recreated claim picks up the
+        # capped (today-or-earlier) loss_date and an aligned packet timeline.
+        _delete_demo_artifacts(session)
+        _delete_prior_loss(session)
+        session.commit()
+
     existing = session.exec(
         select(Claim).where(Claim.incident_id == INCIDENT_ID)
     ).first()
     if existing and existing.defense_package_id:
         print(f"[seed] already seeded — packet={existing.defense_package_id} claim={existing.id}")
+        # Even on skip, ensure the prior loss exists so the advisory band is non-zero.
+        _seed_prior_loss(session, policy, coverage)
+        session.commit()
         return (existing.defense_package_id, existing.id)
 
     # 1. Incident — documented A&B with the structured fields the PDF surfaces.
@@ -189,11 +370,18 @@ def seed(session: Session) -> tuple[str, str] | None:
         adjuster_name="Dana Whitfield",
         adjuster_email="dana.whitfield@burnswilcox.example",
     )
+    session.flush()
+
+    # 5. A separate CLOSED prior liquor loss so the reserve advisory band on the
+    #    live screen is non-zero (the demo claim carries $0 reserve / $0 paid).
+    _seed_prior_loss(session, policy, coverage)
+
     session.commit()
     print(f"[seed] packet={packet.id} claim={claim.id} policy={policy.id} venue={venue_id} coverage={coverage}")
     return (packet.id, claim.id)
 
 
 if __name__ == "__main__":
+    refresh = "--refresh" in sys.argv
     with Session(engine) as s:
-        sys.exit(0 if seed(s) is not None else 1)
+        sys.exit(0 if seed(s, refresh=refresh) is not None else 1)
