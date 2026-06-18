@@ -700,6 +700,7 @@ export default function AdjusterClaimDetailPage() {
       probability: number;
       expected_payout: { low_usd: number; median_usd: number; high_usd: number };
       net_expected_value_usd: number;
+      carrier_payout?: number;
       confidence: number;
     } | null;
     citation_count?: number;
@@ -873,12 +874,16 @@ export default function AdjusterClaimDetailPage() {
           ? Math.round(incidentReport.confidence * 100)
           : null;
         const rec = incidentReport.recommendation ?? null;
-        const exposureRaw = rec?.net_expected_value_usd ?? 0;
-        const exposureStr =
-          rec != null ? "$" + Math.abs(exposureRaw).toLocaleString() : null;
-        // Carrier semantics: higher exposure = more loss = warning/error tone.
+        const exposureEV =
+          rec != null && rec.carrier_payout != null
+            ? Math.round(rec.carrier_payout * rec.probability)
+            : null;
+        const exposureStr = exposureEV != null ? "$" + exposureEV.toLocaleString() : "—";
+        // Carrier exposure is a loss figure: positive = warning/error, zero = neutral.
         const exposureColor =
-          exposureRaw > 0 ? "var(--state-error)" : "var(--state-warning)";
+          exposureEV == null || exposureEV === 0
+            ? "var(--text-secondary)"
+            : "var(--state-error)";
         return (
           <div
             className="lc-card"
