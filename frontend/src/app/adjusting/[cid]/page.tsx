@@ -20,6 +20,7 @@ import {
   PAYMENT_TYPE_LABEL,
   PAYMENT_TYPE_TONE,
   formatLedgerMoney,
+  reserveAdequacy,
 } from "@/lib/claim-tokens";
 
 // ---------------------------------------------------------------------------
@@ -174,6 +175,15 @@ function ReserveHintBanner({ hint }: { hint: ReserveHint }) {
         <strong style={{ color: "var(--text-primary)" }}>Advisory suggestion</strong>{" "}
         {formatLedgerMoney(hint.low)}–{formatLedgerMoney(hint.high)} ·{" "}
         <em>{hint.severity_band}</em> · {hint.basis} — does not auto-fill.
+        {hint.chain_ladder_mean && (
+          <>
+            {" "}
+            <strong style={{ color: "var(--text-primary)" }}>
+              Chain-ladder estimate
+            </strong>{" "}
+            {formatLedgerMoney(hint.chain_ladder_mean)} (IBNR-aware).
+          </>
+        )}
       </span>
     </div>
   );
@@ -712,6 +722,12 @@ export default function AdjusterClaimDetailPage() {
   const recoveries = parseFloat(claim.recoveries_to_date ?? "0") || 0;
   const totalIncurred = indemnityPaid + expensePaid - recoveries;
 
+  const adequacy = reserveAdequacy(
+    claim.current_reserve,
+    String(totalIncurred),
+    reserveHint,
+  );
+
   const hasCoverageDecision = claim.coverage_decision !== null;
   const indemnityGated =
     claim.coverage_decision !== "covered" &&
@@ -818,6 +834,25 @@ export default function AdjusterClaimDetailPage() {
               {formatLedgerMoney(String(totalIncurred))}
             </strong>
           </div>
+
+          {adequacy && (
+            <div className="lc-meta-cell">
+              <span className="lc-stat-label">Reserve adequacy</span>
+              <strong
+                style={{
+                  fontSize: "var(--text-sm)",
+                  color:
+                    adequacy.tone === "danger"
+                      ? "var(--state-error)"
+                      : adequacy.tone === "success"
+                      ? "var(--state-success)"
+                      : "var(--text-secondary)",
+                }}
+              >
+                {adequacy.label}
+              </strong>
+            </div>
+          )}
         </div>
       </section>
 
