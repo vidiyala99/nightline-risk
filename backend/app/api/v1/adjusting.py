@@ -2,6 +2,7 @@
 All routes carrier-gated. The broker's /api/claims/* relay routes are untouched."""
 from __future__ import annotations
 
+import json
 from datetime import date
 from decimal import Decimal
 
@@ -26,6 +27,33 @@ from app.models import Claim, ClaimPayment, Policy, ReserveChange
 router = APIRouter()
 
 
+def _as_dict(value) -> dict:
+    """Coerce a JSON dict column to a real dict. Postgres can return Column(JSON)
+    fields as JSON-encoded strings where SQLite returns parsed dicts."""
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except (ValueError, TypeError):
+            return {}
+    return {}
+
+
+def _as_list(value) -> list:
+    """Coerce a JSON list column to a real list (see _as_dict)."""
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else []
+        except (ValueError, TypeError):
+            return []
+    return []
+
+
 def _incident_report(session, claim) -> dict | None:
     """The AI incident report + numbers behind this claim (risk signal, memo,
     expected-payout recommendation, evidence). Failure-isolated → None."""
@@ -43,7 +71,7 @@ def _incident_report(session, claim) -> dict | None:
             ).first()
         if packet is None:
             return None
-        rs = packet.risk_signals or {}
+        rs = _as_dict(packet.risk_signals)
         rec = None
         try:
             rec = recommendation_to_dict(recommendation_for_packet(session, packet))
@@ -54,9 +82,9 @@ def _incident_report(session, claim) -> dict | None:
             "severity": rs.get("severity"),
             "confidence": rs.get("confidence"),
             "explanation": rs.get("explanation"),
-            "memo_summary": (packet.memo or {}).get("summary"),
+            "memo_summary": _as_dict(packet.memo).get("summary"),
             "recommendation": rec,                 # expected_payout numbers etc.
-            "citation_count": len(packet.citation_ids or []),
+            "citation_count": len(_as_list(packet.citation_ids)),
             "corroboration_status": packet.corroboration_status,
         }
     except Exception:
