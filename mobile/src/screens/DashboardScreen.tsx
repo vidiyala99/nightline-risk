@@ -16,6 +16,7 @@ import { StatCard } from '../components/StatCard';
 import { QuickActionTile } from '../components/QuickActionTile';
 import { OnboardingCard } from '../components/OnboardingCard';
 import { ExposureCard } from '../components/ExposureCard';
+import { AgentActivityCard } from '../components/AgentActivityCard';
 import { tierColor as getTierColor } from '../theme/tiers';
 import { normalizeFactors, riskAttentionLine, factorGlyph } from '../lib/format';
 
@@ -371,6 +372,10 @@ export function DashboardScreen({ navigation }: any) {
           }
         }}
       />
+
+      {/* Agent activity — agent-oversight feed (web parity). No navigation
+          in v1; self-hides when there are no runs / on error. */}
+      <AgentActivityCard />
 
       {/* On the floor — live operational state (operator-only; capacity is
           gated server-side via can_read_venue_floor). Mirrors web dashboard. */}
