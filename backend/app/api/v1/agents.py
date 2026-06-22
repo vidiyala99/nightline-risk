@@ -79,6 +79,14 @@ def get_rollup(
     session: Session = Depends(get_session),
 ) -> AgentRollupResponse:
     user = _require_user(authorization)
+    if window not in {"7d", "all"}:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "agent_runs",
+                "message": f"invalid window: {window!r} (expected '7d' or 'all')",
+            },
+        )
     window_days = None if window == "all" else 7
     try:
         rows = rollup(user, session, window_days=window_days)

@@ -10,9 +10,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import timedelta
 from decimal import Decimal
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Session, select
+
+if TYPE_CHECKING:
+    from sqlalchemy.sql import Select
 
 from app.auth import accessible_venue_ids
 from app.models import AgentRun, IncidentRecord
@@ -41,7 +44,7 @@ def _accessible_incident_ids(venue_ids: set[str], session: Session) -> set[str]:
     return set(rows)
 
 
-def _scoped_query(user: dict | None, session: Session):
+def _scoped_query(user: dict | None, session: Session) -> "Select | None":
     """Base select(AgentRun) with venue scope applied, or None if the caller
     can see nothing. Broker/admin (scope None) get an unrestricted query."""
     scope = accessible_venue_ids(user, session)

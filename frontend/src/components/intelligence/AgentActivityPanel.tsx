@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Bot } from "lucide-react";
 import { fetchAgentRuns, type AgentRun } from "@/lib/agents";
 

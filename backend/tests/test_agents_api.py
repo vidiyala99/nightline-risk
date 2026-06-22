@@ -48,6 +48,17 @@ def test_rollup_returns_shape_for_broker():
         assert isinstance(row["fallback_rate"], str)
 
 
+def test_rollup_rejects_invalid_window():
+    resp = client.get("/api/agents/rollup?window=30d", headers=BROKER_HEADERS)
+    assert resp.status_code == 400, resp.text
+
+
+def test_rollup_accepts_all_window():
+    resp = client.get("/api/agents/rollup?window=all", headers=BROKER_HEADERS)
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["window"] == "all"
+
+
 @pytest.fixture
 def seeded_client(tmp_path, monkeypatch):
     # Isolated engine (mirrors tests/test_ingestion_runs_api.py): seed one AgentRun

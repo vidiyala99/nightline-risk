@@ -29,9 +29,9 @@ def _incident(session: Session, *, id: str, venue_id: str) -> IncidentRecord:
     return inc
 
 
-def _run(session: Session, *, entity_type=None, entity_id=None) -> AgentRun:
+def _run(session: Session, *, entity_type=None, entity_id=None, id=None) -> AgentRun:
     run = AgentRun(
-        id=f"arun-{entity_id or 'none'}", agent_name="risk_evaluator_agent",
+        id=id or f"arun-{entity_id or 'none'}", agent_name="risk_evaluator_agent",
         agent_kind="pipeline", contract_version="v1", provider="groq",
         model="m", input_hash="h", entity_type=entity_type, entity_id=entity_id,
         status="succeeded", outcome="success",
@@ -94,10 +94,7 @@ def test_limit_is_clamped_and_applied():
     s = _session()
     _incident(s, id="inc-A", venue_id="venue-A")
     for i in range(5):
-        r = _run(s, entity_type="incident", entity_id="inc-A")
-        r.id = f"arun-{i}"
-        s.add(r)
-    s.flush()
+        _run(s, entity_type="incident", entity_id="inc-A", id=f"arun-{i}")
     assert len(list_runs(BROKER, s, limit=2)) == 2
 
 
@@ -109,8 +106,10 @@ from app.services.agent_runs import rollup
 
 
 def _run_full(s, *, agent, entity_id, outcome, auto, cost, age_days=0):
-    r = _run(s, entity_type="incident", entity_id=entity_id)
-    r.id = f"arun-{agent}-{entity_id}-{outcome}-{auto}-{age_days}"
+    r = _run(
+        s, entity_type="incident", entity_id=entity_id,
+        id=f"arun-{agent}-{entity_id}-{outcome}-{auto}-{age_days}",
+    )
     r.agent_name = agent
     r.outcome = outcome
     r.status = "fell_back" if outcome == "fallback" else "succeeded"
