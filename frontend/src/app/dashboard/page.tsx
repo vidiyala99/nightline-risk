@@ -15,6 +15,7 @@ import { TierBadge, Tier as UiTier } from "@/components/ui/TierBadge";
 import { useBreakpoint, useMounted } from "@/hooks/useBreakpoint";
 import { riskAttentionLine, FACTOR_TIER_COLOR, FACTOR_GLYPH, factorLabel, getFactorTier } from "@/lib/risk";
 import { ExposurePanel } from "@/components/intelligence/ExposurePanel";
+import { AgentActivityPanel } from "@/components/intelligence/AgentActivityPanel";
 import { DashboardMobile } from "@/components/mobile/DashboardMobile";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -608,6 +609,7 @@ function DashboardPageInner() {
           dashboard has ONE attention surface. The header count stays
           findings-only — queue depth never inflates it. */}
       <ExposurePanel brokerQueues={isBroker ? { expiringRenewals } : null} />
+      <AgentActivityPanel />
 
       {/* OPERATOR: launch the Risk Intelligence Copilot for a conversational
           read of the same exposure surface. Operator-only (broker/carrier
