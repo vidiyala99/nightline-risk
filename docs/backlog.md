@@ -1121,14 +1121,26 @@ reuse of the same reproducibility spine is Track 18.
 - [x] **PR1 — ledger primitive** (`2ac0f9f`): `AgentRun` model + lifecycle + `record_agent_run` seam.
 - [x] **PR2 — instrument the live pipeline** (`0e435b3`): every incident records 5 agent runs;
   risk/memo record `fell_back`; optional kwargs keep the 62 pricing cells untouched.
-- [ ] **PR3 — read API.** `GET /api/agents/runs` (reverse-chron feed + per-entity history) and
-  `GET /api/agents/rollup` (cost + fallback-rate + auto-vs-escalated, grouped by agent). Venue-scoped
-  via `accessible_venue_ids` (broker all, operator own — never persona-gated); cost summed as Decimal
-  → money-as-string. New `app/services/agent_runs.py` (typed `AgentRunsError` → 400) + `app/api/v1/agents.py`.
-- [ ] **PR4 — oversight panel (web + mobile).** `AgentActivityPanel` beside `ExposurePanel`, 30s poll
-  (reuse the `alerts/page.tsx` pattern — SSE is over-scope); agent / entity / outcome (success vs
-  fallback chip) / cost / latency / auto-vs-escalated. The fallback chip turns the silent
-  `fallback_reason` into a visible oversight signal.
+- [x] **PR3 — read API — SHIPPED (Session 2026-06-22).** `GET /api/agents/runs` (reverse-chron feed +
+  per-entity history) and `GET /api/agents/rollup` (cost + fallback-rate + auto-vs-escalated, grouped by
+  agent, rolling 7-day default / `?window=all`). Venue-scoped via `accessible_venue_ids` (broker all,
+  operator own — never persona-gated); operators **cannot** see null-entity / foreign-venue runs (entity→venue
+  resolved at query time via a `resolve_run_venue` dispatch, no schema change). New
+  `app/services/agent_runs.py` (typed `AgentRunsError` → 400) + `app/schemas/agents.py` + `app/api/v1/agents.py`.
+  Provenance hashes (`input_hash`/`snapshot_hash`) intentionally excluded from the payload. **Deviation from
+  the plan's `usd_to_json`:** `cost_usd`/`total_cost_usd` serialize via `str(Decimal)` at the column's native
+  6dp — `usd_to_json` quantizes to cents, which would truncate sub-cent LLM costs to `$0.00` (the column is
+  `Numeric(12,6)` for exactly this reason). Still string-serialized (no float). Commits `5e72a3c` (scaffold +
+  venue resolver) · `0a7acdf` (list_runs) · `d12577b` (rollup) · `d8672af`+`68ac7e2` (router + cost-precision
+  fix) · `b605832` (rollup window validation + test hygiene). TDD throughout; spec + quality reviewed per task
+  + whole-branch review (merge-ready, no Critical/Important).
+- [x] **PR4 — oversight panel (web + mobile) — SHIPPED (Session 2026-06-22).** `AgentActivityPanel` (web,
+  `components/intelligence/`) mounted beside the single `ExposurePanel` on the dashboard (serves both personas
+  via per-token API scope) + `AgentActivityCard` (mobile, on `DashboardScreen`). 30s `setInterval` poll (no
+  SSE), `authHeaders()` on the web fetch, self-hides on empty/error. Row: agent / entity / outcome (success vs
+  **fallback chip**) / cost / latency / auto-vs-escalated — the fallback chip turns the silent `fallback_reason`
+  into a visible oversight signal. Commits `b530f0b` (web lib + panel + vitest) · `d138f66` (web mount) ·
+  `2300561` (mobile api + card + mount). Web vitest 91 ✓ + tsc clean; mobile tsc clean.
 - [ ] **Phase 2 — unify cost/rate-limit + widen instrumentation.** Subsume the copilot-only
   `llm_telemetry`/`rate_limit` into a shared `app/agents/meter.py` + `rate_limit.py` keyed by
   `(agent_kind, subject)` returning Decimal cost; instrument fraud (`claim_routing.py`), vision, and
