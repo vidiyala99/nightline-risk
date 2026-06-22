@@ -7,12 +7,16 @@ venues; null-entity (unattributable) runs are operator-invisible.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from datetime import timedelta
+from decimal import Decimal
 from typing import Optional
 
 from sqlmodel import Session, select
 
 from app.auth import accessible_venue_ids
 from app.models import AgentRun, IncidentRecord
+from app.time import now_utc
 
 
 class AgentRunsError(Exception):
@@ -78,3 +82,36 @@ def list_runs(
         stmt = stmt.where(AgentRun.outcome == outcome)
     stmt = stmt.order_by(AgentRun.created_at.desc()).limit(limit)
     return list(session.exec(stmt).all())
+
+
+@dataclass
+class AgentRollupRow:
+    agent_name: str
+    run_count: int = 0
+    total_cost_usd: Decimal = field(default_factory=lambda: Decimal("0"))
+    fallback_count: int = 0
+    auto_count: int = 0
+    escalated_count: int = 0
+
+
+def rollup(
+    user: dict | None, session: Session, *, window_days: Optional[int] = 7
+) -> list[AgentRollupRow]:
+    stmt = _scoped_query(user, session)
+    if stmt is None:
+        return []
+    if window_days is not None:
+        cutoff = now_utc() - timedelta(days=window_days)
+        stmt = stmt.where(AgentRun.created_at >= cutoff)
+    rows: dict[str, AgentRollupRow] = {}
+    for run in session.exec(stmt).all():
+        row = rows.setdefault(run.agent_name, AgentRollupRow(agent_name=run.agent_name))
+        row.run_count += 1
+        row.total_cost_usd += run.cost_usd or Decimal("0")
+        if run.outcome == "fallback":
+            row.fallback_count += 1
+        if run.auto_completed:
+            row.auto_count += 1
+        else:
+            row.escalated_count += 1
+    return [rows[name] for name in sorted(rows)]

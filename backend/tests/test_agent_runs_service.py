@@ -99,3 +99,56 @@ def test_limit_is_clamped_and_applied():
         s.add(r)
     s.flush()
     assert len(list_runs(BROKER, s, limit=2)) == 2
+
+
+from datetime import timedelta
+from decimal import Decimal
+
+from app.time import now_utc
+from app.services.agent_runs import rollup
+
+
+def _run_full(s, *, agent, entity_id, outcome, auto, cost, age_days=0):
+    r = _run(s, entity_type="incident", entity_id=entity_id)
+    r.id = f"arun-{agent}-{entity_id}-{outcome}-{auto}-{age_days}"
+    r.agent_name = agent
+    r.outcome = outcome
+    r.status = "fell_back" if outcome == "fallback" else "succeeded"
+    r.auto_completed = auto
+    r.cost_usd = Decimal(cost)
+    r.created_at = now_utc() - timedelta(days=age_days)
+    s.add(r)
+    s.flush()
+    return r
+
+
+def test_rollup_groups_by_agent_with_cost_and_rates():
+    s = _session()
+    _incident(s, id="inc-A", venue_id="venue-A")
+    _run_full(s, agent="risk", entity_id="inc-A", outcome="success", auto=True, cost="0.001000")
+    _run_full(s, agent="risk", entity_id="inc-A", outcome="fallback", auto=False, cost="0.002000")
+    rows = rollup(BROKER, s)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.agent_name == "risk"
+    assert row.run_count == 2
+    assert row.total_cost_usd == Decimal("0.003000")
+    assert row.fallback_count == 1
+    assert row.auto_count == 1
+    assert row.escalated_count == 1
+
+
+def test_rollup_default_window_excludes_old_runs():
+    s = _session()
+    _incident(s, id="inc-A", venue_id="venue-A")
+    _run_full(s, agent="risk", entity_id="inc-A", outcome="success", auto=True, cost="0.001", age_days=1)
+    _run_full(s, agent="risk", entity_id="inc-A", outcome="success", auto=True, cost="0.001", age_days=30)
+    rows = rollup(BROKER, s, window_days=7)
+    assert rows[0].run_count == 1  # the 30-day-old run is excluded
+    rows_all = rollup(BROKER, s, window_days=None)
+    assert rows_all[0].run_count == 2
+
+
+def test_rollup_zero_runs_returns_empty_list():
+    s = _session()
+    assert rollup(BROKER, s) == []
