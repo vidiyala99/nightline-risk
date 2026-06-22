@@ -10,7 +10,6 @@ from sqlmodel import Session
 
 from app.auth import verify_token
 from app.database import get_session
-from app.money import usd_to_json
 from app.schemas.agents import (
     AgentRollupResponse,
     AgentRollupRowOut,
@@ -64,7 +63,7 @@ def get_runs(
                 entity_id=r.entity_id, status=r.status, outcome=r.outcome,
                 fallback_reason=r.fallback_reason,
                 confidence=str(r.confidence) if r.confidence is not None else None,
-                cost_usd=usd_to_json(r.cost_usd or Decimal("0")),
+                cost_usd=str(r.cost_usd or Decimal("0")),
                 latency_ms=r.latency_ms, auto_completed=r.auto_completed,
                 created_at=r.created_at,
             )
@@ -91,7 +90,7 @@ def get_rollup(
         agents=[
             AgentRollupRowOut(
                 agent_name=row.agent_name, run_count=row.run_count,
-                total_cost_usd=usd_to_json(row.total_cost_usd),
+                total_cost_usd=str(row.total_cost_usd),
                 fallback_rate=_fallback_rate(row.fallback_count, row.run_count),
                 auto_count=row.auto_count, escalated_count=row.escalated_count,
             )
