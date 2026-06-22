@@ -468,6 +468,9 @@ app.include_router(surplus_lines_router, prefix="/api", tags=["surplus-lines"])
 from app.api.v1.intelligence import router as intelligence_router  # noqa: E402
 app.include_router(intelligence_router, prefix="/api", tags=["intelligence"])
 
+from app.api.v1.agents import router as agents_router  # noqa: E402
+app.include_router(agents_router, prefix="/api", tags=["agents"])
+
 from app.api.v1.coverage import router as coverage_router  # noqa: E402
 app.include_router(coverage_router, prefix="/api", tags=["coverage"])
 
