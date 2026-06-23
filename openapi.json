@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Third Space Risk OS",
+    "title": "Nightline Risk OS",
     "version": "0.1.0"
   },
   "paths": {

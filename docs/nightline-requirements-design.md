@@ -1,17 +1,17 @@
-# Third Space Risk Requirements and Design
+# Nightline Risk Requirements and Design
 
 Last updated: 2026-05-05
 
 ## Purpose
 
-This document is the living source of truth for the current Third Space Risk demo. It serves two audiences:
+This document is the living source of truth for the current Nightline Risk demo. It serves two audiences:
 
 - Interview briefing: a concise explanation of the product thesis, demo flow, and technical choices.
 - Engineering handoff: a requirements/design record for what exists today, how it works, what is still mocked, and what should come next.
 
 ## Product Thesis
 
-Third Space Risk is an underwriting and claims-defensibility operating system for venues. The core idea is that music venues, bars, and other "third spaces" generate operational signals every night, but those signals are usually disconnected from insurance workflows.
+Nightline Risk is an underwriting and claims-defensibility operating system for venues. The core idea is that music venues, bars, and other "third spaces" generate operational signals every night, but those signals are usually disconnected from insurance workflows.
 
 The demo shows how a venue incident can become a structured underwriting packet:
 
@@ -297,7 +297,7 @@ Important CORS note:
 - Make evidence visible and cited — not hidden behind generic AI output.
 - Preserve a clear distinction between observed facts, source evidence, and generated outputs.
 - Demonstrate the full operational loop: live data → compliance action → evidence upload → claims defense.
-- Communicate the savings story: Third Space rate vs market rate, not just a risk score.
+- Communicate the savings story: Nightline rate vs market rate, not just a risk score.
 - Provide a local demo that runs end-to-end without narration.
 
 ### Functional Requirements

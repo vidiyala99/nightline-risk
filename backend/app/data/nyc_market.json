@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-24T21:26:41Z",
-  "methodology_note": "Estimates only. Venues are real NYC on-premises nightlife licensees (NY State Liquor Authority open data). Current premium is a class-based market benchmark; Third Space figures are modeled (best-tier to market-neutral), not quotes. 'Likely carriers' is an appetite-based inference over carriers active in this space — not a statement of any venue's actual insurer. Actual pricing depends on a full underwriting review.",
+  "methodology_note": "Estimates only. Venues are real NYC on-premises nightlife licensees (NY State Liquor Authority open data). Current premium is a class-based market benchmark; Nightline figures are modeled (best-tier to market-neutral), not quotes. 'Likely carriers' is an appetite-based inference over carriers active in this space — not a statement of any venue's actual insurer. Actual pricing depends on a full underwriting review.",
   "aggregate": {
     "venue_count": 286,
     "total_market_premium": "3801000.00",

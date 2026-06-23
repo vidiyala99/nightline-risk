@@ -47,7 +47,7 @@ OUTPUT_PATH = Path(__file__).parent.parent.parent / "frontend" / "public" / "nyc
 METHODOLOGY_NOTE = (
     "Estimates only. Venues are real NYC on-premises nightlife licensees (NY "
     "State Liquor Authority open data). Current premium is a class-based market "
-    "benchmark; Third Space figures are modeled (best-tier to market-neutral), "
+    "benchmark; Nightline figures are modeled (best-tier to market-neutral), "
     "not quotes. 'Likely carriers' is an appetite-based inference over carriers "
     "active in this space — not a statement of any venue's actual insurer. "
     "Actual pricing depends on a full underwriting review."

@@ -12,7 +12,7 @@ numbers are produced by the *same engine* the product uses:
 Estimation methodology (see also the methodology_note emitted in the JSON):
   market_premium = Tier B baseline ("what a comparable venue pays without
                    Nightline intelligence").
-  Third Space estimated premium range = Tier A (best case) .. Tier B (market
+  Nightline estimated premium range = Tier A (best case) .. Tier B (market
                    neutral). We do NOT extend to Tier C/D: those are surcharge
                    tiers (>market), and a *savings* surface shows achievable
                    savings, not the downside for a poorly-run venue. The
@@ -187,7 +187,7 @@ def likely_carriers(venue_type: str, coverage_lines: list[str] | None = None) ->
 
 
 def estimate_for_venue(venue_type: str, coverage_lines: list[str] | None = None) -> dict:
-    """Compute market premium + Third Space savings range for a venue_type,
+    """Compute market premium + Nightline savings range for a venue_type,
     reusing PremiumCalculator. Returns money as cent strings."""
     vid = "_est"
     calc = PremiumCalculator({vid: {"id": vid, "venue_type": venue_type}})
